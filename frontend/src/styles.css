@@ -194,6 +194,17 @@
     font-family: var(--font-sans);
   }
 
+  /* Hide scrollbar while preserving scrolling functionality */
+  body::-webkit-scrollbar,
+  body *::-webkit-scrollbar {
+    display: none;
+  }
+
+  body {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
   /* futuristic grid + noise depth layer */
   body::before {
     content: "";
