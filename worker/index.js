@@ -250,13 +250,28 @@ function get_theater_name(theaterInfo, fallbackIndex, lang) {
   );
 }
 
-function json(data, status = 200) {
+const ALLOWED_ORIGIN = 'https://hawkbucks.pages.dev';
+
+function corsHeaders(origin) {
+  const headers = {
+    'Content-Type': 'application/json; charset=utf-8',
+    'Cache-Control': 'no-store',
+    'Access-Control-Allow-Methods': 'GET, OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type, Accept',
+    'Vary': 'Origin'
+  };
+
+  if (origin === ALLOWED_ORIGIN) {
+    headers['Access-Control-Allow-Origin'] = ALLOWED_ORIGIN;
+  }
+
+  return headers;
+}
+
+function json(data, status = 200, origin = '') {
   return new Response(JSON.stringify(data), {
     status,
-    headers: {
-      'Content-Type': 'application/json; charset=utf-8',
-      'Cache-Control': 'no-store'
-    }
+    headers: corsHeaders(origin)
   });
 }
 
@@ -518,7 +533,7 @@ async function getCachedMissionData(env) {
   return cached;
 }
 
-async function handleMissions(env) {
+async function handleMissions(env, origin) {
   const cached = await getCachedMissionData(env);
 
   if (!cached) {
@@ -531,65 +546,54 @@ async function handleMissions(env) {
         totalVbucks: 0,
         missions: []
       },
-      503
+      503,
+      origin
     );
   }
 
-  return json(cached);
+  return json(cached, 200, origin);
 }
 
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
+    const origin = request.headers.get('Origin') || '';
+
+    // CORS preflight
+    if (request.method === 'OPTIONS') {
+      if (origin === ALLOWED_ORIGIN) {
+        return new Response(null, {
+          status: 204,
+          headers: corsHeaders(origin)
+        });
+      }
+
+      return new Response(null, {
+        status: 403,
+        headers: corsHeaders('')
+      });
+    }
 
     if (
       request.method === 'GET' &&
       url.pathname === '/api/missions'
     ) {
-      return handleMissions(env);
+      return handleMissions(env, origin);
     }
 
     if (
       request.method === 'GET' &&
       url.pathname === '/api/health'
     ) {
-      return json({
-        status: 'ok',
-        service: 'HawkBucks Worker',
-        timestamp:
-          new Date().toISOString()
-      });
-    }
-
-    if (
-      request.method === 'GET' &&
-      url.pathname === '/api/admin/update'
-    ) {
-      try {
-        const data = await fetchMissionData(env);
-
-        await saveMissionData(env, data);
-
-        return json({
-          success: true,
-          message: 'Mission data updated successfully.',
-          data
-        });
-      } catch (error) {
-        console.error(
-          'Manual mission update failed:',
-          error
-        );
-
-        return json(
-          {
-            success: false,
-            message: 'Mission update failed.',
-            error: error.message
-          },
-          502
-        );
-      }
+      return json(
+        {
+          status: 'ok',
+          service: 'HawkBucks Worker',
+          timestamp: new Date().toISOString()
+        },
+        200,
+        origin
+      );
     }
 
     return json(
@@ -597,7 +601,8 @@ export default {
         success: false,
         message: 'HawkBucks API'
       },
-      404
+      404,
+      origin
     );
   },
 
