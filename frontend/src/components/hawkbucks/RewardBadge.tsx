@@ -1,8 +1,8 @@
-import vbucks from "@/assets/vbucks.png.asset.json";
+import { ASSETS } from "@/lib/assets";
 import { cn } from "@/lib/utils";
 
 export function VbucksIcon({ className }: { className?: string }) {
-  return <img src={vbucks.url} alt="V-Bucks" className={cn("h-5 w-5", className)} />;
+  return <img src={ASSETS.vbucks} alt="V-Bucks" className={cn("h-5 w-5", className)} />;
 }
 
 export function RewardBadge({ amount }: { amount: number }) {

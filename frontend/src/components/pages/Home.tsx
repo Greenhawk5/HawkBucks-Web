@@ -6,18 +6,17 @@ import { MissionDashboard } from "@/components/hawkbucks/MissionDashboard";
 import { EmptyState } from "@/components/hawkbucks/EmptyState";
 import { UpdateTimer } from "@/components/hawkbucks/UpdateTimer";
 import { missionsQueryOptions } from "@/services/missions.api";
-import { totalVbucks } from "@/lib/missions";
 
 export function HomePage() {
   const { data } = useSuspenseQuery(missionsQueryOptions());
-  const total = totalVbucks(data.missions);
+  const hasMissions = data.status === "available" && data.missions.length > 0;
 
   return (
     <div className="min-h-screen">
       <Navbar />
       <main className="mx-auto max-w-[1100px] px-4 pb-10 sm:px-6">
-        <HeroSection total={total} missionCount={data.missions.length} />
-        {data.missions.length > 0 ? <MissionDashboard missions={data.missions} /> : <EmptyState />}
+        <HeroSection total={data.totalVbucks} missionCount={data.missions.length} />
+        {hasMissions ? <MissionDashboard missions={data.missions} /> : <EmptyState />}
         <div className="mt-6">
           <UpdateTimer lastUpdated={data.lastUpdated} />
         </div>

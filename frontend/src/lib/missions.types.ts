@@ -4,9 +4,16 @@ export type MissionType =
   | "deliver-the-bomb"
   | "retrieve-the-data"
   | "evacuate-the-shelter"
-  | "resupply"
   | "repair-the-shelter"
-  | "eliminate-and-collect";
+  | "rescue-the-survivors"
+  | "destroy-the-encampments"
+  | "eliminate-and-collect"
+  | "resupply"
+  | "build-the-radar-grid"
+  | "launch-the-rocket"
+  | "refuel-the-homebase"
+  | "deliver-the-supplies"
+  | "unknown";
 
 export type AreaName = "Stonewood" | "Plankerton" | "Canny Valley" | "Twine Peaks";
 
@@ -22,9 +29,29 @@ export interface Mission {
   vbucks: number;
 }
 
+/** Raw shape returned by the HawkBucks Cloudflare Worker. */
+export interface ApiMission {
+  id?: string;
+  reward?: number;
+  area?: string;
+  mission?: string;
+  zone?: string;
+  powerLevel?: number;
+}
+
+export interface ApiMissionsResponse {
+  success?: boolean;
+  status?: "available" | "empty" | string;
+  lastUpdated?: string;
+  totalVbucks?: number;
+  missions?: ApiMission[];
+}
+
 export interface MissionsResponse {
   /** ISO timestamp of the last successful backend refresh */
   lastUpdated: string;
+  status: "available" | "empty";
+  totalVbucks: number;
   missions: Mission[];
 }
 

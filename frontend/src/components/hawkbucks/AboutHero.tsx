@@ -1,4 +1,4 @@
-import logo from "@/assets/logo.png.asset.json";
+import { ASSETS } from "@/lib/assets";
 
 export function AboutHero() {
   return (
@@ -8,7 +8,7 @@ export function AboutHero() {
         className="pointer-events-none absolute inset-x-0 top-0 mx-auto h-40 w-40 rounded-full bg-primary/15 blur-3xl"
       />
       <img
-        src={logo.url}
+        src={ASSETS.logo}
         alt="HawkBucks logo"
         className="relative mx-auto h-20 w-20 rounded-2xl shadow-[var(--shadow-glow)]"
       />

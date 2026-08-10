@@ -1,4 +1,4 @@
-import logo from "@/assets/logo.png.asset.json";
+import { ASSETS } from "@/lib/assets";
 import { StatusBadge } from "./StatusBadge";
 
 export function HeroSection({ total, missionCount }: { total: number; missionCount: number }) {
@@ -13,7 +13,7 @@ export function HeroSection({ total, missionCount }: { total: number; missionCou
     <section className="grid grid-cols-[minmax(0,1fr)] items-center gap-6 py-10 lg:grid-cols-[minmax(0,1fr)_auto] lg:py-14">
       <div className="flex min-w-0 items-center gap-4">
         <img
-          src={logo.url}
+          src={ASSETS.logo}
           alt="HawkBucks logo"
           className="h-16 w-16 shrink-0 rounded-2xl shadow-[var(--shadow-glow)] sm:h-20 sm:w-20"
         />

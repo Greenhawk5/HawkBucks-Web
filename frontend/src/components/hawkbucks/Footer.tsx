@@ -1,13 +1,11 @@
 import { Link } from "@tanstack/react-router";
-import logo from "@/assets/logo.png.asset.json";
-import github from "@/assets/github-dark.svg.asset.json";
-import telegram from "@/assets/telegram-dark.svg.asset.json";
-import gmail from "@/assets/gmail-dark.svg.asset.json";
+import { ASSETS } from "@/lib/assets";
+
 
 const connect = [
-  { icon: github.url, label: "GitHub Project", href: "https://github.com/Greenhawk5/HawkBucks-Web" },
-  { icon: telegram.url, label: "Telegram Bot", href: "https://t.me/HawkBucks_bot" },
-  { icon: gmail.url, label: "Email", href: "mailto:Ali.Faniani@gmail.com" },
+  { icon: ASSETS.github, label: "GitHub Project", href: "https://github.com/Greenhawk5/HawkBucks-Web" },
+  { icon: ASSETS.telegram, label: "Telegram Bot", href: "https://t.me/HawkBucks_bot" },
+  { icon: ASSETS.gmail, label: "Email", href: "mailto:Ali.Faniani@gmail.com" },
 ];
 
 
@@ -34,7 +32,7 @@ export function Footer() {
           <div>
             <div className="flex items-center gap-3">
               <img
-                src={logo.url}
+                src={ASSETS.logo}
                 alt="HawkBucks logo"
                 className="h-10 w-10 rounded-lg shadow-[var(--shadow-glow)]"
               />

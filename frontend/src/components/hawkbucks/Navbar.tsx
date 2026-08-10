@@ -1,7 +1,7 @@
 import { Link } from "@tanstack/react-router";
 import { Menu, X } from "lucide-react";
 import { useEffect, useState } from "react";
-import logo from "@/assets/logo.png.asset.json";
+import { ASSETS } from "@/lib/assets";
 
 const links = [
   { to: "/", label: "Home" },
@@ -22,7 +22,7 @@ export function Navbar() {
       <nav className="mx-auto flex h-16 max-w-[1100px] items-center justify-between gap-4 px-4 sm:px-6">
         <Link to="/" className="flex min-w-0 items-center gap-3" onClick={() => setOpen(false)}>
           <img
-            src={logo.url}
+            src={ASSETS.logo}
             alt="HawkBucks logo"
             className="h-9 w-9 shrink-0 rounded-lg shadow-[var(--shadow-glow)]"
           />

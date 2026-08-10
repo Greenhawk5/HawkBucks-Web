@@ -1,4 +1,4 @@
-import power from "@/assets/power.png.asset.json";
+import { ASSETS } from "@/lib/assets";
 
 export function PowerBadge({ level }: { level: number }) {
   return (
@@ -7,7 +7,7 @@ export function PowerBadge({ level }: { level: number }) {
         {level}
       </span>
       <span className="flex flex-col items-center border-l border-border/70 pl-2">
-        <img src={power.url} alt="" aria-hidden className="h-4 w-4" />
+        <img src={ASSETS.power} alt="" aria-hidden className="h-4 w-4" />
         <span className="mt-0.5 text-[9px] font-semibold uppercase tracking-widest text-muted-foreground">
           Power
         </span>

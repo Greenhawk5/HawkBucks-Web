@@ -3,12 +3,11 @@ import { Footer } from "@/components/hawkbucks/Footer";
 import { AboutHero } from "@/components/hawkbucks/AboutHero";
 import { HowItWorks } from "@/components/hawkbucks/HowItWorks";
 import { FeatureCards } from "@/components/hawkbucks/FeatureCards";
-import github from "@/assets/github-dark.svg.asset.json";
-import telegram from "@/assets/telegram-dark.svg.asset.json";
+import { ASSETS } from "@/lib/assets";
 
 const credits = [
-  { icon: github.url, label: "GitHub", href: "https://github.com/Greenhawk5" },
-  { icon: telegram.url, label: "Telegram", href: "https://t.me/Greenhawk5" },
+  { icon: ASSETS.github, label: "GitHub", href: "https://github.com/Greenhawk5" },
+  { icon: ASSETS.telegram, label: "Telegram", href: "https://t.me/Greenhawk5" },
 ];
 
 export function AboutPage() {

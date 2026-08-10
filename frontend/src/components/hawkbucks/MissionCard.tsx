@@ -1,4 +1,5 @@
-import { missionIcon } from "@/lib/mission-icons";
+import { useEffect, useRef, useState } from "react";
+import { missionIcon, MISSION_ICON_FALLBACK } from "@/lib/mission-icons";
 import type { Mission } from "@/lib/missions.types";
 import { PowerBadge } from "./PowerBadge";
 import { RewardBadge } from "./RewardBadge";
@@ -11,6 +12,24 @@ export function ZoneBadge({ zone }: { zone: string }) {
   );
 }
 
+function MissionIcon({ mission }: { mission: Mission }) {
+  const [src, setSrc] = useState(missionIcon(mission.type));
+  const ref = useRef<HTMLImageElement>(null);
+
+  const useFallback = () => setSrc((s) => (s === MISSION_ICON_FALLBACK ? s : MISSION_ICON_FALLBACK));
+
+  // Covers images that already failed before hydration attached onError.
+  useEffect(() => {
+    const img = ref.current;
+    if (img && img.complete && img.naturalWidth === 0) useFallback();
+  }, [src]);
+
+  return (
+    <img ref={ref} src={src} alt="" aria-hidden className="h-9 w-9" onError={useFallback} />
+  );
+}
+
+
 export function MissionCard({ mission, index }: { mission: Mission; index: number }) {
   return (
     <article
@@ -18,7 +37,7 @@ export function MissionCard({ mission, index }: { mission: Mission; index: numbe
       style={{ animationDelay: `${index * 60}ms` }}
     >
       <div className="grid h-14 w-14 shrink-0 place-items-center rounded-xl border border-panel-border bg-background/40">
-        <img src={missionIcon(mission.type)} alt="" aria-hidden className="h-9 w-9" />
+        <MissionIcon mission={mission} />
       </div>
 
       <div className="min-w-0">
