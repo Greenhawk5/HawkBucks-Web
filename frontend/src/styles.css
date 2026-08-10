@@ -1,0 +1,250 @@
+@import "tailwindcss" source(none);
+@source "../src";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+/*
+ * Design system definition.
+ *
+ * The @theme inline block maps CSS custom properties to Tailwind utility
+ * classes (e.g. --color-primary -> bg-primary, text-primary).
+ *
+ * The :root and .dark blocks define the actual color values using oklch.
+ * All colors MUST use oklch format.
+ *
+ * To add a new semantic color:
+ * 1. Add the variable to :root (light value) and .dark (dark value)
+ * 2. Register it in @theme inline as --color-<name>: var(--<name>)
+ */
+
+@theme inline {
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --radius-2xl: calc(var(--radius) + 8px);
+  --radius-3xl: calc(var(--radius) + 12px);
+  --radius-4xl: calc(var(--radius) + 16px);
+  --font-display: "Sora", ui-sans-serif, system-ui, sans-serif;
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary-glow: var(--primary-glow);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-ring-offset-background: var(--background);
+  --color-panel: var(--panel);
+  --color-panel-border: var(--panel-border);
+  --animate-glow-pulse: glow-pulse 3s ease-in-out infinite;
+  --animate-ring-pulse: ring-pulse 2.8s ease-out infinite;
+  --animate-rise: rise 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+:root {
+  --radius: 1rem;
+  --background: oklch(0.16 0.035 158);
+  --foreground: oklch(0.97 0.01 150);
+  --card: oklch(0.24 0.055 156);
+  --card-foreground: oklch(0.97 0.01 150);
+  --popover: oklch(0.2 0.045 157);
+  --popover-foreground: oklch(0.97 0.01 150);
+  --primary: oklch(0.82 0.23 145);
+  --primary-foreground: oklch(0.16 0.05 158);
+  --primary-glow: oklch(0.9 0.19 150);
+  --secondary: oklch(0.3 0.07 156);
+  --secondary-foreground: oklch(0.97 0.01 150);
+  --muted: oklch(0.26 0.05 157);
+  --muted-foreground: oklch(0.75 0.04 152);
+  --accent: oklch(0.85 0.11 220);
+  --accent-foreground: oklch(0.18 0.05 220);
+  --destructive: oklch(0.65 0.23 22);
+  --destructive-foreground: oklch(0.98 0.01 20);
+  --border: oklch(0.82 0.23 145 / 22%);
+  --input: oklch(0.82 0.23 145 / 25%);
+  --ring: oklch(0.82 0.23 145 / 60%);
+  --panel: oklch(0.26 0.06 156 / 55%);
+  --panel-border: oklch(0.82 0.23 145 / 35%);
+
+  --gradient-page: radial-gradient(
+      110% 70% at 50% -10%,
+      oklch(0.34 0.1 155 / 55%),
+      transparent 62%
+    ),
+    radial-gradient(70% 50% at 12% 18%, oklch(0.3 0.08 165 / 38%), transparent 65%),
+    radial-gradient(60% 45% at 88% 30%, oklch(0.28 0.07 200 / 26%), transparent 70%),
+    radial-gradient(80% 60% at 50% 108%, oklch(0.26 0.07 150 / 40%), transparent 68%),
+    linear-gradient(180deg, oklch(0.16 0.038 158), oklch(0.11 0.025 160));
+  --gradient-grid: linear-gradient(
+      to right,
+      oklch(0.82 0.23 145 / 6%) 1px,
+      transparent 1px
+    ),
+    linear-gradient(to bottom, oklch(0.82 0.23 145 / 6%) 1px, transparent 1px);
+  --gradient-panel: linear-gradient(
+    135deg,
+    oklch(0.3 0.07 155 / 70%),
+    oklch(0.22 0.05 158 / 55%)
+  );
+  --gradient-emerald: linear-gradient(135deg, var(--primary), var(--primary-glow));
+  --shadow-glow:
+    0 0 0 1px oklch(0.82 0.23 145 / 20%), 0 0 28px oklch(0.82 0.23 145 / 26%),
+    0 18px 40px -24px oklch(0 0 0 / 80%);
+  --shadow-panel:
+    inset 0 1px 0 0 oklch(1 0 0 / 6%), 0 24px 50px -28px oklch(0 0 0 / 85%);
+  --shadow-panel-hover:
+    inset 0 1px 0 0 oklch(1 0 0 / 10%), 0 0 0 1px oklch(0.82 0.23 145 / 25%),
+    0 30px 60px -30px oklch(0 0 0 / 90%), 0 0 34px -6px oklch(0.82 0.23 145 / 30%);
+}
+
+
+@keyframes glow-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 16px oklch(0.82 0.23 145 / 20%);
+  }
+  50% {
+    box-shadow: 0 0 34px oklch(0.82 0.23 145 / 45%);
+  }
+}
+
+@keyframes ring-pulse {
+  0% {
+    transform: scale(0.85);
+    opacity: 0.55;
+  }
+  100% {
+    transform: scale(1.7);
+    opacity: 0;
+  }
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes aurora-drift {
+  0%,
+  100% {
+    transform: translate3d(-2%, -1%, 0) scale(1.05);
+    opacity: 0.55;
+  }
+  50% {
+    transform: translate3d(2%, 2%, 0) scale(1.15);
+    opacity: 0.85;
+  }
+}
+
+@utility glass-panel {
+  background-image: var(--gradient-panel);
+  border: 1px solid var(--panel-border);
+  backdrop-filter: blur(14px) saturate(130%);
+  box-shadow: var(--shadow-panel);
+}
+
+@utility glass-panel-hover {
+  transition:
+    transform 0.35s cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow 0.35s ease,
+    border-color 0.35s ease;
+  &:hover {
+    transform: translateY(-4px);
+    border-color: var(--primary);
+    box-shadow: var(--shadow-panel-hover);
+  }
+}
+
+@utility text-glow {
+  text-shadow: 0 0 18px oklch(0.82 0.23 145 / 45%);
+}
+
+@layer base {
+  * {
+    border-color: var(--color-border);
+  }
+
+  body {
+    position: relative;
+    background-color: var(--color-background);
+    background-image: var(--gradient-page);
+    background-attachment: fixed;
+    color: var(--color-foreground);
+    font-family: var(--font-sans);
+  }
+
+  /* futuristic grid + noise depth layer */
+  body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    z-index: -2;
+    pointer-events: none;
+    background-image: var(--gradient-grid);
+    background-size: 64px 64px;
+    mask-image: radial-gradient(120% 90% at 50% 0%, oklch(0 0 0 / 55%), transparent 75%);
+    opacity: 0.5;
+  }
+
+  /* soft animated atmospheric glow */
+  body::after {
+    content: "";
+    position: fixed;
+    left: 50%;
+    top: -25vh;
+    z-index: -1;
+    width: 120vw;
+    height: 90vh;
+    margin-left: -60vw;
+    pointer-events: none;
+    background: radial-gradient(
+        45% 55% at 30% 40%,
+        oklch(0.82 0.23 145 / 12%),
+        transparent 70%
+      ),
+      radial-gradient(40% 50% at 72% 55%, oklch(0.85 0.11 220 / 8%), transparent 72%);
+    filter: blur(30px);
+    animation: aurora-drift 22s ease-in-out infinite;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4 {
+    font-family: var(--font-display);
+    letter-spacing: -0.01em;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+}
+
+

@@ -1,0 +1,55 @@
+Main Campaign & Standard BiomesCity / Autumn City: Urban environments featuring brick/metal buildings, streets, cars, and structural scavenging.Suburbs / Autumn Suburbs: Residential neighborhoods with houses, utility areas, and localized building spawns.Industrial Park / Autumn Industrial Park: Factory sectors rich in metal resource farming.Forest / Haunted Forest: Heavy wood-and-tree layouts optimal for plank and rough-material farming.Grasslands: Open, flat, green plains with scattered trees and minimal sightline blockage.Lakeside: Water-adjacent terrain features with open camp setups and distinct structures.Desert: Arid, sandy expanses common in Canny Valley and the Blasted Badlands.Thunder Route 99: Desert-highway-themed arid zones featuring roadside motels, gas stations, and junkyards.Ghost Town: Western-styled desert towns containing saloons, shacks, and jail complexes.Tropical: Island-style jungle and beach layout utilized in Twine Peaks and Scurvy Shoals.Special, Event, & Story BiomesAutumn Foothills: A specialized fall-themed landscape mixing decayed reality elements and primal village structures.Hexsylvania: Spooky Halloween-themed swamp and castle environment used during Fortnitemares.The Portal: Unique story-driven dimensional portal area used during late Canny Valley and Twine Peaks campaign finales.
+
+Standard Mission TypesFight the Storm (Category 1, 2, 3, and 4)Ride the LightningRetrieve the DataRepair the ShelterEvacuate the ShelterRefuel the HomebaseDeliver the BombBuild the Radar GridDestroy the EncampmentsRescue the SurvivorsResupplyEliminate and Collect (Kill & Collect)Storm Shield & Special MissionsHomebase Storm Shield Defense (Stonewood, Plankerton, Canny Valley, Twine Peaks)EnduranceLaunch the RocketThe Portal / Storm King
+
+
+Here is the complete, exact sequence of every individual mission Power Level (PL) node that appears across the four primary zones of the [Fortnite Save the World](https://www.google.com/search?q=fortnite+save+the+world&kgmid=/g/119pfvlcr) campaign map:
+## Stonewood
+
+* 
+* PL 1
+* PL 3
+* PL 5
+* PL 9
+* PL 15
+* PL 19
+* 
+
+## Plankerton
+
+* 
+* PL 19 (Overlap node)
+* PL 23
+* PL 28
+* PL 34
+* PL 40
+* 
+
+## Canny Valley
+
+* 
+* PL 40 (Overlap node)
+* PL 46
+* PL 52
+* PL 58
+* PL 64
+* PL 70
+* 
+
+## Twine Peaks
+
+* 
+* PL 76
+* PL 82
+* PL 88
+* PL 94
+* PL 100
+* PL 108
+* PL 116
+* PL 124
+* PL 132
+* PL 140
+* PL 160 (Endgame Group/Alert tier)
+* 
+
+------------------------------

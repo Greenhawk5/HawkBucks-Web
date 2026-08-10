@@ -1,0 +1,10 @@
+name = "hawkbucks-worker"
+main = "index.js"
+compatibility_date = "2026-08-10"
+
+[[kv_namespaces]]
+binding = "HAWKBUCKS_CACHE"
+id = "19e23aa284f648de8acec40e5f963e35"
+
+[triggers]
+crons = ["*/30 * * * *"]

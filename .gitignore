@@ -1,0 +1,22 @@
+node_modules/
+.wrangler/
+.dev.vars
+.env
+.env.*
+!.env.example
+
+# Epic credentials
+settings.json
+worker/settings.json
+
+# Local/editor files
+.vscode/
+.idea/
+.DS_Store
+
+# Build outputs
+dist/
+build/
+
+# my Todo_list
+todo.txt
