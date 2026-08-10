@@ -31,9 +31,14 @@ export function HeroSection({ total, missionCount }: { total: number; missionCou
         <StatusBadge total={total} />
       </div>
 
-      <p className="col-span-full border-t border-border/60 pt-4 font-display text-xs font-bold uppercase tracking-widest text-muted-foreground sm:text-sm">
-        {today} · {missionCount} {missionCount === 1 ? "Mission" : "Missions"}
-      </p>
+      <div className="col-span-full border-t border-border/60 pt-4">
+        <p className="font-display text-xs font-bold uppercase tracking-widest text-muted-foreground sm:text-sm">
+          {today} · {missionCount} {missionCount === 1 ? "Mission" : "Missions"}
+        </p>
+        <p className="mt-1 font-display text-[11px] font-bold uppercase tracking-widest text-muted-foreground/60">
+          DAILY RESETS ARE AT 00:00 UTC
+        </p>
+      </div>
     </section>
   );
 }
