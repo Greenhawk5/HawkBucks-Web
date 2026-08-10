@@ -1,22 +1,57 @@
+# Dependencies
 node_modules/
+**/node_modules/
+
+# Build output
+dist/
+build/
+.vite/
+**/.vite/
+
+# Cloudflare / Wrangler
 .wrangler/
 .dev.vars
+.dev.vars.*
+wrangler.toml.local
+
+# Environment files
 .env
 .env.*
 !.env.example
+!.env.*.example
 
-# Epic credentials
+# Local secrets / credentials
 settings.json
-worker/settings.json
+device_auths.json
+**/settings.json
+**/device_auths.json
+secrets.json
+**/secrets.json
+*.secret
+*.pem
+*.key
 
-# Local/editor files
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+pnpm-debug.log*
+
+# OS / editor files
+.DS_Store
+Thumbs.db
 .vscode/
 .idea/
-.DS_Store
 
-# Build outputs
-dist/
-build/
+# Test / coverage output
+coverage/
+.nyc_output/
+
+# Temporary files
+*.tmp
+*.temp
+*.bak
+*.swp
 
 # my Todo_list
 todo.txt

@@ -1,0 +1,20 @@
+cff-version: 1.2.0
+title: "HawkBucks"
+message: "If you use HawkBucks in academic, educational, or derivative work, please cite this project."
+type: software
+authors:
+  - family-names: "GreenHawk"
+    given-names: "GreenHawk"
+repository-code: "https://github.com/Greenhawk5/HawkBucks-Web"
+url: "https://hawkbucks.pages.dev"
+abstract: "A community web application for tracking Fortnite Save The World missions that reward V-Bucks."
+keywords:
+  - Fortnite
+  - Save the World
+  - V-Bucks
+  - mission tracker
+  - Cloudflare Workers
+  - React
+  - TypeScript
+license: MIT
+date-released: 2026-08-10

@@ -1,9 +1,5 @@
 <div align="center">
 
-<!-- ========================================================= -->
-<!-- HERO IMAGE                                                -->
-<!-- Replace this image after creating the final project hero. -->
-<!-- ========================================================= -->
 
 <img src="docs/screenshots/hawkbucks-header.png" alt="HawkBucks" width="100%" />
 
@@ -36,6 +32,7 @@ A modern community tool for discovering today's
 ![License](https://img.shields.io/badge/license-MIT-36d97e?style=for-the-badge)
 ![Frontend](https://img.shields.io/badge/frontend-React-61dafb?style=for-the-badge)
 ![Backend](https://img.shields.io/badge/backend-Cloudflare%20Worker-f38020?style=for-the-badge)
+![CI](https://github.com/Greenhawk5/HawkBucks-Web/actions/workflows/ci.yml/badge.svg)
 
 </div>
 
@@ -462,11 +459,137 @@ HawkBucks-Web/
 │       ├── home.png
 │       └── about.png
 │
+├── .github/
+│   ├── ISSUE_TEMPLATE/
+│   │   ├── bug_report.yml
+│   │   ├── feature_request.yml
+│   │   └── config.yml
+│   ├── workflows/
+│   │   └── ci.yml
+│   ├── CODEOWNERS
+│   ├── dependabot.yml
+│   └── PULL_REQUEST_TEMPLATE.md
+│
 ├── .gitignore
+├── .gitattributes
+├── CHANGELOG.md
+├── CITATION.cff
+├── CODE_OF_CONDUCT.md
+├── CONTRIBUTING.md
+├── LICENSE
+├── NOTICE.md
+├── REPOSITORY_HARDENING.md
+├── SECURITY.md
+├── SUPPORT.md
 └── README.md
 ```
 
 > The structure above represents the major project layers. Individual source files may evolve as development continues.
+
+---
+
+# 🧰 Repository & Community Files
+
+HawkBucks also includes a set of repository-level files designed to make the project easier to maintain, contribute to, secure and release.
+
+| File | Purpose |
+|---|---|
+| `LICENSE` | Defines the MIT open-source license for the project. |
+| `SECURITY.md` | Explains how to report security vulnerabilities privately and responsibly. |
+| `CONTRIBUTING.md` | Contribution workflow, development guidelines and Pull Request expectations. |
+| `CODE_OF_CONDUCT.md` | Community standards for respectful and constructive participation. |
+| `SUPPORT.md` | Guidance for getting technical help and reporting reproducible problems. |
+| `CHANGELOG.md` | Human-readable history of project releases and notable changes. |
+| `CITATION.cff` | Standard metadata for citing HawkBucks in other projects or publications. |
+| `NOTICE.md` | Project trademark, affiliation and third-party software notices. |
+| `REPOSITORY_HARDENING.md` | Security checklist for GitHub, secrets, Cloudflare and releases. |
+| `.gitignore` | Prevents local secrets, credentials, build artifacts and environment files from being committed. |
+| `.gitattributes` | Keeps repository text normalization and binary assets consistent. |
+| `.github/CODEOWNERS` | Defines the default repository code owner. |
+| `.github/dependabot.yml` | Enables automated dependency update checks for supported project components. |
+| `.github/PULL_REQUEST_TEMPLATE.md` | Standardizes Pull Request descriptions and testing checklists. |
+| `.github/ISSUE_TEMPLATE/` | Provides structured templates for bug reports and feature requests. |
+| `.github/workflows/ci.yml` | Runs automated frontend and worker validation on pushes and Pull Requests. |
+
+These files are intentionally kept separate from application code so the repository remains easy to navigate while still providing professional project-maintenance infrastructure.
+
+---
+
+# 🔐 Repository Security
+
+Security is particularly important because the Worker communicates with authenticated Epic Games services.
+
+HawkBucks therefore follows a few basic repository rules:
+
+- Real Epic Games credentials must never be committed.
+- Device Auth secrets must never be committed.
+- Private webhook URLs and API tokens must remain outside source control.
+- Production credentials should be stored as deployment secrets/environment configuration.
+- If a credential is exposed, it should be revoked and regenerated immediately.
+- Security vulnerabilities should be reported privately rather than through a public GitHub Issue.
+
+For the complete policy, see [`SECURITY.md`](SECURITY.md).
+
+For the repository hardening checklist, see [`REPOSITORY_HARDENING.md`](REPOSITORY_HARDENING.md).
+
+---
+
+# 🤝 Contributing & Community
+
+HawkBucks includes dedicated contribution and community guidelines:
+
+- [`CONTRIBUTING.md`](CONTRIBUTING.md) — development workflow and Pull Request guidelines
+- [`CODE_OF_CONDUCT.md`](CODE_OF_CONDUCT.md) — community standards
+- [`SUPPORT.md`](SUPPORT.md) — help and troubleshooting guidance
+- [`CHANGELOG.md`](CHANGELOG.md) — project change history
+
+GitHub also provides structured templates for:
+
+- Bug reports
+- Feature requests
+- Pull Requests
+
+This keeps project discussions focused and makes contributions easier to review.
+
+---
+
+# 🔄 Continuous Integration
+
+Every push to `main` and every Pull Request targeting `main` can be checked by the repository's GitHub Actions workflow.
+
+The CI pipeline is intended to validate:
+
+1. Frontend dependency installation
+2. Frontend linting when configured
+3. Frontend production build
+4. Worker dependency installation
+5. Wrangler dry-run validation
+
+Workflow definition:
+
+```text
+.github/workflows/ci.yml
+```
+
+The purpose of CI is to catch common build and configuration problems before they reach production.
+
+---
+
+# 📦 Dependency Maintenance
+
+HawkBucks includes Dependabot configuration for:
+
+- Frontend npm dependencies
+- Worker npm dependencies
+- GitHub Actions dependencies
+
+Configuration:
+
+```text
+.github/dependabot.yml
+```
+
+Dependency updates should still be reviewed and tested before being merged, especially when they affect authentication, Cloudflare Workers, mission parsing or the production build.
 
 ---
 
@@ -696,14 +819,18 @@ Which matches the project's purpose:
 
 Contributions, suggestions and improvements are welcome.
 
-If you want to contribute:
+For the complete development workflow, coding guidelines, testing checklist and Pull Request process, see:
+
+[`CONTRIBUTING.md`](CONTRIBUTING.md)
+
+In short:
 
 1. Fork the repository.
-2. Create a feature branch.
-3. Make your changes.
-4. Test the project locally.
-5. Commit your changes.
-6. Open a Pull Request.
+2. Create a focused feature or fix branch.
+3. Make and test your changes.
+4. Review the final diff for secrets and unrelated changes.
+5. Commit with a clear message.
+6. Open a Pull Request using the repository template.
 
 Example:
 
@@ -712,7 +839,7 @@ git checkout -b feature/my-feature
 
 git add .
 
-git commit -m "Add my feature"
+git commit -m "feat: add my feature"
 
 git push origin feature/my-feature
 ```
@@ -723,14 +850,12 @@ git push origin feature/my-feature
 
 Found a bug or have an idea?
 
-Please open an issue in the GitHub repository with:
+Please use the GitHub Issue templates where possible:
 
-- A clear title
-- Description of the problem
-- Steps to reproduce
-- Expected behavior
-- Actual behavior
-- Screenshots when useful
+- **Bug Report** for reproducible problems
+- **Feature Request** for proposed improvements
+
+For security vulnerabilities, do **not** open a public issue. Follow [`SECURITY.md`](SECURITY.md).
 
 ---
 
@@ -738,7 +863,9 @@ Please open an issue in the GitHub repository with:
 
 HawkBucks is released under the **MIT License**.
 
-See the `LICENSE` file for the complete license text.
+See [`LICENSE`](LICENSE) for the complete license text.
+
+Additional project and third-party notices are available in [`NOTICE.md`](NOTICE.md).
 
 ---
 
@@ -761,6 +888,14 @@ HawkBucks uses publicly accessible game-related information and services to prov
 Designed and developed as an independent community project for Fortnite: Save The World players.
 
 Special thanks to the open-source community and everyone contributing ideas, testing the application and helping improve HawkBucks.
+
+For repository policies and project maintenance information, see:
+
+[`SECURITY.md`](SECURITY.md) ·
+[`CONTRIBUTING.md`](CONTRIBUTING.md) ·
+[`CODE_OF_CONDUCT.md`](CODE_OF_CONDUCT.md) ·
+[`SUPPORT.md`](SUPPORT.md) ·
+[`CHANGELOG.md`](CHANGELOG.md)
 
 ---
 
