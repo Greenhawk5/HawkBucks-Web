@@ -16,16 +16,16 @@ function MissionIcon({ mission }: { mission: Mission }) {
   const [src, setSrc] = useState(missionIcon(mission.type));
   const ref = useRef<HTMLImageElement>(null);
 
-  const useFallback = () => setSrc((s) => (s === MISSION_ICON_FALLBACK ? s : MISSION_ICON_FALLBACK));
+  const handleFallback = () => setSrc((s) => (s === MISSION_ICON_FALLBACK ? s : MISSION_ICON_FALLBACK));
 
   // Covers images that already failed before hydration attached onError.
   useEffect(() => {
     const img = ref.current;
-    if (img && img.complete && img.naturalWidth === 0) useFallback();
+    if (img && img.complete && img.naturalWidth === 0) handleFallback();
   }, [src]);
 
   return (
-    <img ref={ref} src={src} alt="" aria-hidden className="h-9 w-9" onError={useFallback} />
+    <img ref={ref} src={src} alt="" aria-hidden className="h-9 w-9" onError={handleFallback} />
   );
 }
 

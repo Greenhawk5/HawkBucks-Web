@@ -3,9 +3,21 @@ import { ASSETS } from "@/lib/assets";
 
 
 const connect = [
-  { icon: ASSETS.github, label: "GitHub Project", href: "https://github.com/Greenhawk5/HawkBucks-Web" },
-  { icon: ASSETS.telegram, label: "Telegram Bot", href: "https://t.me/HawkBucks_bot" },
-  { icon: ASSETS.gmail, label: "Email", href: "mailto:Ali.Faniani@gmail.com" },
+  {
+    icon: ASSETS.github,
+    label: "GitHub Project",
+    href: "https://github.com/Greenhawk5/HawkBucks-Web",
+  },
+  {
+    icon: ASSETS.telegram,
+    label: "Telegram Bot",
+    href: "https://t.me/HawkBucks_bot",
+  },
+  {
+    icon: ASSETS.gmail,
+    label: "Email",
+    href: "mailto:Ali.Faniani@gmail.com",
+  },
 ];
 
 

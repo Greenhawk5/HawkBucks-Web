@@ -18,7 +18,7 @@ const FILES: Record<MissionType, string> = {
   "rescue-the-survivors": "rescue-the-survivors.png",
   "destroy-the-encampments": "destroy-the-encampments.png",
   "eliminate-and-collect": "eliminate-and-collect.png",
-  "resupply": "resupply.png",
+  resupply: "resupply.png",
   "build-the-radar-grid": "build-the-radar-grid.png",
   "launch-the-rocket": "generic.png",
   "refuel-the-homebase": "fuel-the-homebase.png",
