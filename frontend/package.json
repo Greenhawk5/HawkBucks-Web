@@ -7,9 +7,14 @@
     "dev": "vite dev",
     "build": "vite build",
     "build:dev": "vite build --mode development",
+    "build:pages": "npm install && npm run build",
     "preview": "vite preview",
     "lint": "eslint .",
-    "format": "prettier --write ."
+    "format": "prettier --write .",
+    "prebuild": "npm rebuild || true"
+  },
+  "engines": {
+    "node": "24.x"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",
