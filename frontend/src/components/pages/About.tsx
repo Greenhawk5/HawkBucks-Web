@@ -32,7 +32,12 @@ export function AboutPage() {
                 rel="noreferrer noopener"
                 className="group inline-flex items-center justify-center gap-2 rounded-full border border-panel-border bg-background/40 px-4 py-2 font-display text-xs font-bold uppercase leading-none tracking-widest text-muted-foreground transition-all duration-300 hover:-translate-y-0.5 hover:border-primary hover:text-primary hover:shadow-[var(--shadow-glow)]"
               >
-                <img src={c.icon} alt="" aria-hidden className="h-4 w-4 shrink-0 opacity-80 transition-transform duration-300 group-hover:scale-110 group-hover:opacity-100" />
+                <img
+                  src={c.icon}
+                  alt=""
+                  aria-hidden
+                  className="h-4 w-4 shrink-0 opacity-80 transition-transform duration-300 group-hover:scale-110 group-hover:opacity-100"
+                />
                 <span>{c.label}</span>
               </a>
             ))}

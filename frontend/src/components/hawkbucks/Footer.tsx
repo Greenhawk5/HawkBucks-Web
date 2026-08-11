@@ -1,7 +1,6 @@
 import { Link } from "@tanstack/react-router";
 import { ASSETS } from "@/lib/assets";
 
-
 const connect = [
   {
     icon: ASSETS.github,
@@ -19,7 +18,6 @@ const connect = [
     href: "mailto:Ali.Faniani@gmail.com",
   },
 ];
-
 
 const stack = ["React", "Tailwind CSS", "Cloudflare Workers", "Cloudflare Pages", "Epic Games API"];
 
@@ -113,8 +111,7 @@ export function Footer() {
         <div className="mt-12 flex flex-col gap-2 border-t border-border/60 pt-6 text-xs text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
           <p>© HawkBucks · All rights reserved.</p>
           <p className="font-display font-semibold tracking-wide">
-            HawkBucks v1.0.0 | Built with passion by{" "}
-            <span className="text-primary">Greenhawk</span>
+            HawkBucks v1.0.0 | Built with passion by <span className="text-primary">Greenhawk</span>
           </p>
         </div>
       </div>

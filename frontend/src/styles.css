@@ -81,37 +81,25 @@
   --panel: oklch(0.26 0.06 156 / 55%);
   --panel-border: oklch(0.82 0.23 145 / 35%);
 
-  --gradient-page: radial-gradient(
-      110% 70% at 50% -10%,
-      oklch(0.34 0.1 155 / 55%),
-      transparent 62%
-    ),
+  --gradient-page:
+    radial-gradient(110% 70% at 50% -10%, oklch(0.34 0.1 155 / 55%), transparent 62%),
     radial-gradient(70% 50% at 12% 18%, oklch(0.3 0.08 165 / 38%), transparent 65%),
     radial-gradient(60% 45% at 88% 30%, oklch(0.28 0.07 200 / 26%), transparent 70%),
     radial-gradient(80% 60% at 50% 108%, oklch(0.26 0.07 150 / 40%), transparent 68%),
     linear-gradient(180deg, oklch(0.16 0.038 158), oklch(0.11 0.025 160));
-  --gradient-grid: linear-gradient(
-      to right,
-      oklch(0.82 0.23 145 / 6%) 1px,
-      transparent 1px
-    ),
+  --gradient-grid:
+    linear-gradient(to right, oklch(0.82 0.23 145 / 6%) 1px, transparent 1px),
     linear-gradient(to bottom, oklch(0.82 0.23 145 / 6%) 1px, transparent 1px);
-  --gradient-panel: linear-gradient(
-    135deg,
-    oklch(0.3 0.07 155 / 70%),
-    oklch(0.22 0.05 158 / 55%)
-  );
+  --gradient-panel: linear-gradient(135deg, oklch(0.3 0.07 155 / 70%), oklch(0.22 0.05 158 / 55%));
   --gradient-emerald: linear-gradient(135deg, var(--primary), var(--primary-glow));
   --shadow-glow:
     0 0 0 1px oklch(0.82 0.23 145 / 20%), 0 0 28px oklch(0.82 0.23 145 / 26%),
     0 18px 40px -24px oklch(0 0 0 / 80%);
-  --shadow-panel:
-    inset 0 1px 0 0 oklch(1 0 0 / 6%), 0 24px 50px -28px oklch(0 0 0 / 85%);
+  --shadow-panel: inset 0 1px 0 0 oklch(1 0 0 / 6%), 0 24px 50px -28px oklch(0 0 0 / 85%);
   --shadow-panel-hover:
     inset 0 1px 0 0 oklch(1 0 0 / 10%), 0 0 0 1px oklch(0.82 0.23 145 / 25%),
     0 30px 60px -30px oklch(0 0 0 / 90%), 0 0 34px -6px oklch(0.82 0.23 145 / 30%);
 }
-
 
 @keyframes glow-pulse {
   0%,
@@ -229,11 +217,8 @@
     height: 90vh;
     margin-left: -60vw;
     pointer-events: none;
-    background: radial-gradient(
-        45% 55% at 30% 40%,
-        oklch(0.82 0.23 145 / 12%),
-        transparent 70%
-      ),
+    background:
+      radial-gradient(45% 55% at 30% 40%, oklch(0.82 0.23 145 / 12%), transparent 70%),
       radial-gradient(40% 50% at 72% 55%, oklch(0.85 0.11 220 / 8%), transparent 72%);
     filter: blur(30px);
     animation: aurora-drift 22s ease-in-out infinite;
@@ -257,5 +242,3 @@
     }
   }
 }
-
-
