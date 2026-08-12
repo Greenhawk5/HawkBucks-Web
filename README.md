@@ -37,6 +37,8 @@ A modern community tool for discovering today's
 ![Frontend](https://img.shields.io/badge/frontend-React-61dafb?style=for-the-badge)
 ![Backend](https://img.shields.io/badge/backend-Cloudflare%20Worker-f38020?style=for-the-badge)
 ![CI](https://github.com/Greenhawk5/HawkBucks-Web/actions/workflows/ci.yml/badge.svg)
+<img src="https://badges.pufler.dev/visits/Greenhawk5/HawkBucks-Web" />
+
 
 </div>
 
