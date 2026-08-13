@@ -1,21 +1,102 @@
-MIT License
+GreenHawk Non-Commercial License v1.0
 
 Copyright (c) 2026 GreenHawk
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
+This is a custom source-available, non-commercial license. It is not an
+OSI-approved open-source license.
 
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
+1. Definitions
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
+"Software" means the original HawkBucks source code and other project
+materials that are copyrightable and owned by GreenHawk, together with this
+license and the associated copyright notices.
+
+"Commercial Use" means any use intended for, directed toward, or resulting
+in money, revenue, advertising revenue, subscription revenue, sponsorship,
+donations as part of a commercial offering, or any other commercial benefit,
+whether direct or indirect. Commercial Use includes using the Software as a
+material part of a commercial product or service, including a monetized
+website, bot, API, application, SaaS service, hosted service, or subscription
+service. Commercial Use does not include ordinary personal use merely because
+the user has a website, social media account, YouTube channel, or other online
+presence, when HawkBucks itself is not being used as a commercial product,
+service, or material commercial component.
+
+2. Grant of Permission
+
+Subject to the terms of this license, GreenHawk grants you a non-exclusive,
+worldwide, royalty-free license to:
+
+* view, inspect, download, and obtain copies of the Software;
+* use the Software for personal, educational, research, testing,
+  experimentation, and evaluation purposes;
+* modify the Software for those permitted non-commercial purposes; and
+* create private modifications or forks for those permitted non-commercial
+  purposes.
+
+You may share copies or modified versions for the permitted non-commercial
+purposes only, provided that you comply with this license.
+
+3. Restrictions
+
+Without prior written permission from GreenHawk, you may not:
+
+* sell the Software, copies of it, or modified versions of it;
+* offer the Software as a paid product or service;
+* use the Software as part of a commercial product or commercial service;
+* operate a monetized website, bot, API, application, SaaS service, hosted
+  service, subscription service, or similar commercial offering using the
+  Software;
+* charge users for access to the Software or a substantially similar
+  derivative;
+* monetize the Software directly or indirectly;
+* redistribute or sublicense the Software for Commercial Use; or
+* use the Software to generate revenue, advertising revenue, subscription
+  revenue, sponsorship revenue, donation-based commercial revenue, or any
+  other commercial benefit where the Software is a material part of the
+  offering.
+
+4. Attribution, Integrity, and Ownership
+
+You must keep the original copyright notice and this license included with
+all permitted copies, distributions, and modified versions. You may not
+remove copyright notices or attribution relating to GreenHawk or HawkBucks,
+or falsely claim to be the original author or copyright holder of HawkBucks.
+
+Modified versions must not be represented as the official HawkBucks project
+unless GreenHawk has explicitly authorized that representation. A fork or
+modified version may include its modifier's own changes and attribution, but
+must preserve clear attribution to the original HawkBucks project and
+GreenHawk for the original work.
+
+GreenHawk retains ownership of the original HawkBucks work. This license does
+not claim ownership of independent modifications that are legally owned by
+their authors. No trademark, trade name, or other rights in GreenHawk,
+HawkBucks, Fortnite, Epic Games, or other third-party intellectual property
+are granted by this license.
+
+5. Commercial Permission
+
+Commercial Use may be separately authorized by the copyright holder through a
+written commercial license or other written permission from GreenHawk.
+
+6. Disclaimer of Warranty and Limitation of Liability
+
+THE SOFTWARE IS PROVIDED "AS IS" AND "AS AVAILABLE", WITHOUT WARRANTY OF ANY
+KIND, EXPRESS OR IMPLIED, INCLUDING, WITHOUT LIMITATION, WARRANTIES OF
+MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, TITLE, NON-INFRINGEMENT,
+ACCURACY, OR SUITABILITY. TO THE MAXIMUM EXTENT PERMITTED BY APPLICABLE LAW,
+GREENHAWK AND THE AUTHORS OR COPYRIGHT HOLDERS SHALL NOT BE LIABLE FOR ANY
+CLAIM, DAMAGES, OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT,
+OR OTHERWISE, ARISING FROM, OUT OF, OR IN CONNECTION WITH THE SOFTWARE OR THE
+USE OR OTHER DEALINGS IN THE SOFTWARE, INCLUDING DIRECT, INDIRECT, INCIDENTAL,
+SPECIAL, CONSEQUENTIAL, OR LOSS-OF-PROFITS DAMAGES, EVEN IF ADVISED OF THE
+POSSIBILITY OF SUCH DAMAGE.
+
+7. Termination
+
+Your rights under this license terminate automatically if you materially
+violate its terms. Rights properly granted before termination are not revived
+by continued possession of the Software. Sections concerning attribution,
+ownership, commercial permission, and disclaimer survive termination to the
+extent permitted by law.

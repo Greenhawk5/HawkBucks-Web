@@ -121,4 +121,4 @@ Keep Pull Requests focused.
 
 ## License
 
-By contributing to HawkBucks, you agree that your contributions will be licensed under the repository's MIT License.
+By contributing to HawkBucks, you agree that your contribution may be included in HawkBucks under the repository's GreenHawk Non-Commercial License v1.0. See [`LICENSE`](LICENSE) for the permitted uses and restrictions.

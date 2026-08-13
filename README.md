@@ -33,7 +33,7 @@ A modern community tool for discovering today's
 <br />
 
 ![Status](https://img.shields.io/badge/status-active-36d97e?style=for-the-badge)
-![License](https://img.shields.io/badge/license-MIT-36d97e?style=for-the-badge)
+![License](https://img.shields.io/badge/license-Non--Commercial-36d97e?style=for-the-badge)
 ![Frontend](https://img.shields.io/badge/frontend-React-61dafb?style=for-the-badge)
 ![Backend](https://img.shields.io/badge/backend-Cloudflare%20Worker-f38020?style=for-the-badge)
 ![CI](https://github.com/Greenhawk5/HawkBucks-Web/actions/workflows/ci.yml/badge.svg)
@@ -500,7 +500,7 @@ HawkBucks also includes a set of repository-level files designed to make the pro
 
 | File | Purpose |
 |---|---|
-| `LICENSE` | Defines the MIT open-source license for the project. |
+| `LICENSE` | Defines the GreenHawk Non-Commercial License and the permitted and prohibited uses of the project. |
 | `SECURITY.md` | Explains how to report security vulnerabilities privately and responsibly. |
 | `CONTRIBUTING.md` | Contribution workflow, development guidelines and Pull Request expectations. |
 | `CODE_OF_CONDUCT.md` | Community standards for respectful and constructive participation. |
@@ -867,7 +867,13 @@ For security vulnerabilities, do **not** open a public issue. Follow [`SECURITY.
 
 # 📜 License
 
-HawkBucks is released under the **MIT License**.
+HawkBucks is available under the **GreenHawk Non-Commercial License v1.0**.
+
+HawkBucks is a source-available project. Its source code is publicly
+accessible for personal, educational, research, testing, and experimental
+use. Commercial use, monetization, resale, paid hosting, commercial
+redistribution, and similar commercial use require prior written permission
+from GreenHawk.
 
 See [`LICENSE`](LICENSE) for the complete license text.
 
