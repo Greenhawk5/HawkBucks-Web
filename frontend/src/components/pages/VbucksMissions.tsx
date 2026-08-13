@@ -10,19 +10,29 @@ import { missionsQueryOptions } from "@/services/missions.api";
 
 const faqs = [
   {
-    question: "Where can I find today's V-Bucks missions?",
+    question: "How do I find today's V-Bucks missions in Save the World?",
     answer:
-      "Check the live tracker above. It lists the currently available V-Bucks mission alerts and their mission details.",
+      "Use the HawkBucks tracker above to see the V-Bucks mission alerts currently detected for today. Each available mission includes its relevant mission details so you can quickly identify where the reward is available.",
   },
   {
-    question: "Does HawkBucks give me V-Bucks?",
+    question: "How often do Save the World V-Bucks missions change?",
     answer:
-      "No. HawkBucks only tracks mission information. Any reward is provided by Fortnite and depends on the player's eligibility and the mission itself.",
+      "Mission alerts can change as Fortnite's daily mission cycle updates. HawkBucks automatically refreshes its data throughout the day and shows the latest update time so you can check whether new mission information has been detected.",
   },
   {
-    question: "Is HawkBucks free to use?",
+    question: "Can every Fortnite player earn V-Bucks from these missions?",
     answer:
-      "Yes. HawkBucks is a free community tool for checking Save the World V-Bucks mission alerts.",
+      "Not necessarily. V-Bucks rewards depend on Fortnite's current rules and the player's eligibility. HawkBucks only reports mission information and does not grant or distribute V-Bucks.",
+  },
+  {
+    question: "What does HawkBucks actually track?",
+    answer:
+      "HawkBucks focuses on Fortnite Save the World mission alerts that offer V-Bucks rewards. It collects the available mission information and presents it in a simpler daily tracker.",
+  },
+  {
+    question: "Why can't I see any V-Bucks missions today?",
+    answer:
+      "If no V-Bucks missions are currently detected, there may simply be no qualifying mission alerts available at the moment. HawkBucks automatically checks for updated data, so you can return after the next refresh.",
   },
 ] as const;
 
@@ -122,24 +132,27 @@ export function VbucksMissionsPage() {
             </p>
           </div>
           <div className="grid gap-3 md:grid-cols-3">
-            <article className="glass-panel rounded-xl p-4">
-              <h3 className="font-display text-sm font-bold">What are V-Bucks missions?</h3>
+            <article className="glass-panel glass-panel-hover rounded-xl p-4 transition-all duration-300 focus-within:-translate-y-1 focus-within:border-primary/70 focus-within:shadow-[var(--shadow-glow)] motion-reduce:transform-none motion-reduce:transition-none">
+              <h3 className="font-display text-sm font-bold">What Are V-Bucks Missions?</h3>
               <p className="mt-2 text-sm leading-6 text-muted-foreground">
-                Save the World mission alerts that can provide a V-Bucks reward.
+                V-Bucks missions are special Save the World mission alerts that can reward eligible
+                players with V-Bucks. HawkBucks makes these missions easier to find by collecting
+                and presenting the available alerts in one place.
               </p>
             </article>
-            <article className="glass-panel rounded-xl p-4">
-              <h3 className="font-display text-sm font-bold">How often does HawkBucks update?</h3>
+            <article className="glass-panel glass-panel-hover rounded-xl p-4 transition-all duration-300 focus-within:-translate-y-1 focus-within:border-primary/70 focus-within:shadow-[var(--shadow-glow)] motion-reduce:transform-none motion-reduce:transition-none">
+              <h3 className="font-display text-sm font-bold">When Does HawkBucks Update?</h3>
               <p className="mt-2 text-sm leading-6 text-muted-foreground">
-                The tracker refreshes automatically and shows when the displayed data was last
-                updated.
+                HawkBucks automatically checks for updated mission data throughout the day. The
+                tracker displays the latest update time so you can quickly tell how fresh the
+                information is.
               </p>
             </article>
-            <article className="glass-panel rounded-xl p-4">
-              <h3 className="font-display text-sm font-bold">Does HawkBucks give V-Bucks?</h3>
+            <article className="glass-panel glass-panel-hover rounded-xl p-4 transition-all duration-300 focus-within:-translate-y-1 focus-within:border-primary/70 focus-within:shadow-[var(--shadow-glow)] motion-reduce:transform-none motion-reduce:transition-none">
+              <h3 className="font-display text-sm font-bold">How Does HawkBucks Work?</h3>
               <p className="mt-2 text-sm leading-6 text-muted-foreground">
-                No. It reports mission information; rewards depend on Fortnite and player
-                eligibility.
+                HawkBucks is a tracking tool, not a V-Bucks provider. It monitors Save the World
+                mission information and highlights missions that currently offer V-Bucks rewards.
               </p>
             </article>
           </div>
@@ -155,13 +168,13 @@ export function VbucksMissionsPage() {
             {faqs.map((faq) => (
               <details
                 key={faq.question}
-                className="group glass-panel rounded-xl transition-colors open:border-primary/50"
+                className="group glass-panel rounded-xl border-border/70 transition-colors duration-300 hover:border-primary/40 open:border-primary/60 open:shadow-[var(--shadow-glow)] motion-reduce:transition-none"
               >
-                <summary className="flex cursor-pointer list-none items-center justify-between gap-4 px-4 py-4 font-display text-sm font-bold outline-none transition-colors hover:text-primary focus-visible:text-primary [&::-webkit-details-marker]:hidden">
+                <summary className="flex cursor-pointer list-none items-center justify-between gap-4 px-4 py-4 font-display text-sm font-bold leading-6 outline-none transition-colors duration-200 hover:text-primary focus-visible:text-primary [&::-webkit-details-marker]:hidden">
                   {faq.question}
-                  <ChevronDown className="h-4 w-4 shrink-0 text-primary transition-transform duration-200 group-open:rotate-180" />
+                  <ChevronDown className="h-4 w-4 shrink-0 text-primary transition-transform duration-300 group-open:rotate-180 motion-reduce:transition-none" />
                 </summary>
-                <p className="max-w-3xl px-4 pb-4 text-sm leading-6 text-muted-foreground">
+                <p className="max-w-3xl px-4 pb-5 text-[13px] leading-6 text-muted-foreground/90">
                   {faq.answer}
                 </p>
               </details>
