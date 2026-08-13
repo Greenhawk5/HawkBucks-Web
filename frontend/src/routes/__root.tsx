@@ -12,6 +12,8 @@ import { useEffect, type ReactNode } from "react";
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 
+const SITE_URL = "https://hawkbucks.pages.dev";
+
 function NotFoundComponent() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
@@ -83,14 +85,33 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         content: "Check today's Fortnite Save The World V-Bucks missions in seconds.",
       },
       { name: "author", content: "HawkBucks Project" },
+      { name: "robots", content: "index, follow" },
       { property: "og:type", content: "website" },
+      { property: "og:site_name", content: "HawkBucks" },
+      { property: "og:url", content: `${SITE_URL}/` },
+      {
+        property: "og:title",
+        content: "HawkBucks — Fortnite Save The World V-Bucks Tracker",
+      },
+      {
+        property: "og:description",
+        content: "Check today's Fortnite Save The World V-Bucks missions in seconds.",
+      },
+      { property: "og:image", content: `${SITE_URL}/favicon.png` },
       { name: "twitter:card", content: "summary_large_image" },
+      { name: "twitter:title", content: "HawkBucks — V-Bucks Mission Tracker" },
+      {
+        name: "twitter:description",
+        content: "Today's Fortnite Save The World V-Bucks missions, at a glance.",
+      },
+      { name: "twitter:image", content: `${SITE_URL}/favicon.png` },
     ],
     links: [
       {
         rel: "stylesheet",
         href: appCss,
       },
+      { rel: "canonical", href: `${SITE_URL}/` },
       { rel: "preconnect", href: "https://fonts.googleapis.com" },
       { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
       {
