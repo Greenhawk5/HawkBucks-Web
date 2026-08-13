@@ -1,123 +1,97 @@
-# V-Bucks Alerts - JavaScript Version
+# HawkBucks Worker
 
-JavaScript/Node.js version of the V-Bucks Alerts bot for Fortnite Save the World.
+The Worker in this directory provides HawkBucks’ backend API and scheduled mission synchronization.
 
-## Features
-- Checks for V-Bucks mission alerts in Save the World
-- Sends notifications to Discord via webhook
-- Supports multiple languages
-- Automatic token refresh (every hour)
-- Configurable check rate
+## Responsibilities
 
-## Prerequisites
-- [Node.js](https://nodejs.org/) 16 or higher
-- Discord webhook URL
-- Epic Games account credentials (Device Auth)
+- Reads Epic credentials from Cloudflare Worker secrets.
+- Fetches Fortnite world data and filters V-Bucks mission alerts.
+- Stores the current mission result in KV for API caching.
+- Persists daily mission snapshots and daily quotes in D1.
+- Serves `/api/missions`, `/api/history`, `/api/quote`, and `/api/health`.
+- Runs scheduled synchronization using the cron configured in `wrangler.toml`.
 
-## Setup
+## Bindings and storage
 
-1. **Install dependencies:**
-   ```bash
-   npm install
-   ```
-   Or run `packages.bat` on Windows
+`worker/wrangler.toml` configures:
 
-2. **Configure settings:**
-   Edit `settings.json` with your information:
-   ```json
-   {
-     "last_check": "2023-04-23T18:00:00.000Z",
-     "checkrate": 30,
-     "language": "en",
-     "webhook_url": "YOUR_DISCORD_WEBHOOK_URL",
-     "account_id": "YOUR_EPIC_ACCOUNT_ID",
-     "device_id": "YOUR_DEVICE_ID",
-     "secret": "YOUR_DEVICE_SECRET",
-     "title": "V-Bucks Mission Alerts"
-   }
-   ```
+- `HAWKBUCKS_CACHE` — KV cache for current mission results and bounded legacy migration.
+- `DB` — D1 database `hawkbucks-data` for persistent `mission_history` and `daily_quotes` records.
 
-3. **Get Device Auth credentials:**
-   Use [DeviceAuthGenerator](https://github.com/xMistt/DeviceAuthGenerator) to obtain your `account_id`, `device_id`, and `secret`.
-
-4. **Run the bot:**
-   ```bash
-   npm start
-   ```
-   Or run `start.bat` on Windows
-
-## Supported Languages
-`ar`, `de`, `en`, `es`, `es-419`, `fr`, `it`, `ja`, `ko`, `pl`, `pt-BR`, `ru`, `tr`
-
-## Configuration Options
-- `checkrate`: Check interval in seconds (default: 30, recommended: ≥30)
-- `language`: Language for mission names and descriptions
-- `webhook_url`: Discord webhook URL for notifications
-- `title`: Custom title for the Discord embed
-
-## Cloudflare Worker Secrets
-
-The deployed Worker reads Epic credentials from its existing secret bindings.
-For daily Save the World quotes, configure the following additional secret
-manually with Wrangler or the Cloudflare dashboard:
-
-```bash
-npx wrangler secret put GEMINI_API_KEY
-```
-
-Never place the secret value in source files, `wrangler.toml`, frontend
-environment variables, logs, or documentation.
-
-## How It Works
-1. Authenticates with Epic Games using Device Auth
-2. Fetches current world info from Fortnite API
-3. Checks for mission alerts with V-Bucks rewards
-4. Sends formatted Discord embed with mission details
-5. Updates `last_check` timestamp to avoid duplicate notifications
-6. Repeats at configured interval
-
-## Files
-- `index.js` - Main bot logic
-- `settings.json` - Configuration file
-- `localization.json` - Language translations
-- `package.json` - Node.js dependencies
-- `start.bat` / `packages.bat` - Windows helper scripts
-
-## Support
-- [Twitter](https://twitter.com/Liqutch)
-- [Discord](https://discord.gg/nNPrQeqCyf)
-- [Contact](https://liqutch.dev/)
-
-## HawkBucks Worker data setup
-
-The Worker uses `HAWKBUCKS_CACHE` for short-lived mission-result caching. Persistent daily mission snapshots and daily quotes are stored in the D1 database bound as `DB`.
-
-After creating the `hawkbucks-data` D1 database, set its returned ID in `worker/wrangler.toml` as `database_id` under the existing `[[d1_databases]]` binding. Do not put secret values in this file.
-
-Apply the additive schema locally with:
-
-```text
-npx wrangler d1 migrations apply hawkbucks-data --local --config wrangler.toml
-```
-
-Apply it to production with:
-
-```text
-npx wrangler d1 migrations apply hawkbucks-data --remote --config wrangler.toml
-```
-
-Configure the Gemini secret separately:
-
-```text
-npx wrangler secret put GEMINI_API_KEY --config wrangler.toml
-```
-
-The scheduled Worker keeps its existing configured cadence. Each run updates the current UTC day's mission row with an upsert and ensures one deterministic quote for the UTC day after confirming that the D1 row does not already exist. The reference history seed uses `INSERT OR IGNORE`, so it only fills missing dates and can safely be run repeatedly.
+History is one row per UTC date. Daily quotes are one row per UTC date. Existing rows are never overwritten by the deterministic quote lifecycle.
 
 ## Daily quote pool
 
-Daily quotes are static application content imported from `HawkBucks-Daily-Quotes.md` into `quote-pool.js`. The Worker uses the UTC date only: it counts UTC days since `2025-01-01`, applies positive modulo 365, and selects that zero-based quote index. This gives one stable quote per UTC date and starts the same 365-quote cycle again after 365 days. Existing `daily_quotes` rows are preserved; missing dates use the pool and `INSERT ... ON CONFLICT(date_utc) DO NOTHING`.
+The quote subsystem does not call Gemini or any other external generation API. The 365 trusted quotes are stored in [`quote-pool.js`](quote-pool.js), sourced from the project’s daily quote content file.
 
-The quote pool integrity test is `node quote-pool.test.cjs`. To change the pool, update the source Markdown, regenerate the static module while preserving exactly 365 unique entries, then run the test before deploying. Gemini is no longer used by the Worker quote subsystem; `GEMINI_API_KEY` is therefore unused by this Worker and may be removed manually from Cloudflare secrets after confirming no other deployment uses it.
+For a UTC date, the Worker counts days since `2025-01-01T00:00:00Z`, applies positive modulo 365, and selects that quote index. It inserts the result into D1 with `ON CONFLICT(date_utc) DO NOTHING`. Repeated scheduled executions therefore reuse the same quote for that date, and the pool cycles after 365 days.
 
-The reference history rows are relative to the UTC bootstrap anchor: offset 0 = 0 V-Bucks / 0 missions; offset -1 = 50 / 1; offsets -2 and -3 = 20 / 1 each; offsets -4 through -6 = 20 / 0 each; offsets -7 through -15 = 1 mission each (with V-Bucks totals 10, 15, 15, 15, 15, 15, 15, 20, 20); offsets -16 through -28 = 20 / 0; offset -29 = 50 / 0; offset -30 = 700 / 0; offsets -31 through -59 = 0 / 0. The current-year start row is 4650 / 107, and the previous-year start row is 12480 / 0. All rows use UTC dates and `INSERT OR IGNORE`.
+Run the integrity test from this directory:
+
+```bash
+node quote-pool.test.cjs
+```
+
+`GEMINI_API_KEY` is no longer required for this quote subsystem. Do not remove a Cloudflare secret automatically; remove it manually only after confirming it is unused elsewhere.
+
+## D1 migrations
+
+Migration history:
+
+- `0001_history_and_quotes.sql` — creates `mission_history` and `daily_quotes`.
+- `0002_reference_history_seed.sql` — inserts missing reference history rows.
+- `0003_reference_mission_counts.sql` — corrects empty reference mission counts and adds the prior-year comparison baseline.
+
+Install dependencies and apply locally:
+
+```bash
+npm ci
+npx wrangler d1 migrations apply hawkbucks-data --local --config wrangler.toml
+```
+
+Apply to production after review:
+
+```bash
+npx wrangler d1 migrations apply hawkbucks-data --remote --config wrangler.toml
+```
+
+Inspect production without writing:
+
+```bash
+npx wrangler d1 execute hawkbucks-data --remote --command "SELECT date_utc, total_vbucks, mission_count FROM mission_history ORDER BY date_utc DESC LIMIT 10" --config wrangler.toml
+npx wrangler d1 execute hawkbucks-data --remote --command "SELECT date_utc, length(quote) AS quote_length, created_at FROM daily_quotes ORDER BY date_utc DESC LIMIT 10" --config wrangler.toml
+```
+
+## Secrets
+
+Set secrets interactively; never place values in source control:
+
+```bash
+npx wrangler secret put EPIC_ACCOUNT_ID --config wrangler.toml
+npx wrangler secret put EPIC_DEVICE_ID --config wrangler.toml
+npx wrangler secret put EPIC_DEVICE_SECRET --config wrangler.toml
+npx wrangler secret put EPIC_TOKEN_AUTH --config wrangler.toml
+npx wrangler secret put HAWKBUCKS_LANGUAGE --config wrangler.toml
+```
+
+## Development and deployment
+
+Run the local Worker:
+
+```bash
+npx wrangler dev --local --config wrangler.toml
+```
+
+Validate configuration without deploying:
+
+```bash
+npx wrangler deploy --dry-run --config wrangler.toml
+```
+
+Deploy the Worker:
+
+```bash
+npx wrangler deploy --config wrangler.toml
+```
+
+Do not change the configured cron casually. The schedule in the current checked-in configuration is the source of truth.
