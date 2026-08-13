@@ -27,9 +27,9 @@ export function VbucksMissionsPage() {
               Fortnite V-Bucks Missions Today
             </h2>
             <p className="mt-4 leading-7 text-muted-foreground">
-              HawkBucks is a simple Fortnite Save the World V-Bucks mission tracker. Use this page to
-              quickly check today&apos;s mission alerts that reward V-Bucks, including the available
-              missions and their locations.
+              HawkBucks is a simple Fortnite Save the World V-Bucks mission tracker. Use this page
+              to quickly check today&apos;s mission alerts that reward V-Bucks, including the
+              available missions and their locations.
             </p>
             <p className="mt-3 leading-7 text-muted-foreground">
               Mission data is refreshed automatically throughout the day, so you can return here to
@@ -60,7 +60,9 @@ export function VbucksMissionsPage() {
           <h2 className="font-display text-xl font-bold">V-Bucks Mission Tracker FAQ</h2>
           <div className="mt-5 space-y-5">
             <div>
-              <h3 className="font-display font-bold">Where can I find today&apos;s V-Bucks missions?</h3>
+              <h3 className="font-display font-bold">
+                Where can I find today&apos;s V-Bucks missions?
+              </h3>
               <p className="mt-1 text-sm leading-6 text-muted-foreground">
                 Check the live tracker at the top of this page. It lists the currently available
                 V-Bucks mission alerts and their mission details.
@@ -69,8 +71,8 @@ export function VbucksMissionsPage() {
             <div>
               <h3 className="font-display font-bold">Does HawkBucks give me V-Bucks?</h3>
               <p className="mt-1 text-sm leading-6 text-muted-foreground">
-                No. HawkBucks only tracks mission information. Any reward is provided by Fortnite and
-                depends on the player&apos;s eligibility and the mission itself.
+                No. HawkBucks only tracks mission information. Any reward is provided by Fortnite
+                and depends on the player&apos;s eligibility and the mission itself.
               </p>
             </div>
             <div>
