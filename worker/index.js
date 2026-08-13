@@ -1,4 +1,5 @@
 import localization from './localization.json';
+import { QUOTE_POOL } from './quote-pool.js';
 
 const TOKEN_URL =
   'https://account-public-service-prod.ol.epicgames.com/account/api/oauth/token';
@@ -10,11 +11,6 @@ const DEFAULT_LANGUAGE = 'en';
 const KV_MISSIONS_KEY = 'current_missions';
 const KV_HISTORY_PREFIX = 'history:daily:';
 const KV_HISTORY_SEED_KEY = 'history:seed:v1';
-const KV_QUOTE_PREFIX = 'quote:daily:';
-const KV_LATEST_QUOTE_KEY = 'quote:latest';
-const GEMINI_MODEL = 'gemini-3.6-flash';
-const GEMINI_URL =
-  `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`;
 
 function describeApiFailure(label, response, payload) {
   const message =
@@ -554,10 +550,6 @@ function historyKey(dateString) {
   return `${KV_HISTORY_PREFIX}${dateString}`;
 }
 
-function quoteKey(dateString) {
-  return `${KV_QUOTE_PREFIX}${dateString}`;
-}
-
 function missionSnapshot(data, dateString, timestamp = new Date().toISOString()) {
   return {
     utcDate: dateString,
@@ -664,14 +656,6 @@ async function migrateLegacyKvRecords(env, dateString = utcDateString()) {
     await env.DB.batch(statements.slice(index, index + 100));
   }
 
-  const legacyQuote = await env.HAWKBUCKS_CACHE.get(quoteKey(dateString), 'json');
-  if (legacyQuote?.quote) {
-    const timestamp = legacyQuote.createdAt || new Date().toISOString();
-    await env.DB.prepare(`
-      INSERT OR IGNORE INTO daily_quotes (date_utc, quote, created_at, updated_at)
-      VALUES (?, ?, ?, ?)
-    `).bind(dateString, legacyQuote.quote, timestamp, timestamp).run();
-  }
   console.log(`[history] legacy KV migration: ${migratedCount} records`);
 }
 
@@ -775,6 +759,7 @@ async function getHistory(env, dateString = utcDateString()) {
   };
 }
 
+/* legacy validator removed: static quote pool content is trusted */
 function cleanGeneratedQuote(value) {
   return String(value || '')
     .trim()
@@ -783,12 +768,16 @@ function cleanGeneratedQuote(value) {
     .trim();
 }
 
-async function generateDailyQuote(env, dateString = utcDateString()) {
+function quoteIndexForDate(dateString) {
+  const epoch = Date.UTC(2025, 0, 1);
+  const current = Date.parse(`${dateString}T00:00:00.000Z`);
+  const elapsedDays = Math.floor((current - epoch) / 86400000);
+  return ((elapsedDays % QUOTE_POOL.length) + QUOTE_POOL.length) % QUOTE_POOL.length;
+}
+
+async function ensureDailyQuote(env, dateString = utcDateString()) {
   console.log(`[quote] checking date ${dateString}`);
-  if (!env.GEMINI_API_KEY || !env.DB) {
-    console.warn('[quote] skipped: required configuration is unavailable');
-    return null;
-  }
+  if (!env.DB) return null;
 
   const existing = await env.DB.prepare(
     'SELECT date_utc AS utcDate, quote, created_at AS createdAt, updated_at AS updatedAt FROM daily_quotes WHERE date_utc = ?'
@@ -797,55 +786,16 @@ async function generateDailyQuote(env, dateString = utcDateString()) {
   console.log(`[quote] existing row: ${existing?.quote ? 'true' : 'false'}`);
   if (existing?.quote) return existing;
 
-  console.log('[quote] Gemini request starting');
-  const response = await fetch(GEMINI_URL, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'x-goog-api-key': env.GEMINI_API_KEY
-    },
-    body: JSON.stringify({
-      contents: [
-        {
-          parts: [
-            {
-              text:
-                'Generate one original English quote specifically about Fortnite: Save the World. Make it atmospheric, meaningful, memorable, and relatively short. It may reference the Storm, Husks, Survivors, Commanders, Heroes, Homebase, or the fight to save the world. Do not generate a Battle Royale quote, copyrighted dialogue, or an imitation of a named character. Return only the quote, with no quotation marks and no explanation.'
-            }
-          ]
-        }
-      ],
-      generationConfig: {
-        maxOutputTokens: 120
-      }
-    })
-  });
-
-  if (!response.ok) {
-    const errorPayload = await response.json().catch(() => null);
-    const detail = cleanGeneratedQuote(errorPayload?.error?.message);
-    console.error(`[quote] Gemini request failed: HTTP ${response.status}`);
-    if (detail) console.error(`[quote] Gemini error: ${detail.slice(0, 240)}`);
-    return null;
-  }
-
-  const payload = await response.json().catch(() => null);
-  console.log('[quote] Gemini response parsed successfully');
-  const quote = cleanGeneratedQuote(payload?.candidates?.[0]?.content?.parts?.[0]?.text);
-
-  if (!quote || quote.length > 400 || !/fortnite|save the world|homebase|husks|storm|survivors/i.test(quote) || /api key|permission denied|quota exceeded|error:/i.test(quote)) {
-    console.error('[quote] quote validation failed');
-    return null;
-  }
-  console.log('[quote] quote validation passed');
-
+  const index = quoteIndexForDate(dateString);
+  const quote = QUOTE_POOL[index];
+  console.log(`[quote] selected quote index ${index}`);
   const timestamp = new Date().toISOString();
   await env.DB.prepare(`
     INSERT INTO daily_quotes (date_utc, quote, created_at, updated_at)
     VALUES (?, ?, ?, ?)
     ON CONFLICT(date_utc) DO NOTHING
   `).bind(dateString, quote, timestamp, timestamp).run();
-  console.log('[quote] D1 insert succeeded');
+  console.log('[quote] daily quote inserted');
   return { utcDate: dateString, quote, createdAt: timestamp, updatedAt: timestamp };
 }
 
@@ -871,7 +821,7 @@ async function handleHistory(env, origin) {
 
 async function handleQuote(env, origin) {
   try {
-    const quote = await getDailyQuote(env);
+    const quote = await ensureDailyQuote(env);
 
     if (!quote) {
       return json({ success: false, status: 'unavailable', quote: null }, 503, origin);
@@ -988,7 +938,7 @@ export default {
 
     ctx.waitUntil((async () => {
       try {
-        const quote = await generateDailyQuote(env, dateString);
+        const quote = await ensureDailyQuote(env, dateString);
         console.log(`D1 daily quote check completed for ${dateString}: ${quote ? 'available' : 'unavailable'}`);
       } catch (error) {
         console.error('Daily quote job failed:', error instanceof Error ? error.message : 'unknown error');
