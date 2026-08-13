@@ -19,7 +19,7 @@ export function HeroSection({ total, missionCount }: { total: number; missionCou
         />
         <div className="min-w-0">
           <h1 className="font-display text-3xl font-extrabold uppercase leading-none tracking-tight sm:text-5xl">
-            Save The World
+            Fortnite Save The World
           </h1>
           <p className="mt-2 font-display text-base font-bold uppercase tracking-widest text-primary sm:text-xl">
             V-Bucks Missions Tracker
