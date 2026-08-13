@@ -5,6 +5,7 @@ import { ASSETS } from "@/lib/assets";
 
 const links = [
   { to: "/", label: "Home" },
+  { to: "/vbucks-missions", label: "V-Bucks Missions" },
   { to: "/about", label: "About" },
 ] as const;
 
@@ -31,7 +32,7 @@ export function Navbar() {
           </span>
         </Link>
 
-        <div className="hidden items-center gap-8 md:flex">
+        <div className="hidden items-center gap-6 md:flex">
           {links.map((l) => (
             <Link
               key={l.to}
