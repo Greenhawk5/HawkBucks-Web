@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AboutRouteImport } from './routes/about'
+import { Route as VbucksMissionsRouteImport } from './routes/vbucks-missions'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -22,31 +23,40 @@ const AboutRoute = AboutRouteImport.update({
   path: '/about',
   getParentRoute: () => rootRouteImport,
 } as any)
+const VbucksMissionsRoute = VbucksMissionsRouteImport.update({
+  id: '/vbucks-missions',
+  path: '/vbucks-missions',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
+  '/vbucks-missions': typeof VbucksMissionsRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
+  '/vbucks-missions': typeof VbucksMissionsRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
+  '/vbucks-missions': typeof VbucksMissionsRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/about'
+  fullPaths: '/' | '/about' | '/vbucks-missions'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/about'
-  id: '__root__' | '/' | '/about'
+  to: '/' | '/about' | '/vbucks-missions'
+  id: '__root__' | '/' | '/about' | '/vbucks-missions'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AboutRoute: typeof AboutRoute
+  VbucksMissionsRoute: typeof VbucksMissionsRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -65,12 +75,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AboutRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/vbucks-missions': {
+      id: '/vbucks-missions'
+      path: '/vbucks-missions'
+      fullPath: '/vbucks-missions'
+      preLoaderRoute: typeof VbucksMissionsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AboutRoute: AboutRoute,
+  VbucksMissionsRoute: VbucksMissionsRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

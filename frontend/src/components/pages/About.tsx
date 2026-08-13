@@ -3,6 +3,7 @@ import { Footer } from "@/components/hawkbucks/Footer";
 import { AboutHero } from "@/components/hawkbucks/AboutHero";
 import { HowItWorks } from "@/components/hawkbucks/HowItWorks";
 import { FeatureCards } from "@/components/hawkbucks/FeatureCards";
+import { AboutMissionGuide } from "@/components/hawkbucks/AboutMissionGuide";
 import { ASSETS } from "@/lib/assets";
 
 const credits = [
@@ -18,6 +19,7 @@ export function AboutPage() {
         <AboutHero />
         <HowItWorks />
         <FeatureCards />
+        <AboutMissionGuide />
         <section className="glass-panel rounded-2xl px-6 py-10 text-center">
           <h2 className="font-display text-xl font-extrabold uppercase tracking-wide">Credits</h2>
           <p className="mx-auto mt-3 max-w-xl text-sm leading-relaxed text-muted-foreground">

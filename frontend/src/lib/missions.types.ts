@@ -59,3 +59,31 @@ export interface MissionArea {
   area: AreaName;
   missions: Mission[];
 }
+
+export interface HistoryComparison {
+  percent: number;
+  baselineTotalVbucks: number;
+}
+
+export interface HistoryPeriod {
+  totalVbucks: number | null;
+  missionCount: number | null;
+  daysWithData: number;
+  comparison: HistoryComparison | null;
+}
+
+export interface MissionsHistoryResponse {
+  success: boolean;
+  date: string;
+  today: HistoryPeriod;
+  yesterday: HistoryPeriod;
+  last7Days: HistoryPeriod;
+  last30Days: HistoryPeriod;
+  thisYear: HistoryPeriod;
+}
+
+export interface DailyQuoteResponse {
+  success: boolean;
+  date: string;
+  quote: string;
+}

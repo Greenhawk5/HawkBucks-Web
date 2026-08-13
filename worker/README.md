@@ -55,6 +55,19 @@ JavaScript/Node.js version of the V-Bucks Alerts bot for Fortnite Save the World
 - `webhook_url`: Discord webhook URL for notifications
 - `title`: Custom title for the Discord embed
 
+## Cloudflare Worker Secrets
+
+The deployed Worker reads Epic credentials from its existing secret bindings.
+For daily Save the World quotes, configure the following additional secret
+manually with Wrangler or the Cloudflare dashboard:
+
+```bash
+npx wrangler secret put GEMINI_API_KEY
+```
+
+Never place the secret value in source files, `wrangler.toml`, frontend
+environment variables, logs, or documentation.
+
 ## How It Works
 1. Authenticates with Epic Games using Device Auth
 2. Fetches current world info from Fortnite API

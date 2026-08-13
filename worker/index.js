@@ -8,6 +8,12 @@ const WORLD_INFO_URL =
 
 const DEFAULT_LANGUAGE = 'en';
 const KV_MISSIONS_KEY = 'current_missions';
+const KV_HISTORY_PREFIX = 'history:daily:';
+const KV_QUOTE_PREFIX = 'quote:daily:';
+const KV_LATEST_QUOTE_KEY = 'quote:latest';
+const GEMINI_MODEL = 'gemini-3.6-flash';
+const GEMINI_URL =
+  `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`;
 
 function describeApiFailure(label, response, payload) {
   const message =
@@ -533,6 +539,256 @@ async function getCachedMissionData(env) {
   return cached;
 }
 
+function utcDateString(date = new Date()) {
+  return date.toISOString().slice(0, 10);
+}
+
+function shiftUtcDate(dateString, days) {
+  const date = new Date(`${dateString}T00:00:00.000Z`);
+  date.setUTCDate(date.getUTCDate() + days);
+  return utcDateString(date);
+}
+
+function historyKey(dateString) {
+  return `${KV_HISTORY_PREFIX}${dateString}`;
+}
+
+function quoteKey(dateString) {
+  return `${KV_QUOTE_PREFIX}${dateString}`;
+}
+
+function missionSnapshot(data, dateString, timestamp = new Date().toISOString()) {
+  return {
+    utcDate: dateString,
+    totalVbucks: Number(data.totalVbucks || 0),
+    missionCount: Array.isArray(data.missions) ? data.missions.length : 0,
+    missions: Array.isArray(data.missions) ? data.missions : [],
+    createdAt: timestamp,
+    updatedAt: timestamp
+  };
+}
+
+async function saveDailyMissionSnapshot(env, data, dateString = utcDateString()) {
+  if (!env.HAWKBUCKS_CACHE) return false;
+
+  const key = historyKey(dateString);
+  const existing = await env.HAWKBUCKS_CACHE.get(key, 'json');
+
+  if (existing) return false;
+
+  await env.HAWKBUCKS_CACHE.put(
+    key,
+    JSON.stringify(missionSnapshot(data, dateString))
+  );
+
+  return true;
+}
+
+function emptyPeriod() {
+  return {
+    totalVbucks: null,
+    missionCount: null,
+    daysWithData: 0,
+    comparison: null
+  };
+}
+
+function periodFromRecords(records, comparisonRecords = null) {
+  const available = records.filter(Boolean);
+
+  if (available.length === 0) return emptyPeriod();
+
+  const totalVbucks = available.reduce(
+    (sum, record) => sum + Number(record.totalVbucks || 0),
+    0
+  );
+  const missionCount = available.reduce(
+    (sum, record) => sum + Number(record.missionCount || 0),
+    0
+  );
+  let comparison = null;
+
+  if (comparisonRecords) {
+    const previous = comparisonRecords.filter(Boolean).reduce(
+      (sum, record) => sum + Number(record.totalVbucks || 0),
+      0
+    );
+
+    if (previous > 0) {
+      comparison = {
+        percent: Number((((totalVbucks - previous) / previous) * 100).toFixed(1)),
+        baselineTotalVbucks: previous
+      };
+    }
+  }
+
+  return {
+    totalVbucks,
+    missionCount,
+    daysWithData: available.length,
+    comparison
+  };
+}
+
+function dateRange(endDate, length) {
+  return Array.from({ length }, (_, index) =>
+    shiftUtcDate(endDate, -(length - 1 - index))
+  );
+}
+
+async function getHistory(env, dateString = utcDateString()) {
+  const todayDates = dateRange(dateString, 1);
+  const yesterdayDates = dateRange(shiftUtcDate(dateString, -1), 1);
+  const last7Dates = dateRange(dateString, 7);
+  const previous7Dates = dateRange(shiftUtcDate(dateString, -7), 7);
+  const last30Dates = dateRange(dateString, 30);
+  const previous30Dates = dateRange(shiftUtcDate(dateString, -30), 30);
+  const yearStart = `${dateString.slice(0, 4)}-01-01`;
+  const thisYearDates = dateRange(dateString, Math.floor(
+    (new Date(`${dateString}T00:00:00.000Z`) - new Date(`${yearStart}T00:00:00.000Z`)) /
+      86400000 +
+      1
+  ));
+  const previousYearEnd = `${String(Number(dateString.slice(0, 4)) - 1)}${dateString.slice(4)}`;
+  const previousYearDates = dateRange(previousYearEnd, thisYearDates.length);
+  const allDates = [
+    ...todayDates,
+    ...yesterdayDates,
+    ...last7Dates,
+    ...previous7Dates,
+    ...last30Dates,
+    ...previous30Dates,
+    ...thisYearDates,
+    ...previousYearDates
+  ];
+  const uniqueKeys = [...new Set(allDates)].map(historyKey);
+  const chunks = [];
+  for (let i = 0; i < uniqueKeys.length; i += 100) {
+    chunks.push(uniqueKeys.slice(i, i + 100));
+  }
+  const valueMaps = await Promise.all(
+    chunks.map((keys) => env.HAWKBUCKS_CACHE.get(keys, 'json'))
+  );
+  const values = new Map(valueMaps.flatMap((map) => [...map.entries()]));
+  const recordFor = (date) => values.get(historyKey(date)) || null;
+  const recordsFor = (dates) => dates.map(recordFor);
+
+  return {
+    success: true,
+    date: dateString,
+    today: periodFromRecords(recordsFor(todayDates)),
+    yesterday: periodFromRecords(recordsFor(yesterdayDates)),
+    last7Days: periodFromRecords(recordsFor(last7Dates), recordsFor(previous7Dates)),
+    last30Days: periodFromRecords(recordsFor(last30Dates), recordsFor(previous30Dates)),
+    thisYear: periodFromRecords(recordsFor(thisYearDates), recordsFor(previousYearDates))
+  };
+}
+
+function cleanGeneratedQuote(value) {
+  return String(value || '')
+    .trim()
+    .replace(/^['"“”]+|['"“”]+$/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+async function generateDailyQuote(env, dateString = utcDateString()) {
+  if (!env.GEMINI_API_KEY || !env.HAWKBUCKS_CACHE) {
+    console.warn('Daily quote skipped: required configuration is unavailable');
+    return null;
+  }
+
+  const key = quoteKey(dateString);
+  const existing = await env.HAWKBUCKS_CACHE.get(key, 'json');
+
+  if (existing?.quote) return existing;
+
+  const response = await fetch(GEMINI_URL, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-goog-api-key': env.GEMINI_API_KEY
+    },
+    body: JSON.stringify({
+      contents: [
+        {
+          parts: [
+            {
+              text:
+                'Generate one original English quote specifically about Fortnite: Save the World. Make it atmospheric, meaningful, memorable, and relatively short. It may reference the Storm, Husks, Survivors, Commanders, Heroes, Homebase, or the fight to save the world. Do not generate a Battle Royale quote, copyrighted dialogue, or an imitation of a named character. Return only the quote, with no quotation marks and no explanation.'
+            }
+          ]
+        }
+      ],
+      generationConfig: {
+        temperature: 0.9,
+        maxOutputTokens: 120
+      }
+    })
+  });
+
+  if (!response.ok) {
+    console.error(`Daily quote generation failed with HTTP ${response.status}`);
+    return null;
+  }
+
+  const payload = await response.json().catch(() => null);
+  const quote = cleanGeneratedQuote(payload?.candidates?.[0]?.content?.parts?.[0]?.text);
+
+  if (!quote || quote.length > 400) {
+    console.error('Daily quote generation returned no usable quote');
+    return null;
+  }
+
+  const record = {
+    utcDate: dateString,
+    quote,
+    createdAt: new Date().toISOString()
+  };
+
+  await env.HAWKBUCKS_CACHE.put(key, JSON.stringify(record));
+  await env.HAWKBUCKS_CACHE.put(KV_LATEST_QUOTE_KEY, JSON.stringify(record));
+  return record;
+}
+
+async function getDailyQuote(env, dateString = utcDateString()) {
+  if (!env.HAWKBUCKS_CACHE) return null;
+
+  const current = await env.HAWKBUCKS_CACHE.get(quoteKey(dateString), 'json');
+  if (current?.quote) return current;
+
+  const latest = await env.HAWKBUCKS_CACHE.get(KV_LATEST_QUOTE_KEY, 'json');
+  return latest?.quote ? latest : null;
+}
+
+async function handleHistory(env, origin) {
+  try {
+    if (!env.HAWKBUCKS_CACHE) {
+      return json({ success: false, status: 'unavailable', message: 'History is unavailable.' }, 503, origin);
+    }
+
+    return json(await getHistory(env), 200, origin);
+  } catch (error) {
+    console.error('History request failed:', error instanceof Error ? error.message : 'unknown error');
+    return json({ success: false, status: 'unavailable', message: 'History is unavailable.' }, 503, origin);
+  }
+}
+
+async function handleQuote(env, origin) {
+  try {
+    const quote = await getDailyQuote(env);
+
+    if (!quote) {
+      return json({ success: false, status: 'unavailable', quote: null }, 503, origin);
+    }
+
+    return json({ success: true, date: quote.utcDate, quote: quote.quote }, 200, origin);
+  } catch (error) {
+    console.error('Quote request failed:', error instanceof Error ? error.message : 'unknown error');
+    return json({ success: false, status: 'unavailable', quote: null }, 503, origin);
+  }
+}
+
 async function handleMissions(env, origin) {
   const cached = await getCachedMissionData(env);
 
@@ -583,6 +839,20 @@ export default {
 
     if (
       request.method === 'GET' &&
+      url.pathname === '/api/history'
+    ) {
+      return handleHistory(env, origin);
+    }
+
+    if (
+      request.method === 'GET' &&
+      url.pathname === '/api/quote'
+    ) {
+      return handleQuote(env, origin);
+    }
+
+    if (
+      request.method === 'GET' &&
       url.pathname === '/api/health'
     ) {
       return json(
@@ -611,6 +881,34 @@ export default {
       fetchMissionData(env)
         .then(async (data) => {
           await saveMissionData(env, data);
+
+          try {
+            const dateString = utcDateString();
+            const saved = await saveDailyMissionSnapshot(env, data, dateString);
+
+            if (saved) {
+              console.log(`Daily mission snapshot saved for ${dateString}`);
+            }
+          } catch (error) {
+            console.error(
+              'Daily mission snapshot failed:',
+              error instanceof Error ? error.message : 'unknown error'
+            );
+          }
+
+          if (controller.cron === '0 * * * *' || controller.cron === '*/30 * * * *') {
+            const now = new Date();
+            if (now.getUTCMinutes() === 0) {
+              try {
+                await generateDailyQuote(env, utcDateString(now));
+              } catch (error) {
+                console.error(
+                  'Daily quote job failed:',
+                  error instanceof Error ? error.message : 'unknown error'
+                );
+              }
+            }
+          }
 
           console.log(
             `Scheduled mission check completed: ` +

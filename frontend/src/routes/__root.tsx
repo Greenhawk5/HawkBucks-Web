@@ -12,6 +12,7 @@ import { useEffect, type ReactNode } from "react";
 import appCss from "../styles.css?url";
 
 import { reportLovableError } from "../lib/lovable-error-reporting";
+import { BackToTop } from "../components/hawkbucks/BackToTop";
 
 const SITE_URL = "https://hawkbucks.pages.dev";
 
@@ -149,6 +150,7 @@ function RootComponent() {
     <QueryClientProvider client={queryClient}>
       {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
       <Outlet />
+      <BackToTop />
     </QueryClientProvider>
   );
 }

@@ -182,15 +182,29 @@
     font-family: var(--font-sans);
   }
 
-  /* Hide scrollbar while preserving scrolling functionality */
-  body::-webkit-scrollbar,
-  body *::-webkit-scrollbar {
-    display: none;
+  /* Branded, narrow scrollbar that keeps page scrolling discoverable. */
+  html {
+    scrollbar-width: thin;
+    scrollbar-color: var(--primary) var(--background);
   }
 
-  body {
-    -ms-overflow-style: none;
-    scrollbar-width: none;
+  html::-webkit-scrollbar {
+    width: 9px;
+  }
+
+  html::-webkit-scrollbar-track {
+    background: var(--background);
+    border-left: 1px solid var(--border);
+  }
+
+  html::-webkit-scrollbar-thumb {
+    background: var(--primary);
+    border: 2px solid var(--background);
+    border-radius: 999px;
+  }
+
+  html::-webkit-scrollbar-thumb:hover {
+    background: var(--primary-glow);
   }
 
   /* futuristic grid + noise depth layer */

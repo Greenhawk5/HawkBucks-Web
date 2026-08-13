@@ -6,6 +6,8 @@ import type {
   Mission,
   MissionType,
   MissionsResponse,
+  DailyQuoteResponse,
+  MissionsHistoryResponse,
 } from "@/lib/missions.types";
 
 /**
@@ -22,6 +24,8 @@ export const API_BASE_URL = (
   .replace(/\/+$/, "");
 
 export const MISSIONS_ENDPOINT = `${API_BASE_URL}/api/missions`;
+export const HISTORY_ENDPOINT = `${API_BASE_URL}/api/history`;
+export const QUOTE_ENDPOINT = `${API_BASE_URL}/api/quote`;
 
 const AREAS: AreaName[] = ["Stonewood", "Plankerton", "Canny Valley", "Twine Peaks"];
 
@@ -108,5 +112,45 @@ export const missionsQueryOptions = () =>
     queryKey: ["missions"],
     queryFn: fetchMissions,
     staleTime: 60_000,
+    retry: 1,
+  });
+
+export async function fetchMissionsHistory(): Promise<MissionsHistoryResponse> {
+  const res = await fetch(HISTORY_ENDPOINT, {
+    headers: { accept: "application/json" },
+  });
+
+  if (!res.ok) {
+    throw new Error(`History API responded with ${res.status}`);
+  }
+
+  return (await res.json()) as MissionsHistoryResponse;
+}
+
+export const missionsHistoryQueryOptions = () =>
+  queryOptions({
+    queryKey: ["missions-history"],
+    queryFn: fetchMissionsHistory,
+    staleTime: 5 * 60_000,
+    retry: 1,
+  });
+
+export async function fetchDailyQuote(): Promise<DailyQuoteResponse> {
+  const res = await fetch(QUOTE_ENDPOINT, {
+    headers: { accept: "application/json" },
+  });
+
+  if (!res.ok) {
+    throw new Error(`Quote API responded with ${res.status}`);
+  }
+
+  return (await res.json()) as DailyQuoteResponse;
+}
+
+export const dailyQuoteQueryOptions = () =>
+  queryOptions({
+    queryKey: ["daily-quote"],
+    queryFn: fetchDailyQuote,
+    staleTime: 30 * 60_000,
     retry: 1,
   });

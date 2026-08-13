@@ -5,6 +5,7 @@ import { HeroSection } from "@/components/hawkbucks/HeroSection";
 import { MissionDashboard } from "@/components/hawkbucks/MissionDashboard";
 import { EmptyState } from "@/components/hawkbucks/EmptyState";
 import { UpdateTimer } from "@/components/hawkbucks/UpdateTimer";
+import { DailyQuoteSection } from "@/components/hawkbucks/DailyQuoteSection";
 import { missionsQueryOptions } from "@/services/missions.api";
 
 export function HomePage() {
@@ -20,6 +21,7 @@ export function HomePage() {
         <div className="mt-6">
           <UpdateTimer lastUpdated={data.lastUpdated} />
         </div>
+        <DailyQuoteSection />
       </main>
       <Footer />
     </div>
