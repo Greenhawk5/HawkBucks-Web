@@ -33,32 +33,7 @@ export function VbucksMissionsPage() {
           <StatusBadge total={data.totalVbucks} />
         </section>
 
-        <section className="mt-5 grid grid-cols-1 divide-y divide-border/60 rounded-xl border border-panel-border bg-background/20 sm:grid-cols-3 sm:divide-x sm:divide-y-0">
-          <div className="px-4 py-3">
-            <span className="block font-display text-[10px] font-bold uppercase tracking-[0.16em] text-muted-foreground">
-              Missions
-            </span>
-            <span className="mt-1 block font-display text-lg font-bold tabular-nums">
-              {data.missions.length}
-            </span>
-          </div>
-          <div className="px-4 py-3">
-            <span className="block font-display text-[10px] font-bold uppercase tracking-[0.16em] text-muted-foreground">
-              V-Bucks
-            </span>
-            <span className="mt-1 block font-display text-lg font-bold tabular-nums text-primary">
-              {data.totalVbucks}
-            </span>
-          </div>
-          <div className="px-4 py-3">
-            <span className="block font-display text-[10px] font-bold uppercase tracking-[0.16em] text-muted-foreground">
-              Updated
-            </span>
-            <span className="mt-1 block truncate text-sm font-semibold tabular-nums">
-              {formatUtc(new Date(data.lastUpdated))}
-            </span>
-          </div>
-        </section>
+        <MissionsHistory />
 
         <section className="mt-10" aria-labelledby="today-missions-heading">
           <div className="mb-4 flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
@@ -79,13 +54,37 @@ export function VbucksMissionsPage() {
               </span>
             )}
           </div>
+          <section className="mb-5 grid grid-cols-1 divide-y divide-border/60 rounded-xl border border-panel-border bg-background/20 sm:grid-cols-3 sm:divide-x sm:divide-y-0">
+            <div className="px-4 py-3">
+              <span className="block font-display text-[10px] font-bold uppercase tracking-[0.16em] text-muted-foreground">
+                Missions
+              </span>
+              <span className="mt-1 block font-display text-lg font-bold tabular-nums">
+                {data.missions.length}
+              </span>
+            </div>
+            <div className="px-4 py-3">
+              <span className="block font-display text-[10px] font-bold uppercase tracking-[0.16em] text-muted-foreground">
+                V-Bucks
+              </span>
+              <span className="mt-1 block font-display text-lg font-bold tabular-nums text-primary">
+                {data.totalVbucks}
+              </span>
+            </div>
+            <div className="px-4 py-3">
+              <span className="block font-display text-[10px] font-bold uppercase tracking-[0.16em] text-muted-foreground">
+                Updated
+              </span>
+              <span className="mt-1 block truncate text-sm font-semibold tabular-nums">
+                {formatUtc(new Date(data.lastUpdated))}
+              </span>
+            </div>
+          </section>
           {hasMissions ? <MissionDashboard missions={data.missions} /> : <EmptyState />}
           <div className="mt-4">
             <UpdateTimer lastUpdated={data.lastUpdated} />
           </div>
         </section>
-
-        <MissionsHistory />
       </main>
       <Footer />
     </div>

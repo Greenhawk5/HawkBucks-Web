@@ -1,4 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
+import { VbucksIcon } from "./RewardBadge";
 import type { HistoryPeriod, MissionsHistoryResponse } from "@/lib/missions.types";
 import { missionsHistoryQueryOptions } from "@/services/missions.api";
 
@@ -55,13 +56,20 @@ export function MissionsHistory() {
             const hasData = period.daysWithData > 0 && period.totalVbucks !== null;
 
             return (
-              <article key={key} className="glass-panel rounded-xl p-4">
+              <article
+                key={key}
+                tabIndex={0}
+                className="glass-panel glass-panel-hover rounded-xl p-4 outline-none transition-all duration-300 focus-visible:border-primary focus-visible:shadow-[var(--shadow-glow)] motion-reduce:transform-none motion-reduce:transition-none"
+              >
                 <h3 className="font-display text-xs font-bold uppercase tracking-[0.12em] text-muted-foreground">
                   {label}
                 </h3>
-                <p className="mt-3 font-display text-2xl font-extrabold tabular-nums text-primary">
-                  {hasData ? `${period.totalVbucks} V-Bucks` : "—"}
-                </p>
+                <div className="mt-3 flex items-center gap-2">
+                  <VbucksIcon className="h-7 w-7 shrink-0" />
+                  <p className="font-display text-2xl font-extrabold tabular-nums text-primary">
+                    {hasData ? period.totalVbucks : "—"}
+                  </p>
+                </div>
                 <p className="mt-1 text-xs text-muted-foreground">
                   {hasData && period.missionCount !== null
                     ? `${period.missionCount} mission${period.missionCount === 1 ? "" : "s"}`
@@ -75,6 +83,7 @@ export function MissionsHistory() {
                     {formatComparison(period)}
                     <span className="ml-1 font-normal text-muted-foreground">
                       vs previous period
+                      {period.comparison && ` · ${period.comparison.baselineTotalVbucks} V-Bucks`}
                     </span>
                   </p>
                 )}

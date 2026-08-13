@@ -9,6 +9,7 @@ const WORLD_INFO_URL =
 const DEFAULT_LANGUAGE = 'en';
 const KV_MISSIONS_KEY = 'current_missions';
 const KV_HISTORY_PREFIX = 'history:daily:';
+const KV_HISTORY_SEED_KEY = 'history:seed:v1';
 const KV_QUOTE_PREFIX = 'quote:daily:';
 const KV_LATEST_QUOTE_KEY = 'quote:latest';
 const GEMINI_MODEL = 'gemini-3.6-flash';
@@ -584,6 +585,71 @@ async function saveDailyMissionSnapshot(env, data, dateString = utcDateString())
   return true;
 }
 
+function seededHistoryRecord(dateString, totalVbucks) {
+  const timestamp = new Date().toISOString();
+  return {
+    utcDate: dateString,
+    totalVbucks,
+    missionCount: 0,
+    missions: [],
+    source: 'reference-seed',
+    createdAt: timestamp,
+    updatedAt: timestamp
+  };
+}
+
+async function seedReferenceHistory(env, dateString = utcDateString()) {
+  if (!env.HAWKBUCKS_CACHE) return false;
+
+  const initialized = await env.HAWKBUCKS_CACHE.get(KV_HISTORY_SEED_KEY);
+  if (initialized) return false;
+
+  const seedTotals = new Map();
+  const add = (offset, total) => seedTotals.set(shiftUtcDate(dateString, offset), total);
+
+  add(0, 0);
+  add(-1, 50);
+  for (let offset = -2; offset >= -6; offset -= 1) add(offset, 20);
+  add(-7, 10);
+  for (let offset = -8; offset >= -13; offset -= 1) add(offset, 15);
+  for (let offset = -14; offset >= -28; offset -= 1) add(offset, 20);
+  add(-29, 50);
+  add(-30, 700);
+
+  for (let offset = -31; offset >= -59; offset -= 1) add(offset, 0);
+
+  const yearStart = `${dateString.slice(0, 4)}-01-01`;
+  const elapsedDays = Math.floor(
+    (new Date(`${dateString}T00:00:00.000Z`) - new Date(`${yearStart}T00:00:00.000Z`)) /
+      86400000
+  );
+  if (elapsedDays >= 30) seedTotals.set(yearStart, 4650);
+
+  const entries = [...seedTotals.entries()];
+  const existingValues = await env.HAWKBUCKS_CACHE.get(
+    entries.map(([date]) => historyKey(date)),
+    'json'
+  );
+  const writes = [];
+
+  for (const [date, total] of entries) {
+    if (existingValues.get(historyKey(date))) continue;
+    writes.push(
+      env.HAWKBUCKS_CACHE.put(
+        historyKey(date),
+        JSON.stringify(seededHistoryRecord(date, total))
+      )
+    );
+  }
+
+  await Promise.all(writes);
+  await env.HAWKBUCKS_CACHE.put(KV_HISTORY_SEED_KEY, JSON.stringify({
+    version: 1,
+    initializedAt: new Date().toISOString()
+  }));
+  return true;
+}
+
 function emptyPeriod() {
   return {
     totalVbucks: null,
@@ -885,6 +951,8 @@ export default {
           try {
             const dateString = utcDateString();
             const saved = await saveDailyMissionSnapshot(env, data, dateString);
+
+            await seedReferenceHistory(env, dateString);
 
             if (saved) {
               console.log(`Daily mission snapshot saved for ${dateString}`);

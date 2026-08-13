@@ -3,9 +3,8 @@ import { useQuery } from "@tanstack/react-query";
 import { dailyQuoteQueryOptions } from "@/services/missions.api";
 
 export function DailyQuoteSection() {
-  const { data } = useQuery(dailyQuoteQueryOptions());
-
-  if (!data?.quote) return null;
+  const { data, isPending, isError } = useQuery(dailyQuoteQueryOptions());
+  const quote = data?.quote;
 
   return (
     <section className="mt-10" aria-labelledby="daily-quote-heading">
@@ -24,9 +23,19 @@ export function DailyQuoteSection() {
           <h2 id="daily-quote-heading" className="sr-only">
             Daily Save the World Quote
           </h2>
-          <p className="mt-5 max-w-3xl font-display text-lg font-semibold leading-8 tracking-tight sm:text-2xl sm:leading-10">
-            {data.quote}
-          </p>
+          {quote ? (
+            <p className="mt-5 max-w-3xl font-display text-lg font-semibold leading-8 tracking-tight sm:text-2xl sm:leading-10">
+              {quote}
+            </p>
+          ) : (
+            <p className="mt-5 max-w-2xl text-sm leading-7 text-muted-foreground sm:text-base">
+              {isPending
+                ? "Receiving today’s transmission from Homebase…"
+                : isError
+                  ? "Today’s transmission is temporarily unavailable. Please check back after the next UTC refresh."
+                  : "A new Save the World transmission will appear after the next daily refresh."}
+            </p>
+          )}
           <p className="mt-5 text-[10px] font-bold uppercase tracking-[0.18em] text-muted-foreground">
             HawkBucks · Daily Transmission
           </p>
