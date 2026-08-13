@@ -570,18 +570,18 @@ function missionSnapshot(data, dateString, timestamp = new Date().toISOString())
 }
 
 async function saveDailyMissionSnapshot(env, data, dateString = utcDateString()) {
-  if (!env.HAWKBUCKS_CACHE) return false;
-
-  const key = historyKey(dateString);
-  const existing = await env.HAWKBUCKS_CACHE.get(key, 'json');
-
-  if (existing) return false;
-
-  await env.HAWKBUCKS_CACHE.put(
-    key,
-    JSON.stringify(missionSnapshot(data, dateString))
-  );
-
+  if (!env.DB) return false;
+  const snapshot = missionSnapshot(data, dateString);
+  await env.DB.prepare(`
+    INSERT INTO mission_history
+      (date_utc, total_vbucks, mission_count, missions_json, created_at, updated_at)
+    VALUES (?, ?, ?, ?, ?, ?)
+    ON CONFLICT(date_utc) DO UPDATE SET
+      total_vbucks = excluded.total_vbucks,
+      mission_count = excluded.mission_count,
+      missions_json = excluded.missions_json,
+      updated_at = excluded.updated_at
+  `).bind(dateString, snapshot.totalVbucks, snapshot.missionCount, JSON.stringify(snapshot.missions), snapshot.createdAt, snapshot.updatedAt).run();
   return true;
 }
 
@@ -599,10 +599,7 @@ function seededHistoryRecord(dateString, totalVbucks) {
 }
 
 async function seedReferenceHistory(env, dateString = utcDateString()) {
-  if (!env.HAWKBUCKS_CACHE) return false;
-
-  const initialized = await env.HAWKBUCKS_CACHE.get(KV_HISTORY_SEED_KEY);
-  if (initialized) return false;
+  if (!env.DB) return false;
 
   const seedTotals = new Map();
   const add = (offset, total) => seedTotals.set(shiftUtcDate(dateString, offset), total);
@@ -625,29 +622,57 @@ async function seedReferenceHistory(env, dateString = utcDateString()) {
   );
   if (elapsedDays >= 30) seedTotals.set(yearStart, 4650);
 
-  const entries = [...seedTotals.entries()];
-  const existingValues = await env.HAWKBUCKS_CACHE.get(
-    entries.map(([date]) => historyKey(date)),
-    'json'
-  );
-  const writes = [];
+  const timestamp = new Date().toISOString();
+  await env.DB.batch([...seedTotals.entries()].map(([date, total]) =>
+    env.DB.prepare(`
+      INSERT OR IGNORE INTO mission_history
+        (date_utc, total_vbucks, mission_count, missions_json, created_at, updated_at)
+      VALUES (?, ?, 0, '[]', ?, ?)
+    `).bind(date, total, timestamp, timestamp)
+  ));
+  return true;
+}
 
-  for (const [date, total] of entries) {
-    if (existingValues.get(historyKey(date))) continue;
-    writes.push(
-      env.HAWKBUCKS_CACHE.put(
-        historyKey(date),
-        JSON.stringify(seededHistoryRecord(date, total))
-      )
-    );
+async function migrateLegacyKvRecords(env, dateString = utcDateString()) {
+  if (!env.DB || !env.HAWKBUCKS_CACHE) return;
+
+  const dates = dateRange(dateString, 366);
+  const statements = [];
+  let migratedCount = 0;
+  for (let index = 0; index < dates.length; index += 100) {
+    const batchDates = dates.slice(index, index + 100);
+    const values = await env.HAWKBUCKS_CACHE.get(batchDates.map(historyKey), 'json');
+    for (const date of batchDates) {
+      const record = values.get(historyKey(date));
+      if (!record) continue;
+      statements.push(env.DB.prepare(`
+        INSERT OR IGNORE INTO mission_history
+          (date_utc, total_vbucks, mission_count, missions_json, created_at, updated_at)
+        VALUES (?, ?, ?, ?, ?, ?)
+      `).bind(
+        date,
+        Number(record.totalVbucks || 0),
+        Number(record.missionCount || 0),
+        JSON.stringify(Array.isArray(record.missions) ? record.missions : []),
+        record.createdAt || new Date().toISOString(),
+        record.updatedAt || new Date().toISOString()
+      ));
+      migratedCount += 1;
+    }
+  }
+  for (let index = 0; index < statements.length; index += 100) {
+    await env.DB.batch(statements.slice(index, index + 100));
   }
 
-  await Promise.all(writes);
-  await env.HAWKBUCKS_CACHE.put(KV_HISTORY_SEED_KEY, JSON.stringify({
-    version: 1,
-    initializedAt: new Date().toISOString()
-  }));
-  return true;
+  const legacyQuote = await env.HAWKBUCKS_CACHE.get(quoteKey(dateString), 'json');
+  if (legacyQuote?.quote) {
+    const timestamp = legacyQuote.createdAt || new Date().toISOString();
+    await env.DB.prepare(`
+      INSERT OR IGNORE INTO daily_quotes (date_utc, quote, created_at, updated_at)
+      VALUES (?, ?, ?, ?)
+    `).bind(dateString, legacyQuote.quote, timestamp, timestamp).run();
+  }
+  console.log(`[history] legacy KV migration: ${migratedCount} records`);
 }
 
 function emptyPeriod() {
@@ -703,50 +728,50 @@ function dateRange(endDate, length) {
 }
 
 async function getHistory(env, dateString = utcDateString()) {
-  const todayDates = dateRange(dateString, 1);
-  const yesterdayDates = dateRange(shiftUtcDate(dateString, -1), 1);
-  const last7Dates = dateRange(dateString, 7);
-  const previous7Dates = dateRange(shiftUtcDate(dateString, -7), 7);
-  const last30Dates = dateRange(dateString, 30);
-  const previous30Dates = dateRange(shiftUtcDate(dateString, -30), 30);
   const yearStart = `${dateString.slice(0, 4)}-01-01`;
-  const thisYearDates = dateRange(dateString, Math.floor(
-    (new Date(`${dateString}T00:00:00.000Z`) - new Date(`${yearStart}T00:00:00.000Z`)) /
-      86400000 +
-      1
-  ));
   const previousYearEnd = `${String(Number(dateString.slice(0, 4)) - 1)}${dateString.slice(4)}`;
-  const previousYearDates = dateRange(previousYearEnd, thisYearDates.length);
-  const allDates = [
-    ...todayDates,
-    ...yesterdayDates,
-    ...last7Dates,
-    ...previous7Dates,
-    ...last30Dates,
-    ...previous30Dates,
-    ...thisYearDates,
-    ...previousYearDates
-  ];
-  const uniqueKeys = [...new Set(allDates)].map(historyKey);
-  const chunks = [];
-  for (let i = 0; i < uniqueKeys.length; i += 100) {
-    chunks.push(uniqueKeys.slice(i, i + 100));
-  }
-  const valueMaps = await Promise.all(
-    chunks.map((keys) => env.HAWKBUCKS_CACHE.get(keys, 'json'))
-  );
-  const values = new Map(valueMaps.flatMap((map) => [...map.entries()]));
-  const recordFor = (date) => values.get(historyKey(date)) || null;
-  const recordsFor = (dates) => dates.map(recordFor);
+  const query = (start, end) => env.DB.prepare(`
+    SELECT COALESCE(SUM(total_vbucks), 0) AS total_vbucks,
+           COALESCE(SUM(mission_count), 0) AS mission_count,
+           COUNT(*) AS days_with_data
+    FROM mission_history WHERE date_utc BETWEEN ? AND ?
+  `).bind(start, end).first();
+  const [today, yesterday, dayBeforeYesterday, last7, previous7, last30, previous30, thisYear, previousYear] = await Promise.all([
+    query(dateString, dateString),
+    query(shiftUtcDate(dateString, -1), shiftUtcDate(dateString, -1)),
+    query(shiftUtcDate(dateString, -2), shiftUtcDate(dateString, -2)),
+    query(shiftUtcDate(dateString, -6), dateString),
+    query(shiftUtcDate(dateString, -13), shiftUtcDate(dateString, -7)),
+    query(shiftUtcDate(dateString, -29), dateString),
+    query(shiftUtcDate(dateString, -59), shiftUtcDate(dateString, -30)),
+    query(yearStart, dateString),
+    query(`${Number(dateString.slice(0, 4)) - 1}-01-01`, previousYearEnd)
+  ]);
+  const period = (row, comparisonRow = null) => {
+    if (!row || Number(row.days_with_data) === 0) return emptyPeriod();
+    let comparison = null;
+    if (comparisonRow && Number(comparisonRow.days_with_data) > 0 && Number(comparisonRow.total_vbucks) > 0) {
+      comparison = {
+        percent: Number(((Number(row.total_vbucks) - Number(comparisonRow.total_vbucks)) / Number(comparisonRow.total_vbucks) * 100).toFixed(1)),
+        baselineTotalVbucks: Number(comparisonRow.total_vbucks)
+      };
+    }
+    return {
+      totalVbucks: Number(row.total_vbucks),
+      missionCount: Number(row.mission_count),
+      daysWithData: Number(row.days_with_data),
+      comparison
+    };
+  };
 
   return {
     success: true,
     date: dateString,
-    today: periodFromRecords(recordsFor(todayDates)),
-    yesterday: periodFromRecords(recordsFor(yesterdayDates)),
-    last7Days: periodFromRecords(recordsFor(last7Dates), recordsFor(previous7Dates)),
-    last30Days: periodFromRecords(recordsFor(last30Dates), recordsFor(previous30Dates)),
-    thisYear: periodFromRecords(recordsFor(thisYearDates), recordsFor(previousYearDates))
+    today: period(today, yesterday),
+    yesterday: period(yesterday, dayBeforeYesterday),
+    last7Days: period(last7, previous7),
+    last30Days: period(last30, previous30),
+    thisYear: period(thisYear, previousYear)
   };
 }
 
@@ -759,16 +784,20 @@ function cleanGeneratedQuote(value) {
 }
 
 async function generateDailyQuote(env, dateString = utcDateString()) {
-  if (!env.GEMINI_API_KEY || !env.HAWKBUCKS_CACHE) {
-    console.warn('Daily quote skipped: required configuration is unavailable');
+  console.log(`[quote] checking date ${dateString}`);
+  if (!env.GEMINI_API_KEY || !env.DB) {
+    console.warn('[quote] skipped: required configuration is unavailable');
     return null;
   }
 
-  const key = quoteKey(dateString);
-  const existing = await env.HAWKBUCKS_CACHE.get(key, 'json');
+  const existing = await env.DB.prepare(
+    'SELECT date_utc AS utcDate, quote, created_at AS createdAt, updated_at AS updatedAt FROM daily_quotes WHERE date_utc = ?'
+  ).bind(dateString).first();
 
+  console.log(`[quote] existing row: ${existing?.quote ? 'true' : 'false'}`);
   if (existing?.quote) return existing;
 
+  console.log('[quote] Gemini request starting');
   const response = await fetch(GEMINI_URL, {
     method: 'POST',
     headers: {
@@ -787,49 +816,49 @@ async function generateDailyQuote(env, dateString = utcDateString()) {
         }
       ],
       generationConfig: {
-        temperature: 0.9,
         maxOutputTokens: 120
       }
     })
   });
 
   if (!response.ok) {
-    console.error(`Daily quote generation failed with HTTP ${response.status}`);
+    const errorPayload = await response.json().catch(() => null);
+    const detail = cleanGeneratedQuote(errorPayload?.error?.message);
+    console.error(`[quote] Gemini request failed: HTTP ${response.status}`);
+    if (detail) console.error(`[quote] Gemini error: ${detail.slice(0, 240)}`);
     return null;
   }
 
   const payload = await response.json().catch(() => null);
+  console.log('[quote] Gemini response parsed successfully');
   const quote = cleanGeneratedQuote(payload?.candidates?.[0]?.content?.parts?.[0]?.text);
 
-  if (!quote || quote.length > 400) {
-    console.error('Daily quote generation returned no usable quote');
+  if (!quote || quote.length > 400 || !/fortnite|save the world|homebase|husks|storm|survivors/i.test(quote) || /api key|permission denied|quota exceeded|error:/i.test(quote)) {
+    console.error('[quote] quote validation failed');
     return null;
   }
+  console.log('[quote] quote validation passed');
 
-  const record = {
-    utcDate: dateString,
-    quote,
-    createdAt: new Date().toISOString()
-  };
-
-  await env.HAWKBUCKS_CACHE.put(key, JSON.stringify(record));
-  await env.HAWKBUCKS_CACHE.put(KV_LATEST_QUOTE_KEY, JSON.stringify(record));
-  return record;
+  const timestamp = new Date().toISOString();
+  await env.DB.prepare(`
+    INSERT INTO daily_quotes (date_utc, quote, created_at, updated_at)
+    VALUES (?, ?, ?, ?)
+    ON CONFLICT(date_utc) DO NOTHING
+  `).bind(dateString, quote, timestamp, timestamp).run();
+  console.log('[quote] D1 insert succeeded');
+  return { utcDate: dateString, quote, createdAt: timestamp, updatedAt: timestamp };
 }
 
 async function getDailyQuote(env, dateString = utcDateString()) {
-  if (!env.HAWKBUCKS_CACHE) return null;
-
-  const current = await env.HAWKBUCKS_CACHE.get(quoteKey(dateString), 'json');
-  if (current?.quote) return current;
-
-  const latest = await env.HAWKBUCKS_CACHE.get(KV_LATEST_QUOTE_KEY, 'json');
-  return latest?.quote ? latest : null;
+  if (!env.DB) return null;
+  return env.DB.prepare(
+    'SELECT date_utc AS utcDate, quote, created_at AS createdAt, updated_at AS updatedAt FROM daily_quotes WHERE date_utc = ?'
+  ).bind(dateString).first();
 }
 
 async function handleHistory(env, origin) {
   try {
-    if (!env.HAWKBUCKS_CACHE) {
+    if (!env.DB) {
       return json({ success: false, status: 'unavailable', message: 'History is unavailable.' }, 503, origin);
     }
 
@@ -943,53 +972,39 @@ export default {
   },
 
   async scheduled(controller, env, ctx) {
-    ctx.waitUntil(
-      fetchMissionData(env)
-        .then(async (data) => {
-          await saveMissionData(env, data);
+    const dateString = utcDateString();
 
-          try {
-            const dateString = utcDateString();
-            const saved = await saveDailyMissionSnapshot(env, data, dateString);
+    // Initialization and quote generation must not depend on Epic's mission
+    // request succeeding. A transient upstream failure must not leave D1 empty.
+    ctx.waitUntil((async () => {
+      try {
+        await migrateLegacyKvRecords(env, dateString);
+        await seedReferenceHistory(env, dateString);
+        console.log(`D1 history initialization checked for ${dateString}`);
+      } catch (error) {
+        console.error('D1 history initialization failed:', error instanceof Error ? error.message : 'unknown error');
+      }
+    })());
 
-            await seedReferenceHistory(env, dateString);
+    ctx.waitUntil((async () => {
+      try {
+        const quote = await generateDailyQuote(env, dateString);
+        console.log(`D1 daily quote check completed for ${dateString}: ${quote ? 'available' : 'unavailable'}`);
+      } catch (error) {
+        console.error('Daily quote job failed:', error instanceof Error ? error.message : 'unknown error');
+      }
+    })());
 
-            if (saved) {
-              console.log(`Daily mission snapshot saved for ${dateString}`);
-            }
-          } catch (error) {
-            console.error(
-              'Daily mission snapshot failed:',
-              error instanceof Error ? error.message : 'unknown error'
-            );
-          }
-
-          if (controller.cron === '0 * * * *' || controller.cron === '*/30 * * * *') {
-            const now = new Date();
-            if (now.getUTCMinutes() === 0) {
-              try {
-                await generateDailyQuote(env, utcDateString(now));
-              } catch (error) {
-                console.error(
-                  'Daily quote job failed:',
-                  error instanceof Error ? error.message : 'unknown error'
-                );
-              }
-            }
-          }
-
-          console.log(
-            `Scheduled mission check completed: ` +
-            `${data.missions.length} V-Bucks mission(s), ` +
-            `${data.totalVbucks} V-Bucks`
-          );
-        })
-        .catch((error) => {
-          console.error(
-            'Scheduled mission check failed:',
-            error
-          );
-        })
-    );
+    ctx.waitUntil((async () => {
+      try {
+        const data = await fetchMissionData(env);
+        await saveMissionData(env, data);
+        const saved = await saveDailyMissionSnapshot(env, data, dateString);
+        if (saved) console.log(`Daily mission snapshot saved for ${dateString}`);
+        console.log(`Scheduled mission check completed: ${data.missions.length} V-Bucks mission(s), ${data.totalVbucks} V-Bucks`);
+      } catch (error) {
+        console.error('Scheduled mission check failed:', error instanceof Error ? error.message : 'unknown error');
+      }
+    })());
   }
 };

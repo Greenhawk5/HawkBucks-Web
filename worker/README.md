@@ -87,3 +87,31 @@ environment variables, logs, or documentation.
 - [Twitter](https://twitter.com/Liqutch)
 - [Discord](https://discord.gg/nNPrQeqCyf)
 - [Contact](https://liqutch.dev/)
+
+## HawkBucks Worker data setup
+
+The Worker uses `HAWKBUCKS_CACHE` for short-lived mission-result caching. Persistent daily mission snapshots and daily quotes are stored in the D1 database bound as `DB`.
+
+After creating the `hawkbucks-data` D1 database, set its returned ID in `worker/wrangler.toml` as `database_id` under the existing `[[d1_databases]]` binding. Do not put secret values in this file.
+
+Apply the additive schema locally with:
+
+```text
+npx wrangler d1 migrations apply hawkbucks-data --local --config wrangler.toml
+```
+
+Apply it to production with:
+
+```text
+npx wrangler d1 migrations apply hawkbucks-data --remote --config wrangler.toml
+```
+
+Configure the Gemini secret separately:
+
+```text
+npx wrangler secret put GEMINI_API_KEY --config wrangler.toml
+```
+
+The scheduled Worker keeps its existing 30-minute cadence. Each run updates the current UTC day's mission row with an upsert and generates at most one quote for the UTC day after confirming that the D1 row does not already exist. The reference history seed uses `INSERT OR IGNORE`, so it only fills missing dates and can safely be run repeatedly.
+
+The reference history rows are relative to the UTC bootstrap anchor: offset 0 = 0 V-Bucks / 0 missions; offset -1 = 50 / 1; offsets -2 and -3 = 20 / 1 each; offsets -4 through -6 = 20 / 0 each; offsets -7 through -15 = 1 mission each (with V-Bucks totals 10, 15, 15, 15, 15, 15, 15, 20, 20); offsets -16 through -28 = 20 / 0; offset -29 = 50 / 0; offset -30 = 700 / 0; offsets -31 through -59 = 0 / 0. The current-year start row is 4650 / 107, and the previous-year start row is 12480 / 0. All rows use UTC dates and `INSERT OR IGNORE`.

@@ -75,18 +75,30 @@ export function MissionsHistory() {
                     ? `${period.missionCount} mission${period.missionCount === 1 ? "" : "s"}`
                     : "No recorded data"}
                 </p>
-                {key !== "today" && key !== "yesterday" && (
+                {
                   <p
                     className="mt-3 text-xs font-semibold text-foreground/80"
                     title="Compared with the previous equivalent period"
                   >
-                    {formatComparison(period)}
+                    <span
+                      className={
+                        !period.comparison
+                          ? "text-muted-foreground"
+                          : period.comparison.percent > 0
+                            ? "text-primary"
+                            : period.comparison.percent < 0
+                              ? "text-destructive"
+                              : "text-muted-foreground"
+                      }
+                    >
+                      {formatComparison(period)}
+                    </span>
                     <span className="ml-1 font-normal text-muted-foreground">
                       vs previous period
                       {period.comparison && ` · ${period.comparison.baselineTotalVbucks} V-Bucks`}
                     </span>
                   </p>
-                )}
+                }
               </article>
             );
           })}

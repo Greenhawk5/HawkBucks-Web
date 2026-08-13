@@ -6,5 +6,11 @@ compatibility_date = "2026-08-10"
 binding = "HAWKBUCKS_CACHE"
 id = "19e23aa284f648de8acec40e5f963e35"
 
+[[d1_databases]]
+binding = "DB"
+database_name = "hawkbucks-data"
+database_id = "ef9831f2-2d9c-4c11-a49e-c1935ae5edb7"
+migrations_dir = "migrations"
+
 [triggers]
 crons = ["*/30 * * * *"]
