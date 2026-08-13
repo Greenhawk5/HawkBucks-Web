@@ -5,6 +5,8 @@ import { ErrorState } from "@/components/hawkbucks/ErrorState";
 import { HomePage } from "@/components/pages/Home";
 import { missionsQueryOptions } from "@/services/missions.api";
 
+const SITE_URL = "https://hawkbucks.pages.dev";
+
 function MissionsError() {
   const router = useRouter();
   return (
@@ -35,7 +37,16 @@ export const Route = createFileRoute("/")({
         property: "og:description",
         content: "Today's Fortnite Save The World V-Bucks missions, at a glance.",
       },
+      { property: "og:url", content: `${SITE_URL}/` },
+      { property: "og:image", content: `${SITE_URL}/favicon.png` },
+      { name: "twitter:title", content: "HawkBucks — V-Bucks Mission Tracker" },
+      {
+        name: "twitter:description",
+        content: "Today's Fortnite Save The World V-Bucks missions, at a glance.",
+      },
+      { name: "twitter:image", content: `${SITE_URL}/favicon.png` },
     ],
+    links: [{ rel: "canonical", href: `${SITE_URL}/` }],
   }),
   errorComponent: MissionsError,
   component: HomePage,
