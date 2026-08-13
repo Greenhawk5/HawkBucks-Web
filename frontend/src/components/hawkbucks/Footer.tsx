@@ -23,6 +23,7 @@ const stack = ["React", "Tailwind CSS", "Cloudflare Workers", "Cloudflare Pages"
 
 const nav = [
   { to: "/", label: "Home" },
+  { to: "/vbucks-missions", label: "V-Bucks Missions" },
   { to: "/about", label: "About" },
 ] as const;
 
