@@ -53,5 +53,6 @@ coverage/
 *.bak
 *.swp
 
-# my Todo_list
+# my Things
 todo.txt
+/seo
