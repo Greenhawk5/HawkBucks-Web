@@ -9,8 +9,8 @@ const periods: Array<{
 }> = [
   { key: "today", label: "Today" },
   { key: "yesterday", label: "Yesterday" },
-  { key: "last7Days", label: "Last 7 Days" },
-  { key: "last30Days", label: "Last 30 Days" },
+  { key: "last7Days", label: "This Week" },
+  { key: "last30Days", label: "This Month" },
   { key: "thisYear", label: "This Year" },
 ];
 

@@ -4,6 +4,7 @@
   "description": "V-Bucks Alerts Bot - JavaScript version for Save the World mission alerts",
   "main": "index.js",
   "scripts": {
+    "test:history": "node --test history.test.cjs",
     "start": "node index.js",
     "dev": "node index.js"
   },

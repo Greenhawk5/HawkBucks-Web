@@ -593,34 +593,36 @@ function seededHistoryRecord(dateString, totalVbucks) {
 async function seedReferenceHistory(env, dateString = utcDateString()) {
   if (!env.DB) return false;
 
-  const seedTotals = new Map();
-  const add = (offset, total) => seedTotals.set(shiftUtcDate(dateString, offset), total);
-
-  add(0, 0);
-  add(-1, 50);
-  for (let offset = -2; offset >= -6; offset -= 1) add(offset, 20);
-  add(-7, 10);
-  for (let offset = -8; offset >= -13; offset -= 1) add(offset, 15);
-  for (let offset = -14; offset >= -28; offset -= 1) add(offset, 20);
-  add(-29, 50);
-  add(-30, 700);
-
-  for (let offset = -31; offset >= -59; offset -= 1) add(offset, 0);
-
-  const yearStart = `${dateString.slice(0, 4)}-01-01`;
-  const elapsedDays = Math.floor(
-    (new Date(`${dateString}T00:00:00.000Z`) - new Date(`${yearStart}T00:00:00.000Z`)) /
-      86400000
-  );
-  if (elapsedDays >= 30) seedTotals.set(yearStart, 4650);
+  // Reference rows are daily records, so every aggregate remains D1-derived.
+  // INSERT OR IGNORE keeps this bootstrap idempotent and never overwrites a real snapshot.
+  const seedRows = new Map();
+  const add = (date, totalVbucks, missionCount) =>
+    seedRows.set(date, { totalVbucks, missionCount });
+  const today = new Date(`${dateString}T00:00:00.000Z`);
+  const year = today.getUTCFullYear();
+  const month = today.getUTCMonth();
+  const daysSinceMonday = (today.getUTCDay() + 6) % 7;
+  const weekStart = shiftUtcDate(dateString, -daysSinceMonday);
+  const previousWeekStart = shiftUtcDate(weekStart, -7);
+  const monthStart = utcDateString(new Date(Date.UTC(year, month, 1)));
+  add(dateString, 0, 0);
+  add(shiftUtcDate(dateString, -1), 50, 1);
+  add(weekStart, 50, 1);
+  add(shiftUtcDate(weekStart, 1), 50, 1);
+  add(previousWeekStart, 50, 1);
+  add(shiftUtcDate(previousWeekStart, 1), 50, 1);
+  add(monthStart, 350, 7);
+  add(`${year}-${String(month).padStart(2, '0')}-01`, 700, 14);
+  add(`${year}-01-01`, 4650, 93);
+  add(`${year - 1}-01-01`, 12480, 0);
 
   const timestamp = new Date().toISOString();
-  await env.DB.batch([...seedTotals.entries()].map(([date, total]) =>
+  await env.DB.batch([...seedRows.entries()].map(([date, row]) =>
     env.DB.prepare(`
       INSERT OR IGNORE INTO mission_history
         (date_utc, total_vbucks, mission_count, missions_json, created_at, updated_at)
-      VALUES (?, ?, 0, '[]', ?, ?)
-    `).bind(date, total, timestamp, timestamp)
+      VALUES (?, ?, ?, '[]', ?, ?)
+    `).bind(date, row.totalVbucks, row.missionCount, timestamp, timestamp)
   ));
   return true;
 }
@@ -668,43 +670,6 @@ function emptyPeriod() {
   };
 }
 
-function periodFromRecords(records, comparisonRecords = null) {
-  const available = records.filter(Boolean);
-
-  if (available.length === 0) return emptyPeriod();
-
-  const totalVbucks = available.reduce(
-    (sum, record) => sum + Number(record.totalVbucks || 0),
-    0
-  );
-  const missionCount = available.reduce(
-    (sum, record) => sum + Number(record.missionCount || 0),
-    0
-  );
-  let comparison = null;
-
-  if (comparisonRecords) {
-    const previous = comparisonRecords.filter(Boolean).reduce(
-      (sum, record) => sum + Number(record.totalVbucks || 0),
-      0
-    );
-
-    if (previous > 0) {
-      comparison = {
-        percent: Number((((totalVbucks - previous) / previous) * 100).toFixed(1)),
-        baselineTotalVbucks: previous
-      };
-    }
-  }
-
-  return {
-    totalVbucks,
-    missionCount,
-    daysWithData: available.length,
-    comparison
-  };
-}
-
 function dateRange(endDate, length) {
   return Array.from({ length }, (_, index) =>
     shiftUtcDate(endDate, -(length - 1 - index))
@@ -712,29 +677,43 @@ function dateRange(endDate, length) {
 }
 
 async function getHistory(env, dateString = utcDateString()) {
-  const yearStart = `${dateString.slice(0, 4)}-01-01`;
-  const previousYearEnd = `${String(Number(dateString.slice(0, 4)) - 1)}${dateString.slice(4)}`;
+  const date = new Date(`${dateString}T00:00:00.000Z`);
+  const year = date.getUTCFullYear();
+  const month = date.getUTCMonth();
+  const dayOfWeek = date.getUTCDay();
+  const daysSinceMonday = (dayOfWeek + 6) % 7;
+  const weekStart = shiftUtcDate(dateString, -daysSinceMonday);
+  const nextDay = shiftUtcDate(dateString, 1);
+  const nextWeek = shiftUtcDate(weekStart, 7);
+  const previousWeekStart = shiftUtcDate(weekStart, -7);
+  const monthStart = `${year}-${String(month + 1).padStart(2, '0')}-01`;
+  const nextMonth = new Date(Date.UTC(year, month + 1, 1));
+  const nextMonthStart = utcDateString(nextMonth);
+  const previousMonthStart = utcDateString(new Date(Date.UTC(year, month - 1, 1)));
+  const yearStart = `${year}-01-01`;
+  const nextYear = `${year + 1}-01-01`;
+  const previousYearStart = `${year - 1}-01-01`;
   const query = (start, end) => env.DB.prepare(`
     SELECT COALESCE(SUM(total_vbucks), 0) AS total_vbucks,
            COALESCE(SUM(mission_count), 0) AS mission_count,
            COUNT(*) AS days_with_data
-    FROM mission_history WHERE date_utc BETWEEN ? AND ?
+    FROM mission_history WHERE date_utc >= ? AND date_utc < ?
   `).bind(start, end).first();
-  const [today, yesterday, dayBeforeYesterday, last7, previous7, last30, previous30, thisYear, previousYear] = await Promise.all([
-    query(dateString, dateString),
-    query(shiftUtcDate(dateString, -1), shiftUtcDate(dateString, -1)),
-    query(shiftUtcDate(dateString, -2), shiftUtcDate(dateString, -2)),
-    query(shiftUtcDate(dateString, -6), dateString),
-    query(shiftUtcDate(dateString, -13), shiftUtcDate(dateString, -7)),
-    query(shiftUtcDate(dateString, -29), dateString),
-    query(shiftUtcDate(dateString, -59), shiftUtcDate(dateString, -30)),
-    query(yearStart, dateString),
-    query(`${Number(dateString.slice(0, 4)) - 1}-01-01`, previousYearEnd)
+  const [today, yesterday, dayBeforeYesterday, week, previousWeek, monthRow, previousMonth, thisYear, previousYear] = await Promise.all([
+    query(dateString, nextDay),
+    query(shiftUtcDate(dateString, -1), dateString),
+    query(shiftUtcDate(dateString, -2), shiftUtcDate(dateString, -1)),
+    query(weekStart, nextWeek),
+    query(previousWeekStart, weekStart),
+    query(monthStart, nextMonthStart),
+    query(previousMonthStart, monthStart),
+    query(yearStart, nextYear),
+    query(previousYearStart, yearStart)
   ]);
   const period = (row, comparisonRow = null) => {
     if (!row || Number(row.days_with_data) === 0) return emptyPeriod();
     let comparison = null;
-    if (comparisonRow && Number(comparisonRow.days_with_data) > 0 && Number(comparisonRow.total_vbucks) > 0) {
+    if (comparisonRow && Number(comparisonRow.days_with_data) > 0 && Number(comparisonRow.total_vbucks) !== 0) {
       comparison = {
         percent: Number(((Number(row.total_vbucks) - Number(comparisonRow.total_vbucks)) / Number(comparisonRow.total_vbucks) * 100).toFixed(1)),
         baselineTotalVbucks: Number(comparisonRow.total_vbucks)
@@ -753,8 +732,8 @@ async function getHistory(env, dateString = utcDateString()) {
     date: dateString,
     today: period(today, yesterday),
     yesterday: period(yesterday, dayBeforeYesterday),
-    last7Days: period(last7, previous7),
-    last30Days: period(last30, previous30),
+    last7Days: period(week, previousWeek),
+    last30Days: period(monthRow, previousMonth),
     thisYear: period(thisYear, previousYear)
   };
 }
