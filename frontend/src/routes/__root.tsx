@@ -80,6 +80,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
       { name: "author", content: "HawkBucks Project" },
+      { name: "msvalidate.01", content: "7D5813487EBA298DFAA0DE929B16293E" },
       { property: "og:site_name", content: "HawkBucks" },
     ],
     links: [
