@@ -4,6 +4,7 @@ import { Footer } from "@/components/hawkbucks/Footer";
 import { ErrorState } from "@/components/hawkbucks/ErrorState";
 import { HomePage } from "@/components/pages/Home";
 import { missionsQueryOptions } from "@/services/missions.api";
+import { jsonLdScript } from "@/lib/seo";
 
 const SITE_URL = "https://hawkbucks.pages.dev";
 
@@ -32,6 +33,8 @@ export const Route = createFileRoute("/")({
         content:
           "Check in seconds whether today's Fortnite Save The World missions reward V-Bucks. Updated every 30 minutes.",
       },
+      { name: "robots", content: "index, follow" },
+      { property: "og:type", content: "website" },
       { property: "og:title", content: "HawkBucks — V-Bucks Mission Tracker" },
       {
         property: "og:description",
@@ -39,6 +42,7 @@ export const Route = createFileRoute("/")({
       },
       { property: "og:url", content: `${SITE_URL}/` },
       { property: "og:image", content: `${SITE_URL}/favicon.png` },
+      { name: "twitter:card", content: "summary_large_image" },
       { name: "twitter:title", content: "HawkBucks — V-Bucks Mission Tracker" },
       {
         name: "twitter:description",
@@ -47,6 +51,27 @@ export const Route = createFileRoute("/")({
       { name: "twitter:image", content: `${SITE_URL}/favicon.png` },
     ],
     links: [{ rel: "canonical", href: `${SITE_URL}/` }],
+    scripts: [
+      jsonLdScript({
+        "@context": "https://schema.org",
+        "@graph": [
+          {
+            "@type": "WebSite",
+            name: "HawkBucks",
+            url: `${SITE_URL}/`,
+            description: "A community tracker for Fortnite Save the World V-Bucks missions.",
+          },
+          {
+            "@type": "WebApplication",
+            name: "HawkBucks",
+            url: `${SITE_URL}/`,
+            applicationCategory: "UtilityApplication",
+            operatingSystem: "Web",
+            description: "A community tool that tracks Fortnite Save the World V-Bucks missions.",
+          },
+        ],
+      }),
+    ],
   }),
   errorComponent: MissionsError,
   component: HomePage,
