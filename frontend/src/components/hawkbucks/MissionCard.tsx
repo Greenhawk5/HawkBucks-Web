@@ -26,7 +26,13 @@ function MissionIcon({ mission }: { mission: Mission }) {
   }, [src]);
 
   return (
-    <img ref={ref} src={src} alt="" aria-hidden className="h-9 w-9" onError={handleFallback} />
+    <img
+      ref={ref}
+      src={src}
+      alt={`${mission.name} mission icon`}
+      className="h-9 w-9"
+      onError={handleFallback}
+    />
   );
 }
 
