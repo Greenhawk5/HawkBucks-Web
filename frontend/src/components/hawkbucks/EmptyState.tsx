@@ -9,7 +9,11 @@ export function EmptyState() {
           className="animate-ring-pulse absolute inset-0 rounded-full border border-destructive/30"
           style={{ animationDelay: "1.2s" }}
         />
-        <img src={ASSETS.vbucks} alt="" aria-hidden className="h-16 w-16 opacity-70 grayscale" />
+        <img
+          src={ASSETS.vbucks}
+          alt="V-Bucks reward icon"
+          className="h-16 w-16 opacity-70 grayscale"
+        />
       </div>
       <h2 className="mt-8 font-display text-2xl font-extrabold uppercase leading-tight sm:text-3xl">
         <span className="text-destructive">No</span> V-Bucks Missions Available Today

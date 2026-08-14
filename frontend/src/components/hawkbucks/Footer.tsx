@@ -87,7 +87,7 @@ export function Footer() {
                     title={c.label}
                     className="grid h-10 w-10 place-items-center rounded-xl border border-panel-border bg-background/40 transition-all duration-300 hover:-translate-y-0.5 hover:border-primary hover:shadow-[var(--shadow-glow)]"
                   >
-                    <img src={c.icon} alt="" aria-hidden className="h-[18px] w-[18px] opacity-80" />
+                    <img src={c.icon} alt={c.label} className="h-[18px] w-[18px] opacity-80" />
                   </a>
                 </li>
               ))}
