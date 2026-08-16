@@ -130,6 +130,7 @@ const ZONE_MAP = {
 };
 
 const ZONE_THEME_ALIASES = {
+  'ZT_TheIndustrialPark': 'ZT_IndustrialPark',
   'BP_ZT_AD_TheIndustrialPark': 'ZT_IndustrialPark',
   'BP_ZT_IndustrialPark': 'ZT_IndustrialPark'
 };

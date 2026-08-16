@@ -26,6 +26,13 @@ const FILES: Record<MissionType, string> = {
   unknown: "generic.png",
 };
 
+const FIGHT_STORM_FILES: Record<string, string> = {
+  "1": "fight-the-storm-single-atlas.png",
+  "2": "fight-the-storm-dual-atlas.png",
+  "3": "fight-the-storm-triple-atlas.png",
+  "4": "fight-the-storm-four-atlas.png",
+};
+
 const AVAILABLE = new Set<MissionType>([
   "fight-the-storm",
   "ride-the-lightning",
@@ -41,9 +48,14 @@ const AVAILABLE = new Set<MissionType>([
   "refuel-the-homebase",
 ]);
 
-export function missionIcon(type: MissionType): string {
+export function missionIcon(type: MissionType, missionName?: string): string {
   if (!AVAILABLE.has(type)) {
     return MISSION_ICON_FALLBACK;
+  }
+
+  if (type === "fight-the-storm") {
+    const category = missionName?.match(/\bcategory\s*([1-4])\b/i)?.[1] ?? "1";
+    return `${MISSION_ICON_BASE}/${FIGHT_STORM_FILES[category]}`;
   }
 
   return `${MISSION_ICON_BASE}/${FILES[type]}`;

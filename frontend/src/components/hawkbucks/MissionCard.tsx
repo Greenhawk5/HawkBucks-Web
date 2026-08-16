@@ -13,7 +13,7 @@ export function ZoneBadge({ zone }: { zone: string }) {
 }
 
 function MissionIcon({ mission }: { mission: Mission }) {
-  const [src, setSrc] = useState(missionIcon(mission.type));
+  const [src, setSrc] = useState(missionIcon(mission.type, mission.name));
   const ref = useRef<HTMLImageElement>(null);
 
   const handleFallback = () =>
@@ -47,7 +47,7 @@ export function MissionCard({ mission, index }: { mission: Mission; index: numbe
       </div>
 
       <div className="min-w-0">
-        <h3 className="truncate font-display text-lg font-extrabold uppercase leading-tight sm:text-xl">
+        <h3 className="break-words font-display text-lg font-extrabold uppercase leading-tight sm:text-xl">
           {mission.name}
         </h3>
         <div className="mt-2">
