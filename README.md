@@ -58,7 +58,7 @@ The result is a simple experience:
 
 **Open HawkBucks → Check today's missions → Find the V-Bucks → Play.**
 
-HawkBucks also keeps a persistent daily mission history in Cloudflare D1 and exposes that history through the V-Bucks Missions dashboard. The current system provides Today, Yesterday, Last 7 Days, Last 30 Days and This Year summaries with previous-period comparisons.
+HawkBucks also keeps a persistent daily mission history in Cloudflare D1 and exposes that history through the V-Bucks Missions dashboard. The current system provides Today, Yesterday, the current Monday-Sunday UTC calendar week, the current UTC calendar month, and the current UTC calendar year with previous-period comparisons.
 
 The daily quote system is fully deterministic: a static pool of 365 unique quotes is mapped to UTC dates and stored in D1, so the same date always produces the same quote without requiring an external AI generation service.
 
@@ -252,8 +252,8 @@ It provides summaries for:
 
 - Today
 - Yesterday
-- Last 7 Days
-- Last 30 Days
+- Current calendar week (API field: `last7Days`)
+- Current calendar month (API field: `last30Days`)
 - This Year
 
 ---
@@ -420,8 +420,8 @@ The history dashboard calculates:
 
 - Today
 - Yesterday
-- Last 7 Days
-- Last 30 Days
+- Current calendar week (API field: `last7Days`)
+- Current calendar month (API field: `last30Days`)
 - This Year
 
 It also compares those periods with their previous equivalent periods. When a comparison baseline is unavailable or zero, no invalid percentage is produced.
@@ -603,8 +603,8 @@ Returns D1-backed historical summaries for:
 
 - Today
 - Yesterday
-- Last 7 Days
-- Last 30 Days
+- Current calendar week (`last7Days`, Monday-Sunday UTC)
+- Current calendar month (`last30Days`, UTC)
 - This Year
 
 ### `/api/quote`

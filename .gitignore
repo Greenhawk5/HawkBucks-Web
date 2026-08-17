@@ -46,7 +46,6 @@ Thumbs.db
 # Test / coverage output
 coverage/
 .nyc_output/
-worker/history.test.cjs
 
 # Temporary files
 *.tmp

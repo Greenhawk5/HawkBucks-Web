@@ -677,23 +677,33 @@ function dateRange(endDate, length) {
   );
 }
 
-async function getHistory(env, dateString = utcDateString()) {
+function calendarHistoryBounds(dateString) {
   const date = new Date(`${dateString}T00:00:00.000Z`);
   const year = date.getUTCFullYear();
   const month = date.getUTCMonth();
-  const dayOfWeek = date.getUTCDay();
-  const daysSinceMonday = (dayOfWeek + 6) % 7;
-  const weekStart = shiftUtcDate(dateString, -daysSinceMonday);
-  const nextDay = shiftUtcDate(dateString, 1);
-  const nextWeek = shiftUtcDate(weekStart, 7);
-  const previousWeekStart = shiftUtcDate(weekStart, -7);
-  const monthStart = `${year}-${String(month + 1).padStart(2, '0')}-01`;
-  const nextMonth = new Date(Date.UTC(year, month + 1, 1));
-  const nextMonthStart = utcDateString(nextMonth);
-  const previousMonthStart = utcDateString(new Date(Date.UTC(year, month - 1, 1)));
-  const yearStart = `${year}-01-01`;
-  const nextYear = `${year + 1}-01-01`;
-  const previousYearStart = `${year - 1}-01-01`;
+  const daysSinceMonday = (date.getUTCDay() + 6) % 7;
+  const currentWeekStart = shiftUtcDate(dateString, -daysSinceMonday);
+  const currentMonthStart = utcDateString(new Date(Date.UTC(year, month, 1)));
+
+  return {
+    todayStart: dateString,
+    tomorrowStart: shiftUtcDate(dateString, 1),
+    yesterdayStart: shiftUtcDate(dateString, -1),
+    dayBeforeYesterdayStart: shiftUtcDate(dateString, -2),
+    currentWeekStart,
+    nextWeekStart: shiftUtcDate(currentWeekStart, 7),
+    previousWeekStart: shiftUtcDate(currentWeekStart, -7),
+    currentMonthStart,
+    nextMonthStart: utcDateString(new Date(Date.UTC(year, month + 1, 1))),
+    previousMonthStart: utcDateString(new Date(Date.UTC(year, month - 1, 1))),
+    currentYearStart: `${year}-01-01`,
+    nextYearStart: `${year + 1}-01-01`,
+    previousYearStart: `${year - 1}-01-01`
+  };
+}
+
+async function getHistory(env, dateString = utcDateString()) {
+  const bounds = calendarHistoryBounds(dateString);
   const query = (start, end) => env.DB.prepare(`
     SELECT COALESCE(SUM(total_vbucks), 0) AS total_vbucks,
            COALESCE(SUM(mission_count), 0) AS mission_count,
@@ -701,15 +711,15 @@ async function getHistory(env, dateString = utcDateString()) {
     FROM mission_history WHERE date_utc >= ? AND date_utc < ?
   `).bind(start, end).first();
   const [today, yesterday, dayBeforeYesterday, week, previousWeek, monthRow, previousMonth, thisYear, previousYear] = await Promise.all([
-    query(dateString, nextDay),
-    query(shiftUtcDate(dateString, -1), dateString),
-    query(shiftUtcDate(dateString, -2), shiftUtcDate(dateString, -1)),
-    query(weekStart, nextWeek),
-    query(previousWeekStart, weekStart),
-    query(monthStart, nextMonthStart),
-    query(previousMonthStart, monthStart),
-    query(yearStart, nextYear),
-    query(previousYearStart, yearStart)
+    query(bounds.todayStart, bounds.tomorrowStart),
+    query(bounds.yesterdayStart, bounds.todayStart),
+    query(bounds.dayBeforeYesterdayStart, bounds.yesterdayStart),
+    query(bounds.currentWeekStart, bounds.nextWeekStart),
+    query(bounds.previousWeekStart, bounds.currentWeekStart),
+    query(bounds.currentMonthStart, bounds.nextMonthStart),
+    query(bounds.previousMonthStart, bounds.currentMonthStart),
+    query(bounds.currentYearStart, bounds.nextYearStart),
+    query(bounds.previousYearStart, bounds.currentYearStart)
   ]);
   const period = (row, comparisonRow = null) => {
     if (!row || Number(row.days_with_data) === 0) return emptyPeriod();

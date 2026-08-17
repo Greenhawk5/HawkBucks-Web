@@ -28,7 +28,7 @@ https://hawkbucks-worker.hawkbucksbot.workers.dev
 ```
 
 - `GET /api/missions` returns the cached current mission response.
-- `GET /api/history` calculates Today, Yesterday, Last 7 Days, Last 30 Days, and This Year from D1.
+- `GET /api/history` calculates Today, Yesterday, the current Monday-Sunday UTC calendar week (`last7Days`), the current UTC calendar month (`last30Days`), and the current UTC calendar year from D1. These compatibility field names do not represent trailing windows.
 - `GET /api/quote` reads or ensures today’s deterministic D1 quote.
 - `GET /api/health` returns a basic health response.
 
