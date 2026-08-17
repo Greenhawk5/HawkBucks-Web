@@ -240,7 +240,7 @@ The About page explains the project, its purpose and the technology behind HawkB
 
 <p align="center">
   <img
-    src="docs/screenshots/V-Bucks%20Missions.png"
+    src="docs/screenshots/v-bucks-missions.png"
     alt="HawkBucks V-Bucks Missions history and daily tracker"
     width="900"
   />
@@ -539,7 +539,7 @@ HawkBucks-Web/
 │       ├── hawkbucks-header.png
 │       ├── home.png
 │       ├── about.png
-│       └── V-Bucks Missions.png
+│       └── v-bucks-missions.png
 │
 ├── .github/
 │   ├── ISSUE_TEMPLATE/
