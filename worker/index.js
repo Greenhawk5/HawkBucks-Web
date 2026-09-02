@@ -126,7 +126,9 @@ const ZONE_MAP = {
   'ZT_AutumnFoothills': 'Autumn Foothills',
 
   'ZT_Hexsylvania': 'Hexsylvania',
-  'ZT_ThePortal': 'The Portal'
+  'ZT_ThePortal': 'The Portal',
+  
+  'ZT_TP': 'Tropical'
 };
 
 const ZONE_THEME_ALIASES = {
@@ -597,8 +599,10 @@ async function seedReferenceHistory(env, dateString = utcDateString()) {
   // Reference rows are daily records, so every aggregate remains D1-derived.
   // INSERT OR IGNORE keeps this bootstrap idempotent and never overwrites a real snapshot.
   const seedRows = new Map();
-  const add = (date, totalVbucks, missionCount) =>
+  const add = (date, totalVbucks, missionCount) => {
+    if (date > dateString) return;
     seedRows.set(date, { totalVbucks, missionCount });
+  };
   const today = new Date(`${dateString}T00:00:00.000Z`);
   const year = today.getUTCFullYear();
   const month = today.getUTCMonth();
@@ -702,7 +706,7 @@ function calendarHistoryBounds(dateString) {
   };
 }
 
-async function getHistory(env, dateString = utcDateString()) {
+async function getCalendarHistory(env, dateString = utcDateString()) {
   const bounds = calendarHistoryBounds(dateString);
   const query = (start, end) => env.DB.prepare(`
     SELECT COALESCE(SUM(total_vbucks), 0) AS total_vbucks,
@@ -802,7 +806,7 @@ async function handleHistory(env, origin) {
       return json({ success: false, status: 'unavailable', message: 'History is unavailable.' }, 503, origin);
     }
 
-    return json(await getHistory(env), 200, origin);
+    return json(await getCalendarHistory(env), 200, origin);
   } catch (error) {
     console.error('History request failed:', error instanceof Error ? error.message : 'unknown error');
     return json({ success: false, status: 'unavailable', message: 'History is unavailable.' }, 503, origin);

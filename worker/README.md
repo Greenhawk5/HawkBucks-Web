@@ -24,7 +24,7 @@ Required Epic secret names are `EPIC_ACCOUNT_ID`, `EPIC_DEVICE_ID`, and `EPIC_DE
 Production base URL:
 
 ```text
-https://hawkbucks-worker.hawkbucksbot.workers.dev
+https://hawkbucks-web.greenhawk5.workers.dev
 ```
 
 - `GET /api/missions` returns the cached current mission response.

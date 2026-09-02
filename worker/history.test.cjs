@@ -6,7 +6,7 @@ const source = fs.readFileSync(`${__dirname}/index.js`, "utf8");
 const start = source.indexOf("function utcDateString");
 const end = source.indexOf("/* legacy validator removed", start);
 const helpers = new Function(
-  `${source.slice(start, end)}\nreturn { getHistory, calendarHistoryBounds };`,
+  `${source.slice(start, end)}\nreturn { getCalendarHistory, calendarHistoryBounds, seedReferenceHistory };`,
 )();
 
 function d1(records, sqlLog = []) {
@@ -49,7 +49,7 @@ const reference = [
 ];
 
 async function history(date, records = reference, sqlLog = []) {
-  return helpers.getHistory({ DB: d1(records, sqlLog) }, date);
+  return helpers.getCalendarHistory({ DB: d1(records, sqlLog) }, date);
 }
 
 test("calendar reference totals and comparisons", async () => {
@@ -112,6 +112,29 @@ test("calendar bounds are UTC Monday and Gregorian boundaries", () => {
     nextYearStart: "2027-01-01",
     previousYearStart: "2025-01-01",
   });
+});
+
+test("reference seeding never creates a future date at the UTC boundary", async () => {
+  const insertedDates = [];
+  await helpers.seedReferenceHistory(
+    {
+      DB: {
+        prepare() {
+          return {
+            bind(date) {
+              insertedDates.push(date);
+              return {};
+            },
+          };
+        },
+        async batch() {},
+      },
+    },
+    "2026-08-17",
+  );
+
+  assert.ok(insertedDates.includes("2026-08-17"));
+  assert.ok(!insertedDates.includes("2026-08-18"));
 });
 
 test("Monday boundary excludes Sunday from the current week", async () => {

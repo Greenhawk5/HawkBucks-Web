@@ -583,7 +583,7 @@ GET /api/quote
 The production Worker base URL is:
 
 ```text
-https://hawkbucks-worker.hawkbucksbot.workers.dev
+https://hawkbucks-web.greenhawk5.workers.dev
 ```
 
 ### `/api/missions`

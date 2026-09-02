@@ -27,7 +27,7 @@ SEO metadata, canonical information, Open Graph/Twitter metadata, robots behavio
 The base URL comes from `VITE_API_BASE_URL`; when unset it defaults to:
 
 ```text
-https://hawkbucks-worker.hawkbucksbot.workers.dev
+https://hawkbucks-web.greenhawk5.workers.dev
 ```
 
 It calls:
@@ -43,7 +43,7 @@ The frontend exposes loading, unavailable, and error states rather than inventin
 Copy `.env.example` to `.env` when a different Worker endpoint is required:
 
 ```text
-VITE_API_BASE_URL=https://hawkbucks-worker.hawkbucksbot.workers.dev
+VITE_API_BASE_URL=https://hawkbucks-web.greenhawk5.workers.dev
 ```
 
 Do not place Epic credentials, Cloudflare secrets, or API keys in frontend environment variables.

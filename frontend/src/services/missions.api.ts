@@ -18,7 +18,7 @@ import type {
  * surfaces a real error state instead of fake missions.
  */
 export const API_BASE_URL = (
-  import.meta.env["VITE_API_BASE_URL"] ?? "https://hawkbucks-worker.hawkbucksbot.workers.dev"
+  import.meta.env["VITE_API_BASE_URL"] ?? "https://hawkbucks-web.greenhawk5.workers.dev"
 )
   .toString()
   .replace(/\/+$/, "");
