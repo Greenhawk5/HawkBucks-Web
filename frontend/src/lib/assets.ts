@@ -9,7 +9,7 @@ export const ASSETS = {
   power: "/assets/power.png",
   github: "/assets/github-dark.svg",
   telegram: "/assets/telegram-dark.svg",
-  gmail: "/assets/gmail-dark.svg",
+  greenhawk: "/assets/greenhawk-logo.png",
 } as const;
 
 export const MISSION_ICON_BASE = "/assets/missions";

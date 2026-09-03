@@ -5,6 +5,8 @@
   "main": "index.js",
   "scripts": {
     "test:history": "node --test history.test.cjs",
+    "test:power-level": "node --test power-level.test.cjs",
+    "test": "node --test history.test.cjs power-level.test.cjs",
     "start": "node index.js",
     "dev": "node index.js"
   },

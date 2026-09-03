@@ -12,11 +12,6 @@ const connect = [
     label: "Telegram Bot",
     href: "https://t.me/HawkBucks_bot",
   },
-  {
-    icon: ASSETS.gmail,
-    label: "Email",
-    href: "mailto:Ali.Faniani@gmail.com",
-  },
 ];
 
 const stack = ["React", "Tailwind CSS", "Cloudflare Workers", "Cloudflare Pages", "Epic Games API"];

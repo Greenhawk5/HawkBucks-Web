@@ -1,5 +1,7 @@
 {
-  "name": "tanstack_start_ts",
+  "name": "hawkbucks-web",
+  "version": "1.0.0",
+  "license": "SEE LICENSE IN ../LICENSE",
   "private": true,
   "sideEffects": false,
   "type": "module",

@@ -25,27 +25,62 @@ function describeApiFailure(label, response, payload) {
   );
 }
 
-// Power level mappings
+// Difficulty → Power Level resolution
+// ---------------------------------------------------------------------------
+// Authoritative source: Epic World Info. Every mission carries
+// `missionDifficultyInfo: { dataTable, rowName }` pointing at
+// /SaveTheWorld/Balance/DataTables/GameDifficultyGrowthBounds — the same
+// identifier the game client resolves. Row names are global (a row means the
+// same difficulty in every theater), so resolution is region-independent and
+// no mission-specific or location-specific values may be added here.
+//
+// Values verified 2026-09-03 against current live data:
+//   - Storm Shield Defense quest power bands per theater (Fortnite Wiki):
+//     Stonewood 1/3/5/9/15, Plankerton 19/23/28/34/40, Canny 46/52/58/64/70,
+//     Twine 76/82/88/94/100/108/116/124/132/140/160.
+//   - Live alert PLs (stw-planner.com), e.g. Canny Valley
+//     "Retrieve the Data - Thunder Route 99 (Bunker)" → PL 52
+//     (rowName Theater_Hard_Zone2).
+//
+// History: Canny Valley previously had six zones with legacy rows
+// Theater_Hard_Zone1..Zone6 → 40/46/52/58/64/70. Epic removed the shared
+// PL-40 transition zone; Canny now starts at 46 and `Theater_Hard_Zone6`
+// no longer exists in live data. The other theaters were NOT shifted.
+//
+// 4x group missions use separate `*_Group_*` rows that resolve to the same
+// band as the matching regular zone row (verified live: Canny group alerts
+// display 46/52/58/64/70; Twine 160+ weekly alerts use
+// Theater_Endgame_Group_Zone6 → 160).
+//
+// Rows NOT listed below (Outpost, Phoenix/venture, Starlight/Dungeons,
+// Tutorial, *_Dudebro, and any future Epic row) intentionally resolve to
+// null: an unknown difficulty must never be silently shown as a plausible
+// but incorrect number. They do not carry V-Bucks alerts in live data; if
+// that ever changes, add the verified value here (with evidence) or let the
+// UI show the unknown state.
 const DIFFICULTY_POWER_MAP = {
+  // Stonewood (PL 1 - 19; the PL-19 edge tiles use Theater_Normal_Zone1)
   'Theater_Start_Zone1': 1,
   'Theater_Start_Zone2': 3,
   'Theater_Start_Zone3': 5,
   'Theater_Start_Zone4': 9,
   'Theater_Start_Zone5': 15,
 
+  // Plankerton (PL 19 - 46; the PL-46 edge tiles use Theater_Hard_Zone1)
   'Theater_Normal_Zone1': 19,
   'Theater_Normal_Zone2': 23,
   'Theater_Normal_Zone3': 28,
   'Theater_Normal_Zone4': 34,
   'Theater_Normal_Zone5': 40,
 
-  'Theater_Hard_Zone1': 40,
-  'Theater_Hard_Zone2': 46,
-  'Theater_Hard_Zone3': 52,
-  'Theater_Hard_Zone4': 58,
-  'Theater_Hard_Zone5': 64,
-  'Theater_Hard_Zone6': 70,
+  // Canny Valley (PL 46 - 70, five zones since Epic's rebalance)
+  'Theater_Hard_Zone1': 46,
+  'Theater_Hard_Zone2': 52,
+  'Theater_Hard_Zone3': 58,
+  'Theater_Hard_Zone4': 64,
+  'Theater_Hard_Zone5': 70,
 
+  // Twine Peaks (PL 76 - 160)
   'Theater_Nightmare_Zone1': 76,
   'Theater_Nightmare_Zone2': 82,
   'Theater_Nightmare_Zone3': 88,
@@ -57,24 +92,53 @@ const DIFFICULTY_POWER_MAP = {
   'Theater_Endgame_Zone3': 124,
   'Theater_Endgame_Zone4': 132,
   'Theater_Endgame_Zone5': 140,
-  'Theater_Endgame_Zone6': 160,
 
-  'Theater_Phoenix_Zone1': 1,
-  'Theater_Phoenix_Zone2': 3,
-  'Theater_Phoenix_Zone3': 5,
-  'Theater_Phoenix_Zone4': 10,
-  'Theater_Phoenix_Zone5': 15,
-  'Theater_Phoenix_Zone6': 23,
-  'Theater_Phoenix_Zone7': 34,
-  'Theater_Phoenix_Zone8': 46,
-  'Theater_Phoenix_Zone9': 58,
-  'Theater_Phoenix_Zone10': 70,
-  'Theater_Phoenix_Zone11': 82,
-  'Theater_Phoenix_Zone12': 94,
-  'Theater_Phoenix_Zone13': 108,
-  'Theater_Phoenix_Zone14': 124,
-  'Theater_Phoenix_Zone15': 140
+  // 4x group missions (same band as the matching regular zone row)
+  'Theater_Start_Group_Zone3': 5,
+  'Theater_Start_Group_Zone4': 9,
+  'Theater_Start_Group_Zone5': 15,
+  'Theater_Normal_Group_Zone1': 19,
+  'Theater_Normal_Group_Zone2': 23,
+  'Theater_Normal_Group_Zone3': 28,
+  'Theater_Normal_Group_Zone4': 34,
+  'Theater_Normal_Group_Zone5': 40,
+  'Theater_Hard_Group_Zone1': 46,
+  'Theater_Hard_Group_Zone2': 52,
+  'Theater_Hard_Group_Zone3': 58,
+  'Theater_Hard_Group_Zone4': 64,
+  'Theater_Hard_Group_Zone5': 70,
+  'Theater_Nightmare_Group_Zone1': 76,
+  'Theater_Nightmare_Group_Zone2': 82,
+  'Theater_Nightmare_Group_Zone3': 88,
+  'Theater_Nightmare_Group_Zone4': 94,
+  'Theater_Nightmare_Group_Zone5': 100,
+  'Theater_Endgame_Group_Zone1': 108,
+  'Theater_Endgame_Group_Zone2': 116,
+  'Theater_Endgame_Group_Zone3': 124,
+  'Theater_Endgame_Group_Zone4': 132,
+  'Theater_Endgame_Group_Zone5': 140,
+  'Theater_Endgame_Group_Zone6': 160
 };
+
+// Resolves the Power Level of a mission from its Epic difficulty handle.
+// Accepts either the `{ dataTable, rowName }` object from World Info or a
+// bare row name string. Returns a number, or null when the difficulty
+// cannot be confidently resolved (missing/malformed input, or a row that is
+// not in the verified map). Never guesses.
+function get_power_level(missionDifficultyInfo) {
+  const rowName =
+    typeof missionDifficultyInfo === 'string'
+      ? missionDifficultyInfo.trim()
+      : typeof missionDifficultyInfo?.rowName === 'string'
+        ? missionDifficultyInfo.rowName.trim()
+        : null;
+
+  if (!rowName || rowName === 'None') {
+    return null;
+  }
+
+  return DIFFICULTY_POWER_MAP[rowName] ?? null;
+}
 
 const ZONE_MAP = {
   'ZT_GhostTown': 'Ghost Town',
@@ -170,19 +234,6 @@ function get_mission_name(missionGenerator, lang) {
   }
 
   return 'Unknown Mission';
-}
-
-function get_power_level(missionDifficultyInfo) {
-  const rowName =
-    typeof missionDifficultyInfo === 'string'
-      ? missionDifficultyInfo
-      : missionDifficultyInfo?.rowName;
-
-  if (!rowName || rowName === 'None') {
-    return 'Unknown';
-  }
-
-  return DIFFICULTY_POWER_MAP[rowName] ?? `Unknown (${rowName})`;
 }
 
 function extract_zone_theme_identifier(zoneTheme) {
@@ -493,10 +544,7 @@ async function fetchMissionData(env) {
           area,
           mission: missionName,
           zone,
-          powerLevel:
-            typeof power === 'number'
-              ? power
-              : null
+          powerLevel: power
         });
 
         resultKeys.add(resultKey);

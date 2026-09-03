@@ -426,7 +426,7 @@ The history dashboard calculates:
 
 It also compares those periods with their previous equivalent periods. When a comparison baseline is unavailable or zero, no invalid percentage is produced.
 
-Migration `0001_history_and_quotes.sql` creates the history and quote tables. Migrations `0002_reference_history_seed.sql` and `0003_reference_mission_counts.sql` provide idempotent reference/bootstrap data and are not live mission observations.
+Migration `0001_history_and_quotes.sql` creates the history and quote tables. Migrations `0002_reference_history_seed.sql`, `0003_reference_mission_counts.sql`, and `0004_correct_calendar_reference_seed.sql` provide idempotent reference/bootstrap data and are not live mission observations.
 
 ---
 
@@ -522,7 +522,6 @@ HawkBucks-Web/
 │   ├── package.json
 │   ├── vite.config.ts
 │   ├── tsconfig.json
-│   ├── tailwind.config.*
 │   └── README.md
 │
 ├── worker/
@@ -846,6 +845,15 @@ The Worker requires Epic authentication values to be configured as deployment se
 
 The current Worker does not require `GEMINI_API_KEY` for the daily quote system.
 
+### Testing
+
+Run the Worker test suites (history aggregation and Power Level resolution, including the corrected Canny Valley difficulty mapping):
+
+```bash
+cd worker
+npm test
+```
+
 ---
 
 # 🔐 Security
@@ -902,6 +910,8 @@ Production Epic credentials must be configured through Cloudflare Worker Secrets
 # 🧭 Current Project Status
 
 HawkBucks has evolved beyond a simple mission viewer.
+
+**Current stable release: [v1.0.0](https://github.com/Greenhawk5/HawkBucks-Web/releases/tag/v1.0.0)** — see [`CHANGELOG.md`](CHANGELOG.md) for the release contents.
 
 ### Current
 
@@ -1051,7 +1061,7 @@ HawkBucks uses publicly accessible game-related information and services to prov
 
 ### HawkBucks Project
 
-Designed and developed as an independent community project for Fortnite: Save The World players.
+Designed and developed by **[Greenhawk](https://github.com/Greenhawk5)** ([portfolio](https://alifaniani.ir)) as an independent community project for Fortnite: Save The World players.
 
 Special thanks to the open-source community and everyone contributing ideas, testing the application and helping improve HawkBucks.
 

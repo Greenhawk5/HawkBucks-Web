@@ -38,7 +38,7 @@ CORS is handled for the configured frontend origin and valid preflight requests.
 
 Migration `0001_history_and_quotes.sql` creates `mission_history` with `date_utc`, `total_vbucks`, `mission_count`, `missions_json`, `created_at`, and `updated_at`; and `daily_quotes` with `date_utc`, `quote`, `created_at`, and `updated_at`. UTC dates are unique.
 
-Current missions UPSERT the current UTC row, so repeated refreshes do not create duplicate daily records. History aggregation uses D1 rows and previous equivalent periods. Migrations `0002_reference_history_seed.sql` and `0003_reference_mission_counts.sql` are idempotent reference/bootstrap data, not live mission observations.
+Current missions UPSERT the current UTC row, so repeated refreshes do not create duplicate daily records. History aggregation uses D1 rows and previous equivalent periods. Migrations `0002_reference_history_seed.sql`, `0003_reference_mission_counts.sql`, and `0004_correct_calendar_reference_seed.sql` are idempotent reference/bootstrap data, not live mission observations.
 
 Apply migrations:
 
@@ -51,11 +51,24 @@ npx wrangler d1 migrations apply hawkbucks-data --remote --config wrangler.toml
 
 `quote-pool.js` contains 365 unique static quotes imported from `HawkBucks-Daily-Quotes.md`. Selection uses UTC days since `2025-01-01T00:00:00Z` and positive modulo 365. The Worker checks today’s D1 row, inserts the selected quote with `ON CONFLICT(date_utc) DO NOTHING` if missing, and preserves existing rows. There is no Gemini request, random selection, external API, or semantic validation.
 
-Test the pool with:
+## Tests
+
+Run the Worker test suites (Node built-in test runner):
 
 ```bash
-node quote-pool.test.cjs
+npm test
 ```
+
+This runs:
+
+- `history.test.cjs` — calendar-based history aggregation and period comparisons.
+- `power-level.test.cjs` — mission Power Level resolution, including the current
+  Canny Valley difficulty mapping (`Theater_Hard_Zone2` → 52) and the
+  unknown-difficulty fallback behavior.
+
+## Deterministic daily quotes
+
+`quote-pool.js` contains 365 unique static quotes. Selection uses UTC days since `2025-01-01T00:00:00Z` and positive modulo 365. The Worker checks today’s D1 row, inserts the selected quote with `ON CONFLICT(date_utc) DO NOTHING` if missing, and preserves existing rows. There is no Gemini request, random selection, external API, or semantic validation.
 
 ## Local development and deployment
 
@@ -63,7 +76,7 @@ node quote-pool.test.cjs
 npm ci
 npx wrangler d1 migrations apply hawkbucks-data --local --config wrangler.toml
 npx wrangler dev --local --config wrangler.toml
-node quote-pool.test.cjs
+npm test
 npx wrangler deploy --dry-run --config wrangler.toml
 npx wrangler deploy --config wrangler.toml
 ```
@@ -75,5 +88,5 @@ Use Wrangler’s local secret mechanism for local Epic credentials. Never commit
 - Missions unavailable: verify Epic secrets, KV binding, and Epic upstream responses.
 - History unavailable: verify the D1 binding and applied migrations.
 - Quote unavailable: verify D1; quote selection has no external dependency.
-- Unexpected totals: distinguish live rows from reference/bootstrap rows in migrations 0002 and 0003.
+- Unexpected totals: distinguish live rows from reference/bootstrap rows in migrations 0002, 0003, and 0004.
 - CORS errors: verify the configured frontend origin.
