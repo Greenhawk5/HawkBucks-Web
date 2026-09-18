@@ -55,7 +55,7 @@ export function VbucksMissionsPage() {
               </span>
             )}
           </div>
-          <section className="mb-5 grid grid-cols-2 divide-y divide-border/60 rounded-xl border border-panel-border bg-background/20 sm:grid-cols-3 sm:divide-x sm:divide-y-0 lg:grid-cols-5">
+          <section className="mb-5 grid grid-cols-2 divide-y divide-border/60 rounded-xl border border-panel-border bg-background/20 sm:grid-cols-3 sm:divide-x sm:divide-y-0 lg:grid-cols-[minmax(0,0.85fr)_minmax(0,0.85fr)_minmax(0,1.4fr)_minmax(0,0.95fr)_minmax(0,0.95fr)]">
             <div className="px-4 py-3">
               <span className="block font-display text-[10px] font-bold uppercase tracking-[0.16em] text-muted-foreground">
                 Missions
