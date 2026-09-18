@@ -1,23 +1,9 @@
 import { useEffect, useState } from "react";
-import { formatUtc, formatUtcTime, nextUpdate } from "@/lib/missions";
-
-function countdown(target: Date, now: Date) {
-  const diff = Math.max(0, target.getTime() - now.getTime());
-  const m = Math.floor(diff / 60000);
-  const s = Math.floor((diff % 60000) / 1000);
-  return `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
-}
+import { formatUtc, formatUtcTime } from "@/lib/missions";
+import { useRefreshCountdown } from "@/hooks/useRefreshCountdown";
 
 export function UpdateTimer({ lastUpdated }: { lastUpdated: string }) {
-  const [now, setNow] = useState<Date | null>(null);
-
-  useEffect(() => {
-    setNow(new Date());
-    const id = setInterval(() => setNow(new Date()), 1000);
-    return () => clearInterval(id);
-  }, []);
-
-  const next = nextUpdate(now ?? new Date(lastUpdated));
+  const { next, refreshIn } = useRefreshCountdown(lastUpdated);
 
   return (
     <div className="glass-panel grid gap-3 rounded-xl px-4 py-3 text-xs sm:grid-cols-3 sm:items-center">
@@ -39,9 +25,7 @@ export function UpdateTimer({ lastUpdated }: { lastUpdated: string }) {
         <span className="block text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
           Refresh In
         </span>
-        <span className="font-display font-bold tabular-nums text-primary">
-          {now ? countdown(next, now) : "--:--"}
-        </span>
+        <span className="font-display font-bold tabular-nums text-primary">{refreshIn}</span>
       </div>
     </div>
   );

@@ -17,10 +17,10 @@ export function HomePage() {
       <Navbar />
       <main className="mx-auto max-w-[1100px] px-4 pb-10 sm:px-6">
         <HeroSection total={data.totalVbucks} missionCount={data.missions.length} />
-        {hasMissions ? <MissionDashboard missions={data.missions} /> : <EmptyState />}
-        <div className="mt-6">
+        <div className="mb-6">
           <UpdateTimer lastUpdated={data.lastUpdated} />
         </div>
+        {hasMissions ? <MissionDashboard missions={data.missions} /> : <EmptyState />}
         <DailyQuoteSection />
       </main>
       <Footer />

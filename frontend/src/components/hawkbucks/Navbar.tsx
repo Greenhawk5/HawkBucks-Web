@@ -42,7 +42,7 @@ export function Navbar() {
               key={l.to}
               to={l.to}
               activeOptions={{ exact: l.to === "/" }}
-              className="inline-flex min-h-[48px] items-center px-2 font-display text-[11px] font-bold uppercase tracking-[0.14em] text-muted-foreground transition-colors hover:text-primary data-[status=active]:text-primary"
+              className="inline-flex min-h-[48px] min-w-12 items-center justify-center px-2 font-display text-[11px] font-bold uppercase tracking-[0.14em] text-muted-foreground transition-colors hover:text-primary data-[status=active]:text-primary"
             >
               {l.label}
             </Link>

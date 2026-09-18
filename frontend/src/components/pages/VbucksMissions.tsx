@@ -5,13 +5,14 @@ import { MissionDashboard } from "@/components/hawkbucks/MissionDashboard";
 import { MissionsHistory } from "@/components/hawkbucks/MissionsHistory";
 import { Navbar } from "@/components/hawkbucks/Navbar";
 import { StatusBadge } from "@/components/hawkbucks/StatusBadge";
-import { UpdateTimer } from "@/components/hawkbucks/UpdateTimer";
-import { formatUtc } from "@/lib/missions";
+import { useRefreshCountdown } from "@/hooks/useRefreshCountdown";
+import { formatUtc, formatUtcTime } from "@/lib/missions";
 import { missionsQueryOptions } from "@/services/missions.api";
 
 export function VbucksMissionsPage() {
   const { data } = useSuspenseQuery(missionsQueryOptions());
   const hasMissions = data.status === "available" && data.missions.length > 0;
+  const { next, refreshIn } = useRefreshCountdown(data.lastUpdated);
 
   return (
     <div className="min-h-screen">
@@ -54,7 +55,7 @@ export function VbucksMissionsPage() {
               </span>
             )}
           </div>
-          <section className="mb-5 grid grid-cols-1 divide-y divide-border/60 rounded-xl border border-panel-border bg-background/20 sm:grid-cols-3 sm:divide-x sm:divide-y-0">
+          <section className="mb-5 grid grid-cols-2 divide-y divide-border/60 rounded-xl border border-panel-border bg-background/20 sm:grid-cols-3 sm:divide-x sm:divide-y-0 lg:grid-cols-5">
             <div className="px-4 py-3">
               <span className="block font-display text-[10px] font-bold uppercase tracking-[0.16em] text-muted-foreground">
                 Missions
@@ -79,11 +80,24 @@ export function VbucksMissionsPage() {
                 {formatUtc(new Date(data.lastUpdated))}
               </span>
             </div>
+            <div className="px-4 py-3">
+              <span className="block font-display text-[10px] font-bold uppercase tracking-[0.16em] text-muted-foreground">
+                Next Update
+              </span>
+              <span className="mt-1 block text-sm font-bold tabular-nums">
+                {formatUtcTime(next)}
+              </span>
+            </div>
+            <div className="px-4 py-3">
+              <span className="block font-display text-[10px] font-bold uppercase tracking-[0.16em] text-muted-foreground">
+                Refresh In
+              </span>
+              <span className="mt-1 block font-display text-sm font-bold tabular-nums text-primary">
+                {refreshIn}
+              </span>
+            </div>
           </section>
           {hasMissions ? <MissionDashboard missions={data.missions} /> : <EmptyState />}
-          <div className="mt-4">
-            <UpdateTimer lastUpdated={data.lastUpdated} />
-          </div>
         </section>
       </main>
       <Footer />

@@ -7,7 +7,14 @@ export function PowerBadge({ level }: { level: number }) {
         {level}
       </span>
       <span className="flex flex-col items-center border-l border-border/70 pl-2">
-        <img src={ASSETS.power} alt="" aria-hidden className="h-4 w-4" />
+        {/* Purely decorative icon next to the visible "Power" label: rendered as a
+            CSS background (same approved asset, same 16px size) so it stays out of
+            the accessibility tree and is not announced redundantly. */}
+        <span
+          aria-hidden="true"
+          className="block h-4 w-4 shrink-0 bg-contain bg-center bg-no-repeat"
+          style={{ backgroundImage: `url(${ASSETS.power})` }}
+        />
         <span className="mt-0.5 text-[9px] font-semibold uppercase tracking-widest text-muted-foreground">
           Power
         </span>

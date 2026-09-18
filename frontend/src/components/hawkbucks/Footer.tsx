@@ -54,13 +54,13 @@ export function Footer() {
 
           <nav aria-label="Footer navigation">
             <ColTitle>Navigate</ColTitle>
-            <ul className="mt-4 space-y-2.5">
+            <ul className="mt-2 space-y-1">
               {nav.map((l) => (
                 <li key={l.to}>
                   <Link
                     to={l.to}
                     activeOptions={{ exact: l.to === "/" }}
-                    className="inline-flex min-h-[48px] items-center text-sm text-muted-foreground transition-colors hover:text-primary data-[status=active]:text-primary"
+                    className="relative inline-flex items-center text-sm text-muted-foreground transition-colors after:absolute after:content-[''] after:-inset-x-2 after:-inset-y-[14px] hover:text-primary data-[status=active]:text-primary"
                   >
                     {l.label}
                   </Link>
@@ -78,12 +78,13 @@ export function Footer() {
                     href={c.href}
                     target="_blank"
                     rel="noreferrer noopener"
-                    aria-label={c.label}
                     title={c.label}
                     className="grid h-12 w-12 place-items-center rounded-xl border border-panel-border bg-background/40 transition-all duration-300 hover:-translate-y-0.5 hover:border-primary hover:shadow-[var(--shadow-glow)]"
                   >
-                    {/* Decorative: the link's aria-label conveys the purpose. */}
-                    <img src={c.icon} alt="" aria-hidden className="h-[18px] w-[18px] opacity-80" />
+                    {/* Functional image: the icon is the link's only content, so its
+                        alt text provides the accessible name (no separate aria-label
+                        needed, avoiding duplicate screen-reader announcements). */}
+                    <img src={c.icon} alt={c.label} className="h-[18px] w-[18px] opacity-80" />
                   </a>
                 </li>
               ))}
