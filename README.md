@@ -847,7 +847,7 @@ The current Worker does not require `GEMINI_API_KEY` for the daily quote system.
 
 ### Testing
 
-Run the Worker test suites (history aggregation and Power Level resolution, including the corrected Canny Valley difficulty mapping):
+Run the Worker test suites (history aggregation, Power Level resolution, zone resolution, mission parsing, and zone mission-count badges):
 
 ```bash
 cd worker
@@ -911,7 +911,7 @@ Production Epic credentials must be configured through Cloudflare Worker Secrets
 
 HawkBucks has evolved beyond a simple mission viewer.
 
-**Current stable release: [v1.0.0](https://github.com/Greenhawk5/HawkBucks-Web/releases/tag/v1.0.0)** — see [`CHANGELOG.md`](CHANGELOG.md) for the release contents.
+**Current stable release: v1.2.0** — see [`CHANGELOG.md`](CHANGELOG.md) for the release contents and the [Releases page](https://github.com/Greenhawk5/HawkBucks-Web/releases) for published tags.
 
 ### Current
 
@@ -931,6 +931,9 @@ HawkBucks has evolved beyond a simple mission viewer.
 - [x] Historical period comparisons
 - [x] Deterministic 365-quote daily system
 - [x] SEO metadata and sitemap/robots infrastructure
+- [x] Structured data (JSON-LD: WebSite, WebApplication, FAQPage)
+- [x] PWA manifest, app icons, and install metadata
+- [x] Mission-count zone badges and 48px touch targets
 
 ---
 

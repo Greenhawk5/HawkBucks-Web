@@ -180,6 +180,7 @@ const ZONE_MAP = {
   'ZT_TheGrasslands': 'Grasslands',
   'ZT_Grasslands': 'Grasslands',
   'ZT_Forest': 'Forest',
+  'ZT_TheForest': 'Forest',
   'ZT_HauntedForest': 'Haunted Forest',
   'ZT_Lakeside': 'Lakeside',
   'ZT_Tropical': 'Scurvy Shoals (Tropical)',
@@ -200,6 +201,87 @@ const ZONE_THEME_ALIASES = {
   'BP_ZT_AD_TheIndustrialPark': 'ZT_IndustrialPark',
   'BP_ZT_IndustrialPark': 'ZT_IndustrialPark'
 };
+
+// Campaign-variant zone themes (e.g. event/quest respins) use Blueprint class
+// assets like BP_ZT_AD_Lakeside or BP_ZT_AD2_Hexsylvania instead of the plain
+// ZT_<Name> directory token. Normalize them to their base ZT_<Name> identifier
+// so they resolve through the existing zone map. Only strips a campaign
+// segment when the normalized base is a known zone/alias — genuinely unknown
+// themes still fall through to the Unknown Zone handling.
+const ZONE_CAMPAIGN_SEGMENTS = ['AD2', 'AD', 'TRV'];
+
+function normalize_zone_theme_identifier(identifier) {
+  if (!identifier) return identifier;
+
+  if (ZONE_MAP[identifier] || ZONE_THEME_ALIASES[identifier]) {
+    return identifier;
+  }
+
+  const stripped = identifier.replace(/^BP_/, '');
+
+  if (!stripped.startsWith('ZT_')) {
+    return identifier;
+  }
+
+  for (const segment of ZONE_CAMPAIGN_SEGMENTS) {
+    const campaignPrefix = `ZT_${segment}_`;
+
+    if (stripped.startsWith(campaignPrefix)) {
+      const candidate = `ZT_${stripped.slice(campaignPrefix.length)}`;
+
+      if (ZONE_MAP[candidate] || ZONE_THEME_ALIASES[candidate]) {
+        return candidate;
+      }
+    }
+  }
+
+  return identifier;
+}
+
+function resolve_zone_theme_token(token) {
+  if (ZONE_THEME_ALIASES[token]) {
+    return ZONE_THEME_ALIASES[token];
+  }
+
+  if (token.startsWith('ZT_')) {
+    return token;
+  }
+
+  if (token.startsWith('BP_ZT_')) {
+    return normalize_zone_theme_identifier(token);
+  }
+
+  return null;
+}
+
+function extract_zone_theme_identifier(zoneTheme) {
+  if (typeof zoneTheme !== 'string') return null;
+
+  const parts = zoneTheme.split('/').filter(Boolean);
+  const zoneThemesIndex = parts.indexOf('ZoneThemes');
+
+  if (zoneThemesIndex === -1) return null;
+
+  const themeParts = parts.slice(zoneThemesIndex + 1);
+
+  if (!themeParts.length) return null;
+
+  const firstPart = themeParts[0].split('.')[0];
+  const fromFirstPart = resolve_zone_theme_token(firstPart);
+
+  if (fromFirstPart) return fromFirstPart;
+
+  for (const part of themeParts) {
+    const assetName = part.split('.')[0];
+    const resolved = resolve_zone_theme_token(assetName);
+
+    if (resolved) {
+      return resolved;
+    }
+  }
+
+  return null;
+}
 
 const MISSION_MAP = {
   '_1Gate_': '029003B949368614A8DABBA356C1C2BB',
@@ -234,39 +316,6 @@ function get_mission_name(missionGenerator, lang) {
   }
 
   return 'Unknown Mission';
-}
-
-function extract_zone_theme_identifier(zoneTheme) {
-  if (typeof zoneTheme !== 'string') return null;
-
-  const parts = zoneTheme.split('/').filter(Boolean);
-  const zoneThemesIndex = parts.indexOf('ZoneThemes');
-
-  if (zoneThemesIndex === -1) return null;
-
-  const themeParts = parts.slice(zoneThemesIndex + 1);
-
-  if (!themeParts.length) return null;
-
-  const firstPart = themeParts[0].split('.')[0];
-
-  if (firstPart.startsWith('ZT_')) {
-    return ZONE_THEME_ALIASES[firstPart] || firstPart;
-  }
-
-  for (const part of themeParts) {
-    const assetName = part.split('.')[0];
-
-    if (ZONE_THEME_ALIASES[assetName]) {
-      return ZONE_THEME_ALIASES[assetName];
-    }
-
-    if (assetName.startsWith('ZT_')) {
-      return assetName;
-    }
-  }
-
-  return null;
 }
 
 function get_zone_name(zoneTheme) {
@@ -408,6 +457,13 @@ async function fetchMissionData(env) {
     );
   }
 
+  return parseWorldInfo(worldData, lang);
+}
+
+// Parses Epic World Info into the mission object consumed by the API and the
+// frontend. Pure: no network access and no env, so tests can exercise the
+// exact production parsing path against representative world-info structures.
+function parseWorldInfo(worldData, lang = DEFAULT_LANGUAGE) {
   const results = [];
   const resultKeys = new Set();
 

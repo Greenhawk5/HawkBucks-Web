@@ -4,7 +4,7 @@ const test = require("node:test");
 
 // Extracts the real production Power Level resolver from worker/index.js so
 // the tests exercise the exact code path used by the live worker.
-const source = fs.readFileSync(`${__dirname}/index.js`, "utf8");
+const source = fs.readFileSync(`${__dirname}/../index.js`, "utf8");
 const start = source.indexOf("const DIFFICULTY_POWER_MAP");
 const end = source.indexOf("function extract_zone_theme_identifier");
 assert.ok(start !== -1 && end > start, "resolver block not found in index.js");

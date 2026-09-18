@@ -2,6 +2,30 @@
 
 All notable HawkBucks changes are documented here. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [1.2.0] - 2026-09-18
+
+SEO, accessibility, and metadata overhaul.
+
+### Added
+
+- Purpose-built 1200×630 social preview image (`og-image.png`) referenced by Open Graph and Twitter metadata on all routes, replacing the 64×64 favicon used previously.
+- Web app manifest (`site.webmanifest`) with HawkBucks branding, 192/512 px icons, theme color, and standalone display; `apple-touch-icon` (180×180) and icon assets served from the site root.
+- Root-level metadata defaults: site-wide title and description fallbacks, `application-name`, `apple-mobile-web-app-title`, and `theme-color`.
+- Site-level `WebSite` JSON-LD structured data emitted on every route; homepage exposes a `WebApplication` schema with an explicit free offer.
+- Zone mission-count badge test suite (`worker/test/mission-badge.test.cjs`) verifying that zone badges equal the zero-padded number of rendered missions and never depend on zone order.
+
+### Changed
+
+- Zone header numeric badges now show the number of missions rendered inside each zone (e.g. Canny Valley with 2 missions → `02`) instead of the zone's positional index.
+- Navigation links, footer links, footer social buttons, the mobile menu toggle, the Back-to-Top button, retry/error buttons, and About credit links enlarged to meet the 48×48 CSS-pixel minimum tap-target size without changing the visible design.
+- Worker test suites reorganized under `worker/test/` (`history`, `power-level`, `zone`, `parser`, `mission-badge`) and run together via `npm test`.
+- Footer social icons marked decorative (`alt=""`) because each link already has an accessible name; application version bumped to 1.2.0 across manifests, citation metadata, and the footer.
+
+### Fixed
+
+- Corrected Save the World zone resolution for zone themes that do not use the plain `ZT_<Name>` token: the canonical `ZT_TheForest` theme now resolves to Forest, and campaign-variant Blueprint themes (e.g. `BP_ZT_AD_Lakeside`, `BP_ZT_AD2_Hexsylvania`) are normalized to their base `ZT_<Name>` identifier so they resolve through the existing zone map. Genuinely unknown themes still surface as an explicit unknown zone. Covered by the `zone` and `parser` test suites.
+- Fixed the malformed JSON-LD script tag on all routes: TanStack `HeadContent` spreads script props directly, so the previous `attrs`-wrapped helper rendered `<script attrs="[object Object]">` with raw JSON inside. Structured data now emits valid `<script type="application/ld+json">` blocks; this was also the source of the "Unexpected token ':'" runtime error reported by external audits.
+
 ## [1.0.0] - 2026-09-03
 
 First official stable release of HawkBucks.

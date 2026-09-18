@@ -2,7 +2,7 @@ const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const test = require("node:test");
 
-const source = fs.readFileSync(`${__dirname}/index.js`, "utf8");
+const source = fs.readFileSync(`${__dirname}/../index.js`, "utf8");
 const start = source.indexOf("function utcDateString");
 const end = source.indexOf("/* legacy validator removed", start);
 const helpers = new Function(

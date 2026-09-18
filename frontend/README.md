@@ -70,7 +70,7 @@ src/components/   Shared UI and page components
 src/routes/       TanStack file-based route definitions
 src/services/     Worker API calls and response normalization
 src/lib/          Types, mission helpers, and shared utilities
-public/           Assets, robots.txt, and sitemap.xml
+public/           Assets, robots.txt, sitemap.xml, site.webmanifest, and brand/social icons
 ```
 
 For Worker, D1, cron, and production deployment instructions, see [../worker/README.md](../worker/README.md).

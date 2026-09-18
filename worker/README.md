@@ -65,10 +65,11 @@ This runs:
 - `power-level.test.cjs` — mission Power Level resolution, including the current
   Canny Valley difficulty mapping (`Theater_Hard_Zone2` → 52) and the
   unknown-difficulty fallback behavior.
-
-## Deterministic daily quotes
-
-`quote-pool.js` contains 365 unique static quotes. Selection uses UTC days since `2025-01-01T00:00:00Z` and positive modulo 365. The Worker checks today’s D1 row, inserts the selected quote with `ON CONFLICT(date_utc) DO NOTHING` if missing, and preserves existing rows. There is no Gemini request, random selection, external API, or semantic validation.
+- `zone.test.cjs` — zone theme resolution, including canonical themes such as
+  `ZT_TheForest` and campaign-variant themes (e.g. Lakeside, Hexsylvania).
+- `parser.test.cjs` — end-to-end mission parsing against the real world info snapshot.
+- `mission-badge.test.cjs` — frontend zone badges equal the zero-padded number of
+  rendered missions per zone, independent of zone order.
 
 ## Local development and deployment
 

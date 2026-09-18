@@ -21,7 +21,11 @@ export function Navbar() {
   return (
     <header className="sticky top-0 z-50 border-b border-border/60 bg-background/70 backdrop-blur-xl">
       <nav className="mx-auto flex h-14 max-w-[1100px] items-center justify-between gap-4 px-4 sm:px-6">
-        <Link to="/" className="flex min-w-0 items-center gap-2.5" onClick={() => setOpen(false)}>
+        <Link
+          to="/"
+          className="flex min-h-[48px] min-w-0 items-center gap-2.5"
+          onClick={() => setOpen(false)}
+        >
           <img
             src={ASSETS.logo}
             alt="HawkBucks logo"
@@ -32,13 +36,13 @@ export function Navbar() {
           </span>
         </Link>
 
-        <div className="hidden items-center gap-5 md:flex">
+        <div className="hidden items-center gap-2 md:flex">
           {links.map((l) => (
             <Link
               key={l.to}
               to={l.to}
               activeOptions={{ exact: l.to === "/" }}
-              className="font-display text-[11px] font-bold uppercase tracking-[0.14em] text-muted-foreground transition-colors hover:text-primary data-[status=active]:text-primary"
+              className="inline-flex min-h-[48px] items-center px-2 font-display text-[11px] font-bold uppercase tracking-[0.14em] text-muted-foreground transition-colors hover:text-primary data-[status=active]:text-primary"
             >
               {l.label}
             </Link>
@@ -50,7 +54,7 @@ export function Navbar() {
           aria-label={open ? "Close menu" : "Open menu"}
           aria-expanded={open}
           onClick={() => setOpen((v) => !v)}
-          className="grid h-9 w-9 shrink-0 place-items-center rounded-lg border border-panel-border text-primary md:hidden"
+          className="grid h-12 w-12 shrink-0 place-items-center rounded-lg border border-panel-border text-primary md:hidden"
         >
           {open ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
         </button>

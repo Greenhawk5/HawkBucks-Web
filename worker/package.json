@@ -1,12 +1,15 @@
 {
   "name": "vbucks-alerts",
-  "version": "1.0.0",
+  "version": "1.2.0",
   "description": "V-Bucks Alerts Bot - JavaScript version for Save the World mission alerts",
   "main": "index.js",
   "scripts": {
-    "test:history": "node --test history.test.cjs",
-    "test:power-level": "node --test power-level.test.cjs",
-    "test": "node --test history.test.cjs power-level.test.cjs",
+    "test:history": "node --test test/history.test.cjs",
+    "test:power-level": "node --test test/power-level.test.cjs",
+    "test:zone": "node --test test/zone.test.cjs",
+    "test:parser": "node --test test/parser.test.cjs",
+    "test:mission-badge": "node --test test/mission-badge.test.cjs",
+    "test": "node --test test/history.test.cjs test/power-level.test.cjs test/zone.test.cjs test/parser.test.cjs test/mission-badge.test.cjs",
     "start": "node index.js",
     "dev": "node index.js"
   },

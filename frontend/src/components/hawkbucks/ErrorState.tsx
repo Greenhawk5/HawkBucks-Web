@@ -21,7 +21,7 @@ export function ErrorState({ onRetry }: { onRetry?: () => void }) {
         <button
           type="button"
           onClick={onRetry}
-          className="mt-6 inline-flex items-center rounded-full border border-panel-border bg-background/50 px-5 py-2 font-display text-xs font-bold uppercase tracking-widest text-primary transition-all duration-300 hover:-translate-y-0.5 hover:border-primary hover:shadow-[var(--shadow-glow)]"
+          className="mt-6 inline-flex min-h-[48px] items-center rounded-full border border-panel-border bg-background/50 px-5 py-2 font-display text-xs font-bold uppercase tracking-widest text-primary transition-all duration-300 hover:-translate-y-0.5 hover:border-primary hover:shadow-[var(--shadow-glow)]"
         >
           Retry
         </button>

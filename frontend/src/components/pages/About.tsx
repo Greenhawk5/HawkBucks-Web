@@ -38,7 +38,7 @@ export function AboutPage() {
                 href={c.href}
                 target="_blank"
                 rel="noreferrer noopener"
-                className="group inline-flex items-center justify-center gap-2 rounded-full border border-panel-border bg-background/40 px-4 py-2 font-display text-xs font-bold uppercase leading-none tracking-widest text-muted-foreground transition-all duration-300 hover:-translate-y-0.5 hover:border-primary hover:text-primary hover:shadow-[var(--shadow-glow)]"
+                className="group inline-flex min-h-[48px] items-center justify-center gap-2 rounded-full border border-panel-border bg-background/40 px-4 py-2 font-display text-xs font-bold uppercase leading-none tracking-widest text-muted-foreground transition-all duration-300 hover:-translate-y-0.5 hover:border-primary hover:text-primary hover:shadow-[var(--shadow-glow)]"
               >
                 {c.Icon ? (
                   <c.Icon

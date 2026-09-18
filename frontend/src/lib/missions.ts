@@ -7,6 +7,10 @@ import type { Mission, MissionArea } from "./missions.types";
 
 const AREA_ORDER = ["Stonewood", "Plankerton", "Canny Valley", "Twine Peaks"] as const;
 
+export function formatZoneMissionCount(count: number): string {
+  return String(count).padStart(2, "0");
+}
+
 export function groupByArea(missions: Mission[]): MissionArea[] {
   const groups = new Map<string, Mission[]>();
   for (const mission of missions) {

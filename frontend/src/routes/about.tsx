@@ -19,7 +19,13 @@ export const Route = createFileRoute("/about")({
         content: "How the HawkBucks Save The World V-Bucks mission tracker works.",
       },
       { property: "og:url", content: `${SITE_URL}/about` },
-      { property: "og:image", content: `${SITE_URL}/favicon.png` },
+      { property: "og:image", content: `${SITE_URL}/og-image.png` },
+      { property: "og:image:width", content: "1200" },
+      { property: "og:image:height", content: "630" },
+      {
+        property: "og:image:alt",
+        content: "HawkBucks — Fortnite Save The World V-Bucks Mission Tracker",
+      },
       { property: "og:type", content: "website" },
       { name: "robots", content: "index, follow" },
       { name: "twitter:card", content: "summary_large_image" },
@@ -28,7 +34,7 @@ export const Route = createFileRoute("/about")({
         name: "twitter:description",
         content: "How the HawkBucks Save The World V-Bucks mission tracker works.",
       },
-      { name: "twitter:image", content: `${SITE_URL}/favicon.png` },
+      { name: "twitter:image", content: `${SITE_URL}/og-image.png` },
     ],
     links: [{ rel: "canonical", href: `${SITE_URL}/about` }],
     scripts: [

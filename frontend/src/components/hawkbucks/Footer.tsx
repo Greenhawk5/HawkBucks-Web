@@ -60,7 +60,7 @@ export function Footer() {
                   <Link
                     to={l.to}
                     activeOptions={{ exact: l.to === "/" }}
-                    className="text-sm text-muted-foreground transition-colors hover:text-primary data-[status=active]:text-primary"
+                    className="inline-flex min-h-[48px] items-center text-sm text-muted-foreground transition-colors hover:text-primary data-[status=active]:text-primary"
                   >
                     {l.label}
                   </Link>
@@ -80,9 +80,10 @@ export function Footer() {
                     rel="noreferrer noopener"
                     aria-label={c.label}
                     title={c.label}
-                    className="grid h-10 w-10 place-items-center rounded-xl border border-panel-border bg-background/40 transition-all duration-300 hover:-translate-y-0.5 hover:border-primary hover:shadow-[var(--shadow-glow)]"
+                    className="grid h-12 w-12 place-items-center rounded-xl border border-panel-border bg-background/40 transition-all duration-300 hover:-translate-y-0.5 hover:border-primary hover:shadow-[var(--shadow-glow)]"
                   >
-                    <img src={c.icon} alt={c.label} className="h-[18px] w-[18px] opacity-80" />
+                    {/* Decorative: the link's aria-label conveys the purpose. */}
+                    <img src={c.icon} alt="" aria-hidden className="h-[18px] w-[18px] opacity-80" />
                   </a>
                 </li>
               ))}
@@ -107,7 +108,7 @@ export function Footer() {
         <div className="mt-12 flex flex-col gap-2 border-t border-border/60 pt-6 text-xs text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
           <p>© HawkBucks · All rights reserved.</p>
           <p className="font-display font-semibold tracking-wide">
-            HawkBucks v1.0.0 | Built with passion by <span className="text-primary">Greenhawk</span>
+            HawkBucks v1.2.0 | Built with passion by <span className="text-primary">Greenhawk</span>
           </p>
         </div>
       </div>
