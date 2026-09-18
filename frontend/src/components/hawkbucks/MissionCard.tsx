@@ -30,7 +30,7 @@ function MissionIcon({ mission }: { mission: Mission }) {
       ref={ref}
       src={src}
       alt={`${mission.name} mission icon`}
-      className={`h-9 w-9 object-contain object-center ${mission.type === "retrieve-the-data" ? "-translate-x-0.5" : ""}`}
+      className={`h-9 w-9 object-contain object-center ${mission.type === "retrieve-the-data" ? "-translate-x-px" : ""}`}
       onError={handleFallback}
     />
   );

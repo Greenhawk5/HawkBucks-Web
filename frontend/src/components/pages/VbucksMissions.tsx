@@ -1,10 +1,12 @@
 import { useSuspenseQuery } from "@tanstack/react-query";
+import { Clock3, History, Layers, RefreshCw } from "lucide-react";
 import { EmptyState } from "@/components/hawkbucks/EmptyState";
 import { Footer } from "@/components/hawkbucks/Footer";
 import { MissionDashboard } from "@/components/hawkbucks/MissionDashboard";
 import { MissionsHistory } from "@/components/hawkbucks/MissionsHistory";
 import { Navbar } from "@/components/hawkbucks/Navbar";
 import { StatusBadge } from "@/components/hawkbucks/StatusBadge";
+import { VbucksIcon } from "@/components/hawkbucks/RewardBadge";
 import { useRefreshCountdown } from "@/hooks/useRefreshCountdown";
 import { formatUtc, formatUtcTime } from "@/lib/missions";
 import { missionsQueryOptions } from "@/services/missions.api";
@@ -55,56 +57,64 @@ export function VbucksMissionsPage() {
               </span>
             )}
           </div>
-          <div className="mb-5 grid gap-3 lg:grid-cols-[minmax(0,0.8fr)_minmax(0,1.6fr)]">
-            <section
-              className="grid grid-cols-2 divide-x divide-border/60 rounded-xl border border-panel-border bg-background/20"
-              aria-label="Mission summary"
-            >
-              <div className="px-4 py-3">
-                <span className="block font-display text-[10px] font-bold uppercase tracking-[0.16em] text-muted-foreground">
-                  Missions
-                </span>
-                <span className="mt-1 block font-display text-lg font-bold tabular-nums">
-                  {data.missions.length}
-                </span>
-              </div>
-              <div className="px-4 py-3">
-                <span className="block font-display text-[10px] font-bold uppercase tracking-[0.16em] text-muted-foreground">
-                  V-Bucks
-                </span>
-                <span className="mt-1 block font-display text-lg font-bold tabular-nums text-primary">
-                  {data.totalVbucks}
-                </span>
-              </div>
+          <div className="mb-6 grid overflow-hidden rounded-2xl border border-panel-border bg-background/20 lg:grid-cols-[1.15fr_1fr] lg:divide-x lg:divide-border/40">
+            <section className="px-5 py-4 sm:px-6" aria-label="Update status">
+              <p className="font-display text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">
+                Update Status
+              </p>
+              <dl className="mt-3 grid gap-4 sm:grid-cols-3">
+                <div>
+                  <dt className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                    <History className="h-3.5 w-3.5" aria-hidden />
+                    Updated
+                  </dt>
+                  <dd className="mt-1.5 text-[13px] font-semibold tabular-nums">
+                    {formatUtc(new Date(data.lastUpdated))}
+                  </dd>
+                </div>
+                <div>
+                  <dt className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                    <Clock3 className="h-3.5 w-3.5" aria-hidden />
+                    Next Update
+                  </dt>
+                  <dd className="mt-1.5 text-[13px] font-semibold tabular-nums">
+                    {formatUtcTime(next)}
+                  </dd>
+                </div>
+                <div>
+                  <dt className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                    <RefreshCw className="h-3.5 w-3.5" aria-hidden />
+                    Refresh In
+                  </dt>
+                  <dd className="mt-1.5 font-display text-sm font-bold tabular-nums text-primary">
+                    {refreshIn}
+                  </dd>
+                </div>
+              </dl>
             </section>
 
             <section
-              className="grid grid-cols-1 divide-y divide-border/60 rounded-xl border border-panel-border bg-background/20 sm:grid-cols-3 sm:divide-x sm:divide-y-0"
-              aria-label="Update status"
+              className="flex items-center justify-around gap-6 border-t border-border/40 px-5 py-5 sm:px-6 lg:border-t-0"
+              aria-label="Mission summary"
             >
-              <div className="px-4 py-3">
-                <span className="block font-display text-[10px] font-bold uppercase tracking-[0.16em] text-muted-foreground">
-                  Updated
-                </span>
-                <span className="mt-1 block text-sm font-semibold tabular-nums">
-                  {formatUtc(new Date(data.lastUpdated))}
-                </span>
+              <div className="text-center">
+                <p className="flex items-center justify-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                  <Layers className="h-3.5 w-3.5" aria-hidden />
+                  Missions
+                </p>
+                <p className="mt-2 font-display text-3xl font-extrabold tabular-nums leading-none">
+                  {data.missions.length}
+                </p>
               </div>
-              <div className="px-4 py-3">
-                <span className="block font-display text-[10px] font-bold uppercase tracking-[0.16em] text-muted-foreground">
-                  Next Update
-                </span>
-                <span className="mt-1 block text-sm font-bold tabular-nums">
-                  {formatUtcTime(next)}
-                </span>
-              </div>
-              <div className="px-4 py-3">
-                <span className="block font-display text-[10px] font-bold uppercase tracking-[0.16em] text-muted-foreground">
-                  Refresh In
-                </span>
-                <span className="mt-1 block font-display text-sm font-bold tabular-nums text-primary">
-                  {refreshIn}
-                </span>
+              <div className="h-10 w-px bg-border/40" role="presentation" />
+              <div className="text-center">
+                <p className="flex items-center justify-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                  <VbucksIcon className="h-3.5 w-3.5" />
+                  V-Bucks
+                </p>
+                <p className="mt-2 font-display text-3xl font-extrabold tabular-nums leading-none text-primary">
+                  {data.totalVbucks}
+                </p>
               </div>
             </section>
           </div>
