@@ -43,13 +43,17 @@ No frontend environment variables are required.
 
 Do not place Epic credentials, Cloudflare secrets, or API keys in frontend environment variables.
 
-## Canonical domain and the www redirect
+## Canonical domain and the host redirects
 
-`https://hawkbucks.com` is the canonical host; `https://www.hawkbucks.com` is a
-permanent (308) alias handled by the server entry (`src/server.ts`) before any
-SSR runs, preserving path and query string. The DNS record for `www` must point
-at this Worker for the redirect to receive traffic (the redirect itself is
-code-only and deploys with the app).
+`https://hawkbucks.com` is the canonical host. Both alias hosts are handled by
+the server entry (`src/server.ts`) before any SSR runs, preserving path and
+query string (the redirects are code-only and deploy with the app):
+
+- `https://www.hawkbucks.com` — permanent 308 alias. The DNS record for `www`
+  must point at this Worker for the redirect to receive traffic.
+- `https://hawkbucks.pages.dev` — legacy Pages hostname, permanent 301 to the
+  apex (Phase 10 domain migration). Kept host-scoped in code because Pages
+  `_redirects` rules would also apply to the custom domain and loop.
 
 ## Development and checks
 
