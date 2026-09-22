@@ -1,10 +1,18 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { VbucksMissionsPage } from "@/components/pages/VbucksMissions";
-import { missionsQueryOptions } from "@/services/missions.api";
+import { missionsQueryOptions, missionsHistoryQueryOptions } from "@/services/missions.loader";
+import { SITE_URL } from "@/lib/site";
 
 export const Route = createFileRoute("/vbucks-missions")({
-  loader: ({ context }) => {
-    context.queryClient.ensureQueryData(missionsQueryOptions());
+  loader: async ({ context }) => {
+    // Phase 2: fetch server-side through the HAWKBUCKS_API Service Binding
+    // during the initial request; data is dehydrated into the SSR payload
+    // (no duplicate browser fetch on hydration). History failure is
+    // non-fatal (component shows its inline error state).
+    await Promise.all([
+      context.queryClient.ensureQueryData(missionsQueryOptions()),
+      context.queryClient.ensureQueryData(missionsHistoryQueryOptions()).catch(() => undefined),
+    ]);
   },
   head: () => ({
     meta: [
@@ -21,8 +29,8 @@ export const Route = createFileRoute("/vbucks-missions")({
         content: "Check today's Save the World V-Bucks missions with the HawkBucks tracker.",
       },
       { property: "og:type", content: "website" },
-      { property: "og:url", content: "https://hawkbucks.pages.dev/vbucks-missions" },
-      { property: "og:image", content: "https://hawkbucks.pages.dev/og-image.png" },
+      { property: "og:url", content: `${SITE_URL}/vbucks-missions` },
+      { property: "og:image", content: `${SITE_URL}/og-image.png` },
       { property: "og:image:width", content: "1200" },
       { property: "og:image:height", content: "630" },
       {
@@ -35,9 +43,9 @@ export const Route = createFileRoute("/vbucks-missions")({
         name: "twitter:description",
         content: "Check today's Save the World V-Bucks missions with the HawkBucks tracker.",
       },
-      { name: "twitter:image", content: "https://hawkbucks.pages.dev/og-image.png" },
+      { name: "twitter:image", content: `${SITE_URL}/og-image.png` },
     ],
-    links: [{ rel: "canonical", href: "https://hawkbucks.pages.dev/vbucks-missions" }],
+    links: [{ rel: "canonical", href: `${SITE_URL}/vbucks-missions` }],
   }),
   component: VbucksMissionsPage,
 });

@@ -1,6 +1,6 @@
 import { Radio } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
-import { dailyQuoteQueryOptions } from "@/services/missions.api";
+import { dailyQuoteQueryOptions } from "@/services/missions.loader";
 
 export function DailyQuoteSection() {
   const { data, isPending, isError } = useQuery(dailyQuoteQueryOptions());

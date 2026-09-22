@@ -2,7 +2,8 @@ import type { Mission, MissionArea } from "./missions.types";
 
 /**
  * Pure, presentation-agnostic mission helpers.
- * Data access lives in `@/services/missions.api`.
+ * Data access lives in `@/services/missions.loader` (TanStack Start server
+ * functions backed by the HAWKBUCKS_API Service Binding).
  */
 
 const AREA_ORDER = ["Stonewood", "Plankerton", "Canny Valley", "Twine Peaks"] as const;

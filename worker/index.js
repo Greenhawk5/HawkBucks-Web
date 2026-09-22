@@ -356,28 +356,22 @@ function get_theater_name(theaterInfo, fallbackIndex, lang) {
   );
 }
 
-const ALLOWED_ORIGIN = 'https://hawkbucks.pages.dev';
+// NOTE (Phase 5): No CORS layer. The Worker is internal-only (workers_dev =
+// false) and is invoked exclusively through the HAWKBUCKS_API Service Binding
+// from the frontend Worker. Service Binding requests are server-to-server and
+// are not subject to browser CORS, so no Access-Control-* headers or
+// OPTIONS/preflight handling are needed. If this Worker is ever made public
+// again, a strict origin allowlist (never "*") must be reintroduced.
 
-function corsHeaders(origin) {
-  const headers = {
-    'Content-Type': 'application/json; charset=utf-8',
-    'Cache-Control': 'no-store',
-    'Access-Control-Allow-Methods': 'GET, OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type, Accept',
-    'Vary': 'Origin'
-  };
+const defaultResponseHeaders = {
+  'Content-Type': 'application/json; charset=utf-8',
+  'Cache-Control': 'no-store'
+};
 
-  if (origin === ALLOWED_ORIGIN) {
-    headers['Access-Control-Allow-Origin'] = ALLOWED_ORIGIN;
-  }
-
-  return headers;
-}
-
-function json(data, status = 200, origin = '') {
+function json(data, status = 200) {
   return new Response(JSON.stringify(data), {
     status,
-    headers: corsHeaders(origin)
+    headers: defaultResponseHeaders
   });
 }
 
@@ -700,6 +694,17 @@ function seededHistoryRecord(dateString, totalVbucks) {
 async function seedReferenceHistory(env, dateString = utcDateString()) {
   if (!env.DB) return false;
 
+  // Phase 6: the reference bootstrap only needs to complete once per UTC
+  // date; later cron ticks of the same day skip the redundant D1 batch.
+  // The marker is only consulted when KV is available (tests may exercise
+  // the function with a DB mock only). Delete the marker key to re-seed.
+  if (env.HAWKBUCKS_CACHE) {
+    const alreadySeeded = await env.HAWKBUCKS_CACHE.get(
+      `history:reference-seed:${dateString}`
+    );
+    if (alreadySeeded) return false;
+  }
+
   // Reference rows are daily records, so every aggregate remains D1-derived.
   // INSERT OR IGNORE keeps this bootstrap idempotent and never overwrites a real snapshot.
   const seedRows = new Map();
@@ -733,11 +738,32 @@ async function seedReferenceHistory(env, dateString = utcDateString()) {
       VALUES (?, ?, ?, '[]', ?, ?)
     `).bind(date, row.totalVbucks, row.missionCount, timestamp, timestamp)
   ));
+
+  // Mark the date complete only after the batch has succeeded, so a failed
+  // bootstrap is retried on the next cron tick of the same day.
+  if (env.HAWKBUCKS_CACHE) {
+    await env.HAWKBUCKS_CACHE.put(
+      `history:reference-seed:${dateString}`,
+      new Date().toISOString()
+    );
+  }
   return true;
 }
 
+// Phase 6: one-time completion marker for the legacy KV → D1 history
+// migration below. Without it, every cron tick (every 30 minutes) would
+// re-read up to 366 legacy KV keys and re-run D1 batches forever, even
+// after the migration has fully completed. Delete this key from KV to
+// re-run the migration.
+const KV_LEGACY_MIGRATION_DONE_KEY = 'history:legacy-migration-done:v1';
+
 async function migrateLegacyKvRecords(env, dateString = utcDateString()) {
   if (!env.DB || !env.HAWKBUCKS_CACHE) return;
+
+  const migrationDone = await env.HAWKBUCKS_CACHE.get(
+    KV_LEGACY_MIGRATION_DONE_KEY
+  );
+  if (migrationDone) return;
 
   const dates = dateRange(dateString, 366);
   const statements = [];
@@ -768,6 +794,13 @@ async function migrateLegacyKvRecords(env, dateString = utcDateString()) {
   }
 
   console.log(`[history] legacy KV migration: ${migratedCount} records`);
+
+  // Mark complete only after a full pass has finished successfully, so a
+  // failed pass is retried on the next cron tick.
+  await env.HAWKBUCKS_CACHE.put(
+    KV_LEGACY_MIGRATION_DONE_KEY,
+    new Date().toISOString()
+  );
 }
 
 function emptyPeriod() {
@@ -904,35 +937,35 @@ async function getDailyQuote(env, dateString = utcDateString()) {
   ).bind(dateString).first();
 }
 
-async function handleHistory(env, origin) {
+async function handleHistory(env) {
   try {
     if (!env.DB) {
-      return json({ success: false, status: 'unavailable', message: 'History is unavailable.' }, 503, origin);
+      return json({ success: false, status: 'unavailable', message: 'History is unavailable.' }, 503);
     }
 
-    return json(await getCalendarHistory(env), 200, origin);
+    return json(await getCalendarHistory(env), 200);
   } catch (error) {
     console.error('History request failed:', error instanceof Error ? error.message : 'unknown error');
-    return json({ success: false, status: 'unavailable', message: 'History is unavailable.' }, 503, origin);
+    return json({ success: false, status: 'unavailable', message: 'History is unavailable.' }, 503);
   }
 }
 
-async function handleQuote(env, origin) {
+async function handleQuote(env) {
   try {
     const quote = await ensureDailyQuote(env);
 
     if (!quote) {
-      return json({ success: false, status: 'unavailable', quote: null }, 503, origin);
+      return json({ success: false, status: 'unavailable', quote: null }, 503);
     }
 
-    return json({ success: true, date: quote.utcDate, quote: quote.quote }, 200, origin);
+    return json({ success: true, date: quote.utcDate, quote: quote.quote }, 200);
   } catch (error) {
     console.error('Quote request failed:', error instanceof Error ? error.message : 'unknown error');
-    return json({ success: false, status: 'unavailable', quote: null }, 503, origin);
+    return json({ success: false, status: 'unavailable', quote: null }, 503);
   }
 }
 
-async function handleMissions(env, origin) {
+async function handleMissions(env) {
   const cached = await getCachedMissionData(env);
 
   if (!cached) {
@@ -945,53 +978,40 @@ async function handleMissions(env, origin) {
         totalVbucks: 0,
         missions: []
       },
-      503,
-      origin
+      503
     );
   }
 
-  return json(cached, 200, origin);
+  return json(cached, 200);
 }
 
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
-    const origin = request.headers.get('Origin') || '';
 
-    // CORS preflight
-    if (request.method === 'OPTIONS') {
-      if (origin === ALLOWED_ORIGIN) {
-        return new Response(null, {
-          status: 204,
-          headers: corsHeaders(origin)
-        });
-      }
-
-      return new Response(null, {
-        status: 403,
-        headers: corsHeaders('')
-      });
-    }
+    // NOTE (Phase 5): No OPTIONS/preflight handling. Service Binding requests
+    // from the frontend Worker are not browser CORS requests and never send
+    // an Origin header, so there is nothing to preflight.
 
     if (
       request.method === 'GET' &&
       url.pathname === '/api/missions'
     ) {
-      return handleMissions(env, origin);
+      return handleMissions(env);
     }
 
     if (
       request.method === 'GET' &&
       url.pathname === '/api/history'
     ) {
-      return handleHistory(env, origin);
+      return handleHistory(env);
     }
 
     if (
       request.method === 'GET' &&
       url.pathname === '/api/quote'
     ) {
-      return handleQuote(env, origin);
+      return handleQuote(env);
     }
 
     if (
@@ -1004,8 +1024,7 @@ export default {
           service: 'HawkBucks Worker',
           timestamp: new Date().toISOString()
         },
-        200,
-        origin
+        200
       );
     }
 
@@ -1014,8 +1033,7 @@ export default {
         success: false,
         message: 'HawkBucks API'
       },
-      404,
-      origin
+      404
     );
   },
 

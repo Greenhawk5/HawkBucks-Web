@@ -3,10 +3,9 @@ import { Navbar } from "@/components/hawkbucks/Navbar";
 import { Footer } from "@/components/hawkbucks/Footer";
 import { ErrorState } from "@/components/hawkbucks/ErrorState";
 import { HomePage } from "@/components/pages/Home";
-import { missionsQueryOptions } from "@/services/missions.api";
+import { missionsQueryOptions, dailyQuoteQueryOptions } from "@/services/missions.loader";
 import { jsonLdScript } from "@/lib/seo";
-
-const SITE_URL = "https://hawkbucks.pages.dev";
+import { SITE_URL } from "@/lib/site";
 
 function MissionsError() {
   const router = useRouter();
@@ -22,8 +21,16 @@ function MissionsError() {
 }
 
 export const Route = createFileRoute("/")({
-  loader: ({ context }) => {
-    context.queryClient.ensureQueryData(missionsQueryOptions());
+  loader: async ({ context }) => {
+    // Phase 2: fetch server-side through the HAWKBUCKS_API Service Binding
+    // during the initial request. Data is dehydrated into the SSR payload,
+    // so the client's useSuspenseQuery/useQuery hydrate without a duplicate
+    // browser fetch. Missions failure keeps the existing route error page;
+    // quote failure is non-fatal (component shows its inline error state).
+    await Promise.all([
+      context.queryClient.ensureQueryData(missionsQueryOptions()),
+      context.queryClient.ensureQueryData(dailyQuoteQueryOptions()).catch(() => undefined),
+    ]);
   },
   head: () => ({
     meta: [

@@ -319,7 +319,7 @@ The current production routes are:
 - `/about` — About page and FAQ
 - `/vbucks-missions` — V-Bucks mission tracker and history dashboard
 
-The frontend uses `frontend/src/services/missions.api.ts` as the API seam between the UI and the Worker.
+The frontend fetches all primary data server-side through the `HAWKBUCKS_API` Cloudflare Service Binding (`frontend/src/services/missions.server.ts`); `frontend/src/services/missions.loader.ts` (TanStack Start server functions) is the seam between the UI and the Worker.
 
 The current repository contains the frontend under:
 
@@ -773,7 +773,7 @@ Install dependencies:
 npm ci
 ```
 
-Set `VITE_API_BASE_URL` in `frontend/.env` only when you need to use a different Worker endpoint. Otherwise the frontend uses the configured production Worker endpoint.
+No frontend environment variables are required; the frontend fetches data through the `HAWKBUCKS_API` Service Binding declared in `frontend/wrangler.json`.
 
 Start the development server:
 

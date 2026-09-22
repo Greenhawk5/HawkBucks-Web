@@ -1,6 +1,6 @@
 # HawkBucks Frontend
 
-The `frontend/` directory contains the React user interface for HawkBucks. It reads current missions, D1-backed history, and the deterministic daily quote from the Cloudflare Worker; it does not call Epic or any quote-generation service directly.
+The `frontend/` directory contains the React user interface for HawkBucks. It reads current missions, D1-backed history, and the deterministic daily quote from the Cloudflare Worker through the `HAWKBUCKS_API` Service Binding; it does not call Epic or any quote-generation service directly.
 
 ## Stack
 
@@ -22,15 +22,14 @@ SEO metadata, canonical information, Open Graph/Twitter metadata, robots behavio
 
 ## API integration
 
-`src/services/missions.api.ts` is the single frontend API layer.
+Primary data is fetched server-side only:
 
-The base URL comes from `VITE_API_BASE_URL`; when unset it defaults to:
+- `src/services/missions.loader.ts` — TanStack Start server functions plus the TanStack Query options used by routes and components.
+- `src/services/missions.server.ts` — server-only transport that talks to the HawkBucks Worker through the `HAWKBUCKS_API` Cloudflare Service Binding (configured in `wrangler.json`).
 
-```text
-https://hawkbucks-web.greenhawk5.workers.dev
-```
+During the initial request the route loaders run on the server; during client-side navigation the same functions run on the app's own server via TanStack Start's same-origin server-function RPC, and the server fetches through the Service Binding. The browser never calls the public Worker API directly.
 
-It calls:
+The Worker endpoints called through the binding:
 
 - `/api/missions` for current normalized mission data.
 - `/api/history` for D1-calculated period totals, mission counts, and comparisons.
@@ -40,13 +39,17 @@ The frontend exposes loading, unavailable, and error states rather than inventin
 
 ## Environment
 
-Copy `.env.example` to `.env` when a different Worker endpoint is required:
-
-```text
-VITE_API_BASE_URL=https://hawkbucks-web.greenhawk5.workers.dev
-```
+No frontend environment variables are required.
 
 Do not place Epic credentials, Cloudflare secrets, or API keys in frontend environment variables.
+
+## Canonical domain and the www redirect
+
+`https://hawkbucks.com` is the canonical host; `https://www.hawkbucks.com` is a
+permanent (308) alias handled by the server entry (`src/server.ts`) before any
+SSR runs, preserving path and query string. The DNS record for `www` must point
+at this Worker for the redirect to receive traffic (the redirect itself is
+code-only and deploys with the app).
 
 ## Development and checks
 
@@ -68,7 +71,7 @@ The production build creates the Vite/TanStack Start output used by the configur
 ```text
 src/components/   Shared UI and page components
 src/routes/       TanStack file-based route definitions
-src/services/     Worker API calls and response normalization
+src/services/     Server-side Worker transport, server functions, and response normalization
 src/lib/          Types, mission helpers, and shared utilities
 public/           Assets, robots.txt, sitemap.xml, site.webmanifest, and brand/social icons
 ```

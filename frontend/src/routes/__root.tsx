@@ -13,6 +13,7 @@ import appCss from "../styles.css?url";
 
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { jsonLdScript } from "../lib/seo";
+import { SITE_URL } from "../lib/site";
 import { BackToTop } from "../components/hawkbucks/BackToTop";
 
 function NotFoundComponent() {
@@ -126,7 +127,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         "@type": "WebSite",
         name: "HawkBucks",
         alternateName: ["HawkBucks Web"],
-        url: "https://hawkbucks.pages.dev/",
+        url: `${SITE_URL}/`,
         description:
           "A community web application that tracks Fortnite Save The World missions rewarding V-Bucks.",
         inLanguage: "en",

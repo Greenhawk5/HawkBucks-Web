@@ -6,7 +6,7 @@ import { MissionDashboard } from "@/components/hawkbucks/MissionDashboard";
 import { EmptyState } from "@/components/hawkbucks/EmptyState";
 import { UpdateTimer } from "@/components/hawkbucks/UpdateTimer";
 import { DailyQuoteSection } from "@/components/hawkbucks/DailyQuoteSection";
-import { missionsQueryOptions } from "@/services/missions.api";
+import { missionsQueryOptions } from "@/services/missions.loader";
 
 export function HomePage() {
   const { data } = useSuspenseQuery(missionsQueryOptions());

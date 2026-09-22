@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { VbucksIcon } from "./RewardBadge";
 import type { HistoryPeriod, MissionsHistoryResponse } from "@/lib/missions.types";
-import { missionsHistoryQueryOptions } from "@/services/missions.api";
+import { missionsHistoryQueryOptions } from "@/services/missions.loader";
 
 const periods: Array<{
   key: keyof Omit<MissionsHistoryResponse, "success" | "date">;

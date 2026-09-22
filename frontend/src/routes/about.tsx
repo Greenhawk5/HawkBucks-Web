@@ -1,8 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { AboutPage } from "@/components/pages/About";
 import { jsonLdScript } from "@/lib/seo";
-
-const SITE_URL = "https://hawkbucks.pages.dev";
+import { SITE_URL } from "@/lib/site";
 
 export const Route = createFileRoute("/about")({
   head: () => ({

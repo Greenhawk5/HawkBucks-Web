@@ -1,0 +1,8 @@
+{
+  "services": [
+    {
+      "binding": "HAWKBUCKS_API",
+      "service": "hawkbucks-web"
+    }
+  ]
+}

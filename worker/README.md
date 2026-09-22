@@ -21,11 +21,11 @@ Required Epic secret names are `EPIC_ACCOUNT_ID`, `EPIC_DEVICE_ID`, and `EPIC_DE
 
 ## API
 
-Production base URL:
-
-```text
-https://hawkbucks-web.greenhawk5.workers.dev
-```
+**Internal only (Phase 4):** `workers_dev = false` disables the public
+`https://hawkbucks-web.greenhawk5.workers.dev` endpoint on the next deploy.
+The Worker is invoked exclusively through the `HAWKBUCKS_API` Service Binding
+from the frontend Worker; Service Bindings do not require a public URL.
+Rollback: remove `workers_dev = false` (or set it to `true`) and redeploy.
 
 - `GET /api/missions` returns the cached current mission response.
 - `GET /api/history` calculates Today, Yesterday, the current Monday-Sunday UTC calendar week (`last7Days`), the current UTC calendar month (`last30Days`), and the current UTC calendar year from D1. These compatibility field names do not represent trailing windows.

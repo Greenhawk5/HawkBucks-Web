@@ -3,10 +3,15 @@ const fs = require("node:fs");
 const test = require("node:test");
 
 const source = fs.readFileSync(`${__dirname}/../index.js`, "utf8");
+// The KV key constants live at the top of index.js, outside the slice below,
+// but the extracted helpers (historyKey/migrateLegacyKvRecords) reference them.
+const constantsStart = source.indexOf("const DEFAULT_LANGUAGE");
+const constantsEnd = source.indexOf("function describeApiFailure");
+const constants = source.slice(constantsStart, constantsEnd);
 const start = source.indexOf("function utcDateString");
 const end = source.indexOf("/* legacy validator removed", start);
 const helpers = new Function(
-  `${source.slice(start, end)}\nreturn { getCalendarHistory, calendarHistoryBounds, seedReferenceHistory };`,
+  `${constants}\n${source.slice(start, end)}\nreturn { getCalendarHistory, calendarHistoryBounds, seedReferenceHistory, migrateLegacyKvRecords };`,
 )();
 
 function d1(records, sqlLog = []) {
@@ -274,4 +279,91 @@ test("all history SQL uses half-open ranges and shared sums", async () => {
     [result.last30Days.totalVbucks, result.last30Days.missionCount],
     [600, 12],
   );
+});
+
+// --- Phase 6: redundant cron-work guards -------------------------------------
+
+function kvMock(initial = new Map()) {
+  const store = initial;
+  const stats = { gets: 0, puts: 0 };
+  return {
+    stats,
+    store,
+    async get(keys) {
+      stats.gets += 1;
+      if (Array.isArray(keys)) {
+        const values = new Map();
+        for (const key of keys) {
+          if (store.has(key)) values.set(key, store.get(key));
+        }
+        return values;
+      }
+      return store.has(keys) ? store.get(keys) : null;
+    },
+    async put(key, value) {
+      stats.puts += 1;
+      store.set(key, value);
+    },
+  };
+}
+
+function migrationDb(batchLog) {
+  return {
+    prepare(sql) {
+      return {
+        bind() {
+          return {};
+        },
+      };
+    },
+    async batch(statements) {
+      batchLog.push(statements.length);
+    },
+  };
+}
+
+test("legacy KV migration is skipped once its completion marker exists", async () => {
+  const batchLog = [];
+  const kv = kvMock();
+  const env = { DB: migrationDb(batchLog), HAWKBUCKS_CACHE: kv };
+
+  await helpers.migrateLegacyKvRecords(env, "2026-08-17");
+  const firstGets = kv.stats.gets;
+  assert.ok(firstGets > 1, "first pass reads the marker plus legacy keys");
+  assert.equal(kv.stats.puts, 1, "completion marker written once");
+
+  const getsBefore = kv.stats.gets;
+  const batchesBefore = batchLog.length;
+  await helpers.migrateLegacyKvRecords(env, "2026-08-17");
+  assert.equal(kv.stats.gets, getsBefore + 1, "only the marker read remains");
+  assert.equal(batchLog.length, batchesBefore, "no D1 batches after completion");
+});
+
+test("reference seeding completes once per UTC date", async () => {
+  const batchLog = [];
+  const kv = kvMock();
+  const env = { DB: migrationDb(batchLog), HAWKBUCKS_CACHE: kv };
+
+  assert.equal(await helpers.seedReferenceHistory(env, "2026-08-17"), true);
+  const firstBatches = batchLog.reduce((sum, count) => sum + count, 0);
+  assert.ok(firstBatches > 0, "first pass seeds reference rows");
+
+  assert.equal(await helpers.seedReferenceHistory(env, "2026-08-17"), false);
+  assert.equal(
+    batchLog.reduce((sum, count) => sum + count, 0),
+    firstBatches,
+    "same-day repeat is skipped without D1 writes",
+  );
+
+  assert.equal(await helpers.seedReferenceHistory(env, "2026-08-18"), true);
+  assert.ok(
+    batchLog.reduce((sum, count) => sum + count, 0) > firstBatches,
+    "a new UTC date seeds again",
+  );
+});
+
+test("guards degrade safely without a KV namespace", async () => {
+  const batchLog = [];
+  await helpers.migrateLegacyKvRecords({ DB: migrationDb(batchLog) }, "2026-08-17");
+  assert.equal(await helpers.seedReferenceHistory({ DB: migrationDb(batchLog) }, "2026-08-17"), true);
 });

@@ -12,6 +12,7 @@
     "build:pages": "npm install && npm run build",
     "preview": "vite preview",
     "lint": "eslint .",
+    "test:server": "node --import ./test/ts-path-alias-loader.mjs --experimental-strip-types --test test/missions.server.test.mjs test/www-redirect.test.mjs",
     "format": "prettier --write .",
     "prebuild": "npm rebuild || true"
   },

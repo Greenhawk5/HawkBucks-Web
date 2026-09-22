@@ -13,4 +13,4 @@ Allow: /
 User-agent: *
 Allow: /
 
-Sitemap: https://hawkbucks.pages.dev/sitemap.xml
+Sitemap: https://hawkbucks.com/sitemap.xml

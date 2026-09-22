@@ -9,7 +9,7 @@ import { StatusBadge } from "@/components/hawkbucks/StatusBadge";
 import { VbucksIcon } from "@/components/hawkbucks/RewardBadge";
 import { useRefreshCountdown } from "@/hooks/useRefreshCountdown";
 import { formatUtc, formatUtcTime } from "@/lib/missions";
-import { missionsQueryOptions } from "@/services/missions.api";
+import { missionsQueryOptions } from "@/services/missions.loader";
 
 export function VbucksMissionsPage() {
   const { data } = useSuspenseQuery(missionsQueryOptions());
