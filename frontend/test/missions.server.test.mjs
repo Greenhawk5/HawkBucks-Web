@@ -1,17 +1,21 @@
-// Focused tests for the SERVER-ONLY HAWKBUCKS_API transport
-// (src/services/missions.server.ts) — Phase 1 internal communication.
+﻿// Focused tests for the SERVER-ONLY HAWKBUCKS_API transport
+// (src/services/missions.server.ts) â€” Phase 1 internal communication.
 // The existing public browser transport is untouched; these tests use a
 // fake Service Binding and never hit the network.
 import assert from "node:assert/strict";
 import test from "node:test";
 
 const {
-  registerHawkbucksApiBinding,
   getHawkbucksApiBinding,
   fetchMissionsServer,
   fetchMissionsHistoryServer,
   fetchDailyQuoteServer,
 } = await import("../src/services/missions.server.ts");
+
+// TanStack Start's request-scoped accessor â€” the same mechanism the
+// production Nitro/Cloudflare Pages runtime uses to expose `env` to
+// server code.
+const { withHawkbucksRequest } = await import("../src/services/hawkbucks-request.ts");
 
 function makeBinding(responder) {
   const calls = [];
@@ -49,9 +53,8 @@ test("fetchMissionsServer calls /api/missions through the binding and normalizes
         { status: 200, headers: { "content-type": "application/json" } },
       ),
   );
-  registerHawkbucksApiBinding({ HAWKBUCKS_API: binding });
 
-  const result = await fetchMissionsServer();
+  const result = await withHawkbucksRequest({ HAWKBUCKS_API: binding }, fetchMissionsServer);
 
   assert.equal(calls.length, 1);
   assert.equal(new URL(calls[0].url).pathname, "/api/missions");
@@ -76,9 +79,8 @@ test("fetchMissionsHistoryServer calls /api/history through the binding", async 
         headers: { "content-type": "application/json" },
       }),
   );
-  registerHawkbucksApiBinding({ HAWKBUCKS_API: binding });
 
-  const result = await fetchMissionsHistoryServer();
+  const result = await withHawkbucksRequest({ HAWKBUCKS_API: binding }, fetchMissionsHistoryServer);
 
   assert.equal(calls.length, 1);
   assert.equal(new URL(calls[0].url).pathname, "/api/history");
@@ -95,9 +97,8 @@ test("fetchDailyQuoteServer calls /api/quote through the binding", async () => {
         headers: { "content-type": "application/json" },
       }),
   );
-  registerHawkbucksApiBinding({ HAWKBUCKS_API: binding });
 
-  const result = await fetchDailyQuoteServer();
+  const result = await withHawkbucksRequest({ HAWKBUCKS_API: binding }, fetchDailyQuoteServer);
 
   assert.equal(calls.length, 1);
   assert.equal(new URL(calls[0].url).pathname, "/api/quote");
@@ -105,43 +106,50 @@ test("fetchDailyQuoteServer calls /api/quote through the binding", async () => {
 });
 
 test("error propagation: non-ok response throws with the endpoint label", async () => {
-  registerHawkbucksApiBinding({
-    HAWKBUCKS_API: { fetch: async () => new Response("unavailable", { status: 503 }) },
-  });
-
-  await assert.rejects(fetchMissionsServer(), /Missions API responded with 503/);
-  await assert.rejects(fetchMissionsHistoryServer(), /History API responded with 503/);
-  await assert.rejects(fetchDailyQuoteServer(), /Quote API responded with 503/);
+  await withHawkbucksRequest(
+    {
+      HAWKBUCKS_API: { fetch: async () => new Response("unavailable", { status: 503 }) },
+    },
+    async () => {
+      await assert.rejects(fetchMissionsServer(), /Missions API responded with 503/);
+      await assert.rejects(fetchMissionsHistoryServer(), /History API responded with 503/);
+      await assert.rejects(fetchDailyQuoteServer(), /Quote API responded with 503/);
+    },
+  );
 });
 
 test("error propagation: success:false payloads throw like the public client", async () => {
-  registerHawkbucksApiBinding({
-    HAWKBUCKS_API: {
-      fetch: async () =>
-        new Response(JSON.stringify({ success: false, message: "nope" }), { status: 200 }),
+  await withHawkbucksRequest(
+    {
+      HAWKBUCKS_API: {
+        fetch: async () =>
+          new Response(JSON.stringify({ success: false, message: "nope" }), { status: 200 }),
+      },
     },
-  });
-
-  await assert.rejects(fetchMissionsServer(), /Missions API reported a failure/);
+    async () => {
+      await assert.rejects(fetchMissionsServer(), /Missions API reported a failure/);
+    },
+  );
 });
 
 test("empty missions payload normalizes to the empty state", async () => {
-  registerHawkbucksApiBinding({
-    HAWKBUCKS_API: {
-      fetch: async () =>
-        new Response(
-          JSON.stringify({ success: true, status: "empty", missions: [], totalVbucks: 0 }),
-          { status: 200, headers: { "content-type": "application/json" } },
-        ),
+  const result = await withHawkbucksRequest(
+    {
+      HAWKBUCKS_API: {
+        fetch: async () =>
+          new Response(
+            JSON.stringify({ success: true, status: "empty", missions: [], totalVbucks: 0 }),
+            { status: 200, headers: { "content-type": "application/json" } },
+          ),
+      },
     },
-  });
-
-  const result = await fetchMissionsServer();
+    fetchMissionsServer,
+  );
   assert.equal(result.status, "empty");
   assert.deepEqual(result.missions, []);
 });
 
-test("binding is resolved from globalThis.__env__ (nitro runtime path)", async () => {
+test("binding is resolved from the request's Cloudflare runtime (nitro cloudflare-pages path)", async () => {
   const { calls, binding } = makeBinding(
     () =>
       new Response(
@@ -163,41 +171,89 @@ test("binding is resolved from globalThis.__env__ (nitro runtime path)", async (
         { status: 200, headers: { "content-type": "application/json" } },
       ),
   );
-  const previousEnv = globalThis.__env__;
-  globalThis.__env__ = { HAWKBUCKS_API: binding };
+
+  // Simulates exactly what production does: the nitro cloudflare-pages
+  // handler augments the request with `runtime.cloudflare.env` (see
+  // augmentReq in the generated dist/_worker.js/index.js) before TanStack
+  // Start's request-scoped AsyncLocalStorage wraps the handler.
+  const request = Object.assign(new Request("https://hawkbucks.com/"), {
+    runtime: { cloudflare: { env: { HAWKBUCKS_API: binding } } },
+  });
+  const { withHawkbucksRequestObject } = await import("../src/services/hawkbucks-request.ts");
+
+  const result = await withHawkbucksRequestObject(request, fetchMissionsServer);
+
+  assert.equal(calls.length, 1);
+  assert.equal(new URL(calls[0].url).pathname, "/api/missions");
+  assert.equal(result.status, "available");
+  assert.equal(result.totalVbucks, 250);
+});
+
+test("no globalThis.__env__ and no registered mutable binding state is used", async () => {
+  // The transport must never consult (or populate) global/process singletons
+  // for request-scoped Cloudflare bindings. Seed both to prove they are ignored.
+  globalThis.__env__ = {};
+  const { calls, binding } = makeBinding(
+    () =>
+      new Response(JSON.stringify({ success: true, status: "empty", missions: [] }), {
+        status: 200,
+      }),
+  );
   try {
-    const result = await fetchMissionsServer();
+    await withHawkbucksRequest({ HAWKBUCKS_API: binding }, fetchMissionsServer);
     assert.equal(calls.length, 1);
-    assert.equal(new URL(calls[0].url).pathname, "/api/missions");
-    assert.equal(result.status, "available");
-    assert.equal(result.totalVbucks, 250);
+    assert.equal(globalThis.__env__.HAWKBUCKS_API, undefined);
   } finally {
-    if (previousEnv === undefined) delete globalThis.__env__;
-    else globalThis.__env__ = previousEnv;
+    delete globalThis.__env__;
   }
 });
 
-test("globalThis.__env__ binding takes precedence over a registered one", async () => {
-  const registered = makeBinding(() => new Response("{}", { status: 200 }));
-  registerHawkbucksApiBinding({ HAWKBUCKS_API: registered.binding });
-
-  const { calls: envCalls, binding: envBinding } = makeBinding(
-    () => new Response("{}", { status: 200 }),
+test("binding survives an awaited tick inside the request scope (SSR/serverFn await chains)", async () => {
+  const { calls, binding } = makeBinding(
+    () =>
+      new Response(JSON.stringify({ success: true, status: "empty", missions: [] }), {
+        status: 200,
+      }),
   );
-  const previousEnv = globalThis.__env__;
-  globalThis.__env__ = { HAWKBUCKS_API: envBinding };
-  try {
-    await fetchMissionsServer();
-    assert.equal(envCalls.length, 1);
-    assert.equal(registered.calls.length, 0);
-  } finally {
-    if (previousEnv === undefined) delete globalThis.__env__;
-    else globalThis.__env__ = previousEnv;
-  }
+  const result = await withHawkbucksRequest({ HAWKBUCKS_API: binding }, async () => {
+    // Server functions await dynamic imports and TanStack Query work before
+    // reaching the transport; the AsyncLocalStorage context must survive that.
+    await new Promise((resolve) => setTimeout(resolve, 5));
+    await Promise.resolve();
+    return fetchMissionsServer();
+  });
+  assert.equal(calls.length, 1);
+  assert.equal(result.status, "empty");
+});
+
+test("two concurrent requests resolve their own binding (no shared mutable state)", async () => {
+  const { calls: callsA, binding: bindingA } = makeBinding(
+    () => new Response(JSON.stringify({ success: true, worker: "a" }), { status: 200 }),
+  );
+  const { calls: callsB, binding: bindingB } = makeBinding(
+    () => new Response(JSON.stringify({ success: true, worker: "b" }), { status: 200 }),
+  );
+
+  const [a, b] = await Promise.all([
+    withHawkbucksRequest({ HAWKBUCKS_API: bindingA }, fetchDailyQuoteServer),
+    withHawkbucksRequest({ HAWKBUCKS_API: bindingB }, fetchDailyQuoteServer),
+  ]);
+
+  assert.equal(callsA.length, 1);
+  assert.equal(callsB.length, 1);
+  assert.equal(a.worker, "a");
+  assert.equal(b.worker, "b");
+});
+
+test("request without the binding present still fails with the transport error", async () => {
+  await withHawkbucksRequest({}, async () => {
+    await assert.rejects(fetchMissionsServer(), /HAWKBUCKS_API service binding is not available/);
+    assert.throws(() => getHawkbucksApiBinding(), /HAWKBUCKS_API service binding is not available/);
+  });
 });
 
 test("missing binding produces a clear server-only error", async () => {
-  // Fresh module instance without any registered binding.
+  // Fresh module instance outside any request scope.
   const fresh = await import(`${"../src/services/missions.server.ts"}?fresh=no-binding`);
 
   await assert.rejects(

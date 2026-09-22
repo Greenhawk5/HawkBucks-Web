@@ -18,8 +18,30 @@
  * (SSR loaders and client-side navigations both reach it through TanStack
  * Start server functions). The public workers.dev endpoint remains running
  * as a rollback path but is no longer called by the frontend.
+ *
+ * Binding resolution (request-scoped):
+ *
+ *   Nitro's cloudflare-pages runtime attaches the per-request Worker env to
+ *   the incoming request (`request.runtime.cloudflare.env`, see
+ *   `augmentReq` in nitro/dist/presets/cloudflare/runtime/_module-handler.mjs
+ *   and the generated `dist/_worker.js/index.js`). Nitro then hands that same
+ *   Request object to h3, and TanStack Start's `requestHandler` stores the
+ *   resulting h3Event (holding the identical request) in its request-scoped
+ *   AsyncLocalStorage. Every server-side execution context that matters here
+ *   runs inside that storage:
+ *
+ *   - SSR page loads (createStartHandler → requestHandler)
+ *   - `/_serverFn/*` server-function RPC requests (runWithStartContext)
+ *
+ *   so `getRequest()` returns the very request Nitro augmented. Nitro 3 does
+ *   NOT populate `globalThis.__env__` on the cloudflare-pages preset (that is
+ *   a cloudflare-module / dev-plugin-only mechanism), so no process/global
+ *   singleton is consulted and no mutable global state is used to hold
+ *   request-scoped Cloudflare bindings.
  */
 import "@tanstack/react-start/server-only";
+
+import { getRequest } from "@tanstack/react-start/server";
 
 import type {
   ApiMission,
@@ -115,43 +137,52 @@ export interface HawkBucksWorkerEnv {
  */
 const BINDING_REQUEST_ORIGIN = "https://hawkbucks-worker.internal";
 
-let registeredBinding: HAWKBUCKS_APIBinding | undefined;
+/** The runtime.cloudflare payload Nitro attaches to the request (`augmentReq`). */
+interface CloudflareRequestRuntime {
+  env?: HawkBucksWorkerEnv;
+  context?: unknown;
+}
 
-/**
- * Register the Worker env so server-side code can reach the internal
- * binding. Secondary path (tests / direct entry invocation); the primary
- * resolution happens per call via `globalThis.__env__` (see below).
- */
-export function registerHawkbucksApiBinding(env: unknown): void {
-  const binding = (env as HawkBucksWorkerEnv | null | undefined)?.HAWKBUCKS_API;
-  if (binding && typeof binding.fetch === "function") {
-    registeredBinding = binding;
-  }
+function isServiceBinding(value: unknown): value is HAWKBUCKS_APIBinding {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    typeof (value as { fetch?: unknown }).fetch === "function"
+  );
 }
 
 /**
- * Resolve the HAWKBUCKS_API binding from the runtime environment.
+ * Resolve the HAWKBUCKS_API binding from the current request's Cloudflare
+ * runtime context.
  *
- * Nitro exposes the Cloudflare env on `globalThis.__env__` in every runtime:
- * production (the cloudflare-module handler sets it on every request) and
- * dev (nitro's cloudflare dev plugin sets it from wrangler's platform
- * proxy). The SSR entry itself is invoked with only the request object, so
- * an explicitly registered binding is kept as a secondary source.
+ * Nitro's cloudflare-pages handler augments the incoming request with the
+ * per-request Worker env (`request.runtime.cloudflare.env`) BEFORE TanStack
+ * Start wraps it in the request-scoped AsyncLocalStorage, so `getRequest()`
+ * exposes the binding of the invocation currently being served. No
+ * `globalThis.__env__` process/global singleton and no mutable module state
+ * is involved: concurrent requests each observe their own env.
  */
 function resolveHawkbucksApiBinding(): HAWKBUCKS_APIBinding | undefined {
-  const env = (globalThis as { __env__?: unknown }).__env__ as
-    HawkBucksWorkerEnv | null | undefined;
-  const binding = env?.HAWKBUCKS_API;
-  if (binding && typeof binding.fetch === "function") return binding;
-  if (registeredBinding && typeof registeredBinding.fetch === "function") {
-    return registeredBinding;
-  }
-  return undefined;
+  const request = getRequest();
+  const runtime = (request as { runtime?: { cloudflare?: CloudflareRequestRuntime } }).runtime;
+  const binding = runtime?.cloudflare?.env?.HAWKBUCKS_API;
+  return isServiceBinding(binding) ? binding : undefined;
 }
 
-/** Throw a clear, early error if the binding is not available at all. */
+/**
+ * Throw a clear, early error if the binding is not available at all.
+ *
+ * Outside a request scope (no AsyncLocalStorage store — e.g. a bare unit
+ * test or a mis-wired entry point) `getRequest()` throws; surface that as
+ * the same explicit transport error instead of an internal one.
+ */
 export function getHawkbucksApiBinding(): HAWKBUCKS_APIBinding {
-  const binding = resolveHawkbucksApiBinding();
+  let binding: HAWKBUCKS_APIBinding | undefined;
+  try {
+    binding = resolveHawkbucksApiBinding();
+  } catch {
+    binding = undefined;
+  }
   if (!binding) {
     throw new Error(
       "HAWKBUCKS_API service binding is not available. " +

@@ -2,7 +2,6 @@ import "./lib/error-capture";
 
 import { consumeLastCapturedError } from "./lib/error-capture";
 import { renderErrorPage } from "./lib/error-page";
-import { registerHawkbucksApiBinding } from "./services/missions.server";
 
 // ---------------------------------------------------------------------------
 // Phase 9 — WWW → apex redirect
@@ -81,7 +80,11 @@ export default {
       return wwwRedirectResponse(requestUrl);
     }
 
-    registerHawkbucksApiBinding(env);
+    // No binding registration here: the Nitro cloudflare-pages runtime already
+    // attached `env` to this request (`request.runtime.cloudflare.env`), and
+    // TanStack Start keeps that same request object in its request-scoped
+    // AsyncLocalStorage, so the server-only transport resolves the binding
+    // from the current request (see src/services/missions.server.ts).
     try {
       const handler = await getServerEntry();
       const response = await handler.fetch(request, env, ctx);
