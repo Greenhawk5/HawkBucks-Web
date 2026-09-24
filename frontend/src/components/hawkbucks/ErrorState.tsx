@@ -1,6 +1,8 @@
+import { useI18n } from "@/i18n";
 import { ASSETS } from "@/lib/assets";
 
 export function ErrorState({ onRetry }: { onRetry?: () => void }) {
+  const { t } = useI18n();
   return (
     <section className="glass-panel relative overflow-hidden rounded-2xl border-destructive/40 px-6 py-14 text-center">
       <div className="relative mx-auto grid h-24 w-24 place-items-center">
@@ -12,10 +14,10 @@ export function ErrorState({ onRetry }: { onRetry?: () => void }) {
         <img src={ASSETS.vbucks} alt="" aria-hidden className="h-16 w-16 opacity-70 grayscale" />
       </div>
       <h2 className="mt-8 font-display text-2xl font-extrabold uppercase leading-tight sm:text-3xl">
-        <span className="text-destructive">Mission</span> Feed Unavailable
+        {t("errors.feedUnavailableTitle")}
       </h2>
       <p className="mx-auto mt-3 max-w-sm text-sm text-muted-foreground">
-        HawkBucks could not reach the mission service. Please try again in a moment.
+        {t("errors.feedUnavailableDesc")}
       </p>
       {onRetry ? (
         <button
@@ -23,7 +25,7 @@ export function ErrorState({ onRetry }: { onRetry?: () => void }) {
           onClick={onRetry}
           className="mt-6 inline-flex min-h-[48px] items-center rounded-full border border-panel-border bg-background/50 px-5 py-2 font-display text-xs font-bold uppercase tracking-widest text-primary transition-all duration-300 hover:-translate-y-0.5 hover:border-primary hover:shadow-[var(--shadow-glow)]"
         >
-          Retry
+          {t("common.retry")}
         </button>
       ) : null}
     </section>

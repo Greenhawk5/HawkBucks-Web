@@ -1,6 +1,8 @@
+import { useI18n } from "@/i18n";
 import { ASSETS } from "@/lib/assets";
 
 export function AboutHero() {
+  const { t } = useI18n();
   return (
     <section className="relative py-12 text-center lg:py-16">
       <div
@@ -13,15 +15,13 @@ export function AboutHero() {
         className="relative mx-auto h-20 w-20 rounded-2xl shadow-[var(--shadow-glow)]"
       />
       <h1 className="relative mt-6 font-display text-3xl font-extrabold uppercase leading-none tracking-tight sm:text-5xl">
-        What is HawkBucks?
+        {t("about.heroTitle")}
       </h1>
       <p className="relative mx-auto mt-4 max-w-2xl font-display text-sm font-bold uppercase tracking-widest text-primary sm:text-base">
-        Your daily Fortnite Save The World V-Bucks mission intelligence dashboard.
+        {t("about.heroSubtitle")}
       </p>
       <p className="relative mx-auto mt-5 max-w-2xl text-sm leading-relaxed text-muted-foreground sm:text-base">
-        HawkBucks automatically analyzes Fortnite Save The World mission alerts and shows players
-        where V-Bucks missions are available, including reward amount, location, mission type, zone
-        and power level — without opening the game.
+        {t("about.heroDesc")}
       </p>
     </section>
   );

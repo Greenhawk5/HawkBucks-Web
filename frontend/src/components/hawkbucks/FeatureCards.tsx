@@ -1,42 +1,44 @@
 import { Gift, RefreshCw, ScanSearch, Zap } from "lucide-react";
+import { useI18n, type TranslationKey } from "@/i18n";
 
-const features = [
-  {
-    icon: ScanSearch,
-    title: "Automatic Tracking",
-    detail:
-      "Mission alerts are checked automatically so you never miss daily V-Bucks opportunities.",
-  },
-  {
-    icon: RefreshCw,
-    title: "Real-Time Updates",
-    detail: "Updated every 30 minutes according to Fortnite UTC reset schedule.",
-  },
-  {
-    icon: Zap,
-    title: "Instant Overview",
-    detail: "See reward, location, zone and power level in seconds.",
-  },
-  {
-    icon: Gift,
-    title: "Free Community Tool",
-    detail: "No account, no ads, no paywall. Built for the Save The World community.",
-  },
-];
+const features: { icon: typeof ScanSearch; titleKey: TranslationKey; detailKey: TranslationKey }[] =
+  [
+    {
+      icon: ScanSearch,
+      titleKey: "about.feature1Title",
+      detailKey: "about.feature1Detail",
+    },
+    {
+      icon: RefreshCw,
+      titleKey: "about.feature2Title",
+      detailKey: "about.feature2Detail",
+    },
+    {
+      icon: Zap,
+      titleKey: "about.feature3Title",
+      detailKey: "about.feature3Detail",
+    },
+    {
+      icon: Gift,
+      titleKey: "about.feature4Title",
+      detailKey: "about.feature4Detail",
+    },
+  ];
 
 export function FeatureCards() {
+  const { t } = useI18n();
   return (
     <section>
       <p className="font-display text-[11px] font-extrabold uppercase tracking-[0.25em] text-primary">
-        Capabilities
+        {t("about.featuresEyebrow")}
       </p>
       <h2 className="mt-2 font-display text-2xl font-extrabold uppercase tracking-wide sm:text-3xl">
-        Features
+        {t("about.featuresTitle")}
       </h2>
       <div className="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
         {features.map((f, i) => (
           <div
-            key={f.title}
+            key={f.titleKey}
             className="glass-panel glass-panel-hover animate-rise group relative overflow-hidden rounded-2xl p-6 sm:p-7"
             style={{ animationDelay: `${i * 70}ms` }}
           >
@@ -52,10 +54,10 @@ export function FeatureCards() {
               <f.icon className="h-5 w-5 text-primary transition-transform duration-300 group-hover:scale-110" />
             </span>
             <h3 className="relative mt-6 font-display text-base font-extrabold uppercase tracking-wide transition-colors duration-300 group-hover:text-primary">
-              {f.title}
+              {t(f.titleKey)}
             </h3>
             <p className="relative mt-2.5 text-sm leading-relaxed text-muted-foreground">
-              {f.detail}
+              {t(f.detailKey)}
             </p>
           </div>
         ))}

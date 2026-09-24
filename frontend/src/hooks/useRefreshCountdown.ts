@@ -1,17 +1,15 @@
 import { useEffect, useState } from "react";
 import { nextUpdate } from "@/lib/missions";
-
-function countdown(target: Date, now: Date) {
-  const diff = Math.max(0, target.getTime() - now.getTime());
-  const m = Math.floor(diff / 60000);
-  const s = Math.floor((diff % 60000) / 1000);
-  return `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
-}
+import { formatCountdown, toInstant } from "@/lib/local-time";
 
 /**
  * Single source of refresh-countdown state. Shared by the Home page
  * UpdateTimer bar and the /vbucks-missions summary cells so there is
  * exactly one interval implementation and no duplicated timer state.
+ *
+ * The next-update instant stays on the UTC 30-minute boundary (see
+ * `nextUpdate`); the countdown is absolute epoch-millisecond arithmetic
+ * (see `formatCountdown`), so DST transitions cannot skew it.
  */
 export function useRefreshCountdown(lastUpdated: string) {
   const [now, setNow] = useState<Date | null>(null);
@@ -22,6 +20,7 @@ export function useRefreshCountdown(lastUpdated: string) {
     return () => clearInterval(id);
   }, []);
 
-  const next = nextUpdate(now ?? new Date(lastUpdated));
-  return { next, refreshIn: now ? countdown(next, now) : "--:--" };
+  const fallbackInstant = toInstant(lastUpdated) ?? new Date();
+  const next = nextUpdate(now ?? fallbackInstant);
+  return { next, refreshIn: now ? formatCountdown(next, now) : "--:--" };
 }

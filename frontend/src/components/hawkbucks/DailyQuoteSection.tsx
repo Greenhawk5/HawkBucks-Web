@@ -1,8 +1,10 @@
 import { Radio } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
+import { useI18n } from "@/i18n";
 import { dailyQuoteQueryOptions } from "@/services/missions.loader";
 
 export function DailyQuoteSection() {
+  const { t } = useI18n();
   const { data, isPending, isError } = useQuery(dailyQuoteQueryOptions());
   const quote = data?.quote;
 
@@ -17,11 +19,11 @@ export function DailyQuoteSection() {
           <div className="flex items-center gap-2 text-primary">
             <Radio className="h-4 w-4" aria-hidden />
             <p className="font-display text-[10px] font-bold uppercase tracking-[0.2em]">
-              Daily Save the World Quote
+              {t("quote.heading")}
             </p>
           </div>
           <h2 id="daily-quote-heading" className="sr-only">
-            Daily Save the World Quote
+            {t("quote.heading")}
           </h2>
           {quote ? (
             <p className="mt-5 max-w-3xl font-display text-lg font-semibold leading-8 tracking-tight sm:text-2xl sm:leading-10">
@@ -29,15 +31,11 @@ export function DailyQuoteSection() {
             </p>
           ) : (
             <p className="mt-5 max-w-2xl text-sm leading-7 text-muted-foreground sm:text-base">
-              {isPending
-                ? "Receiving today’s transmission from Homebase…"
-                : isError
-                  ? "Today’s transmission is temporarily unavailable. Please check back after the next UTC refresh."
-                  : "A new Save the World transmission will appear after the next daily refresh."}
+              {isPending ? t("quote.pending") : isError ? t("quote.error") : t("quote.empty")}
             </p>
           )}
           <p className="mt-5 text-[10px] font-bold uppercase tracking-[0.18em] text-muted-foreground">
-            HawkBucks · Daily Transmission
+            {t("quote.credit")}
           </p>
         </div>
       </div>

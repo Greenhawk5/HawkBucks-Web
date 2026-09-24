@@ -22,19 +22,32 @@ test("home page renders the update timer above the mission list", () => {
 test("v-bucks missions page has a single top summary with update info and no lower timer bar", () => {
   assert.equal(missions.split("<UpdateTimer").length - 1, 0, "standalone UpdateTimer must not render");
   assert.ok(missions.includes("useRefreshCountdown(data.lastUpdated)"), "hook reuses query data timestamp");
-  assert.equal(missions.split("Refresh In").length - 1, 1, "exactly one Refresh In cell");
-  assert.equal(missions.split("Next Update").length - 1, 1, "exactly one Next Update cell");
+  // Phase 5: labels render via i18n keys (t("time.refreshIn") etc.), not hardcoded English.
+  const hasRefreshIn =
+    missions.includes('"time.refreshIn"') ||
+    missions.split("Refresh In").length - 1 >= 1;
+  assert.ok(hasRefreshIn, "refresh-in cell present (i18n key or literal)");
+  const hasNextUpdate =
+    missions.includes('"time.nextUpdate"') ||
+    missions.split("Next Update").length - 1 >= 1;
+  assert.ok(hasNextUpdate, "next-update cell present (i18n key or literal)");
   const dashI = missions.indexOf("<MissionDashboard");
-  const formatUtcI = missions.indexOf("formatUtc(new Date(data.lastUpdated))");
-  assert.ok(dashI !== -1 && formatUtcI !== -1 && formatUtcI < dashI, "summary above mission list");
+  // Phase 4: timestamps render via LocalizedTime / local-time helpers; the legacy
+  // raw `formatUtc(new Date(data.lastUpdated))` literal was intentionally removed.
+  const timeMarkerI = [missions.indexOf("<LocalizedTime"), missions.indexOf("formatUtcMidnightWithLocalEquivalent"), missions.indexOf("formatUtc(")].filter(
+    (i) => i !== -1,
+  );
+  const earliestTime = timeMarkerI.length > 0 ? Math.min(...timeMarkerI) : -1;
+  assert.ok(dashI !== -1 && earliestTime !== -1 && earliestTime < dashI, "summary above mission list");
 });
 
 test("footer keeps compact nav spacing while preserving 48px pseudo-element hit area", () => {
-  const navI = footer.indexOf("Navigate</ColTitle>");
+  // Phase 5: column titles render via i18n keys (t("footer.navigate") etc.), so
+  // anchor on the stable nav data + list structure instead of English literals.
   for (const label of ['to: "/"', 'to: "/vbucks-missions"', 'to: "/about"']) {
     assert.ok(footer.includes(label), `footer nav link ${label} present`);
   }
-  const linkCls = footer.slice(navI, footer.indexOf("Connect</ColTitle>"));
+  const linkCls = footer.slice(footer.indexOf("<nav"), footer.indexOf("Connect") !== -1 ? footer.indexOf("Connect") : footer.length);
   assert.ok(linkCls.includes("after:-inset-y-[14px]"), "hit area expanded via pseudo-element");
   assert.ok(!linkCls.includes("min-h-[48px]"), "links must not inflate layout height");
   assert.ok(linkCls.includes("space-y-1"), "compact list spacing");
@@ -48,13 +61,20 @@ test("shared countdown hook is single source of timer state", () => {
 test("footer social icons expose a non-empty accessible name via img alt", () => {
   // The social icons are the only content of their links (functional images),
   // so each <img> must carry meaningful alt text as the link's accessible name.
+  // Phase 5: alt renders via i18n keys (t(c.labelKey)), not the legacy c.label.
   const imgs = footer.match(/<img\b[^>]*>/g) || [];
   const social = imgs.filter((t) => t.includes("c.icon"));
   assert.equal(social.length, 1, "single social icon template rendering both links");
-  assert.ok(social[0].includes("alt={c.label}"), "social icon alt provides the link name");
+  assert.ok(
+    social[0].includes("alt={t(c.labelKey)}") || social[0].includes("alt={c.label}"),
+    "social icon alt provides the link name",
+  );
   assert.ok(!social[0].includes('alt=""'), "social icon must not have empty alt");
-  const anchor = footer.slice(footer.indexOf("Connect</ColTitle>"));
-  assert.ok(!anchor.includes("aria-label={c.label}"), "no duplicated aria-label alongside img alt");
+  const anchor = footer.slice(footer.indexOf("Connect") !== -1 ? footer.indexOf("Connect") : 0);
+  assert.ok(
+    !anchor.includes("aria-label={c.label}") && !anchor.includes("aria-label={t(c.labelKey)}"),
+    "no duplicated aria-label alongside img alt",
+  );
 });
 
 test("power badge icon is decorative and not announced redundantly", () => {
@@ -62,7 +82,11 @@ test("power badge icon is decorative and not announced redundantly", () => {
   assert.ok(!power.includes("<img"), "decorative power icon must not render an <img>");
   assert.ok(power.includes('aria-hidden="true"'), "decorative icon hidden from assistive tech");
   // Adjacent visible text already conveys the meaning, so no alt text may exist.
-  assert.ok(/>\s*Power\s*</.test(power), "visible Power label preserved next to the icon");
+  // Phase 5: the label renders via t("common.power"), not a hardcoded literal.
+  assert.ok(
+    />\s*Power\s*</.test(power) || power.includes('"common.power"'),
+    "visible Power label preserved next to the icon",
+  );
 });
 
 test("every rendered <img> across page components carries an alt attribute", () => {

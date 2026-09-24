@@ -68,6 +68,26 @@ npm run preview
 npx prettier --check src
 ```
 
+### Local development and the Worker transport
+
+Production serves mission data through the `HAWKBUCKS_API` Service Binding
+(`wrangler.json`), which only exists inside the Cloudflare runtime. The plain
+Vite dev server runs in Node with no Cloudflare runtime, so the server-side
+transport (`src/services/missions.server.ts`) falls back to a deterministic
+server-only mock (`src/services/missions.local-dev.server.ts`):
+
+- `npm run dev` just works — no configuration needed, no Worker required.
+- The browser still talks only to the app's own server functions; it never
+  calls the Worker directly, and no `VITE_*` variable or public API URL is
+  involved.
+- The mock returns fixed sample missions, history, and quote payloads shaped
+  exactly like the real Worker responses, so Home, V-Bucks Missions,
+  countdowns, and timezone rendering can be verified in a real browser.
+- `HAWKBUCKS_LOCAL_MOCK_EMPTY=1 npm run dev` renders the empty-missions state.
+- The fallback is fail-closed: inside the Cloudflare runtime (where
+  `request.runtime.cloudflare` exists) a missing binding still throws instead
+  of serving mock data, so production can never serve fake missions.
+
 The production build creates the Vite/TanStack Start output used by the configured hosting deployment. The frontend does not deploy or configure the Worker.
 
 ## Project layout

@@ -1,8 +1,13 @@
 import { ArrowUp } from "lucide-react";
 import { useEffect, useState } from "react";
+import { useI18n } from "@/i18n";
 
 export function BackToTop() {
   const [visible, setVisible] = useState(false);
+  // BackToTop renders inside I18nProvider in the normal tree; the error
+  // boundary never mounts it, so the hook is always safe here.
+  const { t } = useI18n();
+  const backToTopLabel = t("shell.backToTop");
 
   useEffect(() => {
     const onScroll = () => setVisible(window.scrollY > 420);
@@ -16,7 +21,7 @@ export function BackToTop() {
   return (
     <button
       type="button"
-      aria-label="Back to top"
+      aria-label={backToTopLabel}
       onClick={() => {
         const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
         window.scrollTo({ top: 0, behavior: reducedMotion ? "auto" : "smooth" });

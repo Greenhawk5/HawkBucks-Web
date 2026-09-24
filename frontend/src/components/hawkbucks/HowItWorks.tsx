@@ -1,34 +1,38 @@
-const steps = [
+import { useI18n } from "@/i18n";
+import type { TranslationKey } from "@/i18n";
+
+const steps: { tagKey: TranslationKey; titleKey: TranslationKey; detailKey: TranslationKey }[] = [
   {
-    tag: "Source",
-    title: "Epic Games API",
-    detail: "Official Fortnite mission data source, polled directly at the source of truth.",
+    tagKey: "about.step1Tag",
+    titleKey: "about.step1Title",
+    detailKey: "about.step1Detail",
   },
   {
-    tag: "Compute",
-    title: "Cloudflare Worker",
-    detail: "Automated edge backend that checks mission alerts every 30 minutes UTC.",
+    tagKey: "about.step2Tag",
+    titleKey: "about.step2Title",
+    detailKey: "about.step2Detail",
   },
   {
-    tag: "Analysis",
-    title: "Mission Analysis",
-    detail: "Filters mission alerts and identifies every available V-Bucks reward.",
+    tagKey: "about.step3Tag",
+    titleKey: "about.step3Title",
+    detailKey: "about.step3Detail",
   },
   {
-    tag: "Output",
-    title: "HawkBucks Dashboard",
-    detail: "Presents the results in a fast, clean daily mission overview.",
+    tagKey: "about.step4Tag",
+    titleKey: "about.step4Title",
+    detailKey: "about.step4Detail",
   },
 ];
 
 export function HowItWorks() {
+  const { t } = useI18n();
   return (
     <section>
       <p className="font-display text-[11px] font-extrabold uppercase tracking-[0.25em] text-primary">
-        Pipeline
+        {t("about.pipelineEyebrow")}
       </p>
       <h2 className="mt-2 font-display text-2xl font-extrabold uppercase tracking-wide sm:text-3xl">
-        How it works
+        {t("about.pipelineTitle")}
       </h2>
 
       <ol className="relative mt-10 space-y-5 pl-6 sm:pl-8">
@@ -37,7 +41,7 @@ export function HowItWorks() {
           className="pointer-events-none absolute bottom-4 left-[9px] top-4 w-px bg-gradient-to-b from-primary via-primary/40 to-transparent sm:left-[13px]"
         />
         {steps.map((step, i) => (
-          <li key={step.title} className="relative">
+          <li key={step.titleKey} className="relative">
             <span
               aria-hidden
               className="absolute -left-6 top-7 grid h-[19px] w-[19px] place-items-center rounded-full border border-primary/60 bg-background sm:-left-8 sm:h-[27px] sm:w-[27px]"
@@ -54,13 +58,13 @@ export function HowItWorks() {
               </span>
               <div className="min-w-0">
                 <span className="font-display text-[10px] font-extrabold uppercase tracking-[0.22em] text-muted-foreground">
-                  {step.tag}
+                  {t(step.tagKey)}
                 </span>
                 <h3 className="mt-1 font-display text-base font-extrabold uppercase tracking-wide transition-colors duration-300 group-hover:text-primary sm:text-lg">
-                  {step.title}
+                  {t(step.titleKey)}
                 </h3>
                 <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">
-                  {step.detail}
+                  {t(step.detailKey)}
                 </p>
               </div>
             </div>

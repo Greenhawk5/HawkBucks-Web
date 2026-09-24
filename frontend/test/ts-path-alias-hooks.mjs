@@ -13,7 +13,13 @@ export async function resolve(specifier, context, nextResolve) {
   const [base, query] = splitQuery(specifier);
 
   if (base.startsWith("@/")) {
-    return nextResolve(pathToFileURL(path.join(srcDir, base.slice(2))).href + query, context);
+    const candidate = path.join(srcDir, base.slice(2));
+    // Extensionless aliased imports (e.g. "@/lib/preferences") resolve to
+    // their .ts source, mirroring the relative-import branch below.
+    if (!/\.[cm]?[jt]s$/.test(base) && existsSync(`${candidate}.ts`)) {
+      return nextResolve(pathToFileURL(`${candidate}.ts`).href + query, context);
+    }
+    return nextResolve(pathToFileURL(candidate).href + query, context);
   }
 
   const isRelative = base.startsWith("./") || base.startsWith("../");

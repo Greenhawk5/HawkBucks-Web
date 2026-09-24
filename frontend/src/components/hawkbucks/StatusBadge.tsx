@@ -1,7 +1,9 @@
+import { useI18n } from "@/i18n";
 import { cn } from "@/lib/utils";
 import { VbucksIcon } from "./RewardBadge";
 
 export function StatusBadge({ total }: { total: number }) {
+  const { t } = useI18n();
   const available = total > 0;
 
   return (
@@ -18,16 +20,16 @@ export function StatusBadge({ total }: { total: number }) {
             {total}
           </div>
           <div className="mt-1 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
-            Total V-Bucks
+            {t("missions.totalVbucks")}
           </div>
         </div>
       ) : (
         <div className="text-left">
           <div className="font-display text-2xl font-extrabold uppercase leading-none text-destructive">
-            No
+            {t("missions.noneTitle")}
           </div>
           <div className="mt-1 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
-            V-Bucks Today
+            {t("missions.noneSubtitle")}
           </div>
         </div>
       )}

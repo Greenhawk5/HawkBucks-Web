@@ -1,6 +1,8 @@
+import { useI18n } from "@/i18n";
 import { ASSETS } from "@/lib/assets";
 
 export function PowerBadge({ level }: { level: number }) {
+  const { t } = useI18n();
   return (
     <div className="flex items-center gap-2">
       <span className="font-display text-2xl font-extrabold tabular-nums leading-none sm:text-3xl">
@@ -16,7 +18,7 @@ export function PowerBadge({ level }: { level: number }) {
           style={{ backgroundImage: `url(${ASSETS.power})` }}
         />
         <span className="mt-0.5 text-[9px] font-semibold uppercase tracking-widest text-muted-foreground">
-          Power
+          {t("common.power")}
         </span>
       </span>
     </div>

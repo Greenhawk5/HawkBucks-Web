@@ -1,13 +1,16 @@
 import { ASSETS } from "@/lib/assets";
 import { StatusBadge } from "./StatusBadge";
+import { MissionResetLine } from "./MissionResetLine";
+import { formatLocalDate } from "@/lib/local-time";
+import { useUserTimeZone } from "@/hooks/use-user-timezone";
+import { useI18n } from "@/i18n";
 
 export function HeroSection({ total, missionCount }: { total: number; missionCount: number }) {
-  const today = new Date().toLocaleDateString("en-US", {
-    month: "long",
-    day: "numeric",
-    year: "numeric",
-    timeZone: "UTC",
-  });
+  const { t, locale } = useI18n();
+  const timeZone = useUserTimeZone();
+  const today = new Date().toISOString();
+  const todayLocal = formatLocalDate(today, { timeZone: timeZone ?? "UTC", locale });
+  const todayTitle = timeZone ? t("time.todayTitle", { timeZone }) : t("time.todayTitleFallback");
 
   return (
     <section className="grid grid-cols-[minmax(0,1fr)] items-center gap-6 py-10 lg:grid-cols-[minmax(0,1fr)_auto] lg:py-14">
@@ -19,10 +22,10 @@ export function HeroSection({ total, missionCount }: { total: number; missionCou
         />
         <div className="min-w-0">
           <h1 className="font-display text-3xl font-extrabold uppercase leading-none tracking-tight sm:text-5xl">
-            Fortnite Save The World
+            {t("hero.title")}
           </h1>
           <p className="mt-2 font-display text-base font-bold uppercase tracking-widest text-primary sm:text-xl">
-            V-Bucks Missions Tracker
+            {t("hero.subtitle")}
           </p>
         </div>
       </div>
@@ -32,12 +35,14 @@ export function HeroSection({ total, missionCount }: { total: number; missionCou
       </div>
 
       <div className="col-span-full border-t border-border/60 pt-4">
-        <p className="font-display text-xs font-bold uppercase tracking-widest text-muted-foreground sm:text-sm">
-          {today} · {missionCount} {missionCount === 1 ? "Mission" : "Missions"}
+        <p
+          className="font-display text-xs font-bold uppercase tracking-widest text-muted-foreground sm:text-sm"
+          title={todayTitle}
+        >
+          {todayLocal} · {missionCount}{" "}
+          {t(missionCount === 1 ? "common.missionOne" : "common.missionOther")}
         </p>
-        <p className="mt-1 font-display text-[11px] font-bold uppercase tracking-widest text-muted-foreground/60">
-          DAILY RESETS ARE AT 00:00 UTC
-        </p>
+        <MissionResetLine className="mt-1 font-display text-[11px] font-bold uppercase tracking-widest text-muted-foreground/60" />
       </div>
     </section>
   );

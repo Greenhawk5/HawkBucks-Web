@@ -175,6 +175,15 @@ function resolveHawkbucksApiBinding(): HAWKBUCKS_APIBinding | undefined {
  * Outside a request scope (no AsyncLocalStorage store — e.g. a bare unit
  * test or a mis-wired entry point) `getRequest()` throws; surface that as
  * the same explicit transport error instead of an internal one.
+ *
+ * Local development: when no binding resolves AND the request is provably
+ * outside the Cloudflare runtime (plain-Node `vite dev`), the deterministic
+ * server-side mock transport stands in so local pages render (see
+ * `resolveBindingOrLocalDevMock`). The mock module is imported dynamically
+ * so the Cloudflare production bundle only loads it if it is actually used —
+ * which never happens inside the Cloudflare runtime. The Cloudflare runtime
+ * path is untouched: a request carrying the Cloudflare context but no
+ * binding still throws (fail-closed, never fake in prod).
  */
 export function getHawkbucksApiBinding(): HAWKBUCKS_APIBinding {
   let binding: HAWKBUCKS_APIBinding | undefined;
@@ -192,8 +201,27 @@ export function getHawkbucksApiBinding(): HAWKBUCKS_APIBinding {
   return binding;
 }
 
+/**
+ * Resolve the production binding, falling back to the deterministic
+ * server-side local-dev mock when — and only when — no binding exists and
+ * the request is provably outside the Cloudflare runtime. Throws the same
+ * explicit transport error as getHawkbucksApiBinding() otherwise, so
+ * production misconfiguration can never silently serve fake data.
+ */
+async function resolveBindingOrLocalDevMock(): Promise<HAWKBUCKS_APIBinding> {
+  try {
+    return getHawkbucksApiBinding();
+  } catch (bindingError) {
+    const { shouldUseLocalDevMock, createLocalDevMockBinding } =
+      await import("./missions.local-dev.server");
+    if (shouldUseLocalDevMock()) return createLocalDevMockBinding();
+    throw bindingError;
+  }
+}
+
 async function callWorker(path: string): Promise<Response> {
-  return getHawkbucksApiBinding().fetch(
+  const binding = await resolveBindingOrLocalDevMock();
+  return binding.fetch(
     new Request(`${BINDING_REQUEST_ORIGIN}${path}`, {
       headers: { accept: "application/json" },
     }),

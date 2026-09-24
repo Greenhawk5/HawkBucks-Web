@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { useI18n } from "@/i18n";
 import { missionIcon, MISSION_ICON_FALLBACK } from "@/lib/mission-icons";
 import type { Mission } from "@/lib/missions.types";
 import { PowerBadge } from "./PowerBadge";
@@ -13,6 +14,7 @@ export function ZoneBadge({ zone }: { zone: string }) {
 }
 
 function MissionIcon({ mission }: { mission: Mission }) {
+  const { t } = useI18n();
   const [src, setSrc] = useState(missionIcon(mission.type, mission.name));
   const ref = useRef<HTMLImageElement>(null);
 
@@ -29,7 +31,7 @@ function MissionIcon({ mission }: { mission: Mission }) {
     <img
       ref={ref}
       src={src}
-      alt={`${mission.name} mission icon`}
+      alt={t("missions.iconAlt", { name: mission.name })}
       className={`h-9 w-9 object-contain object-center ${mission.type === "retrieve-the-data" ? "-translate-x-px" : ""}`}
       onError={handleFallback}
     />
