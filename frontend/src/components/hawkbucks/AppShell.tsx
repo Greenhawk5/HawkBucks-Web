@@ -1,16 +1,23 @@
 import * as React from "react";
 import { Link, useLocation } from "@tanstack/react-router";
-import { Menu, PanelLeftClose, PanelLeftOpen, X } from "lucide-react";
+import { BellRing, Compass, Menu, PanelLeftClose, PanelLeftOpen, Sparkles, X } from "lucide-react";
 
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Footer } from "@/components/hawkbucks/Footer";
 import { LanguageMenu } from "@/components/hawkbucks/LanguageSelector";
+import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { useSidebarPreference } from "@/hooks/use-preferences";
+import {
+  useNotificationsPreference,
+  useSidebarPreference,
+  useWelcomePreference,
+} from "@/hooks/use-preferences";
 import type { InitialServerPreferences } from "@/hooks/use-preferences";
 import { useI18n } from "@/i18n";
 import { ASSETS } from "@/lib/assets";
-import { NAV_ITEMS, matchNavItem } from "@/lib/navigation";
+import { NAV_ITEMS, localizedNavTo, matchNavItem } from "@/lib/navigation";
+import { localizePath, splitLocalePath } from "@/lib/locale-urls";
 import { cn } from "@/lib/utils";
 
 const DESKTOP_EXPANDED_WIDTH = "16rem";
@@ -35,16 +42,17 @@ function useShell() {
 }
 
 function BrandLink() {
-  const { t } = useI18n();
+  const { t, currentLanguage } = useI18n();
+  const { pathname } = useLocation();
   return (
     <Link
-      to="/"
+      to={localizedNavTo("/", pathname, currentLanguage)}
       aria-label={t("shell.brandHome")}
       className="flex min-h-[3rem] min-w-0 shrink-0 items-center gap-2 rounded-lg px-1.5 outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring"
     >
       <img
         src={ASSETS.logo}
-        alt="HawkBucks logo"
+        alt={t("seo.logoAlt")}
         // The logo is a square mark — keep it fixed-size so it never
         // stretches, crops, or (in future RTL) mirrors.
         className="h-9 w-9 shrink-0 rounded-lg shadow-[var(--shadow-glow)]"
@@ -91,7 +99,7 @@ function CollapsedBrandButton({ onOpen }: { onOpen: () => void }) {
 function DesktopSidebar() {
   const { desktopOpen, setDesktopOpen, toggleDesktop } = useShell();
   const { pathname } = useLocation();
-  const { t } = useI18n();
+  const { t, currentLanguage } = useI18n();
   const active = matchNavItem(pathname);
   const collapsed = !desktopOpen;
 
@@ -162,7 +170,7 @@ function DesktopSidebar() {
             const label = t(item.labelKey);
             const link = (
               <Link
-                to={item.to}
+                to={localizedNavTo(item.to, pathname, currentLanguage)}
                 activeOptions={{ exact: item.exact }}
                 aria-current={isActive ? "page" : undefined}
                 aria-label={collapsed ? label : undefined}
@@ -217,7 +225,7 @@ function DesktopSidebar() {
 function MobileDrawer() {
   const { mobileOpen, setMobileOpen } = useShell();
   const { pathname } = useLocation();
-  const { t } = useI18n();
+  const { t, currentLanguage } = useI18n();
   const active = matchNavItem(pathname);
   const closeRef = React.useRef<HTMLButtonElement>(null);
   const triggerRef = React.useRef<HTMLElement | null>(null);
@@ -287,7 +295,7 @@ function MobileDrawer() {
               return (
                 <li key={item.to}>
                   <Link
-                    to={item.to}
+                    to={localizedNavTo(item.to, pathname, currentLanguage)}
                     activeOptions={{ exact: item.exact }}
                     aria-current={isActive ? "page" : undefined}
                     onClick={() => setMobileOpen(false)}
@@ -311,7 +319,7 @@ function MobileDrawer() {
         <div className="shrink-0 space-y-3 border-t border-border/60 p-4">
           <LanguageMenu showCurrentLabel align="start" />
           <Link
-            to="/vbucks-missions"
+            to={localizedNavTo("/vbucks-missions", pathname, currentLanguage)}
             onClick={() => setMobileOpen(false)}
             className="flex min-h-[3rem] w-full items-center justify-center rounded-lg bg-primary px-4 font-display text-xs font-bold uppercase tracking-[0.14em] text-primary-foreground transition-colors hover:bg-primary/90"
           >
@@ -357,6 +365,161 @@ function TopNavbar({ title }: { title: string }) {
         </p>
       </div>
     </header>
+  );
+}
+
+function WelcomeDialog() {
+  const { t, currentLanguage } = useI18n();
+  const { pathname } = useLocation();
+  const welcome = useWelcomePreference();
+  const reminders = useNotificationsPreference();
+  const [reminderSaved, setReminderSaved] = React.useState(false);
+  const [reminderStatus, setReminderStatus] = React.useState<string | null>(null);
+  const [reminderBusy, setReminderBusy] = React.useState(false);
+  const open = welcome.ready && reminders.ready && !welcome.completed;
+  const destination = localizePath("/", splitLocalePath(pathname).locale ?? currentLanguage);
+
+  const setWelcomeCompleted = welcome.setCompleted;
+  const complete = React.useCallback(() => setWelcomeCompleted(true), [setWelcomeCompleted]);
+
+  // Phase 8: explicit opt-in only. Registers /sw.js, requests permission, and
+  // persists the subscription server-side via server functions. No
+  // auto-prompt on mount or on dialog open.
+  const enableReminders = React.useCallback(async () => {
+    if (reminderBusy) return;
+    setReminderBusy(true);
+    setReminderStatus(null);
+    try {
+      const { isPushSupported, subscribeForPush } = await import("@/lib/push-client");
+      const { loadPushPublicKey, subscribePush } = await import("@/services/push.loader");
+      if (!isPushSupported()) {
+        reminders.setEnabled(false);
+        setReminderStatus(t("notifications.unsupported"));
+        return;
+      }
+      if (typeof window !== "undefined" && "serviceWorker" in navigator) {
+        try {
+          await navigator.serviceWorker.register("/sw.js", { scope: "/" });
+        } catch {
+          // Registration failure falls through to unsupported messaging below.
+        }
+      }
+      const { publicKey } = await loadPushPublicKey();
+      if (!publicKey) {
+        reminders.setEnabled(false);
+        setReminderStatus(t("notifications.unsupported"));
+        return;
+      }
+      const sub = await subscribeForPush({ publicKey, language: currentLanguage });
+      if (!sub) {
+        // Permission denied or dismissed: persist opt-out, do not re-prompt.
+        reminders.setEnabled(false);
+        const permission =
+          typeof window !== "undefined" && "Notification" in window
+            ? Notification.permission
+            : "default";
+        setReminderStatus(
+          permission === "denied" ? t("notifications.blocked") : t("notifications.disabled"),
+        );
+        return;
+      }
+      const result = await subscribePush({ data: { ...sub, language: currentLanguage } });
+      if (result?.success === false) {
+        reminders.setEnabled(false);
+        setReminderStatus(t("notifications.disabled"));
+        return;
+      }
+      reminders.setEnabled(true);
+      setReminderSaved(true);
+      setReminderStatus(t("notifications.enabled"));
+    } catch {
+      reminders.setEnabled(false);
+      setReminderStatus(t("notifications.disabled"));
+    } finally {
+      setReminderBusy(false);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [reminderBusy, currentLanguage]);
+
+  return (
+    <Dialog
+      open={open}
+      onOpenChange={(nextOpen) => {
+        if (!nextOpen && open) complete();
+      }}
+    >
+      <DialogContent
+        aria-describedby="welcome-description"
+        className="max-h-[min(90svh,44rem)] w-[calc(100%-2rem)] max-w-xl gap-0 overflow-y-auto rounded-2xl border-primary/20 bg-card p-0 shadow-[0_24px_80px_-24px_var(--color-primary)] sm:w-[calc(100%-3rem)]"
+      >
+        <div className="border-b border-border/60 bg-gradient-to-br from-primary/15 via-card to-card px-6 pb-6 pt-8 sm:px-8 sm:pt-9">
+          <div className="mb-5 grid h-12 w-12 place-items-center rounded-2xl border border-primary/25 bg-primary/10 text-primary shadow-[var(--shadow-glow)]">
+            <Sparkles aria-hidden="true" className="h-6 w-6" />
+          </div>
+          <p className="mb-2 font-display text-[10px] font-bold uppercase tracking-[0.2em] text-primary">
+            {t("welcome.eyebrow")}
+          </p>
+          <DialogTitle className="max-w-md font-display text-2xl font-extrabold leading-tight sm:text-3xl">
+            {t("welcome.title")}
+          </DialogTitle>
+          <DialogDescription
+            id="welcome-description"
+            className="mt-3 max-w-lg text-sm leading-6 sm:text-base"
+          >
+            {t("welcome.description")}
+          </DialogDescription>
+        </div>
+
+        <div className="grid gap-3 px-6 py-5 sm:grid-cols-2 sm:px-8 sm:py-6">
+          <section className="rounded-xl border border-border/70 bg-background/50 p-4">
+            <div className="mb-3 grid h-9 w-9 place-items-center rounded-lg bg-primary/10 text-primary">
+              <Compass aria-hidden="true" className="h-4 w-4" />
+            </div>
+            <h3 className="font-display text-sm font-bold">{t("welcome.trackingTitle")}</h3>
+            <p className="mt-1.5 text-sm leading-5 text-muted-foreground">
+              {t("welcome.trackingDescription")}
+            </p>
+          </section>
+          <section className="rounded-xl border border-border/70 bg-background/50 p-4">
+            <div className="mb-3 grid h-9 w-9 place-items-center rounded-lg bg-primary/10 text-primary">
+              <BellRing aria-hidden="true" className="h-4 w-4" />
+            </div>
+            <h3 className="font-display text-sm font-bold">{t("welcome.remindersTitle")}</h3>
+            <p className="mt-1.5 text-sm leading-5 text-muted-foreground">
+              {t("welcome.remindersDescription")}
+            </p>
+          </section>
+        </div>
+
+        <div className="space-y-3 px-6 pb-6 sm:px-8 sm:pb-8">
+          {reminderStatus && (
+            <p role="status" className="text-sm leading-5 text-muted-foreground">
+              {reminderStatus}
+            </p>
+          )}
+          <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+            <Button
+              type="button"
+              variant="outline"
+              className="min-h-11 w-full border-primary/30 sm:w-auto"
+              disabled={reminderBusy}
+              onClick={() => {
+                void enableReminders();
+              }}
+            >
+              <BellRing aria-hidden="true" />
+              {t("welcome.enableReminders")}
+            </Button>
+            <Button asChild className="min-h-11 w-full sm:w-auto">
+              <Link to={destination} onClick={complete}>
+                <Compass aria-hidden="true" />
+                {t("welcome.explore")}
+              </Link>
+            </Button>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 }
 
@@ -421,6 +584,7 @@ export function AppShell({
         <div id="mobile-navigation">
           <MobileDrawer />
         </div>
+        <WelcomeDialog />
       </TooltipProvider>
     </ShellContext.Provider>
   );

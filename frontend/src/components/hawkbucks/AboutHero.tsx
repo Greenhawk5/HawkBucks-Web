@@ -11,7 +11,7 @@ export function AboutHero() {
       />
       <img
         src={ASSETS.logo}
-        alt="HawkBucks logo"
+        alt={t("seo.logoAlt")}
         className="relative mx-auto h-20 w-20 rounded-2xl shadow-[var(--shadow-glow)]"
       />
       <h1 className="relative mt-6 font-display text-3xl font-extrabold uppercase leading-none tracking-tight sm:text-5xl">

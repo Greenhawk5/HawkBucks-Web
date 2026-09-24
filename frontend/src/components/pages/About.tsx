@@ -21,7 +21,7 @@ export function AboutPage() {
       <FeatureCards />
       <AboutMissionGuide />
       <section className="glass-panel rounded-2xl px-6 py-10 text-center">
-        <img src={ASSETS.greenhawk} alt="Greenhawk logo" className="mx-auto h-14 w-14" />
+        <img src={ASSETS.greenhawk} alt={t("seo.greenhawkLogoAlt")} className="mx-auto h-14 w-14" />
         <h2 className="mt-4 font-display text-xl font-extrabold uppercase tracking-wide">
           {t("about.creditsTitle")}
         </h2>

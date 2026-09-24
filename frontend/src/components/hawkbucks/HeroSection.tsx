@@ -17,7 +17,7 @@ export function HeroSection({ total, missionCount }: { total: number; missionCou
       <div className="flex min-w-0 items-center gap-4">
         <img
           src={ASSETS.logo}
-          alt="HawkBucks logo"
+          alt={t("seo.logoAlt")}
           className="h-16 w-16 shrink-0 rounded-2xl shadow-[var(--shadow-glow)] sm:h-20 sm:w-20"
         />
         <div className="min-w-0">

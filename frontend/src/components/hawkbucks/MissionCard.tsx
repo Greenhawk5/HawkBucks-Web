@@ -41,7 +41,7 @@ function MissionIcon({ mission }: { mission: Mission }) {
 export function MissionCard({ mission, index }: { mission: Mission; index: number }) {
   return (
     <article
-      className="glass-panel animate-rise grid grid-cols-[auto_minmax(0,1fr)] items-center gap-4 rounded-2xl p-4 transition-all duration-300 hover:-translate-y-0.5 hover:border-primary hover:shadow-[var(--shadow-glow)] sm:grid-cols-[auto_minmax(0,1fr)_auto] sm:p-5"
+      className="glass-panel animate-rise grid min-w-0 grid-cols-[auto_minmax(0,1fr)] items-center gap-4 rounded-2xl p-4 transition-all duration-300 hover:-translate-y-0.5 hover:border-primary hover:shadow-[var(--shadow-glow)] motion-reduce:animate-none motion-reduce:transition-none sm:grid-cols-[auto_minmax(0,1fr)_auto] sm:p-5"
       style={{ animationDelay: `${index * 60}ms` }}
     >
       <div className="grid h-14 w-14 shrink-0 place-items-center rounded-xl border border-panel-border bg-background/40">

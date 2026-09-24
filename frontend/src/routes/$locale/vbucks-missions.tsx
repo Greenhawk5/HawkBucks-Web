@@ -1,25 +1,40 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, redirect } from "@tanstack/react-router";
 import { VbucksMissionsPage } from "@/components/pages/VbucksMissions";
-import { missionsQueryOptions, missionsHistoryQueryOptions } from "@/services/missions.loader";
-import { translate } from "@/i18n/core";
+import { I18nProvider } from "@/i18n/context";
 import { resolveLocale } from "@/i18n/config";
-import { canonicalUrlFor, hreflangAlternates, localizePath, ogLocaleFor } from "@/lib/locale-urls";
+import { translate } from "@/i18n/core";
+import { missionsQueryOptions, missionsHistoryQueryOptions } from "@/services/missions.loader";
+import {
+  canonicalUrlFor,
+  hreflangAlternates,
+  localizePath,
+  matchLocaleParamCaseInsensitive,
+  ogLocaleFor,
+  parseLocaleParam,
+} from "@/lib/locale-urls";
+import { DEFAULT_LANGUAGE } from "@/lib/preferences";
 
-export const Route = createFileRoute("/vbucks-missions")({
+export const Route = createFileRoute("/$locale/vbucks-missions")({
+  beforeLoad: ({ params }) => {
+    const raw = (params as { locale?: unknown }).locale;
+    if (parseLocaleParam(raw) !== undefined) return;
+    const corrected = matchLocaleParamCaseInsensitive(raw);
+    if (corrected !== undefined) {
+      throw redirect({
+        href: corrected === DEFAULT_LANGUAGE ? "/vbucks-missions" : `/${corrected}/vbucks-missions`,
+      });
+    }
+    throw redirect({ href: "/vbucks-missions" });
+  },
   loader: async ({ context }) => {
-    // Phase 2: fetch server-side through the HAWKBUCKS_API Service Binding
-    // during the initial request; data is dehydrated into the SSR payload
-    // (no duplicate browser fetch on hydration). History failure is
-    // non-fatal (component shows its inline error state).
     await Promise.all([
       context.queryClient.ensureQueryData(missionsQueryOptions()),
       context.queryClient.ensureQueryData(missionsHistoryQueryOptions()).catch(() => undefined),
     ]);
   },
-  // Bare head is intentionally English-deterministic (never cookie-dependent):
-  // crawlers and users on the same URL always get the same canonical tags.
-  head: () => {
-    const lang = "en" as const;
+  head: (ctx) => {
+    const param = (ctx.params as { locale?: unknown } | undefined)?.locale;
+    const lang = parseLocaleParam(param) ?? DEFAULT_LANGUAGE;
     const self = canonicalUrlFor(localizePath("/vbucks-missions", lang));
     return {
       meta: [
@@ -57,5 +72,15 @@ export const Route = createFileRoute("/vbucks-missions")({
       ],
     };
   },
-  component: VbucksMissionsPage,
+  component: LocalizedVbucksMissionsPage,
 });
+
+function LocalizedVbucksMissionsPage() {
+  const { locale } = Route.useParams() as { locale?: unknown };
+  const lang = parseLocaleParam(locale) ?? DEFAULT_LANGUAGE;
+  return (
+    <I18nProvider initialLanguage={lang} fixedLanguage={lang}>
+      <VbucksMissionsPage />
+    </I18nProvider>
+  );
+}

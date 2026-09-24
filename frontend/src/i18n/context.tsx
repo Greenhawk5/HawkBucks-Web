@@ -39,40 +39,51 @@ const I18nContext = React.createContext<I18nContextValue | null>(null);
 export function I18nProvider({
   children,
   initialLanguage,
+  fixedLanguage,
 }: {
   children: React.ReactNode;
   initialLanguage: LanguageCode;
+  /** Phase 6: when set, the provider is pinned to this language (localized routes). */
+  fixedLanguage?: LanguageCode | undefined;
 }) {
-  const { language, setLanguage } = useLanguagePreference(parseLanguage(initialLanguage));
+  const { language: storedLanguage, setLanguage } = useLanguagePreference(
+    parseLanguage(fixedLanguage ?? initialLanguage),
+  );
+
+  const activeLanguage =
+    fixedLanguage !== undefined ? parseLanguage(fixedLanguage) : storedLanguage;
 
   // First-visit browser reconciliation: adopt the browser language only when
   // the user never made an explicit choice (no language cookie). Runs as an
-  // effect so SSR and the first paint stay in agreement.
+  // effect so SSR and the first paint stay in agreement. Skipped entirely for
+  // pinned (localized-route) providers so crawlers without cookies see the
+  // URL locale.
   React.useEffect(() => {
+    if (fixedLanguage !== undefined) return;
     if (readLanguageFromDocumentCookie() !== undefined) return;
     const detected = resolveClientLanguage(undefined);
-    if (detected !== undefined && detected !== language) {
+    if (detected !== undefined && detected !== activeLanguage) {
       setLanguage(detected);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const config = getLanguageConfig(language);
+  const config = getLanguageConfig(activeLanguage);
 
   const t = React.useCallback(
-    (key: TranslationKey, params?: TranslationParams) => translate(key, language, params),
-    [language],
+    (key: TranslationKey, params?: TranslationParams) => translate(key, activeLanguage, params),
+    [activeLanguage],
   );
 
   const value = React.useMemo<I18nContextValue>(
     () => ({
       t,
-      currentLanguage: language,
+      currentLanguage: activeLanguage,
       direction: config.direction,
       locale: config.locale,
       setLanguage,
     }),
-    [t, language, config.direction, config.locale, setLanguage],
+    [t, activeLanguage, config.direction, config.locale, setLanguage],
   );
 
   return <I18nContext.Provider value={value}>{children}</I18nContext.Provider>;

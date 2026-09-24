@@ -15,7 +15,7 @@ export function StatusBadge({ total }: { total: number }) {
     >
       <VbucksIcon className="h-9 w-9" />
       {available ? (
-        <div className="text-left">
+        <div className="text-start">
           <div className="font-display text-3xl font-extrabold leading-none tabular-nums text-primary text-glow">
             {total}
           </div>
@@ -24,7 +24,7 @@ export function StatusBadge({ total }: { total: number }) {
           </div>
         </div>
       ) : (
-        <div className="text-left">
+        <div className="text-start">
           <div className="font-display text-2xl font-extrabold uppercase leading-none text-destructive">
             {t("missions.noneTitle")}
           </div>

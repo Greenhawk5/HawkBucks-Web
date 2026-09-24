@@ -1,11 +1,20 @@
-import { createFileRoute, useRouter } from "@tanstack/react-router";
+import { createFileRoute, redirect, useRouter } from "@tanstack/react-router";
 import { ErrorState } from "@/components/hawkbucks/ErrorState";
 import { HomePage } from "@/components/pages/Home";
+import { I18nProvider } from "@/i18n/context";
+import { resolveLocale } from "@/i18n/config";
+import { translate } from "@/i18n/core";
 import { missionsQueryOptions, dailyQuoteQueryOptions } from "@/services/missions.loader";
 import { jsonLdScript } from "@/lib/seo";
-import { translate } from "@/i18n/core";
-import { canonicalUrlFor, hreflangAlternates, localizePath, ogLocaleFor } from "@/lib/locale-urls";
-import { resolveLocale } from "@/i18n/config";
+import {
+  canonicalUrlFor,
+  hreflangAlternates,
+  localizePath,
+  matchLocaleParamCaseInsensitive,
+  ogLocaleFor,
+  parseLocaleParam,
+} from "@/lib/locale-urls";
+import { DEFAULT_LANGUAGE } from "@/lib/preferences";
 
 function MissionsError() {
   const router = useRouter();
@@ -16,22 +25,28 @@ function MissionsError() {
   );
 }
 
-export const Route = createFileRoute("/")({
+export const Route = createFileRoute("/$locale/")({
+  beforeLoad: ({ params }) => {
+    const raw = (params as { locale?: unknown }).locale;
+    if (parseLocaleParam(raw) !== undefined) return;
+    const corrected = matchLocaleParamCaseInsensitive(raw);
+    if (corrected !== undefined) {
+      throw redirect({ href: corrected === DEFAULT_LANGUAGE ? "/" : `/${corrected}` });
+    }
+    // Unknown locale prefixes fall back to the bare English route, per the
+    // Phase 6 URL strategy (same as /$locale/about, /$locale/vbucks-missions,
+    // /$locale/missions-guide).
+    throw redirect({ href: "/" });
+  },
   loader: async ({ context }) => {
-    // Phase 2: fetch server-side through the HAWKBUCKS_API Service Binding
-    // during the initial request. Data is dehydrated into the SSR payload,
-    // so the client's useSuspenseQuery/useQuery hydrate without a duplicate
-    // browser fetch. Missions failure keeps the existing route error page;
-    // quote failure is non-fatal (component shows its inline error state).
     await Promise.all([
       context.queryClient.ensureQueryData(missionsQueryOptions()),
       context.queryClient.ensureQueryData(dailyQuoteQueryOptions()).catch(() => undefined),
     ]);
   },
-  // Bare head is intentionally English-deterministic (never cookie-dependent):
-  // crawlers and users on the same URL always get the same canonical tags.
-  head: () => {
-    const lang = "en" as const;
+  head: (ctx) => {
+    const param = (ctx.params as { locale?: unknown } | undefined)?.locale;
+    const lang = parseLocaleParam(param) ?? DEFAULT_LANGUAGE;
     const self = canonicalUrlFor(localizePath("/", lang));
     return {
       meta: [
@@ -77,12 +92,22 @@ export const Route = createFileRoute("/")({
           operatingSystem: "Web",
           browserRequirements: "Requires JavaScript",
           description: translate("seo.webAppDescription", lang),
-          inLanguage: "en-US",
+          inLanguage: resolveLocale(lang),
           offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
         }),
       ],
     };
   },
   errorComponent: MissionsError,
-  component: HomePage,
+  component: LocalizedHomePage,
 });
+
+function LocalizedHomePage() {
+  const { locale } = Route.useParams() as { locale?: unknown };
+  const lang = parseLocaleParam(locale) ?? DEFAULT_LANGUAGE;
+  return (
+    <I18nProvider initialLanguage={lang} fixedLanguage={lang}>
+      <HomePage />
+    </I18nProvider>
+  );
+}

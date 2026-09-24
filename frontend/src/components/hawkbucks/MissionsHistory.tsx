@@ -42,15 +42,22 @@ export function MissionsHistory() {
       </div>
 
       {isPending ? (
-        <div className="glass-panel rounded-xl px-4 py-5 text-sm text-muted-foreground">
+        <div
+          role="status"
+          aria-live="polite"
+          className="glass-panel rounded-xl px-4 py-5 text-sm text-muted-foreground"
+        >
           {t("missions.historyLoading")}
         </div>
       ) : isError || !data?.success ? (
-        <div className="glass-panel rounded-xl px-4 py-5 text-sm text-muted-foreground">
+        <div
+          role="alert"
+          className="glass-panel rounded-xl px-4 py-5 text-sm text-muted-foreground"
+        >
           {t("missions.historyUnavailable")}
         </div>
       ) : (
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+        <div className="grid min-w-0 grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-5">
           {periods.map(({ key, labelKey }) => {
             const period = data[key];
             const hasData = period.daysWithData > 0 && period.totalVbucks !== null;
@@ -58,28 +65,24 @@ export function MissionsHistory() {
             return (
               <article
                 key={key}
-                tabIndex={0}
-                className="glass-panel glass-panel-hover rounded-xl p-4 outline-none transition-all duration-300 focus-visible:border-primary focus-visible:shadow-[var(--shadow-glow)] motion-reduce:transform-none motion-reduce:transition-none"
+                className="glass-panel glass-panel-hover min-w-0 rounded-xl p-4 outline-none transition-all duration-300 focus-visible:border-primary focus-visible:shadow-[var(--shadow-glow)] motion-reduce:transform-none motion-reduce:transition-none"
               >
-                <h3 className="font-display text-xs font-bold uppercase tracking-[0.12em] text-muted-foreground">
+                <h3 className="break-words font-display text-xs font-bold uppercase tracking-[0.12em] text-muted-foreground">
                   {t(labelKey)}
                 </h3>
-                <div className="mt-3 flex items-center gap-2">
+                <div className="mt-3 flex min-w-0 items-center gap-2">
                   <VbucksIcon className="h-7 w-7 shrink-0" />
-                  <p className="font-display text-2xl font-extrabold tabular-nums text-primary">
+                  <p className="min-w-0 break-words font-display text-2xl font-extrabold tabular-nums text-primary">
                     {hasData ? period.totalVbucks : "—"}
                   </p>
                 </div>
-                <p className="mt-1 text-xs text-muted-foreground">
+                <p className="mt-1 break-words text-xs text-muted-foreground">
                   {hasData && period.missionCount !== null
                     ? `${period.missionCount} ${t(period.missionCount === 1 ? "common.missionOne" : "common.missionOther")}`
                     : t("common.noRecordedData")}
                 </p>
                 {
-                  <p
-                    className="mt-3 text-xs font-semibold text-foreground/80"
-                    title={t("common.vsPreviousPeriod")}
-                  >
+                  <p className="mt-3 break-words text-xs font-semibold text-foreground/80">
                     <span
                       className={
                         !period.comparison
@@ -92,8 +95,8 @@ export function MissionsHistory() {
                       }
                     >
                       {formatComparison(period)}
-                    </span>
-                    <span className="ml-1 font-normal text-muted-foreground">
+                    </span>{" "}
+                    <span className="font-normal text-muted-foreground">
                       {t("common.vsPreviousPeriod")}
                       {period.comparison && ` · ${period.comparison.baselineTotalVbucks} V-Bucks`}
                     </span>

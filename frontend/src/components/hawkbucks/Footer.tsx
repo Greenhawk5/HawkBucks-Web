@@ -1,7 +1,8 @@
-import { Link } from "@tanstack/react-router";
+import { Link, useLocation } from "@tanstack/react-router";
 import { useI18n } from "@/i18n";
 import type { TranslationKey } from "@/i18n/types";
 import { ASSETS } from "@/lib/assets";
+import { localizedNavTo } from "@/lib/navigation";
 
 const connect = [
   {
@@ -18,9 +19,13 @@ const connect = [
 
 const stack = ["React", "Tailwind CSS", "Cloudflare Workers", "Cloudflare Pages", "Epic Games API"];
 
-const nav: ReadonlyArray<{ to: "/" | "/vbucks-missions" | "/about"; labelKey: TranslationKey }> = [
+const nav: ReadonlyArray<{
+  to: "/" | "/vbucks-missions" | "/missions-guide" | "/about";
+  labelKey: TranslationKey;
+}> = [
   { to: "/", labelKey: "navigation.home" },
   { to: "/vbucks-missions", labelKey: "navigation.vbucksMissions" },
+  { to: "/missions-guide", labelKey: "navigation.guide" },
   { to: "/about", labelKey: "navigation.about" },
 ];
 
@@ -35,7 +40,8 @@ function ColTitle({ children }: { children: React.ReactNode }) {
 }
 
 export function Footer() {
-  const { t } = useI18n();
+  const { t, currentLanguage } = useI18n();
+  const { pathname } = useLocation();
 
   return (
     <footer className="mt-16 border-t border-border/60 bg-background/40 backdrop-blur-xl">
@@ -45,7 +51,7 @@ export function Footer() {
             <div className="flex items-center gap-3">
               <img
                 src={ASSETS.logo}
-                alt="HawkBucks logo"
+                alt={t("seo.logoAlt")}
                 className="h-10 w-10 rounded-lg shadow-[var(--shadow-glow)]"
               />
               <span className="font-display text-lg font-extrabold uppercase tracking-tight">
@@ -63,7 +69,7 @@ export function Footer() {
               {nav.map((l) => (
                 <li key={l.to}>
                   <Link
-                    to={l.to}
+                    to={localizedNavTo(l.to, pathname, currentLanguage)}
                     activeOptions={{ exact: l.to === "/" }}
                     className="relative inline-flex items-center text-sm text-muted-foreground transition-colors after:absolute after:content-[''] after:-inset-x-2 after:-inset-y-[14px] hover:text-primary data-[status=active]:text-primary"
                   >

@@ -108,10 +108,12 @@ export function useWelcomePreference() {
   const [completed, setCompletedState] = React.useState<boolean>(
     DEFAULT_PREFERENCES.welcome.completed,
   );
+  const [ready, setReady] = React.useState(false);
 
   React.useEffect(() => {
     const stored = readStoredFlag(WELCOME_STORAGE_KEY, DEFAULT_PREFERENCES.welcome.completed);
     setCompletedState((prev) => (prev === stored ? prev : stored));
+    setReady(true);
   }, []);
 
   const setCompleted = React.useCallback((value: boolean) => {
@@ -119,7 +121,7 @@ export function useWelcomePreference() {
     writeStoredFlag(WELCOME_STORAGE_KEY, value);
   }, []);
 
-  return { completed, setCompleted };
+  return { completed, ready, setCompleted };
 }
 
 // ---------------------------------------------------------------------------
@@ -130,6 +132,7 @@ export function useNotificationsPreference() {
   const [enabled, setEnabledState] = React.useState<boolean>(
     DEFAULT_PREFERENCES.notifications.enabled,
   );
+  const [ready, setReady] = React.useState(false);
 
   React.useEffect(() => {
     const stored = readStoredFlag(
@@ -137,6 +140,7 @@ export function useNotificationsPreference() {
       DEFAULT_PREFERENCES.notifications.enabled,
     );
     setEnabledState((prev) => (prev === stored ? prev : stored));
+    setReady(true);
   }, []);
 
   const setEnabled = React.useCallback((value: boolean) => {
@@ -144,7 +148,7 @@ export function useNotificationsPreference() {
     writeStoredFlag(NOTIFICATIONS_STORAGE_KEY, value);
   }, []);
 
-  return { enabled, setEnabled };
+  return { enabled, ready, setEnabled };
 }
 
 /** Shape consumed by the AppShell from the root loader's seeded snapshot. */

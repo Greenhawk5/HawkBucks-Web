@@ -3,6 +3,7 @@ import {
   Outlet,
   Link,
   createRootRouteWithContext,
+  useLocation,
   useRouter,
   HeadContent,
   Scripts,
@@ -17,9 +18,11 @@ import { BRAND_NAME, SITE_URL } from "../lib/site";
 import { BackToTop } from "../components/hawkbucks/BackToTop";
 import { AppShell } from "../components/hawkbucks/AppShell";
 import { I18nProvider } from "../i18n/context";
-import { getLanguageConfig, resolveDirection } from "../i18n/config";
+import { getLanguageConfig, resolveDirection, resolveLocale } from "../i18n/config";
 import { translate } from "../i18n/core";
 import { DEFAULT_LANGUAGE, parseLanguage } from "../lib/preferences";
+import { resolveHeadLanguage } from "../lib/localized-seo";
+import { ogLocaleFor, splitLocalePath } from "../lib/locale-urls";
 import { serverPreferencesQueryOptions } from "../lib/preferences.loader";
 import { FALLBACK_SERVER_PREFERENCES } from "../hooks/use-preferences";
 
@@ -101,71 +104,73 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       sidebarOpen: initialPreferences.sidebar.state === "expanded",
     };
   },
-  head: () => ({
-    meta: [
-      { charSet: "utf-8" },
-      { name: "viewport", content: "width=device-width, initial-scale=1" },
-      // Route titles/descriptions override these root-level defaults.
-      {
-        title: "Fortnite Save The World V-Bucks Mission Tracker | HawkBucks",
-      },
-      {
-        name: "description",
-        content:
-          "Check in seconds whether today's Fortnite Save The World missions reward V-Bucks. HawkBucks is updated every 30 minutes.",
-      },
-      { name: "application-name", content: BRAND_NAME },
-      { name: "apple-mobile-web-app-title", content: BRAND_NAME },
-      { name: "theme-color", content: "#36d97e" },
-      { name: "author", content: "HawkBucks Project" },
-      { name: "msvalidate.01", content: "7D5813487EBA298DFAA0DE929B16293E" },
-      { property: "og:site_name", content: BRAND_NAME },
-    ],
-    links: [
-      {
-        rel: "stylesheet",
-        href: appCss,
-      },
-      { rel: "preconnect", href: "https://fonts.googleapis.com" },
-      { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
-      {
-        rel: "stylesheet",
-        href: "https://fonts.googleapis.com/css2?family=Sora:wght@600;700;800&family=Inter:wght@400;500;600;700&display=swap",
-      },
-      { rel: "icon", href: "/favicon.png", type: "image/png" },
-      {
-        rel: "apple-touch-icon",
-        href: "/apple-touch-icon.png",
-        sizes: "180x180",
-        type: "image/png",
-      },
-      { rel: "manifest", href: "/site.webmanifest" },
-    ],
-    // Site-level structured data emitted on every route so search engines see
-    // consistent first-party "HawkBucks" site-name signals: WebSite identifies
-    // the site, Organization identifies the publisher. Route-level scripts
-    // (e.g. WebApplication on the homepage, FAQPage on /about) add page-specific
-    // schema alongside this.
-    scripts: [
-      jsonLdScript({
-        "@context": "https://schema.org",
-        "@type": "WebSite",
-        name: BRAND_NAME,
-        url: `${SITE_URL}/`,
-        description:
-          "A community web application that tracks Fortnite Save The World missions rewarding V-Bucks.",
-        inLanguage: "en",
-      }),
-      jsonLdScript({
-        "@context": "https://schema.org",
-        "@type": "Organization",
-        name: BRAND_NAME,
-        url: `${SITE_URL}/`,
-        logo: `${SITE_URL}/assets/logo.png`,
-        sameAs: ["https://github.com/Greenhawk5/HawkBucks-Web", "https://t.me/HawkBucks_bot"],
-      }),
-    ],
-  }),
+  head: (ctx) => {
+    const lang = resolveHeadLanguage(ctx);
+    return {
+      meta: [
+        { charSet: "utf-8" },
+        { name: "viewport", content: "width=device-width, initial-scale=1" },
+        // Route titles/descriptions override these root-level defaults.
+        {
+          title: translate("seo.homeTitle", lang),
+        },
+        {
+          name: "description",
+          content: translate("seo.siteDescription", lang),
+        },
+        { name: "application-name", content: BRAND_NAME },
+        { name: "apple-mobile-web-app-title", content: BRAND_NAME },
+        { name: "theme-color", content: "#36d97e" },
+        { name: "author", content: "HawkBucks Project" },
+        { name: "msvalidate.01", content: "7D5813487EBA298DFAA0DE929B16293E" },
+        { property: "og:site_name", content: BRAND_NAME },
+        { property: "og:locale", content: ogLocaleFor(resolveLocale(lang)) },
+      ],
+      links: [
+        {
+          rel: "stylesheet",
+          href: appCss,
+        },
+        { rel: "preconnect", href: "https://fonts.googleapis.com" },
+        { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
+        {
+          rel: "stylesheet",
+          href: "https://fonts.googleapis.com/css2?family=Sora:wght@600;700;800&family=Inter:wght@400;500;600;700&display=swap",
+        },
+        { rel: "icon", href: "/favicon.png", type: "image/png" },
+        {
+          rel: "apple-touch-icon",
+          href: "/apple-touch-icon.png",
+          sizes: "180x180",
+          type: "image/png",
+        },
+        { rel: "manifest", href: "/site.webmanifest" },
+      ],
+      // Site-level structured data emitted on every route so search engines see
+      // consistent first-party "HawkBucks" site-name signals: WebSite identifies
+      // the site, Organization identifies the publisher. Route-level scripts
+      // (e.g. WebApplication on the homepage, FAQPage on /about) add page-specific
+      // schema alongside this.
+      scripts: [
+        jsonLdScript({
+          "@context": "https://schema.org",
+          "@type": "WebSite",
+          name: BRAND_NAME,
+          url: `${SITE_URL}/`,
+          description: translate("seo.siteDescription", lang),
+          inLanguage: resolveLocale(lang),
+        }),
+        jsonLdScript({
+          "@context": "https://schema.org",
+          "@type": "Organization",
+          name: BRAND_NAME,
+          url: `${SITE_URL}/`,
+          logo: `${SITE_URL}/assets/logo.png`,
+          sameAs: ["https://github.com/Greenhawk5/HawkBucks-Web", "https://t.me/HawkBucks_bot"],
+        }),
+      ],
+    };
+  },
 
   shellComponent: RootShell,
   component: RootComponent,
@@ -174,21 +179,25 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
 });
 
 function RootShell({ children }: { children: ReactNode }) {
-  // SSR renders lang/dir from the language cookie via the route loader; the
-  // client effect in RootComponent keeps them in sync after a language
-  // switch. Effect-based updates never risk a hydration mismatch.
-  let lang = DEFAULT_LANGUAGE;
-  let dir = "ltr";
-  try {
-    const data = Route.useLoaderData() as {
-      initialPreferences?: { language?: unknown };
-    };
-    const config = getLanguageConfig(parseLanguage(data?.initialPreferences?.language));
-    lang = config.code;
-    dir = config.direction;
-  } catch {
-    // Loader data unavailable (error boundaries) — safe English defaults.
-  }
+  // URL locale wins (so `/$locale/...` pages carry the right document
+  // language for crawlers and AT); cookie language from the route loader is
+  // the fallback. All hooks run unconditionally on every render, so the
+  // rules-of-hooks check stays green even in error boundaries — resolution
+  // failure (missing loader data) simply keeps the English defaults.
+  const { pathname } = useLocation();
+  const loaderData = Route.useLoaderData() as {
+    initialPreferences?: { language?: unknown };
+  };
+  const resolved = (() => {
+    try {
+      const { locale } = splitLocalePath(pathname);
+      return getLanguageConfig(locale ?? parseLanguage(loaderData?.initialPreferences?.language));
+    } catch {
+      return getLanguageConfig(DEFAULT_LANGUAGE);
+    }
+  })();
+  const lang = resolved.code;
+  const dir = resolved.direction;
   return (
     <html lang={lang} dir={dir}>
       <head>
@@ -208,25 +217,33 @@ function RootComponent() {
     initialPreferences: Parameters<typeof AppShell>[0]["initialPreferences"];
     sidebarOpen: boolean;
   };
+  // Phase 6: URL locale wins for the shared shell too (logo alt, nav labels),
+  // so `/$locale/...` SSR renders the shell in the URL language. Bare URLs
+  // keep cookie-driven behavior (no fixed language).
+  const { pathname } = useLocation();
+  const urlLocale = splitLocalePath(pathname).locale;
 
   // Belt-and-suspenders: keep document lang/dir in sync when the user
   // switches language client-side (SSR already rendered the cookie value).
   useEffect(() => {
     try {
-      const language = initialPreferences?.language ?? DEFAULT_LANGUAGE;
+      const language = urlLocale ?? initialPreferences?.language ?? DEFAULT_LANGUAGE;
       document.documentElement.lang = language;
       document.documentElement.dir = resolveDirection(language);
     } catch {
       // Non-DOM environment — nothing to sync.
     }
-  }, [initialPreferences?.language]);
+  }, [initialPreferences?.language, urlLocale]);
 
   return (
     <QueryClientProvider client={queryClient}>
       {/* Shared Phase 2 app shell: sidebar + top navbar + footer wrap every
           route. Routes render only their own content via <Outlet />. Sidebar
           persistence is preference-owned (Phase 3); behavior is unchanged. */}
-      <I18nProvider initialLanguage={initialPreferences?.language ?? DEFAULT_LANGUAGE}>
+      <I18nProvider
+        initialLanguage={initialPreferences?.language ?? DEFAULT_LANGUAGE}
+        fixedLanguage={urlLocale}
+      >
         <AppShell initialPreferences={initialPreferences} initialSidebarOpen={sidebarOpen}>
           <Outlet />
         </AppShell>

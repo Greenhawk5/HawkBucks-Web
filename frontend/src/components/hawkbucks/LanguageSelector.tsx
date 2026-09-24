@@ -8,6 +8,7 @@
  */
 
 import { Check, Globe } from "lucide-react";
+import { useLocation, useRouter } from "@tanstack/react-router";
 
 import {
   DropdownMenu,
@@ -19,6 +20,8 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useI18n } from "@/i18n";
 import { LANGUAGE_LIST } from "@/i18n/config";
+import type { LanguageCode } from "@/i18n/config";
+import { localizePath, splitLocalePath } from "@/lib/locale-urls";
 import { cn } from "@/lib/utils";
 
 const MENU_SURFACE =
@@ -37,7 +40,18 @@ export function LanguageMenu({
   showCurrentLabel?: boolean;
 }) {
   const { t, currentLanguage, setLanguage } = useI18n();
+  const router = useRouter();
+  const { pathname } = useLocation();
   const active = LANGUAGE_LIST.find((entry) => entry.code === currentLanguage) ?? LANGUAGE_LIST[0];
+
+  const selectLanguage = (code: LanguageCode) => {
+    setLanguage(code);
+    const { basePath } = splitLocalePath(pathname);
+    const target = localizePath(basePath, code);
+    if (target !== pathname) {
+      router.history.push(target);
+    }
+  };
 
   return (
     <DropdownMenu>
@@ -79,7 +93,7 @@ export function LanguageMenu({
             return (
               <DropdownMenuItem
                 key={entry.code}
-                onSelect={() => setLanguage(entry.code)}
+                onSelect={() => selectLanguage(entry.code)}
                 aria-checked={selected}
                 className={cn(ITEM_CLASSES, selected && "bg-primary/10 text-primary")}
               >

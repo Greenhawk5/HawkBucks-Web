@@ -9,6 +9,7 @@ export const zh: TranslationDictionary = {
   navigation: {
     home: "首页",
     vbucksMissions: "V-Bucks 任务",
+    guide: "任务指南",
     about: "关于 HawkBucks",
     navigate: "导航",
     checkTodaysMissions: "查看今日任务",
@@ -58,6 +59,9 @@ export const zh: TranslationDictionary = {
     pageEyebrow: "Save the World · 每日追踪",
     pageTitle: "今日 V-Bucks 任务",
     pageDesc: "查看奖励 V-Bucks 的最新 Fortnite: Save the World 任务。",
+    trackerBadge: "Live tracker",
+    guidePointer: "V-Bucks Missions Guide",
+
     todayHeading: "今日任务",
     todayDesc: "Save the World 中可用的 V-Bucks 任务提醒。",
     updateStatus: "更新状态",
@@ -149,6 +153,61 @@ export const zh: TranslationDictionary = {
     creditsDesc:
       "由 Greenhawk 创建并维护，这是一个面向 Fortnite: Save the World 玩家的独立社区项目。",
   },
+  guide: {
+    // Phase 10: English fallback until full localization lands.
+    eyebrow: "Educational guide",
+    title: "V-Bucks Missions Guide",
+    intro:
+      "A plain-language guide to how Fortnite: Save the World V-Bucks missions work and how to use the HawkBucks Live Mission Tracker. HawkBucks reports mission information — it never grants V-Bucks.",
+    openTracker: "Open the Live Mission Tracker",
+    whatTitle: "What are V-Bucks missions?",
+    whatBody:
+      "V-Bucks missions are Fortnite: Save the World mission alerts that list V-Bucks as a completion reward. When an eligible player completes the mission in Fortnite, the game grants the listed V-Bucks to that player's account. HawkBucks only displays the detected alerts — it does not create, grant, or distribute rewards.",
+    rewardsTitle: "How mission rewards work",
+    rewardsBody:
+      "Each mission alert carries its own reward list. A V-Bucks reward means V-Bucks appear among that mission's rewards: complete that specific mission and you receive that specific reward. Eligibility depends on Fortnite's current rules and your account, not on HawkBucks.",
+    zonesTitle: "Where V-Bucks missions appear",
+    zonesBody:
+      "V-Bucks missions appear inside Save the World across the tracker's usual mission locations. The tracker shows each alert's location and zone exactly as reported by the mission data, so you can tell at a glance which area of the map to open in Fortnite.",
+    powerTitle: "Power Level and mission context",
+    powerBody:
+      "Power Level is the recommended strength shown with each mission. Higher values signal tougher enemies and objectives compared with lower values. Match the displayed level against your squad's strength, and read any extra mission context on the card before committing.",
+    refreshTitle: "Expiration, refresh, and local time",
+    refreshBody:
+      "Mission alerts are time-sensitive: they change as Fortnite's daily mission cycle updates. The tracker shows the latest update time and the next refresh countdown in your local time, so check the timestamps on the tracker to tell how fresh the information is.",
+    workflowTitle: "How to use HawkBucks",
+    workflowIntro: "From learning to earning in five steps:",
+    workflow1:
+      "Open the Live Mission Tracker to see the V-Bucks mission alerts detected right now.",
+    workflow2: "Review each alert's reward, location, zone, and power level.",
+    workflow3: "Inspect the update timestamps to confirm the information is fresh.",
+    workflow4: "Open Fortnite: Save the World and complete the mission you chose.",
+    workflow5:
+      "Return after the next refresh — HawkBucks checks for new mission data automatically.",
+    faqTitle: "V-Bucks mission questions",
+    faqDesc: "Short answers to the questions new players ask most.",
+    faqQ1: "How do I find today's V-Bucks missions?",
+    faqA1:
+      "Open the HawkBucks Live Mission Tracker. It lists the V-Bucks mission alerts currently detected, with reward, location, zone, and power level for each one.",
+    faqQ2: "Do I need a HawkBucks account?",
+    faqA2:
+      "No. HawkBucks is a free community tool — no account, no ads, no paywall. Just open the tracker and read the alerts.",
+    faqQ3: "Why do some missions show a higher Power Level?",
+    faqA3:
+      "Power Level reflects how demanding a mission is. Treat it as a difficulty guide: higher levels expect a stronger squad and better loadouts.",
+    faqQ4: "Why can't I see any V-Bucks missions right now?",
+    faqA4:
+      "There may simply be no qualifying mission alerts at the moment. The tracker checks automatically, so return after the next refresh.",
+    faqQ5: "Does HawkBucks give me V-Bucks directly?",
+    faqA5:
+      "No. V-Bucks are granted by Fortnite when you complete a qualifying mission in the game. HawkBucks only helps you find those missions.",
+    relatedTitle: "Keep exploring",
+    relatedTrackerTitle: "Live Mission Tracker",
+    relatedTrackerDesc: "See today's V-Bucks mission alerts and their details.",
+    relatedAboutTitle: "About HawkBucks",
+    relatedAboutDesc: "How the tracker pipeline and community tool work.",
+  },
+
   footer: {
     description:
       "HawkBucks 是一款社区驱动工具，可自动追踪 Fortnite: Save the World V-Bucks 任务，并提供可用奖励的快速每日概览。",
@@ -177,5 +236,55 @@ export const zh: TranslationDictionary = {
     selectorAria: "选择语言",
     menuLabel: "语言选项",
     changeLanguage: "切换语言",
+  },
+  welcome: {
+    eyebrow: "欢迎使用 HawkBucks",
+    title: "每日任务助手 V-Bucks",
+    description: "HawkBucks 追踪每日任务 Fortnite: Save the World V-Bucks.",
+    trackingTitle: "每日任务追踪",
+    trackingDescription: "Fortnite: Save the World ? V-Bucks",
+    remindersTitle: "实用提醒",
+    remindersDescription: "Fortnite: Save the World ? V-Bucks",
+    explore: "探索 HawkBucks",
+    enableReminders: "启用提醒",
+    remindersSaved: "实用提醒 ? HawkBucks",
+    close: "实用提醒",
+  },
+  notifications: {
+    pushTitle: "HawkBucks",
+    pushBody: "每日 V-Bucks 任务已准备好查看。",
+    enabled: "通知已开启。HawkBucks 会提醒您查看每日任务。",
+    disabled: "通知已关闭。",
+    blocked: "浏览器通知被阻止。可以在网站设置中重新开启。",
+    unsupported: "此浏览器不支持通知设置。",
+  },
+  seo: {
+    siteDescription:
+      "HawkBucks 是一款社区网络应用，用于追踪奖励 V-Bucks 的 Fortnite: Save the World 任务。",
+    homeTitle: "HawkBucks — Fortnite: Save the World V-Bucks 任务追踪器",
+    homeDescription:
+      "几秒钟即可查看今日 Fortnite: Save the World 任务是否奖励 V-Bucks，每 30 分钟更新一次。",
+    homeOgTitle: "HawkBucks — V-Bucks 任务追踪器",
+    homeOgDescription: "今日 Fortnite: Save the World V-Bucks 任务，一目了然。",
+    missionsTitle: "今日 Fortnite V-Bucks 任务 — Save the World 追踪器 | HawkBucks",
+    missionsDescription:
+      "使用 HawkBucks 查看今日 Fortnite: Save the World V-Bucks 任务，包括可用任务提醒、详情和最近刷新时间。",
+    missionsOgTitle: "今日 Fortnite V-Bucks 任务 | HawkBucks",
+    missionsOgDescription: "使用 HawkBucks 追踪器查看今日 Save the World V-Bucks 任务。",
+    guideTitle: "V-Bucks 任务指南",
+    guideDescription:
+      "了解 Fortnite: Save the World V-Bucks 任务的运作方式：奖励、区域、战力等级、刷新时间以及如何使用 HawkBucks 实时追踪器。",
+    guideOgTitle: "V-Bucks 任务指南 | HawkBucks",
+    guideOgDescription: "了解 Save the World V-Bucks 任务以及如何使用 HawkBucks 追踪器。",
+    aboutTitle: "关于 HawkBucks — V-Bucks 追踪器的工作原理",
+    aboutDescription:
+      "HawkBucks 是一款免费社区工具，每 30 分钟自动追踪 Fortnite: Save the World V-Bucks 任务。",
+    aboutOgTitle: "关于 HawkBucks",
+    aboutOgDescription: "HawkBucks Save the World V-Bucks 任务追踪器的工作原理。",
+    ogImageAlt: "HawkBucks — Fortnite: Save the World V-Bucks 任务追踪器",
+    webAppDescription: "一款追踪奖励 V-Bucks 的 Fortnite: Save the World 任务的社区网络应用。",
+    logoAlt: "HawkBucks 徽标",
+    vbucksRewardAlt: "V-Bucks 奖励图标",
+    greenhawkLogoAlt: "Greenhawk 徽标",
   },
 };

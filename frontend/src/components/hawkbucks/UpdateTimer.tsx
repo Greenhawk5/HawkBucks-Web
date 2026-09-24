@@ -48,7 +48,7 @@ export function UpdateTimer({ lastUpdated }: { lastUpdated: string }) {
           {formatUtcMidnightWithLocalEquivalentForBoundary(next, timeZone, locale)}
         </span>
       </div>
-      <div className="sm:text-right">
+      <div className="sm:text-end">
         <span className="block text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
           {t("time.refreshIn")}
         </span>

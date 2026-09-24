@@ -1,12 +1,471 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">
   <url>
     <loc>https://hawkbucks.com/</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://hawkbucks.com/"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://hawkbucks.com/es"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://hawkbucks.com/fr"/>
+    <xhtml:link rel="alternate" hreflang="ru" href="https://hawkbucks.com/ru"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://hawkbucks.com/de"/>
+    <xhtml:link rel="alternate" hreflang="pt" href="https://hawkbucks.com/pt"/>
+    <xhtml:link rel="alternate" hreflang="zh" href="https://hawkbucks.com/zh"/>
+    <xhtml:link rel="alternate" hreflang="ar-SA" href="https://hawkbucks.com/ar-SA"/>
+    <xhtml:link rel="alternate" hreflang="fa-IR" href="https://hawkbucks.com/fa-IR"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://hawkbucks.com/"/>
   </url>
   <url>
-    <loc>https://hawkbucks.com/vbucks-missions</loc>
+    <loc>https://hawkbucks.com/es</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://hawkbucks.com/"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://hawkbucks.com/es"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://hawkbucks.com/fr"/>
+    <xhtml:link rel="alternate" hreflang="ru" href="https://hawkbucks.com/ru"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://hawkbucks.com/de"/>
+    <xhtml:link rel="alternate" hreflang="pt" href="https://hawkbucks.com/pt"/>
+    <xhtml:link rel="alternate" hreflang="zh" href="https://hawkbucks.com/zh"/>
+    <xhtml:link rel="alternate" hreflang="ar-SA" href="https://hawkbucks.com/ar-SA"/>
+    <xhtml:link rel="alternate" hreflang="fa-IR" href="https://hawkbucks.com/fa-IR"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://hawkbucks.com/"/>
+  </url>
+  <url>
+    <loc>https://hawkbucks.com/fr</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://hawkbucks.com/"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://hawkbucks.com/es"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://hawkbucks.com/fr"/>
+    <xhtml:link rel="alternate" hreflang="ru" href="https://hawkbucks.com/ru"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://hawkbucks.com/de"/>
+    <xhtml:link rel="alternate" hreflang="pt" href="https://hawkbucks.com/pt"/>
+    <xhtml:link rel="alternate" hreflang="zh" href="https://hawkbucks.com/zh"/>
+    <xhtml:link rel="alternate" hreflang="ar-SA" href="https://hawkbucks.com/ar-SA"/>
+    <xhtml:link rel="alternate" hreflang="fa-IR" href="https://hawkbucks.com/fa-IR"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://hawkbucks.com/"/>
+  </url>
+  <url>
+    <loc>https://hawkbucks.com/ru</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://hawkbucks.com/"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://hawkbucks.com/es"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://hawkbucks.com/fr"/>
+    <xhtml:link rel="alternate" hreflang="ru" href="https://hawkbucks.com/ru"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://hawkbucks.com/de"/>
+    <xhtml:link rel="alternate" hreflang="pt" href="https://hawkbucks.com/pt"/>
+    <xhtml:link rel="alternate" hreflang="zh" href="https://hawkbucks.com/zh"/>
+    <xhtml:link rel="alternate" hreflang="ar-SA" href="https://hawkbucks.com/ar-SA"/>
+    <xhtml:link rel="alternate" hreflang="fa-IR" href="https://hawkbucks.com/fa-IR"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://hawkbucks.com/"/>
+  </url>
+  <url>
+    <loc>https://hawkbucks.com/de</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://hawkbucks.com/"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://hawkbucks.com/es"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://hawkbucks.com/fr"/>
+    <xhtml:link rel="alternate" hreflang="ru" href="https://hawkbucks.com/ru"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://hawkbucks.com/de"/>
+    <xhtml:link rel="alternate" hreflang="pt" href="https://hawkbucks.com/pt"/>
+    <xhtml:link rel="alternate" hreflang="zh" href="https://hawkbucks.com/zh"/>
+    <xhtml:link rel="alternate" hreflang="ar-SA" href="https://hawkbucks.com/ar-SA"/>
+    <xhtml:link rel="alternate" hreflang="fa-IR" href="https://hawkbucks.com/fa-IR"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://hawkbucks.com/"/>
+  </url>
+  <url>
+    <loc>https://hawkbucks.com/pt</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://hawkbucks.com/"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://hawkbucks.com/es"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://hawkbucks.com/fr"/>
+    <xhtml:link rel="alternate" hreflang="ru" href="https://hawkbucks.com/ru"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://hawkbucks.com/de"/>
+    <xhtml:link rel="alternate" hreflang="pt" href="https://hawkbucks.com/pt"/>
+    <xhtml:link rel="alternate" hreflang="zh" href="https://hawkbucks.com/zh"/>
+    <xhtml:link rel="alternate" hreflang="ar-SA" href="https://hawkbucks.com/ar-SA"/>
+    <xhtml:link rel="alternate" hreflang="fa-IR" href="https://hawkbucks.com/fa-IR"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://hawkbucks.com/"/>
+  </url>
+  <url>
+    <loc>https://hawkbucks.com/zh</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://hawkbucks.com/"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://hawkbucks.com/es"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://hawkbucks.com/fr"/>
+    <xhtml:link rel="alternate" hreflang="ru" href="https://hawkbucks.com/ru"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://hawkbucks.com/de"/>
+    <xhtml:link rel="alternate" hreflang="pt" href="https://hawkbucks.com/pt"/>
+    <xhtml:link rel="alternate" hreflang="zh" href="https://hawkbucks.com/zh"/>
+    <xhtml:link rel="alternate" hreflang="ar-SA" href="https://hawkbucks.com/ar-SA"/>
+    <xhtml:link rel="alternate" hreflang="fa-IR" href="https://hawkbucks.com/fa-IR"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://hawkbucks.com/"/>
+  </url>
+  <url>
+    <loc>https://hawkbucks.com/ar-SA</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://hawkbucks.com/"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://hawkbucks.com/es"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://hawkbucks.com/fr"/>
+    <xhtml:link rel="alternate" hreflang="ru" href="https://hawkbucks.com/ru"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://hawkbucks.com/de"/>
+    <xhtml:link rel="alternate" hreflang="pt" href="https://hawkbucks.com/pt"/>
+    <xhtml:link rel="alternate" hreflang="zh" href="https://hawkbucks.com/zh"/>
+    <xhtml:link rel="alternate" hreflang="ar-SA" href="https://hawkbucks.com/ar-SA"/>
+    <xhtml:link rel="alternate" hreflang="fa-IR" href="https://hawkbucks.com/fa-IR"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://hawkbucks.com/"/>
+  </url>
+  <url>
+    <loc>https://hawkbucks.com/fa-IR</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://hawkbucks.com/"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://hawkbucks.com/es"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://hawkbucks.com/fr"/>
+    <xhtml:link rel="alternate" hreflang="ru" href="https://hawkbucks.com/ru"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://hawkbucks.com/de"/>
+    <xhtml:link rel="alternate" hreflang="pt" href="https://hawkbucks.com/pt"/>
+    <xhtml:link rel="alternate" hreflang="zh" href="https://hawkbucks.com/zh"/>
+    <xhtml:link rel="alternate" hreflang="ar-SA" href="https://hawkbucks.com/ar-SA"/>
+    <xhtml:link rel="alternate" hreflang="fa-IR" href="https://hawkbucks.com/fa-IR"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://hawkbucks.com/"/>
   </url>
   <url>
     <loc>https://hawkbucks.com/about</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://hawkbucks.com/about"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://hawkbucks.com/es/about"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://hawkbucks.com/fr/about"/>
+    <xhtml:link rel="alternate" hreflang="ru" href="https://hawkbucks.com/ru/about"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://hawkbucks.com/de/about"/>
+    <xhtml:link rel="alternate" hreflang="pt" href="https://hawkbucks.com/pt/about"/>
+    <xhtml:link rel="alternate" hreflang="zh" href="https://hawkbucks.com/zh/about"/>
+    <xhtml:link rel="alternate" hreflang="ar-SA" href="https://hawkbucks.com/ar-SA/about"/>
+    <xhtml:link rel="alternate" hreflang="fa-IR" href="https://hawkbucks.com/fa-IR/about"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://hawkbucks.com/about"/>
+  </url>
+  <url>
+    <loc>https://hawkbucks.com/es/about</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://hawkbucks.com/about"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://hawkbucks.com/es/about"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://hawkbucks.com/fr/about"/>
+    <xhtml:link rel="alternate" hreflang="ru" href="https://hawkbucks.com/ru/about"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://hawkbucks.com/de/about"/>
+    <xhtml:link rel="alternate" hreflang="pt" href="https://hawkbucks.com/pt/about"/>
+    <xhtml:link rel="alternate" hreflang="zh" href="https://hawkbucks.com/zh/about"/>
+    <xhtml:link rel="alternate" hreflang="ar-SA" href="https://hawkbucks.com/ar-SA/about"/>
+    <xhtml:link rel="alternate" hreflang="fa-IR" href="https://hawkbucks.com/fa-IR/about"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://hawkbucks.com/about"/>
+  </url>
+  <url>
+    <loc>https://hawkbucks.com/fr/about</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://hawkbucks.com/about"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://hawkbucks.com/es/about"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://hawkbucks.com/fr/about"/>
+    <xhtml:link rel="alternate" hreflang="ru" href="https://hawkbucks.com/ru/about"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://hawkbucks.com/de/about"/>
+    <xhtml:link rel="alternate" hreflang="pt" href="https://hawkbucks.com/pt/about"/>
+    <xhtml:link rel="alternate" hreflang="zh" href="https://hawkbucks.com/zh/about"/>
+    <xhtml:link rel="alternate" hreflang="ar-SA" href="https://hawkbucks.com/ar-SA/about"/>
+    <xhtml:link rel="alternate" hreflang="fa-IR" href="https://hawkbucks.com/fa-IR/about"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://hawkbucks.com/about"/>
+  </url>
+  <url>
+    <loc>https://hawkbucks.com/ru/about</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://hawkbucks.com/about"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://hawkbucks.com/es/about"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://hawkbucks.com/fr/about"/>
+    <xhtml:link rel="alternate" hreflang="ru" href="https://hawkbucks.com/ru/about"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://hawkbucks.com/de/about"/>
+    <xhtml:link rel="alternate" hreflang="pt" href="https://hawkbucks.com/pt/about"/>
+    <xhtml:link rel="alternate" hreflang="zh" href="https://hawkbucks.com/zh/about"/>
+    <xhtml:link rel="alternate" hreflang="ar-SA" href="https://hawkbucks.com/ar-SA/about"/>
+    <xhtml:link rel="alternate" hreflang="fa-IR" href="https://hawkbucks.com/fa-IR/about"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://hawkbucks.com/about"/>
+  </url>
+  <url>
+    <loc>https://hawkbucks.com/de/about</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://hawkbucks.com/about"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://hawkbucks.com/es/about"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://hawkbucks.com/fr/about"/>
+    <xhtml:link rel="alternate" hreflang="ru" href="https://hawkbucks.com/ru/about"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://hawkbucks.com/de/about"/>
+    <xhtml:link rel="alternate" hreflang="pt" href="https://hawkbucks.com/pt/about"/>
+    <xhtml:link rel="alternate" hreflang="zh" href="https://hawkbucks.com/zh/about"/>
+    <xhtml:link rel="alternate" hreflang="ar-SA" href="https://hawkbucks.com/ar-SA/about"/>
+    <xhtml:link rel="alternate" hreflang="fa-IR" href="https://hawkbucks.com/fa-IR/about"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://hawkbucks.com/about"/>
+  </url>
+  <url>
+    <loc>https://hawkbucks.com/pt/about</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://hawkbucks.com/about"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://hawkbucks.com/es/about"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://hawkbucks.com/fr/about"/>
+    <xhtml:link rel="alternate" hreflang="ru" href="https://hawkbucks.com/ru/about"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://hawkbucks.com/de/about"/>
+    <xhtml:link rel="alternate" hreflang="pt" href="https://hawkbucks.com/pt/about"/>
+    <xhtml:link rel="alternate" hreflang="zh" href="https://hawkbucks.com/zh/about"/>
+    <xhtml:link rel="alternate" hreflang="ar-SA" href="https://hawkbucks.com/ar-SA/about"/>
+    <xhtml:link rel="alternate" hreflang="fa-IR" href="https://hawkbucks.com/fa-IR/about"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://hawkbucks.com/about"/>
+  </url>
+  <url>
+    <loc>https://hawkbucks.com/zh/about</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://hawkbucks.com/about"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://hawkbucks.com/es/about"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://hawkbucks.com/fr/about"/>
+    <xhtml:link rel="alternate" hreflang="ru" href="https://hawkbucks.com/ru/about"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://hawkbucks.com/de/about"/>
+    <xhtml:link rel="alternate" hreflang="pt" href="https://hawkbucks.com/pt/about"/>
+    <xhtml:link rel="alternate" hreflang="zh" href="https://hawkbucks.com/zh/about"/>
+    <xhtml:link rel="alternate" hreflang="ar-SA" href="https://hawkbucks.com/ar-SA/about"/>
+    <xhtml:link rel="alternate" hreflang="fa-IR" href="https://hawkbucks.com/fa-IR/about"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://hawkbucks.com/about"/>
+  </url>
+  <url>
+    <loc>https://hawkbucks.com/ar-SA/about</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://hawkbucks.com/about"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://hawkbucks.com/es/about"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://hawkbucks.com/fr/about"/>
+    <xhtml:link rel="alternate" hreflang="ru" href="https://hawkbucks.com/ru/about"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://hawkbucks.com/de/about"/>
+    <xhtml:link rel="alternate" hreflang="pt" href="https://hawkbucks.com/pt/about"/>
+    <xhtml:link rel="alternate" hreflang="zh" href="https://hawkbucks.com/zh/about"/>
+    <xhtml:link rel="alternate" hreflang="ar-SA" href="https://hawkbucks.com/ar-SA/about"/>
+    <xhtml:link rel="alternate" hreflang="fa-IR" href="https://hawkbucks.com/fa-IR/about"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://hawkbucks.com/about"/>
+  </url>
+  <url>
+    <loc>https://hawkbucks.com/fa-IR/about</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://hawkbucks.com/about"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://hawkbucks.com/es/about"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://hawkbucks.com/fr/about"/>
+    <xhtml:link rel="alternate" hreflang="ru" href="https://hawkbucks.com/ru/about"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://hawkbucks.com/de/about"/>
+    <xhtml:link rel="alternate" hreflang="pt" href="https://hawkbucks.com/pt/about"/>
+    <xhtml:link rel="alternate" hreflang="zh" href="https://hawkbucks.com/zh/about"/>
+    <xhtml:link rel="alternate" hreflang="ar-SA" href="https://hawkbucks.com/ar-SA/about"/>
+    <xhtml:link rel="alternate" hreflang="fa-IR" href="https://hawkbucks.com/fa-IR/about"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://hawkbucks.com/about"/>
+  </url>
+  <url>
+    <loc>https://hawkbucks.com/vbucks-missions</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://hawkbucks.com/vbucks-missions"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://hawkbucks.com/es/vbucks-missions"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://hawkbucks.com/fr/vbucks-missions"/>
+    <xhtml:link rel="alternate" hreflang="ru" href="https://hawkbucks.com/ru/vbucks-missions"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://hawkbucks.com/de/vbucks-missions"/>
+    <xhtml:link rel="alternate" hreflang="pt" href="https://hawkbucks.com/pt/vbucks-missions"/>
+    <xhtml:link rel="alternate" hreflang="zh" href="https://hawkbucks.com/zh/vbucks-missions"/>
+    <xhtml:link rel="alternate" hreflang="ar-SA" href="https://hawkbucks.com/ar-SA/vbucks-missions"/>
+    <xhtml:link rel="alternate" hreflang="fa-IR" href="https://hawkbucks.com/fa-IR/vbucks-missions"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://hawkbucks.com/vbucks-missions"/>
+  </url>
+  <url>
+    <loc>https://hawkbucks.com/es/vbucks-missions</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://hawkbucks.com/vbucks-missions"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://hawkbucks.com/es/vbucks-missions"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://hawkbucks.com/fr/vbucks-missions"/>
+    <xhtml:link rel="alternate" hreflang="ru" href="https://hawkbucks.com/ru/vbucks-missions"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://hawkbucks.com/de/vbucks-missions"/>
+    <xhtml:link rel="alternate" hreflang="pt" href="https://hawkbucks.com/pt/vbucks-missions"/>
+    <xhtml:link rel="alternate" hreflang="zh" href="https://hawkbucks.com/zh/vbucks-missions"/>
+    <xhtml:link rel="alternate" hreflang="ar-SA" href="https://hawkbucks.com/ar-SA/vbucks-missions"/>
+    <xhtml:link rel="alternate" hreflang="fa-IR" href="https://hawkbucks.com/fa-IR/vbucks-missions"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://hawkbucks.com/vbucks-missions"/>
+  </url>
+  <url>
+    <loc>https://hawkbucks.com/fr/vbucks-missions</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://hawkbucks.com/vbucks-missions"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://hawkbucks.com/es/vbucks-missions"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://hawkbucks.com/fr/vbucks-missions"/>
+    <xhtml:link rel="alternate" hreflang="ru" href="https://hawkbucks.com/ru/vbucks-missions"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://hawkbucks.com/de/vbucks-missions"/>
+    <xhtml:link rel="alternate" hreflang="pt" href="https://hawkbucks.com/pt/vbucks-missions"/>
+    <xhtml:link rel="alternate" hreflang="zh" href="https://hawkbucks.com/zh/vbucks-missions"/>
+    <xhtml:link rel="alternate" hreflang="ar-SA" href="https://hawkbucks.com/ar-SA/vbucks-missions"/>
+    <xhtml:link rel="alternate" hreflang="fa-IR" href="https://hawkbucks.com/fa-IR/vbucks-missions"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://hawkbucks.com/vbucks-missions"/>
+  </url>
+  <url>
+    <loc>https://hawkbucks.com/ru/vbucks-missions</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://hawkbucks.com/vbucks-missions"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://hawkbucks.com/es/vbucks-missions"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://hawkbucks.com/fr/vbucks-missions"/>
+    <xhtml:link rel="alternate" hreflang="ru" href="https://hawkbucks.com/ru/vbucks-missions"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://hawkbucks.com/de/vbucks-missions"/>
+    <xhtml:link rel="alternate" hreflang="pt" href="https://hawkbucks.com/pt/vbucks-missions"/>
+    <xhtml:link rel="alternate" hreflang="zh" href="https://hawkbucks.com/zh/vbucks-missions"/>
+    <xhtml:link rel="alternate" hreflang="ar-SA" href="https://hawkbucks.com/ar-SA/vbucks-missions"/>
+    <xhtml:link rel="alternate" hreflang="fa-IR" href="https://hawkbucks.com/fa-IR/vbucks-missions"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://hawkbucks.com/vbucks-missions"/>
+  </url>
+  <url>
+    <loc>https://hawkbucks.com/de/vbucks-missions</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://hawkbucks.com/vbucks-missions"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://hawkbucks.com/es/vbucks-missions"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://hawkbucks.com/fr/vbucks-missions"/>
+    <xhtml:link rel="alternate" hreflang="ru" href="https://hawkbucks.com/ru/vbucks-missions"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://hawkbucks.com/de/vbucks-missions"/>
+    <xhtml:link rel="alternate" hreflang="pt" href="https://hawkbucks.com/pt/vbucks-missions"/>
+    <xhtml:link rel="alternate" hreflang="zh" href="https://hawkbucks.com/zh/vbucks-missions"/>
+    <xhtml:link rel="alternate" hreflang="ar-SA" href="https://hawkbucks.com/ar-SA/vbucks-missions"/>
+    <xhtml:link rel="alternate" hreflang="fa-IR" href="https://hawkbucks.com/fa-IR/vbucks-missions"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://hawkbucks.com/vbucks-missions"/>
+  </url>
+  <url>
+    <loc>https://hawkbucks.com/pt/vbucks-missions</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://hawkbucks.com/vbucks-missions"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://hawkbucks.com/es/vbucks-missions"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://hawkbucks.com/fr/vbucks-missions"/>
+    <xhtml:link rel="alternate" hreflang="ru" href="https://hawkbucks.com/ru/vbucks-missions"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://hawkbucks.com/de/vbucks-missions"/>
+    <xhtml:link rel="alternate" hreflang="pt" href="https://hawkbucks.com/pt/vbucks-missions"/>
+    <xhtml:link rel="alternate" hreflang="zh" href="https://hawkbucks.com/zh/vbucks-missions"/>
+    <xhtml:link rel="alternate" hreflang="ar-SA" href="https://hawkbucks.com/ar-SA/vbucks-missions"/>
+    <xhtml:link rel="alternate" hreflang="fa-IR" href="https://hawkbucks.com/fa-IR/vbucks-missions"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://hawkbucks.com/vbucks-missions"/>
+  </url>
+  <url>
+    <loc>https://hawkbucks.com/zh/vbucks-missions</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://hawkbucks.com/vbucks-missions"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://hawkbucks.com/es/vbucks-missions"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://hawkbucks.com/fr/vbucks-missions"/>
+    <xhtml:link rel="alternate" hreflang="ru" href="https://hawkbucks.com/ru/vbucks-missions"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://hawkbucks.com/de/vbucks-missions"/>
+    <xhtml:link rel="alternate" hreflang="pt" href="https://hawkbucks.com/pt/vbucks-missions"/>
+    <xhtml:link rel="alternate" hreflang="zh" href="https://hawkbucks.com/zh/vbucks-missions"/>
+    <xhtml:link rel="alternate" hreflang="ar-SA" href="https://hawkbucks.com/ar-SA/vbucks-missions"/>
+    <xhtml:link rel="alternate" hreflang="fa-IR" href="https://hawkbucks.com/fa-IR/vbucks-missions"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://hawkbucks.com/vbucks-missions"/>
+  </url>
+  <url>
+    <loc>https://hawkbucks.com/ar-SA/vbucks-missions</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://hawkbucks.com/vbucks-missions"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://hawkbucks.com/es/vbucks-missions"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://hawkbucks.com/fr/vbucks-missions"/>
+    <xhtml:link rel="alternate" hreflang="ru" href="https://hawkbucks.com/ru/vbucks-missions"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://hawkbucks.com/de/vbucks-missions"/>
+    <xhtml:link rel="alternate" hreflang="pt" href="https://hawkbucks.com/pt/vbucks-missions"/>
+    <xhtml:link rel="alternate" hreflang="zh" href="https://hawkbucks.com/zh/vbucks-missions"/>
+    <xhtml:link rel="alternate" hreflang="ar-SA" href="https://hawkbucks.com/ar-SA/vbucks-missions"/>
+    <xhtml:link rel="alternate" hreflang="fa-IR" href="https://hawkbucks.com/fa-IR/vbucks-missions"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://hawkbucks.com/vbucks-missions"/>
+  </url>
+  <url>
+    <loc>https://hawkbucks.com/fa-IR/vbucks-missions</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://hawkbucks.com/vbucks-missions"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://hawkbucks.com/es/vbucks-missions"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://hawkbucks.com/fr/vbucks-missions"/>
+    <xhtml:link rel="alternate" hreflang="ru" href="https://hawkbucks.com/ru/vbucks-missions"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://hawkbucks.com/de/vbucks-missions"/>
+    <xhtml:link rel="alternate" hreflang="pt" href="https://hawkbucks.com/pt/vbucks-missions"/>
+    <xhtml:link rel="alternate" hreflang="zh" href="https://hawkbucks.com/zh/vbucks-missions"/>
+    <xhtml:link rel="alternate" hreflang="ar-SA" href="https://hawkbucks.com/ar-SA/vbucks-missions"/>
+    <xhtml:link rel="alternate" hreflang="fa-IR" href="https://hawkbucks.com/fa-IR/vbucks-missions"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://hawkbucks.com/vbucks-missions"/>
+  </url>
+  <url>
+    <loc>https://hawkbucks.com/missions-guide</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://hawkbucks.com/missions-guide"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://hawkbucks.com/es/missions-guide"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://hawkbucks.com/fr/missions-guide"/>
+    <xhtml:link rel="alternate" hreflang="ru" href="https://hawkbucks.com/ru/missions-guide"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://hawkbucks.com/de/missions-guide"/>
+    <xhtml:link rel="alternate" hreflang="pt" href="https://hawkbucks.com/pt/missions-guide"/>
+    <xhtml:link rel="alternate" hreflang="zh" href="https://hawkbucks.com/zh/missions-guide"/>
+    <xhtml:link rel="alternate" hreflang="ar-SA" href="https://hawkbucks.com/ar-SA/missions-guide"/>
+    <xhtml:link rel="alternate" hreflang="fa-IR" href="https://hawkbucks.com/fa-IR/missions-guide"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://hawkbucks.com/missions-guide"/>
+  </url>
+  <url>
+    <loc>https://hawkbucks.com/es/missions-guide</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://hawkbucks.com/missions-guide"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://hawkbucks.com/es/missions-guide"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://hawkbucks.com/fr/missions-guide"/>
+    <xhtml:link rel="alternate" hreflang="ru" href="https://hawkbucks.com/ru/missions-guide"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://hawkbucks.com/de/missions-guide"/>
+    <xhtml:link rel="alternate" hreflang="pt" href="https://hawkbucks.com/pt/missions-guide"/>
+    <xhtml:link rel="alternate" hreflang="zh" href="https://hawkbucks.com/zh/missions-guide"/>
+    <xhtml:link rel="alternate" hreflang="ar-SA" href="https://hawkbucks.com/ar-SA/missions-guide"/>
+    <xhtml:link rel="alternate" hreflang="fa-IR" href="https://hawkbucks.com/fa-IR/missions-guide"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://hawkbucks.com/missions-guide"/>
+  </url>
+  <url>
+    <loc>https://hawkbucks.com/fr/missions-guide</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://hawkbucks.com/missions-guide"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://hawkbucks.com/es/missions-guide"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://hawkbucks.com/fr/missions-guide"/>
+    <xhtml:link rel="alternate" hreflang="ru" href="https://hawkbucks.com/ru/missions-guide"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://hawkbucks.com/de/missions-guide"/>
+    <xhtml:link rel="alternate" hreflang="pt" href="https://hawkbucks.com/pt/missions-guide"/>
+    <xhtml:link rel="alternate" hreflang="zh" href="https://hawkbucks.com/zh/missions-guide"/>
+    <xhtml:link rel="alternate" hreflang="ar-SA" href="https://hawkbucks.com/ar-SA/missions-guide"/>
+    <xhtml:link rel="alternate" hreflang="fa-IR" href="https://hawkbucks.com/fa-IR/missions-guide"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://hawkbucks.com/missions-guide"/>
+  </url>
+  <url>
+    <loc>https://hawkbucks.com/ru/missions-guide</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://hawkbucks.com/missions-guide"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://hawkbucks.com/es/missions-guide"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://hawkbucks.com/fr/missions-guide"/>
+    <xhtml:link rel="alternate" hreflang="ru" href="https://hawkbucks.com/ru/missions-guide"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://hawkbucks.com/de/missions-guide"/>
+    <xhtml:link rel="alternate" hreflang="pt" href="https://hawkbucks.com/pt/missions-guide"/>
+    <xhtml:link rel="alternate" hreflang="zh" href="https://hawkbucks.com/zh/missions-guide"/>
+    <xhtml:link rel="alternate" hreflang="ar-SA" href="https://hawkbucks.com/ar-SA/missions-guide"/>
+    <xhtml:link rel="alternate" hreflang="fa-IR" href="https://hawkbucks.com/fa-IR/missions-guide"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://hawkbucks.com/missions-guide"/>
+  </url>
+  <url>
+    <loc>https://hawkbucks.com/de/missions-guide</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://hawkbucks.com/missions-guide"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://hawkbucks.com/es/missions-guide"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://hawkbucks.com/fr/missions-guide"/>
+    <xhtml:link rel="alternate" hreflang="ru" href="https://hawkbucks.com/ru/missions-guide"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://hawkbucks.com/de/missions-guide"/>
+    <xhtml:link rel="alternate" hreflang="pt" href="https://hawkbucks.com/pt/missions-guide"/>
+    <xhtml:link rel="alternate" hreflang="zh" href="https://hawkbucks.com/zh/missions-guide"/>
+    <xhtml:link rel="alternate" hreflang="ar-SA" href="https://hawkbucks.com/ar-SA/missions-guide"/>
+    <xhtml:link rel="alternate" hreflang="fa-IR" href="https://hawkbucks.com/fa-IR/missions-guide"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://hawkbucks.com/missions-guide"/>
+  </url>
+  <url>
+    <loc>https://hawkbucks.com/pt/missions-guide</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://hawkbucks.com/missions-guide"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://hawkbucks.com/es/missions-guide"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://hawkbucks.com/fr/missions-guide"/>
+    <xhtml:link rel="alternate" hreflang="ru" href="https://hawkbucks.com/ru/missions-guide"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://hawkbucks.com/de/missions-guide"/>
+    <xhtml:link rel="alternate" hreflang="pt" href="https://hawkbucks.com/pt/missions-guide"/>
+    <xhtml:link rel="alternate" hreflang="zh" href="https://hawkbucks.com/zh/missions-guide"/>
+    <xhtml:link rel="alternate" hreflang="ar-SA" href="https://hawkbucks.com/ar-SA/missions-guide"/>
+    <xhtml:link rel="alternate" hreflang="fa-IR" href="https://hawkbucks.com/fa-IR/missions-guide"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://hawkbucks.com/missions-guide"/>
+  </url>
+  <url>
+    <loc>https://hawkbucks.com/zh/missions-guide</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://hawkbucks.com/missions-guide"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://hawkbucks.com/es/missions-guide"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://hawkbucks.com/fr/missions-guide"/>
+    <xhtml:link rel="alternate" hreflang="ru" href="https://hawkbucks.com/ru/missions-guide"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://hawkbucks.com/de/missions-guide"/>
+    <xhtml:link rel="alternate" hreflang="pt" href="https://hawkbucks.com/pt/missions-guide"/>
+    <xhtml:link rel="alternate" hreflang="zh" href="https://hawkbucks.com/zh/missions-guide"/>
+    <xhtml:link rel="alternate" hreflang="ar-SA" href="https://hawkbucks.com/ar-SA/missions-guide"/>
+    <xhtml:link rel="alternate" hreflang="fa-IR" href="https://hawkbucks.com/fa-IR/missions-guide"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://hawkbucks.com/missions-guide"/>
+  </url>
+  <url>
+    <loc>https://hawkbucks.com/ar-SA/missions-guide</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://hawkbucks.com/missions-guide"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://hawkbucks.com/es/missions-guide"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://hawkbucks.com/fr/missions-guide"/>
+    <xhtml:link rel="alternate" hreflang="ru" href="https://hawkbucks.com/ru/missions-guide"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://hawkbucks.com/de/missions-guide"/>
+    <xhtml:link rel="alternate" hreflang="pt" href="https://hawkbucks.com/pt/missions-guide"/>
+    <xhtml:link rel="alternate" hreflang="zh" href="https://hawkbucks.com/zh/missions-guide"/>
+    <xhtml:link rel="alternate" hreflang="ar-SA" href="https://hawkbucks.com/ar-SA/missions-guide"/>
+    <xhtml:link rel="alternate" hreflang="fa-IR" href="https://hawkbucks.com/fa-IR/missions-guide"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://hawkbucks.com/missions-guide"/>
+  </url>
+  <url>
+    <loc>https://hawkbucks.com/fa-IR/missions-guide</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://hawkbucks.com/missions-guide"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://hawkbucks.com/es/missions-guide"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://hawkbucks.com/fr/missions-guide"/>
+    <xhtml:link rel="alternate" hreflang="ru" href="https://hawkbucks.com/ru/missions-guide"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://hawkbucks.com/de/missions-guide"/>
+    <xhtml:link rel="alternate" hreflang="pt" href="https://hawkbucks.com/pt/missions-guide"/>
+    <xhtml:link rel="alternate" hreflang="zh" href="https://hawkbucks.com/zh/missions-guide"/>
+    <xhtml:link rel="alternate" hreflang="ar-SA" href="https://hawkbucks.com/ar-SA/missions-guide"/>
+    <xhtml:link rel="alternate" hreflang="fa-IR" href="https://hawkbucks.com/fa-IR/missions-guide"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://hawkbucks.com/missions-guide"/>
   </url>
 </urlset>

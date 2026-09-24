@@ -13,7 +13,7 @@ export function EmptyState() {
         />
         <img
           src={ASSETS.vbucks}
-          alt="V-Bucks reward icon"
+          alt={t("seo.vbucksRewardAlt")}
           className="h-16 w-16 opacity-70 grayscale"
         />
       </div>

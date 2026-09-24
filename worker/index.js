@@ -1,5 +1,11 @@
 import localization from './localization.json';
 import { QUOTE_POOL } from './quote-pool.js';
+import {
+  handlePushSubscribe,
+  handlePushUnsubscribe,
+  handlePushPublicKey,
+  runPushFanout,
+} from './push.js';
 
 const TOKEN_URL =
   'https://account-public-service-prod.ol.epicgames.com/account/api/oauth/token';
@@ -1016,6 +1022,30 @@ export default {
 
     if (
       request.method === 'GET' &&
+      url.pathname === '/api/push/public-key'
+    ) {
+      const result = await handlePushPublicKey(env);
+      return json(result.data, result.status);
+    }
+
+    if (
+      request.method === 'POST' &&
+      url.pathname === '/api/push/subscribe'
+    ) {
+      const result = await handlePushSubscribe(request, env);
+      return json(result.data, result.status);
+    }
+
+    if (
+      request.method === 'POST' &&
+      url.pathname === '/api/push/unsubscribe'
+    ) {
+      const result = await handlePushUnsubscribe(request, env);
+      return json(result.data, result.status);
+    }
+
+    if (
+      request.method === 'GET' &&
       url.pathname === '/api/health'
     ) {
       return json(
@@ -1061,15 +1091,32 @@ export default {
       }
     })());
 
+    // Phase 8: sequential refresh-then-fanout in ONE waitUntil (30-minute
+    // cadence unchanged) so fanout can never decide from a stale cache. The
+    // refreshed payload is handed directly to runPushFanout; when refresh
+    // fails we fall back to the KV cache, where runPushFanout's lastUpdated
+    // freshness guard skips stale previous-day data instead of claiming
+    // today's slot. Once-per-UTC-day is enforced inside runPushFanout via
+    // the conditional claimPushSlot() UPDATE; the body uses the same date.
     ctx.waitUntil((async () => {
+      let refreshed = null;
       try {
         const data = await fetchMissionData(env);
         await saveMissionData(env, data);
         const saved = await saveDailyMissionSnapshot(env, data, dateString);
         if (saved) console.log(`Daily mission snapshot saved for ${dateString}`);
         console.log(`Scheduled mission check completed: ${data.missions.length} V-Bucks mission(s), ${data.totalVbucks} V-Bucks`);
+        refreshed = data;
       } catch (error) {
         console.error('Scheduled mission check failed:', error instanceof Error ? error.message : 'unknown error');
+      }
+      try {
+        const summary = refreshed
+          ? await runPushFanout(env, async () => refreshed, dateString, { missions: refreshed })
+          : await runPushFanout(env, () => getCachedMissionData(env), dateString);
+        console.log(`Push fanout for ${dateString}: ${summary.sent} sent, ${summary.skipped} skipped, ${summary.deactivated} deactivated`);
+      } catch (error) {
+        console.error('Push fanout failed:', error instanceof Error ? error.message : 'unknown error');
       }
     })());
   }

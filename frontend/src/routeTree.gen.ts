@@ -11,7 +11,12 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AboutRouteImport } from './routes/about'
+import { Route as MissionsGuideRouteImport } from './routes/missions-guide'
 import { Route as VbucksMissionsRouteImport } from './routes/vbucks-missions'
+import { Route as LocaleIndexRouteImport } from './routes/$locale/index'
+import { Route as LocaleAboutRouteImport } from './routes/$locale/about'
+import { Route as LocaleMissionsGuideRouteImport } from './routes/$locale/missions-guide'
+import { Route as LocaleVbucksMissionsRouteImport } from './routes/$locale/vbucks-missions'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -23,40 +28,110 @@ const AboutRoute = AboutRouteImport.update({
   path: '/about',
   getParentRoute: () => rootRouteImport,
 } as any)
+const MissionsGuideRoute = MissionsGuideRouteImport.update({
+  id: '/missions-guide',
+  path: '/missions-guide',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const VbucksMissionsRoute = VbucksMissionsRouteImport.update({
   id: '/vbucks-missions',
   path: '/vbucks-missions',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LocaleIndexRoute = LocaleIndexRouteImport.update({
+  id: '/$locale/',
+  path: '/$locale/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LocaleAboutRoute = LocaleAboutRouteImport.update({
+  id: '/$locale/about',
+  path: '/$locale/about',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LocaleMissionsGuideRoute = LocaleMissionsGuideRouteImport.update({
+  id: '/$locale/missions-guide',
+  path: '/$locale/missions-guide',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LocaleVbucksMissionsRoute = LocaleVbucksMissionsRouteImport.update({
+  id: '/$locale/vbucks-missions',
+  path: '/$locale/vbucks-missions',
   getParentRoute: () => rootRouteImport,
 } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
+  '/missions-guide': typeof MissionsGuideRoute
   '/vbucks-missions': typeof VbucksMissionsRoute
+  '/$locale/about': typeof LocaleAboutRoute
+  '/$locale/missions-guide': typeof LocaleMissionsGuideRoute
+  '/$locale/vbucks-missions': typeof LocaleVbucksMissionsRoute
+  '/$locale/': typeof LocaleIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
+  '/missions-guide': typeof MissionsGuideRoute
   '/vbucks-missions': typeof VbucksMissionsRoute
+  '/$locale/about': typeof LocaleAboutRoute
+  '/$locale/missions-guide': typeof LocaleMissionsGuideRoute
+  '/$locale/vbucks-missions': typeof LocaleVbucksMissionsRoute
+  '/$locale': typeof LocaleIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
+  '/missions-guide': typeof MissionsGuideRoute
   '/vbucks-missions': typeof VbucksMissionsRoute
+  '/$locale/about': typeof LocaleAboutRoute
+  '/$locale/missions-guide': typeof LocaleMissionsGuideRoute
+  '/$locale/vbucks-missions': typeof LocaleVbucksMissionsRoute
+  '/$locale/': typeof LocaleIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/about' | '/vbucks-missions'
+  fullPaths:
+    | '/'
+    | '/about'
+    | '/missions-guide'
+    | '/vbucks-missions'
+    | '/$locale/about'
+    | '/$locale/missions-guide'
+    | '/$locale/vbucks-missions'
+    | '/$locale/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/about' | '/vbucks-missions'
-  id: '__root__' | '/' | '/about' | '/vbucks-missions'
+  to:
+    | '/'
+    | '/about'
+    | '/missions-guide'
+    | '/vbucks-missions'
+    | '/$locale/about'
+    | '/$locale/missions-guide'
+    | '/$locale/vbucks-missions'
+    | '/$locale'
+  id:
+    | '__root__'
+    | '/'
+    | '/about'
+    | '/missions-guide'
+    | '/vbucks-missions'
+    | '/$locale/about'
+    | '/$locale/missions-guide'
+    | '/$locale/vbucks-missions'
+    | '/$locale/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AboutRoute: typeof AboutRoute
+  MissionsGuideRoute: typeof MissionsGuideRoute
   VbucksMissionsRoute: typeof VbucksMissionsRoute
+  LocaleAboutRoute: typeof LocaleAboutRoute
+  LocaleMissionsGuideRoute: typeof LocaleMissionsGuideRoute
+  LocaleVbucksMissionsRoute: typeof LocaleVbucksMissionsRoute
+  LocaleIndexRoute: typeof LocaleIndexRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -75,11 +150,46 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AboutRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/missions-guide': {
+      id: '/missions-guide'
+      path: '/missions-guide'
+      fullPath: '/missions-guide'
+      preLoaderRoute: typeof MissionsGuideRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/vbucks-missions': {
       id: '/vbucks-missions'
       path: '/vbucks-missions'
       fullPath: '/vbucks-missions'
       preLoaderRoute: typeof VbucksMissionsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/$locale/': {
+      id: '/$locale/'
+      path: '/$locale'
+      fullPath: '/$locale/'
+      preLoaderRoute: typeof LocaleIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/$locale/about': {
+      id: '/$locale/about'
+      path: '/$locale/about'
+      fullPath: '/$locale/about'
+      preLoaderRoute: typeof LocaleAboutRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/$locale/missions-guide': {
+      id: '/$locale/missions-guide'
+      path: '/$locale/missions-guide'
+      fullPath: '/$locale/missions-guide'
+      preLoaderRoute: typeof LocaleMissionsGuideRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/$locale/vbucks-missions': {
+      id: '/$locale/vbucks-missions'
+      path: '/$locale/vbucks-missions'
+      fullPath: '/$locale/vbucks-missions'
+      preLoaderRoute: typeof LocaleVbucksMissionsRouteImport
       parentRoute: typeof rootRouteImport
     }
   }
@@ -88,7 +198,12 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AboutRoute: AboutRoute,
+  MissionsGuideRoute: MissionsGuideRoute,
   VbucksMissionsRoute: VbucksMissionsRoute,
+  LocaleAboutRoute: LocaleAboutRoute,
+  LocaleMissionsGuideRoute: LocaleMissionsGuideRoute,
+  LocaleVbucksMissionsRoute: LocaleVbucksMissionsRoute,
+  LocaleIndexRoute: LocaleIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

@@ -1,15 +1,34 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, redirect } from "@tanstack/react-router";
 import { AboutPage } from "@/components/pages/About";
-import { jsonLdScript } from "@/lib/seo";
-import { translate } from "@/i18n/core";
+import { I18nProvider } from "@/i18n/context";
 import { resolveLocale } from "@/i18n/config";
-import { canonicalUrlFor, hreflangAlternates, localizePath, ogLocaleFor } from "@/lib/locale-urls";
+import { translate } from "@/i18n/core";
+import { jsonLdScript } from "@/lib/seo";
+import {
+  canonicalUrlFor,
+  hreflangAlternates,
+  localizePath,
+  matchLocaleParamCaseInsensitive,
+  ogLocaleFor,
+  parseLocaleParam,
+} from "@/lib/locale-urls";
+import { DEFAULT_LANGUAGE } from "@/lib/preferences";
 
-export const Route = createFileRoute("/about")({
-  // Bare head is intentionally English-deterministic (never cookie-dependent):
-  // crawlers and users on the same URL always get the same canonical tags.
-  head: () => {
-    const lang = "en" as const;
+export const Route = createFileRoute("/$locale/about")({
+  beforeLoad: ({ params }) => {
+    const raw = (params as { locale?: unknown }).locale;
+    if (parseLocaleParam(raw) !== undefined) return;
+    const corrected = matchLocaleParamCaseInsensitive(raw);
+    if (corrected !== undefined) {
+      throw redirect({
+        href: corrected === DEFAULT_LANGUAGE ? "/about" : `/${corrected}/about`,
+      });
+    }
+    throw redirect({ href: "/about" });
+  },
+  head: (ctx) => {
+    const param = (ctx.params as { locale?: unknown } | undefined)?.locale;
+    const lang = parseLocaleParam(param) ?? DEFAULT_LANGUAGE;
     const self = canonicalUrlFor(localizePath("/about", lang));
     return {
       meta: [
@@ -80,5 +99,15 @@ export const Route = createFileRoute("/about")({
       ],
     };
   },
-  component: AboutPage,
+  component: LocalizedAboutPage,
 });
+
+function LocalizedAboutPage() {
+  const { locale } = Route.useParams() as { locale?: unknown };
+  const lang = parseLocaleParam(locale) ?? DEFAULT_LANGUAGE;
+  return (
+    <I18nProvider initialLanguage={lang} fixedLanguage={lang}>
+      <AboutPage />
+    </I18nProvider>
+  );
+}

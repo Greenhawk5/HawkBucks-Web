@@ -1,6 +1,7 @@
 import { Link } from "@tanstack/react-router";
 import { Menu, X } from "lucide-react";
 import { useEffect, useState } from "react";
+import { useI18n } from "@/i18n";
 import { ASSETS } from "@/lib/assets";
 
 const links = [
@@ -11,6 +12,7 @@ const links = [
 
 export function Navbar() {
   const [open, setOpen] = useState(false);
+  const { t } = useI18n();
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => e.key === "Escape" && setOpen(false);
@@ -28,7 +30,7 @@ export function Navbar() {
         >
           <img
             src={ASSETS.logo}
-            alt="HawkBucks logo"
+            alt={t("seo.logoAlt")}
             className="h-8 w-8 shrink-0 rounded-lg shadow-[var(--shadow-glow)]"
           />
           <span className="truncate font-display text-base font-extrabold uppercase tracking-tight">

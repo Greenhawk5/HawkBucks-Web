@@ -21,6 +21,7 @@ export interface TranslationDictionary {
   navigation: {
     home: string;
     vbucksMissions: string;
+    guide: string;
     about: string;
     navigate: string;
     checkTodaysMissions: string;
@@ -70,6 +71,9 @@ export interface TranslationDictionary {
     pageEyebrow: string;
     pageTitle: string;
     pageDesc: string;
+    // Phase 9: explicit tracker-vs-guide naming (tracker stays live data-only).
+    trackerBadge: string;
+    guidePointer: string;
     todayHeading: string;
     todayDesc: string;
     updateStatus: string;
@@ -151,6 +155,46 @@ export interface TranslationDictionary {
     creditsTitle: string;
     creditsDesc: string;
   };
+  guide: {
+    eyebrow: string;
+    title: string;
+    intro: string;
+    openTracker: string;
+    whatTitle: string;
+    whatBody: string;
+    rewardsTitle: string;
+    rewardsBody: string;
+    zonesTitle: string;
+    zonesBody: string;
+    powerTitle: string;
+    powerBody: string;
+    refreshTitle: string;
+    refreshBody: string;
+    workflowTitle: string;
+    workflowIntro: string;
+    workflow1: string;
+    workflow2: string;
+    workflow3: string;
+    workflow4: string;
+    workflow5: string;
+    faqTitle: string;
+    faqDesc: string;
+    faqQ1: string;
+    faqA1: string;
+    faqQ2: string;
+    faqA2: string;
+    faqQ3: string;
+    faqA3: string;
+    faqQ4: string;
+    faqA4: string;
+    faqQ5: string;
+    faqA5: string;
+    relatedTitle: string;
+    relatedTrackerTitle: string;
+    relatedTrackerDesc: string;
+    relatedAboutTitle: string;
+    relatedAboutDesc: string;
+  };
   footer: {
     description: string;
     navigate: string;
@@ -178,6 +222,51 @@ export interface TranslationDictionary {
     selectorAria: string;
     menuLabel: string;
     changeLanguage: string;
+  };
+  welcome: {
+    eyebrow: string;
+    title: string;
+    description: string;
+    trackingTitle: string;
+    trackingDescription: string;
+    remindersTitle: string;
+    remindersDescription: string;
+    explore: string;
+    enableReminders: string;
+    remindersSaved: string;
+    close: string;
+  };
+  notifications: {
+    pushTitle: string;
+    pushBody: string;
+    enabled: string;
+    disabled: string;
+    blocked: string;
+    unsupported: string;
+  };
+  seo: {
+    siteDescription: string;
+    homeTitle: string;
+    homeDescription: string;
+    homeOgTitle: string;
+    homeOgDescription: string;
+    missionsTitle: string;
+    missionsDescription: string;
+    missionsOgTitle: string;
+    missionsOgDescription: string;
+    guideTitle: string;
+    guideDescription: string;
+    guideOgTitle: string;
+    guideOgDescription: string;
+    aboutTitle: string;
+    aboutDescription: string;
+    aboutOgTitle: string;
+    aboutOgDescription: string;
+    ogImageAlt: string;
+    webAppDescription: string;
+    logoAlt: string;
+    vbucksRewardAlt: string;
+    greenhawkLogoAlt: string;
   };
 }
 
