@@ -21,5 +21,13 @@ database_name = "hawkbucks-demo"
 database_id = "6f116426-4530-4c48-b96e-bd40cdc7c353"
 migrations_dir = "migrations"
 
+# Phase 15.5 (PREPARED, NOT DEPLOYED): demo mirror of the MEDIA_BUCKET binding.
+# Demo R2 usage must stay on a SEPARATE demo bucket — never point this at the
+# production hawkbucks-media bucket. Create the demo bucket in the dashboard
+# first (see docs/r2-media-migration.md), then set its name here.
+# [[r2_buckets]]
+# binding = "MEDIA_BUCKET"
+# bucket_name = "hawkbucks-media-demo"
+
 [triggers]
 crons = ["*/30 * * * *"]

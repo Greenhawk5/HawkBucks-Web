@@ -10,6 +10,15 @@
       "binding": "HAWKBUCKS_API",
       "service": "hawkbucks-web"
     }
-  ]
+  ],
+  "r2_buckets": [
+    {
+      "binding": "MEDIA_BUCKET",
+      "bucket_name": "hawkbucks-media"
+    }
+  ],
+  "vars": {
+    "R2_PUBLIC_BASE_URL": "https://media.hawkbucks.com"
+  }
 }
 

@@ -20,5 +20,15 @@ database_name = "hawkbucks-data"
 database_id = "ef9831f2-2d9c-4c11-a49e-c1935ae5edb7"
 migrations_dir = "migrations"
 
+# Phase 15.5 (PREPARED, NOT DEPLOYED): R2 media bucket for CMS uploads.
+# The bucket `hawkbucks-media` already exists with public delivery at
+# https://media.hawkbucks.com. This binding lets the Worker read/write
+# objects server-side; browsers NEVER get direct write access — all uploads
+# go through Worker code paths. Do NOT deploy until the dashboard actions in
+# docs/r2-media-migration.md are complete.
+[[r2_buckets]]
+binding = "MEDIA_BUCKET"
+bucket_name = "hawkbucks-media"
+
 [triggers]
 crons = ["*/30 * * * *"]

@@ -63,6 +63,20 @@ export interface CmsWorkerEnv {
   IMAGEKIT_PRIVATE_KEY?: unknown;
   IMAGEKIT_PUBLIC_KEY?: unknown;
   IMAGEKIT_URL_ENDPOINT?: unknown;
+  /**
+   * Phase 15.5 — R2 media bucket binding (frontend Worker, frontend/wrangler.json).
+   * Typed structurally so tests can pass a fake; production is the real R2Bucket.
+   */
+  MEDIA_BUCKET?: {
+    put(
+      key: string,
+      body: Uint8Array | ArrayBuffer,
+      options?: { httpMetadata?: { contentType?: string } },
+    ): Promise<unknown>;
+    delete(key: string): Promise<void>;
+    head(key: string): Promise<{ size: number } | null>;
+  };
+  R2_PUBLIC_BASE_URL?: unknown;
 }
 
 /** Resolve the CMS database from the request env. Fail-closed, always. */
