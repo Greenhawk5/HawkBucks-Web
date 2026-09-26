@@ -12,7 +12,7 @@
     "build:pages": "npm install && npm run build",
     "preview": "vite preview",
     "lint": "eslint .",
-    "test:server": "node --import ./test/ts-path-alias-loader.mjs --experimental-strip-types --test test/missions.server.test.mjs test/missions.local-dev.test.mjs test/www-redirect.test.mjs test/cloudflare-pages-runtime.test.mjs test/preferences.test.mjs test/local-time.test.mjs test/i18n.test.mjs test/seo-localization.test.mjs test/welcome-onboarding.test.mjs test/push-notifications.test.mjs test/mission-tracker.test.mjs test/missions-guide.test.mjs",
+    "test:server": "node --import ./test/ts-path-alias-loader.mjs --experimental-strip-types --test test/missions.server.test.mjs test/missions.local-dev.test.mjs test/www-redirect.test.mjs test/cloudflare-pages-runtime.test.mjs test/preferences.test.mjs test/local-time.test.mjs test/i18n.test.mjs test/seo-localization.test.mjs test/welcome-onboarding.test.mjs test/push-notifications.test.mjs test/mission-tracker.test.mjs test/missions-guide.test.mjs test/cms-foundation.test.mjs test/cms-heroes-loadouts.test.mjs test/public-heroes-loadouts.test.mjs test/public-routes.test.mjs test/cms-schematics-inventory.test.mjs test/public-inventory.test.mjs test/public-inventory-routes.test.mjs test/deploy-demo-safety.test.mjs",
     "format": "prettier --write .",
     "prebuild": "npm rebuild || true"
   },
@@ -90,6 +90,7 @@
     "prettier": "^3.7.3",
     "typescript": "^5.8.3",
     "typescript-eslint": "^8.56.1",
-    "vite": "^8.2.0"
+    "vite": "^8.2.0",
+    "wrangler": "^4.141.0"
   }
 }

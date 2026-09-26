@@ -468,4 +468,355 @@
     <xhtml:link rel="alternate" hreflang="fa-IR" href="https://hawkbucks.com/fa-IR/missions-guide"/>
     <xhtml:link rel="alternate" hreflang="x-default" href="https://hawkbucks.com/missions-guide"/>
   </url>
+  <url>
+    <loc>https://hawkbucks.com/heroes</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://hawkbucks.com/heroes"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://hawkbucks.com/es/heroes"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://hawkbucks.com/fr/heroes"/>
+    <xhtml:link rel="alternate" hreflang="ru" href="https://hawkbucks.com/ru/heroes"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://hawkbucks.com/de/heroes"/>
+    <xhtml:link rel="alternate" hreflang="pt" href="https://hawkbucks.com/pt/heroes"/>
+    <xhtml:link rel="alternate" hreflang="zh" href="https://hawkbucks.com/zh/heroes"/>
+    <xhtml:link rel="alternate" hreflang="ar-SA" href="https://hawkbucks.com/ar-SA/heroes"/>
+    <xhtml:link rel="alternate" hreflang="fa-IR" href="https://hawkbucks.com/fa-IR/heroes"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://hawkbucks.com/heroes"/>
+  </url>
+  <url>
+    <loc>https://hawkbucks.com/es/heroes</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://hawkbucks.com/heroes"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://hawkbucks.com/es/heroes"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://hawkbucks.com/fr/heroes"/>
+    <xhtml:link rel="alternate" hreflang="ru" href="https://hawkbucks.com/ru/heroes"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://hawkbucks.com/de/heroes"/>
+    <xhtml:link rel="alternate" hreflang="pt" href="https://hawkbucks.com/pt/heroes"/>
+    <xhtml:link rel="alternate" hreflang="zh" href="https://hawkbucks.com/zh/heroes"/>
+    <xhtml:link rel="alternate" hreflang="ar-SA" href="https://hawkbucks.com/ar-SA/heroes"/>
+    <xhtml:link rel="alternate" hreflang="fa-IR" href="https://hawkbucks.com/fa-IR/heroes"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://hawkbucks.com/heroes"/>
+  </url>
+  <url>
+    <loc>https://hawkbucks.com/fr/heroes</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://hawkbucks.com/heroes"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://hawkbucks.com/es/heroes"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://hawkbucks.com/fr/heroes"/>
+    <xhtml:link rel="alternate" hreflang="ru" href="https://hawkbucks.com/ru/heroes"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://hawkbucks.com/de/heroes"/>
+    <xhtml:link rel="alternate" hreflang="pt" href="https://hawkbucks.com/pt/heroes"/>
+    <xhtml:link rel="alternate" hreflang="zh" href="https://hawkbucks.com/zh/heroes"/>
+    <xhtml:link rel="alternate" hreflang="ar-SA" href="https://hawkbucks.com/ar-SA/heroes"/>
+    <xhtml:link rel="alternate" hreflang="fa-IR" href="https://hawkbucks.com/fa-IR/heroes"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://hawkbucks.com/heroes"/>
+  </url>
+  <url>
+    <loc>https://hawkbucks.com/ru/heroes</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://hawkbucks.com/heroes"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://hawkbucks.com/es/heroes"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://hawkbucks.com/fr/heroes"/>
+    <xhtml:link rel="alternate" hreflang="ru" href="https://hawkbucks.com/ru/heroes"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://hawkbucks.com/de/heroes"/>
+    <xhtml:link rel="alternate" hreflang="pt" href="https://hawkbucks.com/pt/heroes"/>
+    <xhtml:link rel="alternate" hreflang="zh" href="https://hawkbucks.com/zh/heroes"/>
+    <xhtml:link rel="alternate" hreflang="ar-SA" href="https://hawkbucks.com/ar-SA/heroes"/>
+    <xhtml:link rel="alternate" hreflang="fa-IR" href="https://hawkbucks.com/fa-IR/heroes"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://hawkbucks.com/heroes"/>
+  </url>
+  <url>
+    <loc>https://hawkbucks.com/de/heroes</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://hawkbucks.com/heroes"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://hawkbucks.com/es/heroes"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://hawkbucks.com/fr/heroes"/>
+    <xhtml:link rel="alternate" hreflang="ru" href="https://hawkbucks.com/ru/heroes"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://hawkbucks.com/de/heroes"/>
+    <xhtml:link rel="alternate" hreflang="pt" href="https://hawkbucks.com/pt/heroes"/>
+    <xhtml:link rel="alternate" hreflang="zh" href="https://hawkbucks.com/zh/heroes"/>
+    <xhtml:link rel="alternate" hreflang="ar-SA" href="https://hawkbucks.com/ar-SA/heroes"/>
+    <xhtml:link rel="alternate" hreflang="fa-IR" href="https://hawkbucks.com/fa-IR/heroes"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://hawkbucks.com/heroes"/>
+  </url>
+  <url>
+    <loc>https://hawkbucks.com/pt/heroes</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://hawkbucks.com/heroes"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://hawkbucks.com/es/heroes"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://hawkbucks.com/fr/heroes"/>
+    <xhtml:link rel="alternate" hreflang="ru" href="https://hawkbucks.com/ru/heroes"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://hawkbucks.com/de/heroes"/>
+    <xhtml:link rel="alternate" hreflang="pt" href="https://hawkbucks.com/pt/heroes"/>
+    <xhtml:link rel="alternate" hreflang="zh" href="https://hawkbucks.com/zh/heroes"/>
+    <xhtml:link rel="alternate" hreflang="ar-SA" href="https://hawkbucks.com/ar-SA/heroes"/>
+    <xhtml:link rel="alternate" hreflang="fa-IR" href="https://hawkbucks.com/fa-IR/heroes"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://hawkbucks.com/heroes"/>
+  </url>
+  <url>
+    <loc>https://hawkbucks.com/zh/heroes</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://hawkbucks.com/heroes"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://hawkbucks.com/es/heroes"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://hawkbucks.com/fr/heroes"/>
+    <xhtml:link rel="alternate" hreflang="ru" href="https://hawkbucks.com/ru/heroes"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://hawkbucks.com/de/heroes"/>
+    <xhtml:link rel="alternate" hreflang="pt" href="https://hawkbucks.com/pt/heroes"/>
+    <xhtml:link rel="alternate" hreflang="zh" href="https://hawkbucks.com/zh/heroes"/>
+    <xhtml:link rel="alternate" hreflang="ar-SA" href="https://hawkbucks.com/ar-SA/heroes"/>
+    <xhtml:link rel="alternate" hreflang="fa-IR" href="https://hawkbucks.com/fa-IR/heroes"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://hawkbucks.com/heroes"/>
+  </url>
+  <url>
+    <loc>https://hawkbucks.com/ar-SA/heroes</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://hawkbucks.com/heroes"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://hawkbucks.com/es/heroes"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://hawkbucks.com/fr/heroes"/>
+    <xhtml:link rel="alternate" hreflang="ru" href="https://hawkbucks.com/ru/heroes"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://hawkbucks.com/de/heroes"/>
+    <xhtml:link rel="alternate" hreflang="pt" href="https://hawkbucks.com/pt/heroes"/>
+    <xhtml:link rel="alternate" hreflang="zh" href="https://hawkbucks.com/zh/heroes"/>
+    <xhtml:link rel="alternate" hreflang="ar-SA" href="https://hawkbucks.com/ar-SA/heroes"/>
+    <xhtml:link rel="alternate" hreflang="fa-IR" href="https://hawkbucks.com/fa-IR/heroes"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://hawkbucks.com/heroes"/>
+  </url>
+  <url>
+    <loc>https://hawkbucks.com/fa-IR/heroes</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://hawkbucks.com/heroes"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://hawkbucks.com/es/heroes"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://hawkbucks.com/fr/heroes"/>
+    <xhtml:link rel="alternate" hreflang="ru" href="https://hawkbucks.com/ru/heroes"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://hawkbucks.com/de/heroes"/>
+    <xhtml:link rel="alternate" hreflang="pt" href="https://hawkbucks.com/pt/heroes"/>
+    <xhtml:link rel="alternate" hreflang="zh" href="https://hawkbucks.com/zh/heroes"/>
+    <xhtml:link rel="alternate" hreflang="ar-SA" href="https://hawkbucks.com/ar-SA/heroes"/>
+    <xhtml:link rel="alternate" hreflang="fa-IR" href="https://hawkbucks.com/fa-IR/heroes"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://hawkbucks.com/heroes"/>
+  </url>
+  <url>
+    <loc>https://hawkbucks.com/loadouts</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://hawkbucks.com/loadouts"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://hawkbucks.com/es/loadouts"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://hawkbucks.com/fr/loadouts"/>
+    <xhtml:link rel="alternate" hreflang="ru" href="https://hawkbucks.com/ru/loadouts"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://hawkbucks.com/de/loadouts"/>
+    <xhtml:link rel="alternate" hreflang="pt" href="https://hawkbucks.com/pt/loadouts"/>
+    <xhtml:link rel="alternate" hreflang="zh" href="https://hawkbucks.com/zh/loadouts"/>
+    <xhtml:link rel="alternate" hreflang="ar-SA" href="https://hawkbucks.com/ar-SA/loadouts"/>
+    <xhtml:link rel="alternate" hreflang="fa-IR" href="https://hawkbucks.com/fa-IR/loadouts"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://hawkbucks.com/loadouts"/>
+  </url>
+  <url>
+    <loc>https://hawkbucks.com/es/loadouts</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://hawkbucks.com/loadouts"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://hawkbucks.com/es/loadouts"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://hawkbucks.com/fr/loadouts"/>
+    <xhtml:link rel="alternate" hreflang="ru" href="https://hawkbucks.com/ru/loadouts"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://hawkbucks.com/de/loadouts"/>
+    <xhtml:link rel="alternate" hreflang="pt" href="https://hawkbucks.com/pt/loadouts"/>
+    <xhtml:link rel="alternate" hreflang="zh" href="https://hawkbucks.com/zh/loadouts"/>
+    <xhtml:link rel="alternate" hreflang="ar-SA" href="https://hawkbucks.com/ar-SA/loadouts"/>
+    <xhtml:link rel="alternate" hreflang="fa-IR" href="https://hawkbucks.com/fa-IR/loadouts"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://hawkbucks.com/loadouts"/>
+  </url>
+  <url>
+    <loc>https://hawkbucks.com/fr/loadouts</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://hawkbucks.com/loadouts"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://hawkbucks.com/es/loadouts"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://hawkbucks.com/fr/loadouts"/>
+    <xhtml:link rel="alternate" hreflang="ru" href="https://hawkbucks.com/ru/loadouts"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://hawkbucks.com/de/loadouts"/>
+    <xhtml:link rel="alternate" hreflang="pt" href="https://hawkbucks.com/pt/loadouts"/>
+    <xhtml:link rel="alternate" hreflang="zh" href="https://hawkbucks.com/zh/loadouts"/>
+    <xhtml:link rel="alternate" hreflang="ar-SA" href="https://hawkbucks.com/ar-SA/loadouts"/>
+    <xhtml:link rel="alternate" hreflang="fa-IR" href="https://hawkbucks.com/fa-IR/loadouts"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://hawkbucks.com/loadouts"/>
+  </url>
+  <url>
+    <loc>https://hawkbucks.com/ru/loadouts</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://hawkbucks.com/loadouts"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://hawkbucks.com/es/loadouts"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://hawkbucks.com/fr/loadouts"/>
+    <xhtml:link rel="alternate" hreflang="ru" href="https://hawkbucks.com/ru/loadouts"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://hawkbucks.com/de/loadouts"/>
+    <xhtml:link rel="alternate" hreflang="pt" href="https://hawkbucks.com/pt/loadouts"/>
+    <xhtml:link rel="alternate" hreflang="zh" href="https://hawkbucks.com/zh/loadouts"/>
+    <xhtml:link rel="alternate" hreflang="ar-SA" href="https://hawkbucks.com/ar-SA/loadouts"/>
+    <xhtml:link rel="alternate" hreflang="fa-IR" href="https://hawkbucks.com/fa-IR/loadouts"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://hawkbucks.com/loadouts"/>
+  </url>
+  <url>
+    <loc>https://hawkbucks.com/de/loadouts</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://hawkbucks.com/loadouts"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://hawkbucks.com/es/loadouts"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://hawkbucks.com/fr/loadouts"/>
+    <xhtml:link rel="alternate" hreflang="ru" href="https://hawkbucks.com/ru/loadouts"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://hawkbucks.com/de/loadouts"/>
+    <xhtml:link rel="alternate" hreflang="pt" href="https://hawkbucks.com/pt/loadouts"/>
+    <xhtml:link rel="alternate" hreflang="zh" href="https://hawkbucks.com/zh/loadouts"/>
+    <xhtml:link rel="alternate" hreflang="ar-SA" href="https://hawkbucks.com/ar-SA/loadouts"/>
+    <xhtml:link rel="alternate" hreflang="fa-IR" href="https://hawkbucks.com/fa-IR/loadouts"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://hawkbucks.com/loadouts"/>
+  </url>
+  <url>
+    <loc>https://hawkbucks.com/pt/loadouts</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://hawkbucks.com/loadouts"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://hawkbucks.com/es/loadouts"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://hawkbucks.com/fr/loadouts"/>
+    <xhtml:link rel="alternate" hreflang="ru" href="https://hawkbucks.com/ru/loadouts"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://hawkbucks.com/de/loadouts"/>
+    <xhtml:link rel="alternate" hreflang="pt" href="https://hawkbucks.com/pt/loadouts"/>
+    <xhtml:link rel="alternate" hreflang="zh" href="https://hawkbucks.com/zh/loadouts"/>
+    <xhtml:link rel="alternate" hreflang="ar-SA" href="https://hawkbucks.com/ar-SA/loadouts"/>
+    <xhtml:link rel="alternate" hreflang="fa-IR" href="https://hawkbucks.com/fa-IR/loadouts"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://hawkbucks.com/loadouts"/>
+  </url>
+  <url>
+    <loc>https://hawkbucks.com/zh/loadouts</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://hawkbucks.com/loadouts"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://hawkbucks.com/es/loadouts"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://hawkbucks.com/fr/loadouts"/>
+    <xhtml:link rel="alternate" hreflang="ru" href="https://hawkbucks.com/ru/loadouts"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://hawkbucks.com/de/loadouts"/>
+    <xhtml:link rel="alternate" hreflang="pt" href="https://hawkbucks.com/pt/loadouts"/>
+    <xhtml:link rel="alternate" hreflang="zh" href="https://hawkbucks.com/zh/loadouts"/>
+    <xhtml:link rel="alternate" hreflang="ar-SA" href="https://hawkbucks.com/ar-SA/loadouts"/>
+    <xhtml:link rel="alternate" hreflang="fa-IR" href="https://hawkbucks.com/fa-IR/loadouts"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://hawkbucks.com/loadouts"/>
+  </url>
+  <url>
+    <loc>https://hawkbucks.com/ar-SA/loadouts</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://hawkbucks.com/loadouts"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://hawkbucks.com/es/loadouts"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://hawkbucks.com/fr/loadouts"/>
+    <xhtml:link rel="alternate" hreflang="ru" href="https://hawkbucks.com/ru/loadouts"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://hawkbucks.com/de/loadouts"/>
+    <xhtml:link rel="alternate" hreflang="pt" href="https://hawkbucks.com/pt/loadouts"/>
+    <xhtml:link rel="alternate" hreflang="zh" href="https://hawkbucks.com/zh/loadouts"/>
+    <xhtml:link rel="alternate" hreflang="ar-SA" href="https://hawkbucks.com/ar-SA/loadouts"/>
+    <xhtml:link rel="alternate" hreflang="fa-IR" href="https://hawkbucks.com/fa-IR/loadouts"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://hawkbucks.com/loadouts"/>
+  </url>
+  <url>
+    <loc>https://hawkbucks.com/fa-IR/loadouts</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://hawkbucks.com/loadouts"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://hawkbucks.com/es/loadouts"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://hawkbucks.com/fr/loadouts"/>
+    <xhtml:link rel="alternate" hreflang="ru" href="https://hawkbucks.com/ru/loadouts"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://hawkbucks.com/de/loadouts"/>
+    <xhtml:link rel="alternate" hreflang="pt" href="https://hawkbucks.com/pt/loadouts"/>
+    <xhtml:link rel="alternate" hreflang="zh" href="https://hawkbucks.com/zh/loadouts"/>
+    <xhtml:link rel="alternate" hreflang="ar-SA" href="https://hawkbucks.com/ar-SA/loadouts"/>
+    <xhtml:link rel="alternate" hreflang="fa-IR" href="https://hawkbucks.com/fa-IR/loadouts"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://hawkbucks.com/loadouts"/>
+  </url>
+  <url>
+    <loc>https://hawkbucks.com/inventory</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://hawkbucks.com/inventory"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://hawkbucks.com/es/inventory"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://hawkbucks.com/fr/inventory"/>
+    <xhtml:link rel="alternate" hreflang="ru" href="https://hawkbucks.com/ru/inventory"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://hawkbucks.com/de/inventory"/>
+    <xhtml:link rel="alternate" hreflang="pt" href="https://hawkbucks.com/pt/inventory"/>
+    <xhtml:link rel="alternate" hreflang="zh" href="https://hawkbucks.com/zh/inventory"/>
+    <xhtml:link rel="alternate" hreflang="ar-SA" href="https://hawkbucks.com/ar-SA/inventory"/>
+    <xhtml:link rel="alternate" hreflang="fa-IR" href="https://hawkbucks.com/fa-IR/inventory"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://hawkbucks.com/inventory"/>
+  </url>
+  <url>
+    <loc>https://hawkbucks.com/es/inventory</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://hawkbucks.com/inventory"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://hawkbucks.com/es/inventory"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://hawkbucks.com/fr/inventory"/>
+    <xhtml:link rel="alternate" hreflang="ru" href="https://hawkbucks.com/ru/inventory"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://hawkbucks.com/de/inventory"/>
+    <xhtml:link rel="alternate" hreflang="pt" href="https://hawkbucks.com/pt/inventory"/>
+    <xhtml:link rel="alternate" hreflang="zh" href="https://hawkbucks.com/zh/inventory"/>
+    <xhtml:link rel="alternate" hreflang="ar-SA" href="https://hawkbucks.com/ar-SA/inventory"/>
+    <xhtml:link rel="alternate" hreflang="fa-IR" href="https://hawkbucks.com/fa-IR/inventory"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://hawkbucks.com/inventory"/>
+  </url>
+  <url>
+    <loc>https://hawkbucks.com/fr/inventory</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://hawkbucks.com/inventory"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://hawkbucks.com/es/inventory"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://hawkbucks.com/fr/inventory"/>
+    <xhtml:link rel="alternate" hreflang="ru" href="https://hawkbucks.com/ru/inventory"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://hawkbucks.com/de/inventory"/>
+    <xhtml:link rel="alternate" hreflang="pt" href="https://hawkbucks.com/pt/inventory"/>
+    <xhtml:link rel="alternate" hreflang="zh" href="https://hawkbucks.com/zh/inventory"/>
+    <xhtml:link rel="alternate" hreflang="ar-SA" href="https://hawkbucks.com/ar-SA/inventory"/>
+    <xhtml:link rel="alternate" hreflang="fa-IR" href="https://hawkbucks.com/fa-IR/inventory"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://hawkbucks.com/inventory"/>
+  </url>
+  <url>
+    <loc>https://hawkbucks.com/ru/inventory</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://hawkbucks.com/inventory"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://hawkbucks.com/es/inventory"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://hawkbucks.com/fr/inventory"/>
+    <xhtml:link rel="alternate" hreflang="ru" href="https://hawkbucks.com/ru/inventory"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://hawkbucks.com/de/inventory"/>
+    <xhtml:link rel="alternate" hreflang="pt" href="https://hawkbucks.com/pt/inventory"/>
+    <xhtml:link rel="alternate" hreflang="zh" href="https://hawkbucks.com/zh/inventory"/>
+    <xhtml:link rel="alternate" hreflang="ar-SA" href="https://hawkbucks.com/ar-SA/inventory"/>
+    <xhtml:link rel="alternate" hreflang="fa-IR" href="https://hawkbucks.com/fa-IR/inventory"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://hawkbucks.com/inventory"/>
+  </url>
+  <url>
+    <loc>https://hawkbucks.com/de/inventory</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://hawkbucks.com/inventory"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://hawkbucks.com/es/inventory"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://hawkbucks.com/fr/inventory"/>
+    <xhtml:link rel="alternate" hreflang="ru" href="https://hawkbucks.com/ru/inventory"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://hawkbucks.com/de/inventory"/>
+    <xhtml:link rel="alternate" hreflang="pt" href="https://hawkbucks.com/pt/inventory"/>
+    <xhtml:link rel="alternate" hreflang="zh" href="https://hawkbucks.com/zh/inventory"/>
+    <xhtml:link rel="alternate" hreflang="ar-SA" href="https://hawkbucks.com/ar-SA/inventory"/>
+    <xhtml:link rel="alternate" hreflang="fa-IR" href="https://hawkbucks.com/fa-IR/inventory"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://hawkbucks.com/inventory"/>
+  </url>
+  <url>
+    <loc>https://hawkbucks.com/pt/inventory</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://hawkbucks.com/inventory"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://hawkbucks.com/es/inventory"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://hawkbucks.com/fr/inventory"/>
+    <xhtml:link rel="alternate" hreflang="ru" href="https://hawkbucks.com/ru/inventory"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://hawkbucks.com/de/inventory"/>
+    <xhtml:link rel="alternate" hreflang="pt" href="https://hawkbucks.com/pt/inventory"/>
+    <xhtml:link rel="alternate" hreflang="zh" href="https://hawkbucks.com/zh/inventory"/>
+    <xhtml:link rel="alternate" hreflang="ar-SA" href="https://hawkbucks.com/ar-SA/inventory"/>
+    <xhtml:link rel="alternate" hreflang="fa-IR" href="https://hawkbucks.com/fa-IR/inventory"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://hawkbucks.com/inventory"/>
+  </url>
+  <url>
+    <loc>https://hawkbucks.com/zh/inventory</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://hawkbucks.com/inventory"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://hawkbucks.com/es/inventory"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://hawkbucks.com/fr/inventory"/>
+    <xhtml:link rel="alternate" hreflang="ru" href="https://hawkbucks.com/ru/inventory"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://hawkbucks.com/de/inventory"/>
+    <xhtml:link rel="alternate" hreflang="pt" href="https://hawkbucks.com/pt/inventory"/>
+    <xhtml:link rel="alternate" hreflang="zh" href="https://hawkbucks.com/zh/inventory"/>
+    <xhtml:link rel="alternate" hreflang="ar-SA" href="https://hawkbucks.com/ar-SA/inventory"/>
+    <xhtml:link rel="alternate" hreflang="fa-IR" href="https://hawkbucks.com/fa-IR/inventory"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://hawkbucks.com/inventory"/>
+  </url>
+  <url>
+    <loc>https://hawkbucks.com/ar-SA/inventory</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://hawkbucks.com/inventory"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://hawkbucks.com/es/inventory"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://hawkbucks.com/fr/inventory"/>
+    <xhtml:link rel="alternate" hreflang="ru" href="https://hawkbucks.com/ru/inventory"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://hawkbucks.com/de/inventory"/>
+    <xhtml:link rel="alternate" hreflang="pt" href="https://hawkbucks.com/pt/inventory"/>
+    <xhtml:link rel="alternate" hreflang="zh" href="https://hawkbucks.com/zh/inventory"/>
+    <xhtml:link rel="alternate" hreflang="ar-SA" href="https://hawkbucks.com/ar-SA/inventory"/>
+    <xhtml:link rel="alternate" hreflang="fa-IR" href="https://hawkbucks.com/fa-IR/inventory"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://hawkbucks.com/inventory"/>
+  </url>
+  <url>
+    <loc>https://hawkbucks.com/fa-IR/inventory</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://hawkbucks.com/inventory"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://hawkbucks.com/es/inventory"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://hawkbucks.com/fr/inventory"/>
+    <xhtml:link rel="alternate" hreflang="ru" href="https://hawkbucks.com/ru/inventory"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://hawkbucks.com/de/inventory"/>
+    <xhtml:link rel="alternate" hreflang="pt" href="https://hawkbucks.com/pt/inventory"/>
+    <xhtml:link rel="alternate" hreflang="zh" href="https://hawkbucks.com/zh/inventory"/>
+    <xhtml:link rel="alternate" hreflang="ar-SA" href="https://hawkbucks.com/ar-SA/inventory"/>
+    <xhtml:link rel="alternate" hreflang="fa-IR" href="https://hawkbucks.com/fa-IR/inventory"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://hawkbucks.com/inventory"/>
+  </url>
 </urlset>

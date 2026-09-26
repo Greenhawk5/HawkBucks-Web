@@ -1,0 +1,25 @@
+name = "hawkbucks-web-demo"
+main = "index.js"
+compatibility_date = "2026-09-25"
+
+# DEMO-ONLY backend Worker config. Production is worker/wrangler.toml
+# (hawkbucks-web + hawkbucks-data + production KV). This file deploys ONLY the
+# isolated demo backend: hawkbucks-web-demo + hawkbucks-demo D1 +
+# HAWKBUCKS_CACHE_DEMO KV. workers_dev stays true so the demo API has a
+# debuggable URL; production stays workers_dev = false. NEVER apply
+# production migrations from this file; NEVER rename it to wrangler.toml.
+
+workers_dev = true
+
+[[kv_namespaces]]
+binding = "HAWKBUCKS_CACHE"
+id = "34dfff4944694897a2b7bfa88359fdff"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "hawkbucks-demo"
+database_id = "6f116426-4530-4c48-b96e-bd40cdc7c353"
+migrations_dir = "migrations"
+
+[triggers]
+crons = ["*/30 * * * *"]

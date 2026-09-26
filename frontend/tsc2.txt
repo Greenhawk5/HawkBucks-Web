@@ -1,0 +1,1 @@
+error TS5093: Compiler option '--force' may only be used with '--build'.

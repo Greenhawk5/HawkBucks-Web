@@ -29,7 +29,15 @@ import {
 import { SITE_URL } from "./site";
 
 /** Paths that exist as indexable pages (bare form; locale variants derive). */
-export const INDEXABLE_BASE_PATHS = ["/", "/about", "/vbucks-missions", "/missions-guide"] as const;
+export const INDEXABLE_BASE_PATHS = [
+  "/",
+  "/about",
+  "/vbucks-missions",
+  "/missions-guide",
+  "/heroes",
+  "/loadouts",
+  "/inventory",
+] as const;
 
 export type IndexableBasePath = (typeof INDEXABLE_BASE_PATHS)[number];
 
@@ -39,8 +47,8 @@ export type IndexableBasePath = (typeof INDEXABLE_BASE_PATHS)[number];
  * region codes where the product identifier is regional. `x-default` is added
  * by `hreflangAlternates`, never here.
  */
-export function hreflangFor(language: LanguageCode): string {
-  return parseLanguage(language);
+export function hreflangFor(language: string): string {
+  return parseLanguage(language as LanguageCode);
 }
 
 /**
@@ -83,8 +91,8 @@ export function splitLocalePath(pathname: string): SplitLocalePath {
  * Prefix a base path for a language. English keeps the bare URL (the
  * default-language canonical); every other language gets `/<code>`.
  */
-export function localizePath(basePath: string, language: LanguageCode): string {
-  const code = parseLanguage(language);
+export function localizePath(basePath: string, language: string): string {
+  const code = parseLanguage(language as LanguageCode);
   if (code === DEFAULT_LANGUAGE) return basePath;
   return basePath === "/" ? `/${code}` : `/${code}${basePath}`;
 }

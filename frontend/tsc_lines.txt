@@ -1,0 +1,84 @@
+﻿src/components/cms/HeroesPage.tsx(60,7): error TS2375: Type '{ locale: string; heroClass: string | undefined; search: string | undefined; sort: "name" | "popularity" | "editorial"; limit: number; offset: number; }' is not assignable to type '{ locale?: string; heroClass?: string; search?: string; sort?: string; limit?: number; offset?: number; }' with 'exactOptionalPropertyTypes: true'. Consider adding 'undefined' to the types of the target's properties.
+  Types of property 'heroClass' are incompatible.
+    Type 'string | undefined' is not assignable to type 'string'.
+      Type 'undefined' is not assignable to type 'string'.
+src/components/cms/LoadoutsPage.tsx(23,45): error TS4111: Property 'sort' comes from an index signature, so it must be accessed with ['sort'].
+src/components/cms/LoadoutsPage.tsx(24,38): error TS4111: Property 'page' comes from an index signature, so it must be accessed with ['page'].
+src/components/cms/LoadoutsPage.tsx(25,37): error TS4111: Property 'q' comes from an index signature, so it must be accessed with ['q'].
+src/components/cms/LoadoutsPage.tsx(35,7): error TS2375: Type '{ locale: string; sort: "name" | "popularity" | "editorial"; search: string | undefined; limit: number; offset: number; }' is not assignable to type '{ locale?: string; sort?: string; search?: string; limit?: number; offset?: number; }' with 'exactOptionalPropertyTypes: true'. Consider adding 'undefined' to the types of the target's properties.
+  Types of property 'search' are incompatible.
+    Type 'string | undefined' is not assignable to type 'string'.
+      Type 'undefined' is not assignable to type 'string'.
+src/components/cms/LoadoutsPage.tsx(88,29): error TS2322: Type '`${string}?page=${number}`' is not assignable to type '"." | "/" | "/about" | "/vbucks-missions" | "/missions-guide" | "/heroes" | "/loadouts" | "/inventory" | "/$locale/about" | "/$locale/heroes" | "/$locale/inventory" | "/$locale/loadouts" | ... 15 more ... | ".."'.
+src/components/cms/LoadoutsPage.tsx(92,33): error TS2322: Type '`${string}?page=${number}`' is not assignable to type '"." | "/" | "/about" | "/vbucks-missions" | "/missions-guide" | "/heroes" | "/loadouts" | "/inventory" | "/$locale/about" | "/$locale/heroes" | "/$locale/inventory" | "/$locale/loadouts" | ... 15 more ... | ".."'.
+src/lib/cms/public-hero-detail.loader.ts(15,37): error TS2339: Property 'getContentById' does not exist on type 'typeof import("E:/2.Things/My apps/HawkBucks - Cloudflare/web/frontend/src/lib/cms/heroes-loadouts.server")'.
+src/lib/cms/public-hero-detail.loader.ts(59,26): error TS4111: Property 'slug' comes from an index signature, so it must be accessed with ['slug'].
+src/lib/cms/public-hero-detail.loader.ts(60,27): error TS4111: Property 'title' comes from an index signature, so it must be accessed with ['title'].
+src/lib/cms/public-hero-detail.loader.ts(61,33): error TS4111: Property 'body' comes from an index signature, so it must be accessed with ['body'].
+src/lib/cms/public-hero-detail.loader.ts(62,34): error TS4111: Property 'loadout_type' comes from an index signature, so it must be accessed with ['loadout_type'].
+src/lib/cms/public-hero-detail.loader.ts(63,33): error TS4111: Property 'popularity' comes from an index signature, so it must be accessed with ['popularity'].
+src/lib/cms/public-hero-detail.loader.ts(64,32): error TS4111: Property 'sort_order' comes from an index signature, so it must be accessed with ['sort_order'].
+src/lib/cms/public-hero-detail.loader.ts(66,39): error TS4111: Property 'translation_status' comes from an index signature, so it must be accessed with ['translation_status'].
+src/lib/cms/public-loadout-detail.loader.ts(16,40): error TS2339: Property 'getContentById' does not exist on type 'typeof import("E:/2.Things/My apps/HawkBucks - Cloudflare/web/frontend/src/lib/cms/heroes-loadouts.server")'.
+src/lib/cms/public-loadout-detail.loader.ts(50,26): error TS4111: Property 'slug' comes from an index signature, so it must be accessed with ['slug'].
+src/lib/cms/public-loadout-detail.loader.ts(51,27): error TS4111: Property 'title' comes from an index signature, so it must be accessed with ['title'].
+src/lib/cms/public-loadout-detail.loader.ts(52,33): error TS4111: Property 'body' comes from an index signature, so it must be accessed with ['body'].
+src/lib/cms/public-loadout-detail.loader.ts(53,32): error TS4111: Property 'hero_class' comes from an index signature, so it must be accessed with ['hero_class'].
+src/lib/cms/public-loadout-detail.loader.ts(54,25): error TS4111: Property 'category' comes from an index signature, so it must be accessed with ['category'].
+src/lib/cms/public-loadout-detail.loader.ts(55,33): error TS4111: Property 'popularity' comes from an index signature, so it must be accessed with ['popularity'].
+src/lib/cms/public-loadout-detail.loader.ts(56,32): error TS4111: Property 'sort_order' comes from an index signature, so it must be accessed with ['sort_order'].
+src/lib/cms/public-loadout-detail.loader.ts(58,24): error TS4111: Property 'seo_title' comes from an index signature, so it must be accessed with ['seo_title'].
+src/lib/cms/public-loadout-detail.loader.ts(59,30): error TS4111: Property 'seo_description' comes from an index signature, so it must be accessed with ['seo_description'].
+src/lib/cms/public-loadout-detail.loader.ts(60,39): error TS4111: Property 'translation_status' comes from an index signature, so it must be accessed with ['translation_status'].
+src/lib/cms/public.loader.ts(63,48): error TS2379: Argument of type '{ locale: string; heroClass: "soldier" | "ninja" | "outlander" | "constructor" | undefined; limit: number; offset: number; }' is not assignable to parameter of type '{ locale: string; heroClass?: string; limit?: number; offset?: number; }' with 'exactOptionalPropertyTypes: true'. Consider adding 'undefined' to the types of the target's properties.
+  Types of property 'heroClass' are incompatible.
+    Type 'string | undefined' is not assignable to type 'string'.
+      Type 'undefined' is not assignable to type 'string'.
+src/routes/$locale.heroes.$slug.tsx(84,20): error TS18048: 'hero' is possibly 'undefined'.
+src/routes/$locale.heroes.$slug.tsx(87,7): error TS2322: Type '(language: "en" | "es" | "fr" | "ru" | "de" | "pt" | "zh" | "ar-SA" | "fa-IR") => string' is not assignable to type '(locale: string) => string'.
+  Types of parameters 'language' and 'locale' are incompatible.
+    Type 'string' is not assignable to type '"en" | "es" | "fr" | "ru" | "de" | "pt" | "zh" | "ar-SA" | "fa-IR"'.
+src/routes/$locale.heroes.tsx(26,21): error TS4111: Property 'class' comes from an index signature, so it must be accessed with ['class'].
+src/routes/$locale.heroes.tsx(26,44): error TS4111: Property 'class' comes from an index signature, so it must be accessed with ['class'].
+src/routes/$locale.heroes.tsx(27,17): error TS4111: Property 'q' comes from an index signature, so it must be accessed with ['q'].
+src/routes/$locale.heroes.tsx(27,36): error TS4111: Property 'q' comes from an index signature, so it must be accessed with ['q'].
+src/routes/$locale.heroes.tsx(28,20): error TS4111: Property 'sort' comes from an index signature, so it must be accessed with ['sort'].
+src/routes/$locale.heroes.tsx(28,42): error TS4111: Property 'sort' comes from an index signature, so it must be accessed with ['sort'].
+src/routes/$locale.heroes.tsx(29,20): error TS4111: Property 'page' comes from an index signature, so it must be accessed with ['page'].
+src/routes/$locale.heroes.tsx(29,50): error TS4111: Property 'page' comes from an index signature, so it must be accessed with ['page'].
+src/routes/$locale.heroes.tsx(29,72): error TS4111: Property 'page' comes from an index signature, so it must be accessed with ['page'].
+src/routes/$locale.loadouts.$slug.tsx(80,20): error TS18048: 'loadout' is possibly 'undefined'.
+src/routes/$locale.loadouts.$slug.tsx(83,7): error TS2322: Type '(language: "en" | "es" | "fr" | "ru" | "de" | "pt" | "zh" | "ar-SA" | "fa-IR") => string' is not assignable to type '(locale: string) => string'.
+  Types of parameters 'language' and 'locale' are incompatible.
+    Type 'string' is not assignable to type '"en" | "es" | "fr" | "ru" | "de" | "pt" | "zh" | "ar-SA" | "fa-IR"'.
+src/routes/$locale.loadouts.tsx(25,17): error TS4111: Property 'q' comes from an index signature, so it must be accessed with ['q'].
+src/routes/$locale.loadouts.tsx(25,36): error TS4111: Property 'q' comes from an index signature, so it must be accessed with ['q'].
+src/routes/$locale.loadouts.tsx(26,20): error TS4111: Property 'sort' comes from an index signature, so it must be accessed with ['sort'].
+src/routes/$locale.loadouts.tsx(26,42): error TS4111: Property 'sort' comes from an index signature, so it must be accessed with ['sort'].
+src/routes/$locale.loadouts.tsx(27,20): error TS4111: Property 'page' comes from an index signature, so it must be accessed with ['page'].
+src/routes/$locale.loadouts.tsx(27,50): error TS4111: Property 'page' comes from an index signature, so it must be accessed with ['page'].
+src/routes/$locale.loadouts.tsx(27,72): error TS4111: Property 'page' comes from an index signature, so it must be accessed with ['page'].
+src/routes/heroes.$slug.tsx(60,20): error TS18048: 'hero' is possibly 'undefined'.
+src/routes/heroes.$slug.tsx(63,7): error TS2322: Type '(language: "en" | "es" | "fr" | "ru" | "de" | "pt" | "zh" | "ar-SA" | "fa-IR") => string' is not assignable to type '(locale: string) => string'.
+  Types of parameters 'language' and 'locale' are incompatible.
+    Type 'string' is not assignable to type '"en" | "es" | "fr" | "ru" | "de" | "pt" | "zh" | "ar-SA" | "fa-IR"'.
+src/routes/heroes.tsx(9,21): error TS4111: Property 'class' comes from an index signature, so it must be accessed with ['class'].
+src/routes/heroes.tsx(9,44): error TS4111: Property 'class' comes from an index signature, so it must be accessed with ['class'].
+src/routes/heroes.tsx(10,17): error TS4111: Property 'q' comes from an index signature, so it must be accessed with ['q'].
+src/routes/heroes.tsx(10,36): error TS4111: Property 'q' comes from an index signature, so it must be accessed with ['q'].
+src/routes/heroes.tsx(11,20): error TS4111: Property 'sort' comes from an index signature, so it must be accessed with ['sort'].
+src/routes/heroes.tsx(11,42): error TS4111: Property 'sort' comes from an index signature, so it must be accessed with ['sort'].
+src/routes/heroes.tsx(12,20): error TS4111: Property 'page' comes from an index signature, so it must be accessed with ['page'].
+src/routes/heroes.tsx(12,50): error TS4111: Property 'page' comes from an index signature, so it must be accessed with ['page'].
+src/routes/heroes.tsx(12,72): error TS4111: Property 'page' comes from an index signature, so it must be accessed with ['page'].
+src/routes/loadouts.$slug.tsx(53,20): error TS18048: 'loadout' is possibly 'undefined'.
+src/routes/loadouts.$slug.tsx(56,7): error TS2322: Type '(language: "en" | "es" | "fr" | "ru" | "de" | "pt" | "zh" | "ar-SA" | "fa-IR") => string' is not assignable to type '(locale: string) => string'.
+  Types of parameters 'language' and 'locale' are incompatible.
+    Type 'string' is not assignable to type '"en" | "es" | "fr" | "ru" | "de" | "pt" | "zh" | "ar-SA" | "fa-IR"'.
+src/routes/loadouts.tsx(7,17): error TS4111: Property 'q' comes from an index signature, so it must be accessed with ['q'].
+src/routes/loadouts.tsx(7,36): error TS4111: Property 'q' comes from an index signature, so it must be accessed with ['q'].
+src/routes/loadouts.tsx(8,20): error TS4111: Property 'sort' comes from an index signature, so it must be accessed with ['sort'].
+src/routes/loadouts.tsx(8,42): error TS4111: Property 'sort' comes from an index signature, so it must be accessed with ['sort'].
+src/routes/loadouts.tsx(9,20): error TS4111: Property 'page' comes from an index signature, so it must be accessed with ['page'].
+src/routes/loadouts.tsx(9,50): error TS4111: Property 'page' comes from an index signature, so it must be accessed with ['page'].
+src/routes/loadouts.tsx(9,72): error TS4111: Property 'page' comes from an index signature, so it must be accessed with ['page'].
