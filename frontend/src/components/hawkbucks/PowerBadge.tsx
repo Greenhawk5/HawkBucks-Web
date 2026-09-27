@@ -8,7 +8,7 @@ export function PowerBadge({ level }: { level: number }) {
       <span className="font-display text-2xl font-extrabold tabular-nums leading-none sm:text-3xl">
         {level}
       </span>
-      <span className="flex flex-col items-center border-l border-border/70 pl-2">
+      <span className="flex flex-col items-center border-s border-border/70 ps-2">
         {/* Purely decorative icon next to the visible "Power" label: rendered as a
             CSS background (same approved asset, same 16px size) so it stays out of
             the accessibility tree and is not announced redundantly. */}

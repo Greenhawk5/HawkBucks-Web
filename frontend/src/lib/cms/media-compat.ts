@@ -66,7 +66,9 @@ export function resolveCompatDeliveryUrl(
     if (assetId.startsWith("https://")) return assetId;
     // Bare fileId: only resolvable with the legacy endpoint configured.
     const endpoint =
-      typeof config.imagekitEndpoint === "string" ? stripTrailingSlashes(config.imagekitEndpoint) : "";
+      typeof config.imagekitEndpoint === "string"
+        ? stripTrailingSlashes(config.imagekitEndpoint)
+        : "";
     if (endpoint.startsWith("https://") && assetId !== "" && !assetId.includes("..")) {
       return `${endpoint}/${assetId.replace(/^\/+/, "")}`;
     }

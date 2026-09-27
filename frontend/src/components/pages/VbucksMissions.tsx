@@ -69,7 +69,7 @@ export function VbucksMissionsPage() {
               {t("missions.guidePointer")}
               <ArrowRight
                 aria-hidden="true"
-                className="h-3.5 w-3.5 transition-transform duration-200 group-hover:translate-x-0.5 motion-reduce:transition-none rtl:rotate-180"
+                className="h-3.5 w-3.5 transition-transform duration-200 group-hover:translate-x-0.5 motion-reduce:transition-none rtl:group-hover:-translate-x-0.5 rtl:rotate-180"
               />
             </Link>
           </p>

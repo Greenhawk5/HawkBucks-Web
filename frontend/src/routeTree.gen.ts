@@ -11,6 +11,8 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AboutRouteImport } from './routes/about'
+import { Route as ArticlesRouteImport } from './routes/articles'
+import { Route as GuidesRouteImport } from './routes/guides'
 import { Route as HeroesRouteImport } from './routes/heroes'
 import { Route as InventoryRouteImport } from './routes/inventory'
 import { Route as LoadoutsRouteImport } from './routes/loadouts'
@@ -18,22 +20,33 @@ import { Route as MissionsGuideRouteImport } from './routes/missions-guide'
 import { Route as VbucksMissionsRouteImport } from './routes/vbucks-missions'
 import { Route as LocaleIndexRouteImport } from './routes/$locale/index'
 import { Route as LocaleAboutRouteImport } from './routes/$locale/about'
+import { Route as LocaleArticlesRouteImport } from './routes/$locale.articles'
+import { Route as LocaleGuidesRouteImport } from './routes/$locale.guides'
 import { Route as LocaleHeroesRouteImport } from './routes/$locale.heroes'
 import { Route as LocaleInventoryRouteImport } from './routes/$locale.inventory'
 import { Route as LocaleLoadoutsRouteImport } from './routes/$locale.loadouts'
 import { Route as LocaleMissionsGuideRouteImport } from './routes/$locale/missions-guide'
 import { Route as LocaleVbucksMissionsRouteImport } from './routes/$locale/vbucks-missions'
 import { Route as AdminIndexRouteImport } from './routes/admin/index'
+import { Route as AdminArticlesRouteImport } from './routes/admin/articles'
 import { Route as AdminHeroesRouteImport } from './routes/admin/heroes'
+import { Route as AdminInventoryRouteImport } from './routes/admin/inventory'
 import { Route as AdminLoadoutsRouteImport } from './routes/admin/loadouts'
 import { Route as AdminMediaRouteImport } from './routes/admin/media'
+import { Route as ArticlesSlugRouteImport } from './routes/articles.$slug'
+import { Route as ArticlesPreviewRouteImport } from './routes/articles.preview'
+import { Route as GuidesSlugRouteImport } from './routes/guides.$slug'
 import { Route as HeroesSlugRouteImport } from './routes/heroes.$slug'
 import { Route as InventorySlugRouteImport } from './routes/inventory.$slug'
 import { Route as LoadoutsSlugRouteImport } from './routes/loadouts.$slug'
+import { Route as LocaleArticlesSlugRouteImport } from './routes/$locale.articles.$slug'
+import { Route as LocaleGuidesSlugRouteImport } from './routes/$locale.guides.$slug'
 import { Route as LocaleHeroesSlugRouteImport } from './routes/$locale.heroes.$slug'
 import { Route as LocaleInventorySlugRouteImport } from './routes/$locale.inventory.$slug'
 import { Route as LocaleLoadoutsSlugRouteImport } from './routes/$locale.loadouts.$slug'
+import { Route as AdminArticlesContentIdRouteImport } from './routes/admin/articles.$contentId'
 import { Route as AdminHeroesContentIdRouteImport } from './routes/admin/heroes.$contentId'
+import { Route as AdminInventoryContentIdRouteImport } from './routes/admin/inventory.$contentId'
 import { Route as AdminLoadoutsContentIdRouteImport } from './routes/admin/loadouts.$contentId'
 
 const IndexRoute = IndexRouteImport.update({
@@ -44,6 +57,16 @@ const IndexRoute = IndexRouteImport.update({
 const AboutRoute = AboutRouteImport.update({
   id: '/about',
   path: '/about',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ArticlesRoute = ArticlesRouteImport.update({
+  id: '/articles',
+  path: '/articles',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const GuidesRoute = GuidesRouteImport.update({
+  id: '/guides',
+  path: '/guides',
   getParentRoute: () => rootRouteImport,
 } as any)
 const HeroesRoute = HeroesRouteImport.update({
@@ -81,6 +104,16 @@ const LocaleAboutRoute = LocaleAboutRouteImport.update({
   path: '/$locale/about',
   getParentRoute: () => rootRouteImport,
 } as any)
+const LocaleArticlesRoute = LocaleArticlesRouteImport.update({
+  id: '/$locale/articles',
+  path: '/$locale/articles',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LocaleGuidesRoute = LocaleGuidesRouteImport.update({
+  id: '/$locale/guides',
+  path: '/$locale/guides',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const LocaleHeroesRoute = LocaleHeroesRouteImport.update({
   id: '/$locale/heroes',
   path: '/$locale/heroes',
@@ -111,9 +144,19 @@ const AdminIndexRoute = AdminIndexRouteImport.update({
   path: '/admin/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AdminArticlesRoute = AdminArticlesRouteImport.update({
+  id: '/admin/articles',
+  path: '/admin/articles',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AdminHeroesRoute = AdminHeroesRouteImport.update({
   id: '/admin/heroes',
   path: '/admin/heroes',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminInventoryRoute = AdminInventoryRouteImport.update({
+  id: '/admin/inventory',
+  path: '/admin/inventory',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AdminLoadoutsRoute = AdminLoadoutsRouteImport.update({
@@ -125,6 +168,21 @@ const AdminMediaRoute = AdminMediaRouteImport.update({
   id: '/admin/media',
   path: '/admin/media',
   getParentRoute: () => rootRouteImport,
+} as any)
+const ArticlesSlugRoute = ArticlesSlugRouteImport.update({
+  id: '/$slug',
+  path: '/$slug',
+  getParentRoute: () => ArticlesRoute,
+} as any)
+const ArticlesPreviewRoute = ArticlesPreviewRouteImport.update({
+  id: '/preview',
+  path: '/preview',
+  getParentRoute: () => ArticlesRoute,
+} as any)
+const GuidesSlugRoute = GuidesSlugRouteImport.update({
+  id: '/$slug',
+  path: '/$slug',
+  getParentRoute: () => GuidesRoute,
 } as any)
 const HeroesSlugRoute = HeroesSlugRouteImport.update({
   id: '/$slug',
@@ -141,6 +199,16 @@ const LoadoutsSlugRoute = LoadoutsSlugRouteImport.update({
   path: '/$slug',
   getParentRoute: () => LoadoutsRoute,
 } as any)
+const LocaleArticlesSlugRoute = LocaleArticlesSlugRouteImport.update({
+  id: '/$slug',
+  path: '/$slug',
+  getParentRoute: () => LocaleArticlesRoute,
+} as any)
+const LocaleGuidesSlugRoute = LocaleGuidesSlugRouteImport.update({
+  id: '/$slug',
+  path: '/$slug',
+  getParentRoute: () => LocaleGuidesRoute,
+} as any)
 const LocaleHeroesSlugRoute = LocaleHeroesSlugRouteImport.update({
   id: '/$slug',
   path: '/$slug',
@@ -156,10 +224,20 @@ const LocaleLoadoutsSlugRoute = LocaleLoadoutsSlugRouteImport.update({
   path: '/$slug',
   getParentRoute: () => LocaleLoadoutsRoute,
 } as any)
+const AdminArticlesContentIdRoute = AdminArticlesContentIdRouteImport.update({
+  id: '/$contentId',
+  path: '/$contentId',
+  getParentRoute: () => AdminArticlesRoute,
+} as any)
 const AdminHeroesContentIdRoute = AdminHeroesContentIdRouteImport.update({
   id: '/$contentId',
   path: '/$contentId',
   getParentRoute: () => AdminHeroesRoute,
+} as any)
+const AdminInventoryContentIdRoute = AdminInventoryContentIdRouteImport.update({
+  id: '/$contentId',
+  path: '/$contentId',
+  getParentRoute: () => AdminInventoryRoute,
 } as any)
 const AdminLoadoutsContentIdRoute = AdminLoadoutsContentIdRouteImport.update({
   id: '/$contentId',
@@ -170,86 +248,125 @@ const AdminLoadoutsContentIdRoute = AdminLoadoutsContentIdRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
+  '/articles': typeof ArticlesRouteWithChildren
+  '/guides': typeof GuidesRouteWithChildren
   '/heroes': typeof HeroesRouteWithChildren
   '/inventory': typeof InventoryRouteWithChildren
   '/loadouts': typeof LoadoutsRouteWithChildren
   '/missions-guide': typeof MissionsGuideRoute
   '/vbucks-missions': typeof VbucksMissionsRoute
   '/$locale/about': typeof LocaleAboutRoute
+  '/$locale/articles': typeof LocaleArticlesRouteWithChildren
+  '/$locale/guides': typeof LocaleGuidesRouteWithChildren
   '/$locale/heroes': typeof LocaleHeroesRouteWithChildren
   '/$locale/inventory': typeof LocaleInventoryRouteWithChildren
   '/$locale/loadouts': typeof LocaleLoadoutsRouteWithChildren
   '/$locale/missions-guide': typeof LocaleMissionsGuideRoute
   '/$locale/vbucks-missions': typeof LocaleVbucksMissionsRoute
+  '/admin/articles': typeof AdminArticlesRouteWithChildren
   '/admin/heroes': typeof AdminHeroesRouteWithChildren
+  '/admin/inventory': typeof AdminInventoryRouteWithChildren
   '/admin/loadouts': typeof AdminLoadoutsRouteWithChildren
   '/admin/media': typeof AdminMediaRoute
+  '/articles/$slug': typeof ArticlesSlugRoute
+  '/articles/preview': typeof ArticlesPreviewRoute
+  '/guides/$slug': typeof GuidesSlugRoute
   '/heroes/$slug': typeof HeroesSlugRoute
   '/inventory/$slug': typeof InventorySlugRoute
   '/loadouts/$slug': typeof LoadoutsSlugRoute
   '/$locale/': typeof LocaleIndexRoute
   '/admin/': typeof AdminIndexRoute
+  '/$locale/articles/$slug': typeof LocaleArticlesSlugRoute
+  '/$locale/guides/$slug': typeof LocaleGuidesSlugRoute
   '/$locale/heroes/$slug': typeof LocaleHeroesSlugRoute
   '/$locale/inventory/$slug': typeof LocaleInventorySlugRoute
   '/$locale/loadouts/$slug': typeof LocaleLoadoutsSlugRoute
+  '/admin/articles/$contentId': typeof AdminArticlesContentIdRoute
   '/admin/heroes/$contentId': typeof AdminHeroesContentIdRoute
+  '/admin/inventory/$contentId': typeof AdminInventoryContentIdRoute
   '/admin/loadouts/$contentId': typeof AdminLoadoutsContentIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
+  '/articles': typeof ArticlesRouteWithChildren
+  '/guides': typeof GuidesRouteWithChildren
   '/heroes': typeof HeroesRouteWithChildren
   '/inventory': typeof InventoryRouteWithChildren
   '/loadouts': typeof LoadoutsRouteWithChildren
   '/missions-guide': typeof MissionsGuideRoute
   '/vbucks-missions': typeof VbucksMissionsRoute
   '/$locale/about': typeof LocaleAboutRoute
+  '/$locale/articles': typeof LocaleArticlesRouteWithChildren
+  '/$locale/guides': typeof LocaleGuidesRouteWithChildren
   '/$locale/heroes': typeof LocaleHeroesRouteWithChildren
   '/$locale/inventory': typeof LocaleInventoryRouteWithChildren
   '/$locale/loadouts': typeof LocaleLoadoutsRouteWithChildren
   '/$locale/missions-guide': typeof LocaleMissionsGuideRoute
   '/$locale/vbucks-missions': typeof LocaleVbucksMissionsRoute
+  '/admin/articles': typeof AdminArticlesRouteWithChildren
   '/admin/heroes': typeof AdminHeroesRouteWithChildren
+  '/admin/inventory': typeof AdminInventoryRouteWithChildren
   '/admin/loadouts': typeof AdminLoadoutsRouteWithChildren
   '/admin/media': typeof AdminMediaRoute
+  '/articles/$slug': typeof ArticlesSlugRoute
+  '/articles/preview': typeof ArticlesPreviewRoute
+  '/guides/$slug': typeof GuidesSlugRoute
   '/heroes/$slug': typeof HeroesSlugRoute
   '/inventory/$slug': typeof InventorySlugRoute
   '/loadouts/$slug': typeof LoadoutsSlugRoute
   '/$locale': typeof LocaleIndexRoute
   '/admin': typeof AdminIndexRoute
+  '/$locale/articles/$slug': typeof LocaleArticlesSlugRoute
+  '/$locale/guides/$slug': typeof LocaleGuidesSlugRoute
   '/$locale/heroes/$slug': typeof LocaleHeroesSlugRoute
   '/$locale/inventory/$slug': typeof LocaleInventorySlugRoute
   '/$locale/loadouts/$slug': typeof LocaleLoadoutsSlugRoute
+  '/admin/articles/$contentId': typeof AdminArticlesContentIdRoute
   '/admin/heroes/$contentId': typeof AdminHeroesContentIdRoute
+  '/admin/inventory/$contentId': typeof AdminInventoryContentIdRoute
   '/admin/loadouts/$contentId': typeof AdminLoadoutsContentIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
+  '/articles': typeof ArticlesRouteWithChildren
+  '/guides': typeof GuidesRouteWithChildren
   '/heroes': typeof HeroesRouteWithChildren
   '/inventory': typeof InventoryRouteWithChildren
   '/loadouts': typeof LoadoutsRouteWithChildren
   '/missions-guide': typeof MissionsGuideRoute
   '/vbucks-missions': typeof VbucksMissionsRoute
   '/$locale/about': typeof LocaleAboutRoute
+  '/$locale/articles': typeof LocaleArticlesRouteWithChildren
+  '/$locale/guides': typeof LocaleGuidesRouteWithChildren
   '/$locale/heroes': typeof LocaleHeroesRouteWithChildren
   '/$locale/inventory': typeof LocaleInventoryRouteWithChildren
   '/$locale/loadouts': typeof LocaleLoadoutsRouteWithChildren
   '/$locale/missions-guide': typeof LocaleMissionsGuideRoute
   '/$locale/vbucks-missions': typeof LocaleVbucksMissionsRoute
+  '/admin/articles': typeof AdminArticlesRouteWithChildren
   '/admin/heroes': typeof AdminHeroesRouteWithChildren
+  '/admin/inventory': typeof AdminInventoryRouteWithChildren
   '/admin/loadouts': typeof AdminLoadoutsRouteWithChildren
   '/admin/media': typeof AdminMediaRoute
+  '/articles/$slug': typeof ArticlesSlugRoute
+  '/articles/preview': typeof ArticlesPreviewRoute
+  '/guides/$slug': typeof GuidesSlugRoute
   '/heroes/$slug': typeof HeroesSlugRoute
   '/inventory/$slug': typeof InventorySlugRoute
   '/loadouts/$slug': typeof LoadoutsSlugRoute
   '/$locale/': typeof LocaleIndexRoute
   '/admin/': typeof AdminIndexRoute
+  '/$locale/articles/$slug': typeof LocaleArticlesSlugRoute
+  '/$locale/guides/$slug': typeof LocaleGuidesSlugRoute
   '/$locale/heroes/$slug': typeof LocaleHeroesSlugRoute
   '/$locale/inventory/$slug': typeof LocaleInventorySlugRoute
   '/$locale/loadouts/$slug': typeof LocaleLoadoutsSlugRoute
+  '/admin/articles/$contentId': typeof AdminArticlesContentIdRoute
   '/admin/heroes/$contentId': typeof AdminHeroesContentIdRoute
+  '/admin/inventory/$contentId': typeof AdminInventoryContentIdRoute
   '/admin/loadouts/$contentId': typeof AdminLoadoutsContentIdRoute
 }
 export interface FileRouteTypes {
@@ -257,103 +374,148 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/about'
+    | '/articles'
+    | '/guides'
     | '/heroes'
     | '/inventory'
     | '/loadouts'
     | '/missions-guide'
     | '/vbucks-missions'
     | '/$locale/about'
+    | '/$locale/articles'
+    | '/$locale/guides'
     | '/$locale/heroes'
     | '/$locale/inventory'
     | '/$locale/loadouts'
     | '/$locale/missions-guide'
     | '/$locale/vbucks-missions'
+    | '/admin/articles'
     | '/admin/heroes'
+    | '/admin/inventory'
     | '/admin/loadouts'
     | '/admin/media'
+    | '/articles/$slug'
+    | '/articles/preview'
+    | '/guides/$slug'
     | '/heroes/$slug'
     | '/inventory/$slug'
     | '/loadouts/$slug'
     | '/$locale/'
     | '/admin/'
+    | '/$locale/articles/$slug'
+    | '/$locale/guides/$slug'
     | '/$locale/heroes/$slug'
     | '/$locale/inventory/$slug'
     | '/$locale/loadouts/$slug'
+    | '/admin/articles/$contentId'
     | '/admin/heroes/$contentId'
+    | '/admin/inventory/$contentId'
     | '/admin/loadouts/$contentId'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/about'
+    | '/articles'
+    | '/guides'
     | '/heroes'
     | '/inventory'
     | '/loadouts'
     | '/missions-guide'
     | '/vbucks-missions'
     | '/$locale/about'
+    | '/$locale/articles'
+    | '/$locale/guides'
     | '/$locale/heroes'
     | '/$locale/inventory'
     | '/$locale/loadouts'
     | '/$locale/missions-guide'
     | '/$locale/vbucks-missions'
+    | '/admin/articles'
     | '/admin/heroes'
+    | '/admin/inventory'
     | '/admin/loadouts'
     | '/admin/media'
+    | '/articles/$slug'
+    | '/articles/preview'
+    | '/guides/$slug'
     | '/heroes/$slug'
     | '/inventory/$slug'
     | '/loadouts/$slug'
     | '/$locale'
     | '/admin'
+    | '/$locale/articles/$slug'
+    | '/$locale/guides/$slug'
     | '/$locale/heroes/$slug'
     | '/$locale/inventory/$slug'
     | '/$locale/loadouts/$slug'
+    | '/admin/articles/$contentId'
     | '/admin/heroes/$contentId'
+    | '/admin/inventory/$contentId'
     | '/admin/loadouts/$contentId'
   id:
     | '__root__'
     | '/'
     | '/about'
+    | '/articles'
+    | '/guides'
     | '/heroes'
     | '/inventory'
     | '/loadouts'
     | '/missions-guide'
     | '/vbucks-missions'
     | '/$locale/about'
+    | '/$locale/articles'
+    | '/$locale/guides'
     | '/$locale/heroes'
     | '/$locale/inventory'
     | '/$locale/loadouts'
     | '/$locale/missions-guide'
     | '/$locale/vbucks-missions'
+    | '/admin/articles'
     | '/admin/heroes'
+    | '/admin/inventory'
     | '/admin/loadouts'
     | '/admin/media'
+    | '/articles/$slug'
+    | '/articles/preview'
+    | '/guides/$slug'
     | '/heroes/$slug'
     | '/inventory/$slug'
     | '/loadouts/$slug'
     | '/$locale/'
     | '/admin/'
+    | '/$locale/articles/$slug'
+    | '/$locale/guides/$slug'
     | '/$locale/heroes/$slug'
     | '/$locale/inventory/$slug'
     | '/$locale/loadouts/$slug'
+    | '/admin/articles/$contentId'
     | '/admin/heroes/$contentId'
+    | '/admin/inventory/$contentId'
     | '/admin/loadouts/$contentId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AboutRoute: typeof AboutRoute
+  ArticlesRoute: typeof ArticlesRouteWithChildren
+  GuidesRoute: typeof GuidesRouteWithChildren
   HeroesRoute: typeof HeroesRouteWithChildren
   InventoryRoute: typeof InventoryRouteWithChildren
   LoadoutsRoute: typeof LoadoutsRouteWithChildren
   MissionsGuideRoute: typeof MissionsGuideRoute
   VbucksMissionsRoute: typeof VbucksMissionsRoute
   LocaleAboutRoute: typeof LocaleAboutRoute
+  LocaleArticlesRoute: typeof LocaleArticlesRouteWithChildren
+  LocaleGuidesRoute: typeof LocaleGuidesRouteWithChildren
   LocaleHeroesRoute: typeof LocaleHeroesRouteWithChildren
   LocaleInventoryRoute: typeof LocaleInventoryRouteWithChildren
   LocaleLoadoutsRoute: typeof LocaleLoadoutsRouteWithChildren
   LocaleMissionsGuideRoute: typeof LocaleMissionsGuideRoute
   LocaleVbucksMissionsRoute: typeof LocaleVbucksMissionsRoute
+  AdminArticlesRoute: typeof AdminArticlesRouteWithChildren
   AdminHeroesRoute: typeof AdminHeroesRouteWithChildren
+  AdminInventoryRoute: typeof AdminInventoryRouteWithChildren
   AdminLoadoutsRoute: typeof AdminLoadoutsRouteWithChildren
   AdminMediaRoute: typeof AdminMediaRoute
   LocaleIndexRoute: typeof LocaleIndexRoute
@@ -374,6 +536,20 @@ declare module '@tanstack/react-router' {
       path: '/about'
       fullPath: '/about'
       preLoaderRoute: typeof AboutRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/articles': {
+      id: '/articles'
+      path: '/articles'
+      fullPath: '/articles'
+      preLoaderRoute: typeof ArticlesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/guides': {
+      id: '/guides'
+      path: '/guides'
+      fullPath: '/guides'
+      preLoaderRoute: typeof GuidesRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/heroes': {
@@ -425,6 +601,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LocaleAboutRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/$locale/articles': {
+      id: '/$locale/articles'
+      path: '/$locale/articles'
+      fullPath: '/$locale/articles'
+      preLoaderRoute: typeof LocaleArticlesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/$locale/guides': {
+      id: '/$locale/guides'
+      path: '/$locale/guides'
+      fullPath: '/$locale/guides'
+      preLoaderRoute: typeof LocaleGuidesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/$locale/heroes': {
       id: '/$locale/heroes'
       path: '/$locale/heroes'
@@ -467,11 +657,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/admin/articles': {
+      id: '/admin/articles'
+      path: '/admin/articles'
+      fullPath: '/admin/articles'
+      preLoaderRoute: typeof AdminArticlesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/admin/heroes': {
       id: '/admin/heroes'
       path: '/admin/heroes'
       fullPath: '/admin/heroes'
       preLoaderRoute: typeof AdminHeroesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin/inventory': {
+      id: '/admin/inventory'
+      path: '/admin/inventory'
+      fullPath: '/admin/inventory'
+      preLoaderRoute: typeof AdminInventoryRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/admin/loadouts': {
@@ -487,6 +691,27 @@ declare module '@tanstack/react-router' {
       fullPath: '/admin/media'
       preLoaderRoute: typeof AdminMediaRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/articles/$slug': {
+      id: '/articles/$slug'
+      path: '/$slug'
+      fullPath: '/articles/$slug'
+      preLoaderRoute: typeof ArticlesSlugRouteImport
+      parentRoute: typeof ArticlesRoute
+    }
+    '/articles/preview': {
+      id: '/articles/preview'
+      path: '/preview'
+      fullPath: '/articles/preview'
+      preLoaderRoute: typeof ArticlesPreviewRouteImport
+      parentRoute: typeof ArticlesRoute
+    }
+    '/guides/$slug': {
+      id: '/guides/$slug'
+      path: '/$slug'
+      fullPath: '/guides/$slug'
+      preLoaderRoute: typeof GuidesSlugRouteImport
+      parentRoute: typeof GuidesRoute
     }
     '/heroes/$slug': {
       id: '/heroes/$slug'
@@ -509,6 +734,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LoadoutsSlugRouteImport
       parentRoute: typeof LoadoutsRoute
     }
+    '/$locale/articles/$slug': {
+      id: '/$locale/articles/$slug'
+      path: '/$slug'
+      fullPath: '/$locale/articles/$slug'
+      preLoaderRoute: typeof LocaleArticlesSlugRouteImport
+      parentRoute: typeof LocaleArticlesRoute
+    }
+    '/$locale/guides/$slug': {
+      id: '/$locale/guides/$slug'
+      path: '/$slug'
+      fullPath: '/$locale/guides/$slug'
+      preLoaderRoute: typeof LocaleGuidesSlugRouteImport
+      parentRoute: typeof LocaleGuidesRoute
+    }
     '/$locale/heroes/$slug': {
       id: '/$locale/heroes/$slug'
       path: '/$slug'
@@ -530,12 +769,26 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LocaleLoadoutsSlugRouteImport
       parentRoute: typeof LocaleLoadoutsRoute
     }
+    '/admin/articles/$contentId': {
+      id: '/admin/articles/$contentId'
+      path: '/$contentId'
+      fullPath: '/admin/articles/$contentId'
+      preLoaderRoute: typeof AdminArticlesContentIdRouteImport
+      parentRoute: typeof AdminArticlesRoute
+    }
     '/admin/heroes/$contentId': {
       id: '/admin/heroes/$contentId'
       path: '/$contentId'
       fullPath: '/admin/heroes/$contentId'
       preLoaderRoute: typeof AdminHeroesContentIdRouteImport
       parentRoute: typeof AdminHeroesRoute
+    }
+    '/admin/inventory/$contentId': {
+      id: '/admin/inventory/$contentId'
+      path: '/$contentId'
+      fullPath: '/admin/inventory/$contentId'
+      preLoaderRoute: typeof AdminInventoryContentIdRouteImport
+      parentRoute: typeof AdminInventoryRoute
     }
     '/admin/loadouts/$contentId': {
       id: '/admin/loadouts/$contentId'
@@ -546,6 +799,31 @@ declare module '@tanstack/react-router' {
     }
   }
 }
+
+interface ArticlesRouteChildren {
+  ArticlesSlugRoute: typeof ArticlesSlugRoute
+  ArticlesPreviewRoute: typeof ArticlesPreviewRoute
+}
+
+const ArticlesRouteChildren: ArticlesRouteChildren = {
+  ArticlesSlugRoute: ArticlesSlugRoute,
+  ArticlesPreviewRoute: ArticlesPreviewRoute,
+}
+
+const ArticlesRouteWithChildren = ArticlesRoute._addFileChildren(
+  ArticlesRouteChildren,
+)
+
+interface GuidesRouteChildren {
+  GuidesSlugRoute: typeof GuidesSlugRoute
+}
+
+const GuidesRouteChildren: GuidesRouteChildren = {
+  GuidesSlugRoute: GuidesSlugRoute,
+}
+
+const GuidesRouteWithChildren =
+  GuidesRoute._addFileChildren(GuidesRouteChildren)
 
 interface HeroesRouteChildren {
   HeroesSlugRoute: typeof HeroesSlugRoute
@@ -580,6 +858,30 @@ const LoadoutsRouteChildren: LoadoutsRouteChildren = {
 
 const LoadoutsRouteWithChildren = LoadoutsRoute._addFileChildren(
   LoadoutsRouteChildren,
+)
+
+interface LocaleArticlesRouteChildren {
+  LocaleArticlesSlugRoute: typeof LocaleArticlesSlugRoute
+}
+
+const LocaleArticlesRouteChildren: LocaleArticlesRouteChildren = {
+  LocaleArticlesSlugRoute: LocaleArticlesSlugRoute,
+}
+
+const LocaleArticlesRouteWithChildren = LocaleArticlesRoute._addFileChildren(
+  LocaleArticlesRouteChildren,
+)
+
+interface LocaleGuidesRouteChildren {
+  LocaleGuidesSlugRoute: typeof LocaleGuidesSlugRoute
+}
+
+const LocaleGuidesRouteChildren: LocaleGuidesRouteChildren = {
+  LocaleGuidesSlugRoute: LocaleGuidesSlugRoute,
+}
+
+const LocaleGuidesRouteWithChildren = LocaleGuidesRoute._addFileChildren(
+  LocaleGuidesRouteChildren,
 )
 
 interface LocaleHeroesRouteChildren {
@@ -618,6 +920,18 @@ const LocaleLoadoutsRouteWithChildren = LocaleLoadoutsRoute._addFileChildren(
   LocaleLoadoutsRouteChildren,
 )
 
+interface AdminArticlesRouteChildren {
+  AdminArticlesContentIdRoute: typeof AdminArticlesContentIdRoute
+}
+
+const AdminArticlesRouteChildren: AdminArticlesRouteChildren = {
+  AdminArticlesContentIdRoute: AdminArticlesContentIdRoute,
+}
+
+const AdminArticlesRouteWithChildren = AdminArticlesRoute._addFileChildren(
+  AdminArticlesRouteChildren,
+)
+
 interface AdminHeroesRouteChildren {
   AdminHeroesContentIdRoute: typeof AdminHeroesContentIdRoute
 }
@@ -628,6 +942,18 @@ const AdminHeroesRouteChildren: AdminHeroesRouteChildren = {
 
 const AdminHeroesRouteWithChildren = AdminHeroesRoute._addFileChildren(
   AdminHeroesRouteChildren,
+)
+
+interface AdminInventoryRouteChildren {
+  AdminInventoryContentIdRoute: typeof AdminInventoryContentIdRoute
+}
+
+const AdminInventoryRouteChildren: AdminInventoryRouteChildren = {
+  AdminInventoryContentIdRoute: AdminInventoryContentIdRoute,
+}
+
+const AdminInventoryRouteWithChildren = AdminInventoryRoute._addFileChildren(
+  AdminInventoryRouteChildren,
 )
 
 interface AdminLoadoutsRouteChildren {
@@ -645,18 +971,24 @@ const AdminLoadoutsRouteWithChildren = AdminLoadoutsRoute._addFileChildren(
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AboutRoute: AboutRoute,
+  ArticlesRoute: ArticlesRouteWithChildren,
+  GuidesRoute: GuidesRouteWithChildren,
   HeroesRoute: HeroesRouteWithChildren,
   InventoryRoute: InventoryRouteWithChildren,
   LoadoutsRoute: LoadoutsRouteWithChildren,
   MissionsGuideRoute: MissionsGuideRoute,
   VbucksMissionsRoute: VbucksMissionsRoute,
   LocaleAboutRoute: LocaleAboutRoute,
+  LocaleArticlesRoute: LocaleArticlesRouteWithChildren,
+  LocaleGuidesRoute: LocaleGuidesRouteWithChildren,
   LocaleHeroesRoute: LocaleHeroesRouteWithChildren,
   LocaleInventoryRoute: LocaleInventoryRouteWithChildren,
   LocaleLoadoutsRoute: LocaleLoadoutsRouteWithChildren,
   LocaleMissionsGuideRoute: LocaleMissionsGuideRoute,
   LocaleVbucksMissionsRoute: LocaleVbucksMissionsRoute,
+  AdminArticlesRoute: AdminArticlesRouteWithChildren,
   AdminHeroesRoute: AdminHeroesRouteWithChildren,
+  AdminInventoryRoute: AdminInventoryRouteWithChildren,
   AdminLoadoutsRoute: AdminLoadoutsRouteWithChildren,
   AdminMediaRoute: AdminMediaRoute,
   LocaleIndexRoute: LocaleIndexRoute,

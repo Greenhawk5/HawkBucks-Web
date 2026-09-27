@@ -12,8 +12,10 @@ export const Route = createFileRoute("/inventory")({
     page: typeof s["page"] === "string" || typeof s["page"] === "number" ? s["page"] : undefined,
   }),
   head: () => {
-    const strings = getPublicStrings("en");
-    const self = canonicalUrlFor(localizePath("/inventory", "en"));
+    const lang = "en" as const;
+    const strings = getPublicStrings(lang);
+    const self = canonicalUrlFor(localizePath("/inventory", lang));
+    const ogImage = `${canonicalUrlFor("/").replace(/\/$/, "")}/og-image.png`;
     return {
       meta: [
         { title: `${strings.inventoryTitle} | HawkBucks` },
@@ -23,12 +25,14 @@ export const Route = createFileRoute("/inventory")({
         { property: "og:description", content: strings.inventoryIntro },
         { property: "og:type", content: "website" },
         { property: "og:url", content: self },
-        {
-          property: "og:image",
-          content: `${canonicalUrlFor("/").replace(/\/$/, "")}/og-image.png`,
-        },
-        { property: "og:locale", content: ogLocaleFor(resolveLocale("en")) },
+        { property: "og:image", content: ogImage },
+        { property: "og:image:width", content: "1200" },
+        { property: "og:image:height", content: "630" },
+        { property: "og:locale", content: ogLocaleFor(resolveLocale(lang)) },
         { name: "twitter:card", content: "summary_large_image" },
+        { name: "twitter:title", content: `${strings.inventoryTitle} | HawkBucks` },
+        { name: "twitter:description", content: strings.inventoryIntro },
+        { name: "twitter:image", content: ogImage },
       ],
       links: [
         { rel: "canonical", href: self },

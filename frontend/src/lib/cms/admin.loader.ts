@@ -1,4 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
+import { clampAdminPaging, requireNonEmptyString } from "./admin-inputs";
 
 /**
  * Phase 11 — CMS admin server-function boundary.
@@ -43,24 +44,43 @@ export interface AdminLoginInput {
 }
 
 export const adminLogin = createServerFn({ method: "POST" })
-  .validator((input: AdminLoginInput) => input)
+  .validator((input: AdminLoginInput) => ({
+    username: requireNonEmptyString(input.username, "username").trim(),
+    password: requireNonEmptyString(input.password, "password"),
+  }))
   .handler(async ({ data }): Promise<AdminSessionShape> => {
     const { resolveRequestCmsDb } = await import("./db.server");
-    const { performRequestLogin, CmsAuthError } = await import("./auth.server");
+    const {
+      performRequestLogin,
+      assertSameOriginForMutation,
+      checkLoginRateLimit,
+      noteLoginFailure,
+      noteLoginSuccess,
+      CmsAuthError,
+    } = await import("./auth.server");
     const username = typeof data.username === "string" ? data.username.trim() : "";
     const password = typeof data.password === "string" ? data.password : "";
     if (username === "" || password === "") {
       throw new CmsAuthError(401, "Invalid credentials.");
     }
+    assertSameOriginForMutation();
+    checkLoginRateLimit(username);
     const { db, env } = await resolveRequestCmsDb();
-    const session = await performRequestLogin(db, env, username, password);
-    return { authenticated: true, user: session.user, expiresAt: session.expiresAt };
+    try {
+      const session = await performRequestLogin(db, env, username, password);
+      noteLoginSuccess(username);
+      return { authenticated: true, user: session.user, expiresAt: session.expiresAt };
+    } catch (error) {
+      noteLoginFailure(username);
+      throw error;
+    }
   });
 
 export const adminLogout = createServerFn({ method: "POST" }).handler(
   async (): Promise<{ ok: true }> => {
     const { resolveRequestCmsDb } = await import("./db.server");
-    const { performRequestLogout } = await import("./auth.server");
+    const { performRequestLogout, assertSameOriginForMutation } = await import("./auth.server");
+    assertSameOriginForMutation();
     const { db } = await resolveRequestCmsDb();
     await performRequestLogout(db);
     return { ok: true };
@@ -89,7 +109,18 @@ export interface AdminMediaItem {
 
 /** Minimal media-library reader for the admin proof-of-concept screen. */
 export const listAdminMedia = createServerFn({ method: "GET" })
-  .validator((input: AdminMediaListInput) => input)
+  .validator((input: AdminMediaListInput) => {
+    if (
+      input.status !== undefined &&
+      input.status !== "ready" &&
+      input.status !== "processing" &&
+      input.status !== "failed" &&
+      input.status !== "deleted"
+    ) {
+      throw new Error("Invalid media status filter.");
+    }
+    return { status: input.status, ...clampAdminPaging(input) };
+  })
   .handler(async ({ data }): Promise<{ items: AdminMediaItem[] }> => {
     const { resolveRequestCmsDb, listMediaAssets } = await import("./db.server");
     const { resolveRequestSession, hasCapability, CmsAuthError } = await import("./auth.server");

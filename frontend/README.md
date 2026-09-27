@@ -90,6 +90,68 @@ server-only mock (`src/services/missions.local-dev.server.ts`):
 
 The production build creates the Vite/TanStack Start output used by the configured hosting deployment. The frontend does not deploy or configure the Worker.
 
+### CMS local development (full Cloudflare runtime)
+
+`npm run dev` is **public-only**: plain Vite/Node with no Cloudflare runtime.
+Mission sections render through a deterministic server-only mock, but `/admin`
+fails closed with "CMS database binding is not available" — by design (CMS
+never falls back to mock data).
+
+For CMS admin testing use the local Cloudflare runtime:
+
+```bash
+# one-time setup (from frontend/):
+cp .dev.vars.example .dev.vars
+node scripts/make-cms-admin-hash.mjs "your-local-password"  # paste output into .dev.vars
+npm run cms:local:setup     # applies worker/migrations 0001–0010 to LOCAL D1 only
+npm run dev:cloudflare      # builds Pages artifact + starts wrangler pages dev
+```
+
+- `npm run dev:cloudflare` = full local Cloudflare runtime: builds the
+  Pages artifact (`NITRO_PRESET=cloudflare-pages vite build`) then
+  `wrangler pages dev dist` with CLI-bound local D1/R2
+  (`--d1 DB=<local id> --r2 MEDIA_BUCKET=hawkbucks-media-local`) plus
+  `.dev.vars` secrets, so `request.runtime.cloudflare.env` is populated.
+  Wrangler prints the URL (default `http://localhost:8788`); open
+  **`<url>/admin`**.
+- **Local D1 binding is by ID, not name.** `pages dev` has no `--config`
+  flag, and Miniflare keys local D1 storage by database **id**, so
+  `dev-cloudflare.mjs` reads `database_id` from `wrangler.local.json` and
+  passes `--d1 <binding>=<id>`. Passing the database *name* instead
+  (`--d1 DB=hawkbucks-cms-local`) creates a **second, empty** local database:
+  CMS then answers `D1_ERROR: no such table: cms_users` and the admin login
+  form reports "Invalid credentials." If you ever see that, run
+  `npm run cms:local:setup` and start via `npm run dev:cloudflare` (never a
+  hand-written `--d1 DB=<name>`), or delete the stray
+  `frontend/.wrangler/state/v3/d1/miniflare-D1DatabaseObject/*.sqlite` file
+  that has no tables.
+- Local D1 is **isolated from production**: database `hawkbucks-cms-local`
+  (placeholder id in `wrangler.local.json`, local Miniflare state in
+  `frontend/.wrangler/`). The production/shared id
+  (`hawkbucks-data`) is never referenced. Production `wrangler.json` is
+  untouched; nothing is deployed; no remote migration ever runs.
+- Bootstrap: `ensureBootstrapAdmin()` creates the first admin from
+  `CMS_ADMIN_USERNAME` / `CMS_ADMIN_PASSWORD_HASH` in `.dev.vars` **only
+  when the local `cms_users` table is empty** (PBKDF2 envelope
+  `pbkdf2$<iter>$<salt>$<hash>`, 10k–100k iterations). No default password
+  exists; `.dev.vars` is gitignored — never commit real values.
+- Media: local R2 bucket `hawkbucks-media-local` (Miniflare, isolated from
+  production `hawkbucks-media`). **Limitation:** no public delivery exists
+  locally (`R2_PUBLIC_BASE_URL` is a non-routable placeholder), so uploaded
+  images store correctly in local D1 + local R2 but render as placeholder
+  URLs until deployed. Production media architecture is unchanged.
+- `HAWKBUCKS_API` service binding is **absent locally** (no local backend
+  Worker wired): public mission/history/quote sections show their
+  unavailable/empty states under `dev:cloudflare`; CMS admin (D1-direct) is
+  fully usable. This is expected and documented, not a failure.
+- Reset ONLY local CMS state: stop dev, then delete the local persist dir
+  (`frontend/.wrangler/state/v3/d1`) or run
+  `npx wrangler d1 execute hawkbucks-cms-local --local --config
+  wrangler.local.json --command "DELETE FROM cms_users"` and re-run
+  `npm run cms:local:setup` (idempotent). Production D1 is never affected.
+  (`wrangler.local.json` is the local-only binding/migrations reference —
+  wrangler 4 `pages dev` takes bindings via CLI flags, not `--config`.)
+
 ## Project layout
 
 ```text

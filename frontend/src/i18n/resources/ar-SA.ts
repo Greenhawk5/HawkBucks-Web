@@ -240,17 +240,19 @@ export const arSA: TranslationDictionary = {
     changeLanguage: "تغيير اللغة",
   },
   welcome: {
-    eyebrow: "مرحبًا بك HawkBucks",
-    title: "رفيقك V-Bucks",
-    description: "HawkBucks يتتبع Fortnite: Save the World V-Bucks.",
-    trackingTitle: "تتبع المهام",
-    trackingDescription: "Fortnite: Save the World ? V-Bucks",
+    eyebrow: "مرحبًا بك في HawkBucks",
+    title: "رفيقك اليومي لمهام V-Bucks",
+    description:
+      "يتتبع HawkBucks مهام V-Bucks اليومية في Fortnite: Save the World، لتتمكن من رؤية ما هو متاح اليوم بسرعة.",
+    trackingTitle: "تتبع المهام اليومية",
+    trackingDescription: "اطلع على تنبيهات مهام V-Bucks الحالية ومكافآتها في مكان واحد واضح.",
     remindersTitle: "تذكيرات مفيدة",
-    remindersDescription: "Fortnite: Save the World ? V-Bucks",
+    remindersDescription:
+      "يمكن أن تساعدك التذكيرات على تذكر مراجعة المهام اليومية. يمكنك تفعيلها الآن وإدارة الإشعارات لاحقًا.",
     explore: "استكشف HawkBucks",
-    enableReminders: "تفعيل",
-    remindersSaved: "تذكيرات مفيدة ? HawkBucks",
-    close: "تذكيرات مفيدة",
+    enableReminders: "تفعيل التذكيرات",
+    remindersSaved: "تم حفظ تفضيل التذكيرات. سيكون إعداد الإشعارات متاحًا في تحديث قادم.",
+    close: "إغلاق الترحيب",
   },
   notifications: {
     pushTitle: "HawkBucks",
@@ -288,5 +290,20 @@ export const arSA: TranslationDictionary = {
     logoAlt: "شعار HawkBucks",
     vbucksRewardAlt: "أيقونة مكافأة V-Bucks",
     greenhawkLogoAlt: "شعار Greenhawk",
+    heroesTitle: "الأبطال — Fortnite: Save the World | HawkBucks",
+    heroesDescription:
+      "تصفح جميع أبطال HawkBucks المنشورين. فلترة حسب الفئة، ابحث بالاسم، وقارن الإحصائيات.",
+    heroesOgTitle: "الأبطال | HawkBucks",
+    heroesOgDescription: "تصفح جميع أبطال HawkBucks المنشورين. فلترة حسب الفئة، ابحث بالاسم.",
+    loadoutsTitle: "التجهيزات — Fortnite: Save the World | HawkBucks",
+    loadoutsDescription:
+      "تصفح تجهيزات HawkBucks المنشورة: قائد بالإضافة إلى خمس خانات دعم لكل أسلوب لعب.",
+    loadoutsOgTitle: "التجهيزات | HawkBucks",
+    loadoutsOgDescription: "تصفح تجهيزات HawkBucks المنشورة: قائد بالإضافة إلى خمس خانات دعم.",
+    articlesTitle: "المقالات — Fortnite: Save the World | HawkBucks",
+    articlesDescription:
+      "تصفح مقالات HawkBucks التحريرية المنشورة: أدلة وشروحات للمهام والأبطال والتجهيزات والمخزون.",
+    guidesTitle: "Guides | HawkBucks",
+    guidesDescription: "HawkBucks editorial guides.",
   },
 };

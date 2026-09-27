@@ -196,7 +196,8 @@ function createMemoryD1() {
       return tables.cms_contents.filter((r) => r.id === params[0]);
     }
     if (/FROM cms_slugs s/.test(sql)) {
-      // Public selector: published only.
+      // Public selector: published only. Returns the Phase 19 aliased
+      // single-query shape (content_* / translation_* columns).
       const [entityType, locale, slug] = params;
       const out = [];
       for (const s of tables.cms_slugs) {
@@ -207,7 +208,35 @@ function createMemoryD1() {
           (x) => x.content_id === c.id && x.locale === s.locale,
         );
         if (!t) continue;
-        out.push({ ...c, ...t, content_id: s.content_id });
+        out.push({
+          content_id: c.id,
+          content_entity_type: c.entity_type,
+          content_default_locale: c.default_locale,
+          content_status: c.status,
+          content_published_at: c.published_at,
+          content_created_by: c.created_by,
+          content_updated_by: c.updated_by,
+          content_created_at: c.created_at,
+          content_updated_at: c.updated_at,
+          translation_id: t.id,
+          translation_title: t.title,
+          translation_body: t.body,
+          translation_slug: t.slug,
+          translation_seo_title: t.seo_title,
+          translation_seo_description: t.seo_description,
+          translation_seo_canonical_override: t.seo_canonical_override,
+          translation_seo_robots: t.seo_robots,
+          translation_og_title: t.og_title,
+          translation_og_description: t.og_description,
+          translation_og_image_asset_id: t.og_image_asset_id,
+          translation_translation_status: t.translation_status,
+          translation_created_at: t.created_at,
+          translation_updated_at: t.updated_at,
+          // Legacy merged fields (pre-Phase-19 shape) for backwards compat.
+          ...c,
+          ...t,
+          content_id: s.content_id,
+        });
       }
       return out;
     }
@@ -223,7 +252,8 @@ function createMemoryD1() {
       return hit ? [{ slug: hit.slug }] : [];
     }
     if (/JOIN cms_content_translations t ON/.test(sql)) {
-      // listPublishedByEntity: entity, published, locale join.
+      // listPublishedByEntity: entity, published, locale join. Returns the
+      // Phase 19 aliased single-query shape (content_* / translation_*).
       const [locale, entityType, limit, offset] = params;
       return tables.cms_contents
         .filter((c) => c.entity_type === entityType && c.status === "published")
@@ -232,7 +262,37 @@ function createMemoryD1() {
           const t = tables.cms_content_translations.find(
             (x) => x.content_id === c.id && x.locale === locale,
           );
-          return t ? [{ ...c, t_id: t.id }] : [];
+          if (!t) return [];
+          return [
+            {
+              content_id: c.id,
+              content_entity_type: c.entity_type,
+              content_default_locale: c.default_locale,
+              content_status: c.status,
+              content_published_at: c.published_at,
+              content_created_by: c.created_by,
+              content_updated_by: c.updated_by,
+              content_created_at: c.created_at,
+              content_updated_at: c.updated_at,
+              translation_id: t.id,
+              translation_title: t.title,
+              translation_body: t.body,
+              translation_slug: t.slug,
+              translation_seo_title: t.seo_title,
+              translation_seo_description: t.seo_description,
+              translation_seo_canonical_override: t.seo_canonical_override,
+              translation_seo_robots: t.seo_robots,
+              translation_og_title: t.og_title,
+              translation_og_description: t.og_description,
+              translation_og_image_asset_id: t.og_image_asset_id,
+              translation_translation_status: t.translation_status,
+              translation_created_at: t.created_at,
+              translation_updated_at: t.updated_at,
+              // Legacy merged fields (pre-Phase-19 shape) for backwards compat.
+              ...c,
+              t_id: t.id,
+            },
+          ];
         })
         .slice(offset, offset + limit);
     }
@@ -462,7 +522,8 @@ test("media-provider: upload validation rejects hostile input", () => {
   const good = {
     originalFilename: "art.png",
     mimeType: "image/png",
-    data: new Uint8Array([1, 2, 3]),
+    // Phase 20: genuine PNG magic bytes (89 50 4E 47 0D 0A 1A 0A).
+    data: new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0x01]),
   };
   assert.deepEqual(mediaProvider.validateUploadInput(good), { ok: true });
   assert.equal(mediaProvider.validateUploadInput({ ...good, mimeType: "image/svg+xml" }).ok, false);
@@ -528,7 +589,7 @@ test("imagekit: upload/delete use server-held credentials; URLs are provider-loc
   );
   assert.equal(provider.id, "imagekit");
   const result = await provider.upload({
-    data: new Uint8Array([1, 2, 3]),
+    data: new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0x01]),
     originalFilename: "art.png",
     mimeType: "image/png",
   });
@@ -551,7 +612,8 @@ test("imagekit: upload/delete use server-held credentials; URLs are provider-loc
   await assert.rejects(
     () =>
       failing.upload({
-        data: new Uint8Array([1]),
+        // Phase 20: genuine PNG magic bytes so the failure comes from HTTP.
+        data: new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]),
         originalFilename: "a.png",
         mimeType: "image/png",
       }),

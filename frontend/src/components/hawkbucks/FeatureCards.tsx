@@ -44,7 +44,7 @@ export function FeatureCards() {
           >
             <span
               aria-hidden
-              className="pointer-events-none absolute -right-10 -top-10 h-28 w-28 rounded-full bg-primary/15 opacity-0 blur-2xl transition-opacity duration-500 group-hover:opacity-100"
+              className="pointer-events-none absolute -top-10 -end-10 h-28 w-28 rounded-full bg-primary/15 opacity-0 blur-2xl transition-opacity duration-500 group-hover:opacity-100"
             />
             <span
               aria-hidden

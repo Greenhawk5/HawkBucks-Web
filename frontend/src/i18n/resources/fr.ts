@@ -314,5 +314,22 @@ export const fr: TranslationDictionary = {
     logoAlt: "Logo HawkBucks",
     vbucksRewardAlt: "Icône de récompense V-Bucks",
     greenhawkLogoAlt: "Logo Greenhawk",
+    heroesTitle: "Héros — Fortnite : Sauver le monde | HawkBucks",
+    heroesDescription:
+      "Parcourez tous les héros HawkBucks publiés. Filtrez par classe, recherchez par nom et comparez les statistiques.",
+    heroesOgTitle: "Héros | HawkBucks",
+    heroesOgDescription:
+      "Parcourez tous les héros HawkBucks publiés. Filtrez par classe, recherchez par nom.",
+    loadoutsTitle: "Loadouts — Fortnite : Sauver le monde | HawkBucks",
+    loadoutsDescription:
+      "Parcourez les loadouts HawkBucks publiés : Commandant plus cinq emplacements de Soutien pour chaque style de jeu.",
+    loadoutsOgTitle: "Loadouts | HawkBucks",
+    loadoutsOgDescription:
+      "Parcourez les loadouts HawkBucks publiés : Commandant plus cinq emplacements de Soutien.",
+    articlesTitle: "Articles — Fortnite: Save the World | HawkBucks",
+    articlesDescription:
+      "Parcourez les articles éditoriaux HawkBucks publiés : guides des missions, héros, loadouts et inventaire.",
+    guidesTitle: "Guides | HawkBucks",
+    guidesDescription: "HawkBucks editorial guides.",
   },
 };

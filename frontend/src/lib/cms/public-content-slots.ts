@@ -125,6 +125,18 @@ export function loadoutDetailPath(slug: string): string {
 export function schematicDetailPath(slug: string): string {
   return `/inventory/${slug}`;
 }
+// Canonical article path lives in articles.ts (single implementation);
+// re-exported here so existing detailBaseForKind/entity helpers keep working.
+import { articleDetailPath as canonicalArticleDetailPath } from "./articles";
+export { articleDetailPath } from "./articles";
+
+/** Route-prefix resolver shared by hreflang helpers (article-aware). */
+export function detailBaseForKind(kind: string, slug: string): string {
+  if (kind === "article") return canonicalArticleDetailPath(slug);
+  if (kind === "hero") return heroDetailPath(slug);
+  if (kind === "loadout") return loadoutDetailPath(slug);
+  return schematicDetailPath(slug);
+}
 
 /** Phase 15 — inventory listing query state (pure logic, SSR/test safe). */
 export const INVENTORY_TYPES = ["all", "weapon", "trap"] as const;
@@ -207,7 +219,7 @@ export function buildSchematicJsonLd(input: {
  * complete translation (Phase 11 contract). x-default always targets en.
  */
 export function entityHreflangAlternates(input: {
-  kind: "hero" | "loadout" | "schematic";
+  kind: "hero" | "loadout" | "schematic" | "article";
   currentSlug: string;
   completeLocales: readonly string[];
   slugsByLocale?: Readonly<Record<string, string>> | undefined;
@@ -217,9 +229,7 @@ export function entityHreflangAlternates(input: {
 }): Array<{ hreflang: string; href: string }> {
   const baseFor = (locale: string): string => {
     const slug = input.slugsByLocale?.[locale] ?? input.currentSlug;
-    if (input.kind === "hero") return heroDetailPath(slug);
-    if (input.kind === "loadout") return loadoutDetailPath(slug);
-    return schematicDetailPath(slug);
+    return detailBaseForKind(input.kind, slug);
   };
   const out: Array<{ hreflang: string; href: string }> = [];
   for (const locale of input.completeLocales) {
@@ -329,5 +339,41 @@ export function buildLoadoutJsonLd(input: {
     },
   };
   if (input.image) entity["primaryImageOfPage"] = input.image;
+  return [itemList, entity];
+}
+
+/**
+ * Phase 16 — Article structured data. Generated ONLY from validated,
+ * published article rows (headline/description are head-safe plain text,
+ * image is a compat-resolved https URL or omitted). Never emits raw HTML.
+ */
+export function buildArticleJsonLd(input: {
+  headline: string;
+  description: string;
+  url: string;
+  image: string | null;
+  dateModified: string;
+  siteUrl: string;
+}): unknown {
+  const itemList = {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: [
+      { "@type": "ListItem", position: 1, name: "Home", item: input.siteUrl },
+      { "@type": "ListItem", position: 2, name: "Articles", item: `${input.siteUrl}articles` },
+      { "@type": "ListItem", position: 3, name: input.headline, item: input.url },
+    ],
+  };
+  const entity: Record<string, unknown> = {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    headline: input.headline,
+    description: input.description,
+    mainEntityOfPage: input.url,
+    dateModified: input.dateModified,
+    author: { "@type": "Organization", name: "HawkBucks", url: input.siteUrl },
+    publisher: { "@type": "Organization", name: "HawkBucks", url: input.siteUrl },
+  };
+  if (input.image) entity["image"] = [input.image];
   return [itemList, entity];
 }

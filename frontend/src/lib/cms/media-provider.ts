@@ -56,11 +56,11 @@ export interface MediaUploadInput {
   data: Uint8Array | ArrayBuffer;
   originalFilename: string;
   mimeType: string;
-  altText?: string;
-  title?: string;
-  caption?: string;
+  altText?: string | undefined;
+  title?: string | undefined;
+  caption?: string | undefined;
   /** Optional provider-neutral folder/prefix hint (no slashes games: see validation). */
-  folder?: string;
+  folder?: string | undefined;
 }
 
 export interface MediaUploadResult {
@@ -135,7 +135,61 @@ export function validateUploadInput(
   if (filename.includes("/") || filename.includes("\\") || filename.includes("..")) {
     return { ok: false, reason: "filename must not contain path segments" };
   }
+  const magic = validateImageMagicBytes(input.data, input.mimeType);
+  if (!magic.ok) return magic;
   return { ok: true };
+}
+
+/**
+ * Phase 20 — magic-byte verification for claimed image MIME types.
+ *
+ * The browser-supplied `mimeType` is untrusted: without this check a script
+ * renamed to `photo.png` would pass the allowlist and land in the bucket
+ * with an image content type. Signatures checked:
+ *   jpeg: FF D8 FF | png: 89 50 4E 47 0D 0A 1A 0A
+ *   gif: "GIF87a"/"GIF89a" | webp: "RIFF"...."WEBP" | avif: ...."ftyp"
+ * Unknown MIME types fall through (the allowlist above already rejected
+ * them); short buffers fail closed.
+ */
+export function validateImageMagicBytes(
+  data: Uint8Array | ArrayBuffer,
+  mimeType: string,
+): { ok: true } | { ok: false; reason: string } {
+  const bytes = data instanceof Uint8Array ? data : new Uint8Array(data);
+  const startsWith = (sig: number[]): boolean =>
+    bytes.byteLength >= sig.length && sig.every((b, i) => bytes[i] === b);
+  const asciiAt = (offset: number, length: number): string => {
+    let out = "";
+    for (let i = 0; i < length; i += 1) {
+      if (offset + i >= bytes.byteLength) break;
+      out += String.fromCharCode(bytes[offset + i] ?? 0);
+    }
+    return out;
+  };
+  switch (mimeType) {
+    case "image/jpeg":
+      return startsWith([0xff, 0xd8, 0xff])
+        ? { ok: true }
+        : { ok: false, reason: "bytes do not match claimed JPEG type" };
+    case "image/png":
+      return startsWith([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a])
+        ? { ok: true }
+        : { ok: false, reason: "bytes do not match claimed PNG type" };
+    case "image/gif":
+      return asciiAt(0, 6) === "GIF87a" || asciiAt(0, 6) === "GIF89a"
+        ? { ok: true }
+        : { ok: false, reason: "bytes do not match claimed GIF type" };
+    case "image/webp":
+      return bytes.byteLength >= 12 && asciiAt(0, 4) === "RIFF" && asciiAt(8, 4) === "WEBP"
+        ? { ok: true }
+        : { ok: false, reason: "bytes do not match claimed WEBP type" };
+    case "image/avif":
+      return bytes.byteLength >= 12 && asciiAt(4, 4) === "ftyp"
+        ? { ok: true }
+        : { ok: false, reason: "bytes do not match claimed AVIF type" };
+    default:
+      return { ok: false, reason: `unsupported MIME type: ${mimeType}` };
+  }
 }
 
 /** Shape-check for rows read back from D1 (guards against schema drift). */

@@ -486,3 +486,125 @@ export function getCmsRequest(): Request | null {
     return null;
   }
 }
+
+// ---------------------------------------------------------------------------
+// Phase 20 — CSRF origin check + login rate limiting (defense in depth).
+//
+// Cookie context: mutations already ride on SameSite=Lax HttpOnly cookies,
+// which blocks cross-site POST cookie sends. These helpers add a
+// server-side second layer without changing legitimate same-origin flows:
+//   * assertSameOriginForMutation() rejects a POST whose Origin/Referer host
+//     disagrees with Host when either header is present; requests without
+//     either header (non-browser clients, tests) pass through.
+//   * Login throttling bounds password-guessing per username with a bounded
+//     in-memory window (no KV writes, free-tier conscious). Distributed
+//     brute force across instances is NOT stopped here — Cloudflare WAF /
+//     rate-limit rules remain the production backstop (see report).
+// ---------------------------------------------------------------------------
+
+function headerHost(value: string | null): string | null {
+  if (!value) return null;
+  try {
+    return new URL(value).host.toLowerCase();
+  } catch {
+    return null;
+  }
+}
+
+/** Pure predicate: true when an Origin/Referer pair is same-origin with host. */
+export function isSameOriginMutation(input: {
+  origin: string | null;
+  referer: string | null;
+  host: string | null;
+}): boolean {
+  const host = (input.host ?? "").toLowerCase();
+  if (host === "") return true;
+  const originHost = headerHost(input.origin);
+  if (originHost !== null) return originHost === host;
+  const refererHost = headerHost(input.referer);
+  if (refererHost !== null) return refererHost === host;
+  return true;
+}
+
+/** Throw 403 when the current request carries a cross-origin Origin/Referer. */
+export function assertSameOriginForMutation(): void {
+  let req: Request | null = null;
+  try {
+    req = getRequest();
+  } catch {
+    return;
+  }
+  if (!req) return;
+  const origin = req.headers.get("origin");
+  const referer = req.headers.get("referer");
+  if (origin === null && referer === null) return;
+  const host =
+    req.headers.get("host") ??
+    (() => {
+      try {
+        return new URL(req.url).host;
+      } catch {
+        return null;
+      }
+    })();
+  if (!isSameOriginMutation({ origin, referer, host })) {
+    throw new CmsAuthError(403, "Cross-origin mutation rejected.");
+  }
+}
+
+const LOGIN_ATTEMPT_WINDOW_MS = 10 * 60 * 1000;
+const LOGIN_ATTEMPT_MAX = 10;
+const LOGIN_ATTEMPT_MAX_KEYS = 500;
+
+interface LoginAttemptEntry {
+  count: number;
+  windowStart: number;
+}
+
+const loginAttemptStore = new Map<string, LoginAttemptEntry>();
+
+/** Test seam: clear all login-throttle counters. */
+export function resetLoginRateLimits(): void {
+  loginAttemptStore.clear();
+}
+
+function loginRateLimitKey(username: string): string {
+  return username.trim().toLowerCase();
+}
+
+/**
+ * Fail-closed login throttle: at most LOGIN_ATTEMPT_MAX failures per username
+ * per 10-minute window. Callers record SUCCESS via noteLoginSuccess (resets)
+ * and FAILURE via noteLoginFailure; checkLoginRateLimit throws 429-shaped
+ * CmsAuthError... mapped here to 401-adjacent 403 to avoid new status
+ * plumbing: callers surface "too many attempts" without an oracle.
+ */
+export function checkLoginRateLimit(username: string, now = Date.now()): void {
+  const entry = loginAttemptStore.get(loginRateLimitKey(username));
+  if (!entry) return;
+  if (now - entry.windowStart >= LOGIN_ATTEMPT_WINDOW_MS) {
+    loginAttemptStore.delete(loginRateLimitKey(username));
+    return;
+  }
+  if (entry.count >= LOGIN_ATTEMPT_MAX) {
+    throw new CmsAuthError(403, "Too many login attempts. Try again later.");
+  }
+}
+
+export function noteLoginFailure(username: string, now = Date.now()): void {
+  const key = loginRateLimitKey(username);
+  const entry = loginAttemptStore.get(key);
+  if (!entry || now - entry.windowStart >= LOGIN_ATTEMPT_WINDOW_MS) {
+    if (loginAttemptStore.size >= LOGIN_ATTEMPT_MAX_KEYS && !loginAttemptStore.has(key)) {
+      const oldest = loginAttemptStore.keys().next();
+      if (!oldest.done) loginAttemptStore.delete(oldest.value);
+    }
+    loginAttemptStore.set(key, { count: 1, windowStart: now });
+    return;
+  }
+  entry.count += 1;
+}
+
+export function noteLoginSuccess(username: string): void {
+  loginAttemptStore.delete(loginRateLimitKey(username));
+}

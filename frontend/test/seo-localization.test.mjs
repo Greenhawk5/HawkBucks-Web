@@ -28,10 +28,20 @@ test("locale-urls: split/localize/canonical primitives", async () => {
   assert.equal(urls.canonicalUrlFor("/es/about"), "https://hawkbucks.com/es/about");
   assert.equal(urls.canonicalUrlFor("/"), "https://hawkbucks.com/");
   assert.equal(site.SITE_URL, "https://hawkbucks.com");
-  // The indexable surface is exactly the seven base paths.
+  // The indexable surface is exactly the nine base paths.
   assert.deepEqual(
     [...urls.INDEXABLE_BASE_PATHS],
-    ["/", "/about", "/vbucks-missions", "/missions-guide", "/heroes", "/loadouts", "/inventory"],
+    [
+      "/",
+      "/about",
+      "/vbucks-missions",
+      "/missions-guide",
+      "/heroes",
+      "/loadouts",
+      "/inventory",
+      "/articles",
+      "/guides",
+    ],
   );
 });
 
@@ -95,8 +105,8 @@ test("every variant URL is self-canonical", async () => {
 
 const EN_SEO_KEYS = Object.keys(en.seo).sort();
 
-test("every language ships exactly the same 22 seo keys as English", async () => {
-  assert.equal(EN_SEO_KEYS.length, 22);
+test("every language ships exactly the same seo keys as English", async () => {
+  assert.equal(EN_SEO_KEYS.length, 34);
   for (const code of prefs.SUPPORTED_LANGUAGES) {
     const dictionary = resources.RESOURCES[code];
     assert.ok(dictionary, `missing RESOURCES entry for ${code}`);
@@ -154,12 +164,12 @@ test("seo values preserve official names in all nine languages", async () => {
 
 // --- sitemap.xml --------------------------------------------------------------
 
-test("sitemap.xml lists 54 locs with reciprocal hreflang on every url", async () => {
+test("sitemap.xml lists 81 locs with reciprocal hreflang on every url", async () => {
   const xml = await readFile(new URL("../public/sitemap.xml", import.meta.url), "utf8");
   assert.ok(xml.includes("xmlns:xhtml"), "missing xhtml namespace");
 
   const locs = [...xml.matchAll(/<loc>([^<]+)<\/loc>/g)].map((match) => match[1]);
-  assert.equal(locs.length, 63, `expected 63 locs (7 paths x 9 langs), got ${locs.length}`);
+  assert.equal(locs.length, 81, `expected 81 locs (9 paths x 9 langs), got ${locs.length}`);
   assert.equal(new Set(locs).size, locs.length, "duplicate loc values");
 
   // The loc set is exactly the 9 localized variants of each base path.
@@ -172,7 +182,7 @@ test("sitemap.xml lists 54 locs with reciprocal hreflang on every url", async ()
   assert.deepEqual([...locs].sort(), expected.sort());
 
   const blocks = xml.split(/<url>/).slice(1);
-  assert.equal(blocks.length, 63);
+  assert.equal(blocks.length, 81);
   blocks.forEach((block, index) => {
     const loc = locs[index];
     const links = [...block.matchAll(/<xhtml:link[^>]*>/g)];

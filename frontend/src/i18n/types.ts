@@ -267,6 +267,18 @@ export interface TranslationDictionary {
     logoAlt: string;
     vbucksRewardAlt: string;
     greenhawkLogoAlt: string;
+    heroesTitle: string;
+    heroesDescription: string;
+    heroesOgTitle: string;
+    heroesOgDescription: string;
+    loadoutsTitle: string;
+    loadoutsDescription: string;
+    loadoutsOgTitle: string;
+    loadoutsOgDescription: string;
+    articlesTitle: string;
+    articlesDescription: string;
+    guidesTitle: string;
+    guidesDescription: string;
   };
 }
 

@@ -37,6 +37,8 @@ export const INDEXABLE_BASE_PATHS = [
   "/heroes",
   "/loadouts",
   "/inventory",
+  "/articles",
+  "/guides",
 ] as const;
 
 export type IndexableBasePath = (typeof INDEXABLE_BASE_PATHS)[number];

@@ -1,21 +1,26 @@
 import { createServerFn } from "@tanstack/react-start";
-async function requireHeroSession(cap: "cms.read" | "cms.write" | "cms.publish") {
+import {
+  asSearchFilter,
+  asStatusFilter,
+  clampAdminPaging,
+  requireContentId,
+  requireNonEmptyString,
+  requireTitle,
+  asOptionalNumber,
+  asOptionalString,
+  asOptionalStringOrNull,
+  stripUndefined,
+} from "./admin-inputs";
+async function requireHeroSession(cap: "cms.read" | "cms.write" | "cms.publish", mutate = false) {
   const { resolveRequestCmsDb } = await import("./db.server");
-  const { resolveRequestSession, hasCapability, CmsAuthError } = await import("./auth.server");
+  const { resolveRequestSession, hasCapability, CmsAuthError, assertSameOriginForMutation } =
+    await import("./auth.server");
+  if (mutate) assertSameOriginForMutation();
   const { db } = await resolveRequestCmsDb();
   const session = await resolveRequestSession(db);
   if (!session) throw new CmsAuthError(401, "CMS authentication required.");
   if (!hasCapability(session.user.role, cap)) throw new CmsAuthError(403, "Forbidden.");
   return { db, session };
-}
-function clampPaging(input: { limit?: number; offset?: number }): {
-  limit: number;
-  offset: number;
-} {
-  return {
-    limit: Math.max(1, Math.min(100, Math.floor(input.limit ?? 50))),
-    offset: Math.max(0, Math.floor(input.offset ?? 0)),
-  };
 }
 export interface HeroAdminItem {
   contentId: string;
@@ -57,13 +62,24 @@ export const listAdminHeroes = createServerFn({ method: "GET" })
       status?: string;
       limit?: number;
       offset?: number;
-    }) => i,
+    }) => {
+      const status = asStatusFilter(i.status);
+      const search = asSearchFilter(i.search);
+      const { limit, offset } = clampAdminPaging(i);
+      const heroClass = asOptionalString(i.heroClass);
+      return { heroClass, search, status, limit, offset };
+    },
   )
   .handler(async ({ data }): Promise<{ items: HeroAdminItem[] }> => {
     const { db } = await requireHeroSession("cms.read");
     const { listHeroRecords } = await import("./heroes-loadouts.server");
-    const { limit, offset } = clampPaging(data);
-    const records = await listHeroRecords(db, { heroClass: data.heroClass, limit, offset });
+    const { limit, offset } = clampAdminPaging(data);
+    const records = await listHeroRecords(
+      db,
+      data.heroClass === undefined
+        ? { limit, offset }
+        : { heroClass: data.heroClass, limit, offset },
+    );
     const items: HeroAdminItem[] = [];
     for (const r of records) {
       const c = await db
@@ -96,7 +112,7 @@ export const listAdminHeroes = createServerFn({ method: "GET" })
     return { items };
   });
 export const getAdminHero = createServerFn({ method: "GET" })
-  .validator((i: { contentId: string }) => i)
+  .validator((i: { contentId: string }) => ({ contentId: requireContentId(i.contentId) }))
   .handler(async ({ data }): Promise<{ hero: HeroAdminDetail }> => {
     const { db } = await requireHeroSession("cms.read");
     const { getHeroRecord, listAbilities, listAbilityTranslations } =
@@ -174,10 +190,19 @@ export const createAdminHero = createServerFn({ method: "POST" })
       body?: string;
       slug?: string;
       locale?: string;
-    }) => i,
+    }) => ({
+      heroClass: requireNonEmptyString(i.heroClass, "heroClass"),
+      category: asOptionalStringOrNull(i.category),
+      popularity: asOptionalNumber(i.popularity),
+      sortOrder: asOptionalNumber(i.sortOrder),
+      title: requireTitle(i.title),
+      body: asOptionalString(i.body),
+      slug: asOptionalString(i.slug),
+      locale: asOptionalString(i.locale),
+    }),
   )
   .handler(async ({ data }) => {
-    const { db, session } = await requireHeroSession("cms.write");
+    const { db, session } = await requireHeroSession("cms.write", true);
     const { createContent, upsertContentTranslation } = await import("./db.server");
     const { createHeroRecord } = await import("./heroes-loadouts.server");
     const actor = { id: session.user.id, username: session.user.username };
@@ -226,21 +251,35 @@ export const updateAdminHero = createServerFn({ method: "POST" })
       sortOrder?: number;
       portraitAssetId?: string | null;
       bannerAssetId?: string | null;
-    }) => i,
+    }) =>
+      stripUndefined({
+        contentId: requireContentId(i.contentId),
+        heroClass: asOptionalString(i.heroClass),
+        category: asOptionalStringOrNull(i.category),
+        popularity: asOptionalNumber(i.popularity),
+        sortOrder: asOptionalNumber(i.sortOrder),
+        portraitAssetId: asOptionalStringOrNull(i.portraitAssetId),
+        bannerAssetId: asOptionalStringOrNull(i.bannerAssetId),
+      }),
   )
   .handler(async ({ data }) => {
-    const { db, session } = await requireHeroSession("cms.write");
+    const { db, session } = await requireHeroSession("cms.write", true);
     const { updateHeroRecord } = await import("./heroes-loadouts.server");
-    await updateHeroRecord(db, data.contentId, data, {
+    const { contentId } = data as { contentId: string };
+    const { contentId: _ignored, ...patch } = data as Record<string, unknown>;
+    void _ignored;
+    await updateHeroRecord(db, contentId, patch as Parameters<typeof updateHeroRecord>[2], {
       id: session.user.id,
       username: session.user.username,
     });
     return { ok: true as const };
   });
 export const deleteAdminAbility = createServerFn({ method: "POST" })
-  .validator((i: { abilityId: string }) => i)
+  .validator((i: { abilityId: string }) => ({
+    abilityId: requireNonEmptyString(i.abilityId, "abilityId"),
+  }))
   .handler(async ({ data }) => {
-    const { db, session } = await requireHeroSession("cms.write");
+    const { db, session } = await requireHeroSession("cms.write", true);
     const { deleteAbility } = await import("./heroes-loadouts.server");
     await deleteAbility(db, data.abilityId, {
       id: session.user.id,
@@ -249,10 +288,16 @@ export const deleteAdminAbility = createServerFn({ method: "POST" })
     return { ok: true as const };
   });
 export const publishAdminContent = createServerFn({ method: "POST" })
-  .validator((i: { contentId: string; to: "published" | "draft" | "archived" }) => i)
+  .validator((i: { contentId: string; to: "published" | "draft" | "archived" }) => {
+    if (i.to !== "published" && i.to !== "draft" && i.to !== "archived") {
+      throw new Error("Invalid status transition.");
+    }
+    return { contentId: requireContentId(i.contentId), to: i.to };
+  })
   .handler(async ({ data }) => {
     const { db, session } = await requireHeroSession(
       data.to === "published" ? "cms.publish" : "cms.write",
+      true,
     );
     const { setContentStatus } = await import("./db.server");
     await setContentStatus(
@@ -273,10 +318,19 @@ export const upsertAdminTranslation = createServerFn({ method: "POST" })
       seoTitle?: string | null;
       seoDescription?: string | null;
       translationStatus?: string;
-    }) => i,
+    }) => ({
+      contentId: requireContentId(i.contentId),
+      locale: requireNonEmptyString(i.locale, "locale"),
+      title: requireTitle(i.title),
+      body: asOptionalString(i.body),
+      slug: asOptionalString(i.slug),
+      seoTitle: asOptionalStringOrNull(i.seoTitle),
+      seoDescription: asOptionalStringOrNull(i.seoDescription),
+      translationStatus: asOptionalString(i.translationStatus),
+    }),
   )
   .handler(async ({ data }) => {
-    const { db, session } = await requireHeroSession("cms.write");
+    const { db, session } = await requireHeroSession("cms.write", true);
     const { getContentById, upsertContentTranslation } = await import("./db.server");
     const content = await getContentById(db, data.contentId);
     if (!content) throw new Error("Content not found.");

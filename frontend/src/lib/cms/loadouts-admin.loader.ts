@@ -1,7 +1,21 @@
 import { createServerFn } from "@tanstack/react-start";
-async function requireLoadoutSession(cap: "cms.read" | "cms.write") {
+import {
+  asOptionalNumber,
+  asOptionalString,
+  asOptionalStringOrNull,
+  asSearchFilter,
+  asStatusFilter,
+  clampAdminPaging,
+  requireContentId,
+  requireNonEmptyString,
+  requireTitle,
+  stripUndefined,
+} from "./admin-inputs";
+async function requireLoadoutSession(cap: "cms.read" | "cms.write", mutate = false) {
   const { resolveRequestCmsDb } = await import("./db.server");
-  const { resolveRequestSession, hasCapability, CmsAuthError } = await import("./auth.server");
+  const { resolveRequestSession, hasCapability, CmsAuthError, assertSameOriginForMutation } =
+    await import("./auth.server");
+  if (mutate) assertSameOriginForMutation();
   const { db } = await resolveRequestCmsDb();
   const session = await resolveRequestSession(db);
   if (!session) throw new CmsAuthError(401, "CMS authentication required.");
@@ -43,7 +57,12 @@ export interface LoadoutAdminDetail extends LoadoutAdminItem {
   heroes: Array<{ contentId: string; slotOrder: number; title: string | null; status: string }>;
 }
 export const listAdminLoadouts = createServerFn({ method: "GET" })
-  .validator((i: { status?: string; search?: string; limit?: number; offset?: number }) => i)
+  .validator((i: { status?: string; search?: string; limit?: number; offset?: number }) => {
+    const status = asStatusFilter(i.status);
+    const search = asSearchFilter(i.search);
+    const { limit, offset } = clampAdminPaging(i);
+    return { status, search, limit, offset };
+  })
   .handler(async ({ data }): Promise<{ items: LoadoutAdminItem[] }> => {
     const { db } = await requireLoadoutSession("cms.read");
     const { limit, offset } = clampLoadoutPaging(data);
@@ -91,7 +110,7 @@ export const listAdminLoadouts = createServerFn({ method: "GET" })
     return { items };
   });
 export const getAdminLoadout = createServerFn({ method: "GET" })
-  .validator((i: { contentId: string }) => i)
+  .validator((i: { contentId: string }) => ({ contentId: requireContentId(i.contentId) }))
   .handler(async ({ data }): Promise<{ loadout: LoadoutAdminDetail }> => {
     const { db } = await requireLoadoutSession("cms.read");
     const { getLoadoutRecord, listLoadoutHeroes } = await import("./heroes-loadouts.server");
@@ -170,10 +189,18 @@ export const createAdminLoadout = createServerFn({ method: "POST" })
       body?: string;
       slug?: string;
       locale?: string;
-    }) => i,
+    }) => ({
+      loadoutType: asOptionalString(i.loadoutType),
+      popularity: asOptionalNumber(i.popularity),
+      sortOrder: asOptionalNumber(i.sortOrder),
+      title: requireTitle(i.title),
+      body: asOptionalString(i.body),
+      slug: asOptionalString(i.slug),
+      locale: asOptionalString(i.locale),
+    }),
   )
   .handler(async ({ data }) => {
-    const { db, session } = await requireLoadoutSession("cms.write");
+    const { db, session } = await requireLoadoutSession("cms.write", true);
     const { createContent, upsertContentTranslation } = await import("./db.server");
     const { createLoadoutRecord } = await import("./heroes-loadouts.server");
     const actor = { id: session.user.id, username: session.user.username };
@@ -219,12 +246,22 @@ export const updateAdminLoadout = createServerFn({ method: "POST" })
       popularity?: number;
       sortOrder?: number;
       coverAssetId?: string | null;
-    }) => i,
+    }) =>
+      stripUndefined({
+        contentId: requireContentId(i.contentId),
+        loadoutType: asOptionalString(i.loadoutType),
+        popularity: asOptionalNumber(i.popularity),
+        sortOrder: asOptionalNumber(i.sortOrder),
+        coverAssetId: asOptionalStringOrNull(i.coverAssetId),
+      }),
   )
   .handler(async ({ data }) => {
-    const { db, session } = await requireLoadoutSession("cms.write");
+    const { db, session } = await requireLoadoutSession("cms.write", true);
     const { updateLoadoutRecord } = await import("./heroes-loadouts.server");
-    await updateLoadoutRecord(db, data.contentId, data, {
+    const { contentId } = data as { contentId: string };
+    const { contentId: _ignored, ...patch } = data as Record<string, unknown>;
+    void _ignored;
+    await updateLoadoutRecord(db, contentId, patch as Parameters<typeof updateLoadoutRecord>[2], {
       id: session.user.id,
       username: session.user.username,
     });
@@ -232,10 +269,23 @@ export const updateAdminLoadout = createServerFn({ method: "POST" })
   });
 export const setAdminLoadoutHeroes = createServerFn({ method: "POST" })
   .validator(
-    (i: { contentId: string; heroContentIds: string[]; heroSlots?: Array<string | null> }) => i,
+    (i: { contentId: string; heroContentIds: string[]; heroSlots?: Array<string | null> }) => {
+      if (!Array.isArray(i.heroContentIds)) throw new Error("Invalid heroContentIds.");
+      if (i.heroSlots !== undefined) {
+        if (!Array.isArray(i.heroSlots)) throw new Error("Invalid heroSlots.");
+        for (const slot of i.heroSlots) {
+          if (slot !== null && typeof slot !== "string") throw new Error("Invalid heroSlots.");
+        }
+      }
+      return {
+        contentId: requireContentId(i.contentId),
+        heroContentIds: i.heroContentIds,
+        heroSlots: i.heroSlots,
+      };
+    },
   )
   .handler(async ({ data }) => {
-    const { db, session } = await requireLoadoutSession("cms.write");
+    const { db, session } = await requireLoadoutSession("cms.write", true);
     const { setLoadoutHeroes } = await import("./heroes-loadouts.server");
     await setLoadoutHeroes(db, data.contentId, data.heroSlots ?? data.heroContentIds, {
       id: session.user.id,
@@ -253,10 +303,18 @@ export const upsertAdminAbility = createServerFn({ method: "POST" })
       name?: string;
       description?: string;
       locale?: string;
-    }) => i,
+    }) => ({
+      heroContentId: requireContentId(i.heroContentId),
+      abilityKey: requireNonEmptyString(i.abilityKey, "abilityKey"),
+      sortOrder: asOptionalNumber(i.sortOrder),
+      iconAssetId: asOptionalStringOrNull(i.iconAssetId),
+      name: asOptionalString(i.name),
+      description: asOptionalString(i.description),
+      locale: asOptionalString(i.locale),
+    }),
   )
   .handler(async ({ data }) => {
-    const { db, session } = await requireLoadoutSession("cms.write");
+    const { db, session } = await requireLoadoutSession("cms.write", true);
     const { upsertAbility, upsertAbilityTranslation } = await import("./heroes-loadouts.server");
     const actor = { id: session.user.id, username: session.user.username };
     const ability = await upsertAbility(

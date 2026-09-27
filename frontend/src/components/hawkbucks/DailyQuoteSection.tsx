@@ -13,7 +13,7 @@ export function DailyQuoteSection() {
       <div className="glass-panel relative overflow-hidden rounded-2xl border-primary/40 px-5 py-7 shadow-[var(--shadow-panel)] sm:px-8 sm:py-9">
         <div
           aria-hidden
-          className="pointer-events-none absolute -right-16 -top-16 h-40 w-40 rounded-full bg-primary/10 blur-3xl"
+          className="pointer-events-none absolute -top-16 -end-16 h-40 w-40 rounded-full bg-primary/10 blur-3xl"
         />
         <div className="relative">
           <div className="flex items-center gap-2 text-primary">

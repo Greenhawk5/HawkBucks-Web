@@ -3,24 +3,36 @@
 // - resolves extensionless relative imports to their .ts files
 // - shims import.meta.env for src modules that read VITE_* at module scope
 // Used by `npm run test:server` under Node's --experimental-strip-types.
-import { existsSync } from "node:fs";
+import { existsSync, readdirSync } from "node:fs";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import path from "node:path";
 
 const srcDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "src");
 const frontendDir = path.resolve(srcDir, "..");
 
+function findBuiltRouter() {
+  const dir = path.join(frontendDir, ".output", "server", "_ssr");
+  try {
+    for (const entry of readdirSync(dir)) {
+      if (entry.startsWith("router-") && entry.endsWith(".mjs")) {
+        return path.join(dir, entry);
+      }
+    }
+  } catch {
+    return null;
+  }
+  return null;
+}
+
 export async function resolve(specifier, context, nextResolve) {
   const [base, query] = splitQuery(specifier);
 
-  // Test-only mappings for TanStack Start's package import specifiers.
-  // These map the package-import-style aliases used at runtime to our local
-  // source entry points so Node tests can import them directly.
+  // The SSR router entry cannot load under Node's type-stripping test runner
+  // (.tsx + Vite aliases). Point it at the built SSR bundle instead.
   if (base === "#tanstack-router-entry") {
-    // Prefer the built SSR router module if present (avoids loading .tsx directly).
-    const built = path.join(frontendDir, ".output", "server", "_ssr", "router-j_onzWpi.mjs");
-    if (existsSync(built)) return nextResolve(pathToFileURL(built).href + query, context);
-    return nextResolve(pathToFileURL(path.join(srcDir, "router.tsx")).href + query, context);
+    const built = findBuiltRouter();
+    if (built) return nextResolve(pathToFileURL(built).href + query, context);
+    throw new Error("Built SSR router not found — run `npm run build` first.");
   }
   if (base === "#tanstack-start-entry") {
     return nextResolve(pathToFileURL(path.join(srcDir, "start.ts")).href + query, context);

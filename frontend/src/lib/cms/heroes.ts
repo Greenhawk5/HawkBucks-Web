@@ -1,5 +1,4 @@
-export const HERO_ENTITY_TYPE = "hero" as const;
-export const LOADOUT_ENTITY_TYPE = "loadout" as const;
+export { HERO_ENTITY_TYPE, LOADOUT_ENTITY_TYPE } from "./content-types";
 export const HERO_CLASSES = ["soldier", "constructor", "ninja", "outlander"] as const;
 export type HeroClass = (typeof HERO_CLASSES)[number];
 export const HERO_CATEGORIES = ["assault", "support", "recon", "defense", "special"] as const;

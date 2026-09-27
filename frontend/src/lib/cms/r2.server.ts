@@ -70,7 +70,11 @@ const MAX_KEY_LENGTH = 256;
 
 /** Minimal R2 bucket surface this provider needs (real binding or test double). */
 export interface R2BucketLike {
-  put(key: string, body: Uint8Array | ArrayBuffer, options?: { httpMetadata?: { contentType?: string } }): Promise<unknown>;
+  put(
+    key: string,
+    body: Uint8Array | ArrayBuffer,
+    options?: { httpMetadata?: { contentType?: string | undefined } },
+  ): Promise<unknown>;
   delete(key: string): Promise<void>;
   head(key: string): Promise<{ size: number } | null>;
 }
@@ -109,8 +113,8 @@ export function isValidR2Key(key: unknown): key is string {
   const segments = key.split("/");
   if (segments.some((s) => s === "" || s === "." || s === "..")) return false;
   if (segments.some((s) => !/^[A-Za-z0-9._-]+$/.test(s))) return false;
-  const last = segments[segments.length - 1];
-  if (!last.includes(".")) return false;
+  const last: string | undefined = segments[segments.length - 1];
+  if (last === undefined || !last.includes(".")) return false;
   return true;
 }
 
@@ -123,7 +127,12 @@ export function sanitizeR2Folder(folder: unknown): R2FolderPrefix {
   if (typeof folder !== "string") return "misc";
   const first = folder
     .split("/")
-    .map((part) => part.replace(/[^A-Za-z0-9_-]+/g, "").trim().toLowerCase())
+    .map((part) =>
+      part
+        .replace(/[^A-Za-z0-9_-]+/g, "")
+        .trim()
+        .toLowerCase(),
+    )
     .find((part) => part !== "" && part !== "." && part !== "..");
   const match = (R2_FOLDER_PREFIXES as readonly string[]).find((p) => p === first);
   return (match ?? "misc") as R2FolderPrefix;
@@ -143,8 +152,10 @@ export function buildR2Key(input: {
   const prefix = sanitizeR2Folder(input.folder);
   const extension = MIME_TO_EXTENSION[input.mimeType] ?? "bin";
   const stem = input.originalFilename
-    .split("/").pop()!
-    .split("\\").pop()!
+    .split("/")
+    .pop()!
+    .split("\\")
+    .pop()!
     .replace(/\.[^.]*$/, "")
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, "-")
@@ -176,11 +187,12 @@ export function createR2Provider(bucket: R2BucketLike, config: R2Config): MediaP
       if (!valid.ok) throw new Error(`Invalid upload: ${valid.reason}`);
 
       const key = buildR2Key({
-        folder: input.folder,
+        ...(input.folder !== undefined ? { folder: input.folder } : {}),
         originalFilename: input.originalFilename,
         mimeType: input.mimeType,
       });
-      if (!isValidR2Key(key)) throw new Error("Invalid upload: derived object key failed validation.");
+      if (!isValidR2Key(key))
+        throw new Error("Invalid upload: derived object key failed validation.");
 
       const bytes = input.data instanceof Uint8Array ? input.data : new Uint8Array(input.data);
       await bucket.put(key, bytes, { httpMetadata: { contentType: input.mimeType } });

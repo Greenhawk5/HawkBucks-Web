@@ -17,6 +17,7 @@ export function LoadoutCard({ loadout, locale }: { loadout: PublicLoadoutItem; l
           alt={loadout.title}
           className="aspect-[16/9] w-full object-cover"
           loading="lazy"
+          decoding="async"
         />
       ) : (
         <div

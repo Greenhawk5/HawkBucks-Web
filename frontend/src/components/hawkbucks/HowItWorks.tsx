@@ -35,16 +35,16 @@ export function HowItWorks() {
         {t("about.pipelineTitle")}
       </h2>
 
-      <ol className="relative mt-10 space-y-5 pl-6 sm:pl-8">
+      <ol className="relative mt-10 space-y-5 ps-6 sm:ps-8">
         <span
           aria-hidden
-          className="pointer-events-none absolute bottom-4 left-[9px] top-4 w-px bg-gradient-to-b from-primary via-primary/40 to-transparent sm:left-[13px]"
+          className="pointer-events-none absolute bottom-4 top-4 w-px bg-gradient-to-b from-primary via-primary/40 to-transparent max-sm:start-[9px] sm:start-[13px]"
         />
         {steps.map((step, i) => (
           <li key={step.titleKey} className="relative">
             <span
               aria-hidden
-              className="absolute -left-6 top-7 grid h-[19px] w-[19px] place-items-center rounded-full border border-primary/60 bg-background sm:-left-8 sm:h-[27px] sm:w-[27px]"
+              className="absolute top-7 grid h-[19px] w-[19px] place-items-center rounded-full border border-primary/60 bg-background max-sm:-start-6 sm:-start-8 sm:h-[27px] sm:w-[27px]"
             >
               <span className="h-1.5 w-1.5 rounded-full bg-primary shadow-[0_0_12px_var(--primary)]" />
             </span>

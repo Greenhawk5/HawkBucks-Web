@@ -1,0 +1,31 @@
+// LOCAL-ONLY Pages dev config for CMS admin testing. NEVER used for deploy.
+// Isolated local Miniflare D1 (hawkbucks-cms-local, placeholder id — local
+// only, never the production/shared hawkbucks-data id) and isolated local R2
+// bucket (hawkbucks-media-local, never hawkbucks-media). Intentionally omits
+// the HAWKBUCKS_API service binding (public mission sections show unavailable
+// state locally; CMS admin does not need it). Production config is
+// frontend/wrangler.json — do NOT add local bindings there.
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "hawkbucks-cms-local",
+  "pages_build_output_dir": "dist",
+  "compatibility_date": "2026-09-22",
+  "compatibility_flags": ["nodejs_compat"],
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "hawkbucks-cms-local",
+      "database_id": "11111111-1111-1111-1111-111111111111",
+      "migrations_dir": "../worker/migrations"
+    }
+  ],
+  "r2_buckets": [
+    {
+      "binding": "MEDIA_BUCKET",
+      "bucket_name": "hawkbucks-media-local"
+    }
+  ],
+  "vars": {
+    "R2_PUBLIC_BASE_URL": "https://hawkbucks-media-local.local"
+  }
+}

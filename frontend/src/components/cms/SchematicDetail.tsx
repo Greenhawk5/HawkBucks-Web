@@ -2,6 +2,7 @@ import { Link } from "@tanstack/react-router";
 import { getPublicStrings } from "@/lib/cms/public-strings";
 import type { PublicSchematicDetail } from "@/lib/cms/public-schematic-detail.loader";
 import { inventoryDetailHref } from "./InventoryCard";
+import { RelatedGuides } from "./RelatedGuides";
 
 /**
  * Phase 15 — public schematic detail.
@@ -50,6 +51,7 @@ export function SchematicDetail({
               alt={schematic.weapon.title}
               className="mt-3 w-full rounded-xl object-cover"
               loading="lazy"
+              decoding="async"
             />
           ) : null}
           {schematic.weapon.description ? (
@@ -68,6 +70,7 @@ export function SchematicDetail({
               alt={schematic.trap.title}
               className="mt-3 w-full rounded-xl object-cover"
               loading="lazy"
+              decoding="async"
             />
           ) : null}
           {schematic.trap.description ? (
@@ -102,6 +105,7 @@ export function SchematicDetail({
           </ol>
         </section>
       ) : null}
+      <RelatedGuides entityContentId={schematic.contentId} locale={locale} />
       <p className="mt-8 text-xs text-muted-foreground">
         {inventoryDetailHref(locale, schematic.slug)}
       </p>

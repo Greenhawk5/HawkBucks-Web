@@ -1,0 +1,23 @@
+# Phase 20 — Cloudflare Pages security headers.
+#
+# Served verbatim by Cloudflare Pages from frontend/public/_headers.
+# Deliberately conservative: no inline-script allowances beyond what the
+# TanStack Start SSR bundle already needs (scripts are same-origin files,
+# never inline), media/Pages/SSR behavior unchanged.
+
+/*
+  Strict-Transport-Security: max-age=63072000; includeSubDomains; preload
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin
+  Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=()
+  Cross-Origin-Opener-Policy: same-origin
+  Content-Security-Policy: default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://media.hawkbucks.com https:; font-src 'self' data:; connect-src 'self' https://media.hawkbucks.com; media-src 'self' https://media.hawkbucks.com; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; form-action 'self'; upgrade-insecure-requests
+
+/sw.js
+  Cache-Control: no-cache
+
+/assets/*
+  Cache-Control: public, max-age=31536000, immutable
+
+/articles/preview
+  Cache-Control: private, no-store

@@ -1,4 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
+import { asOptionalString, asOptionalStringOrNull, requireNonEmptyString } from "./admin-inputs";
+import { CmsAuthError, requireCapability, resolveRequestSession } from "./auth.server";
+import { resolveRequestCmsDb } from "./db.server";
 
 /**
  * Phase 15.5 — CMS media admin server-function boundary.
@@ -17,10 +20,10 @@ export interface MediaUploadRequest {
   dataBase64: string;
   originalFilename: string;
   mimeType: string;
-  altText?: string;
-  title?: string | null;
-  caption?: string | null;
-  folder?: string;
+  altText?: string | undefined;
+  title?: string | null | undefined;
+  caption?: string | null | undefined;
+  folder?: string | undefined;
 }
 
 export interface MediaUploadResponse {
@@ -32,16 +35,25 @@ export interface MediaUploadResponse {
 const MAX_BASE64_BYTES = 10 * 1024 * 1024 * 1.4;
 
 async function requireWriteSession() {
-  const { resolveRequestCmsDb } = await import("./db.server");
-  const { resolveRequestSession, requireCapability } = await import("./auth.server");
   const { db, env } = await resolveRequestCmsDb();
+  const { assertSameOriginForMutation } = await import("./auth.server");
+  assertSameOriginForMutation();
   const session = await resolveRequestSession(db);
+  if (!session) throw new CmsAuthError(401, "CMS authentication required.");
   requireCapability(session, "cms.write");
   return { db, env, session };
 }
 
 export const uploadAdminMedia = createServerFn({ method: "POST" })
-  .validator((input: MediaUploadRequest) => input)
+  .validator((input: MediaUploadRequest) => ({
+    dataBase64: requireNonEmptyString(input.dataBase64, "dataBase64"),
+    originalFilename: requireNonEmptyString(input.originalFilename, "originalFilename"),
+    mimeType: requireNonEmptyString(input.mimeType, "mimeType"),
+    altText: asOptionalString(input.altText),
+    title: asOptionalStringOrNull(input.title),
+    caption: asOptionalStringOrNull(input.caption),
+    folder: asOptionalString(input.folder),
+  }))
   .handler(async ({ data }): Promise<MediaUploadResponse> => {
     const { db, env, session } = await requireWriteSession();
     const { uploadMediaAsset } = await import("./media.server");
@@ -58,26 +70,31 @@ export const uploadAdminMedia = createServerFn({ method: "POST" })
       throw new Error("Invalid upload encoding.");
     }
 
+    const maybeTitle = (data as { title?: string | null | undefined }).title;
+    const maybeCaption = (data as { caption?: string | null | undefined }).caption;
+    const maybeFolder = (data as { folder?: string | undefined }).folder;
+    const maybeAlt = (data as { altText?: string | undefined }).altText;
     return uploadMediaAsset(db, env, {
       data: bytes,
       originalFilename: data.originalFilename,
       mimeType: data.mimeType,
-      ...(data.altText !== undefined ? { altText: data.altText } : {}),
-      ...(data.title !== undefined ? { title: data.title } : {}),
-      ...(data.caption !== undefined ? { caption: data.caption } : {}),
-      ...(data.folder !== undefined ? { folder: data.folder } : {}),
+      ...(maybeAlt !== undefined ? { altText: maybeAlt } : {}),
+      ...(typeof maybeTitle === "string" ? { title: maybeTitle } : {}),
+      ...(typeof maybeCaption === "string" ? { caption: maybeCaption } : {}),
+      ...(maybeFolder !== undefined ? { folder: maybeFolder } : {}),
       createdBy: session.user.id,
     });
   });
 
 export const deleteAdminMedia = createServerFn({ method: "POST" })
-  .validator((input: { id: string }) => input)
+  .validator((input: { id: string }) => ({ id: requireNonEmptyString(input.id, "id") }))
   .handler(async ({ data }): Promise<{ ok: true }> => {
     const { db, env, session } = await requireWriteSession();
     const { deleteMediaAsset } = await import("./media.server");
-    if (typeof data.id !== "string" || data.id === "") {
+    const mediaId = (data as { id?: unknown }).id;
+    if (typeof mediaId !== "string" || mediaId === "") {
       throw new Error("Invalid media asset id.");
     }
-    await deleteMediaAsset(db, env, { id: data.id, deletedBy: session.user.id });
+    await deleteMediaAsset(db, env, { id: mediaId, deletedBy: session.user.id });
     return { ok: true };
   });

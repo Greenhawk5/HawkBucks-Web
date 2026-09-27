@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { createFileRoute, Link, useRouter } from "@tanstack/react-router";
 import { adminLogin, adminLogout, getAdminSession } from "@/lib/cms/admin.loader";
+import { AdminNav } from "@/components/cms/AdminShell";
 
 /**
  * Phase 11 — minimal admin shell (proof-of-concept, deliberately unpolished).
@@ -92,27 +93,43 @@ function AdminShell() {
   }
 
   return (
-    <main className="mx-auto max-w-3xl px-4 py-16">
-      <h1 className="text-2xl font-bold">CMS Admin</h1>
+    <main className="mx-auto max-w-3xl px-4 py-10">
+      <AdminNav active="dashboard" />
+      <h1 className="mt-6 text-2xl font-bold">CMS Admin</h1>
       <p className="mt-2 text-sm text-muted-foreground">
         Signed in as {session.user.displayName} ({session.user.username}, {session.user.role}).
       </p>
-      <nav className="mt-6">
-        <ul className="list-disc pl-5 text-sm">
+      <nav aria-label="CMS sections" className="mt-6">
+        <ul className="space-y-3 text-sm">
           <li>
             <Link to="/admin/heroes" className="underline">
               Heroes
             </Link>
+            <p className="text-muted-foreground">Classes, translations, abilities, publishing.</p>
           </li>
           <li>
             <Link to="/admin/loadouts" className="underline">
               Loadouts
             </Link>
+            <p className="text-muted-foreground">
+              Commander + support rosters, cover art, publishing.
+            </p>
+          </li>
+          <li>
+            <Link to="/admin/inventory" className="underline">
+              Inventory (weapons, traps, perks, schematics)
+            </Link>
+            <p className="text-muted-foreground">
+              Schematics reference exactly one weapon or trap; perks attach by slot.
+            </p>
           </li>
           <li>
             <Link to="/admin/media" className="underline">
-              Media library (foundation proof-of-concept)
+              Media library (R2-backed)
             </Link>
+            <p className="text-muted-foreground">
+              Upload, replace, preview, and safe-delete referenced assets.
+            </p>
           </li>
         </ul>
       </nav>

@@ -1,7 +1,22 @@
 import { createServerFn } from "@tanstack/react-start";
-async function requireInventorySession(cap: "cms.read" | "cms.write" | "cms.publish") {
+import {
+  asOptionalNumber,
+  asOptionalString,
+  asOptionalStringOrNull,
+  clampAdminPaging,
+  requireContentId,
+  requireNonEmptyString,
+  requireTitle,
+  stripUndefined,
+} from "./admin-inputs";
+async function requireInventorySession(
+  cap: "cms.read" | "cms.write" | "cms.publish",
+  mutate = false,
+) {
   const { resolveRequestCmsDb } = await import("./db.server");
-  const { resolveRequestSession, hasCapability, CmsAuthError } = await import("./auth.server");
+  const { resolveRequestSession, hasCapability, CmsAuthError, assertSameOriginForMutation } =
+    await import("./auth.server");
+  if (mutate) assertSameOriginForMutation();
   const { db } = await resolveRequestCmsDb();
   const session = await resolveRequestSession(db);
   if (!session) throw new CmsAuthError(401, "CMS authentication required.");
@@ -63,25 +78,25 @@ async function adminListFor(
   return items;
 }
 export const listAdminWeapons = createServerFn({ method: "GET" })
-  .validator((i: { limit?: number; offset?: number }) => i)
+  .validator((i: { limit?: number; offset?: number }) => clampAdminPaging(i))
   .handler(async (): Promise<{ items: InventoryAdminItem[] }> => {
     const { db } = await requireInventorySession("cms.read");
     return { items: await adminListFor(db, "weapon_records", "weapon_subtype") };
   });
 export const listAdminTraps = createServerFn({ method: "GET" })
-  .validator((i: { limit?: number; offset?: number }) => i)
+  .validator((i: { limit?: number; offset?: number }) => clampAdminPaging(i))
   .handler(async (): Promise<{ items: InventoryAdminItem[] }> => {
     const { db } = await requireInventorySession("cms.read");
     return { items: await adminListFor(db, "trap_records", "trap_subtype") };
   });
 export const listAdminPerks = createServerFn({ method: "GET" })
-  .validator((i: { limit?: number; offset?: number }) => i)
+  .validator((i: { limit?: number; offset?: number }) => clampAdminPaging(i))
   .handler(async (): Promise<{ items: InventoryAdminItem[] }> => {
     const { db } = await requireInventorySession("cms.read");
     return { items: await adminListFor(db, "perk_records", "perk_type") };
   });
 export const listAdminSchematics = createServerFn({ method: "GET" })
-  .validator((i: { limit?: number; offset?: number }) => i)
+  .validator((i: { limit?: number; offset?: number }) => clampAdminPaging(i))
   .handler(async (): Promise<{ items: InventoryAdminItem[] }> => {
     const { db } = await requireInventorySession("cms.read");
     return { items: await adminListFor(db, "schematic_records", null) };
@@ -96,10 +111,18 @@ export const createAdminWeapon = createServerFn({ method: "POST" })
       weaponSubtype?: string;
       popularity?: number;
       sortOrder?: number;
-    }) => i,
+    }) => ({
+      title: requireTitle(i.title),
+      body: asOptionalString(i.body),
+      slug: asOptionalString(i.slug),
+      locale: asOptionalString(i.locale),
+      weaponSubtype: asOptionalString(i.weaponSubtype),
+      popularity: asOptionalNumber(i.popularity),
+      sortOrder: asOptionalNumber(i.sortOrder),
+    }),
   )
   .handler(async ({ data }) => {
-    const { db, session } = await requireInventorySession("cms.write");
+    const { db, session } = await requireInventorySession("cms.write", true);
     const { createContent, upsertContentTranslation } = await import("./db.server");
     const { createWeaponRecord } = await import("./schematics-inventory.server");
     if (typeof data.title !== "string" || data.title.trim() === "")
@@ -147,12 +170,22 @@ export const updateAdminWeapon = createServerFn({ method: "POST" })
       popularity?: number;
       sortOrder?: number;
       iconAssetId?: string | null;
-    }) => i,
+    }) =>
+      stripUndefined({
+        contentId: requireContentId(i.contentId),
+        weaponSubtype: asOptionalString(i.weaponSubtype),
+        popularity: asOptionalNumber(i.popularity),
+        sortOrder: asOptionalNumber(i.sortOrder),
+        iconAssetId: asOptionalStringOrNull(i.iconAssetId),
+      }),
   )
   .handler(async ({ data }) => {
-    const { db, session } = await requireInventorySession("cms.write");
+    const { db, session } = await requireInventorySession("cms.write", true);
     const { updateWeaponRecord } = await import("./schematics-inventory.server");
-    await updateWeaponRecord(db, data.contentId, data, {
+    const { contentId } = data as { contentId: string };
+    const { contentId: _ignoredWeapon, ...patch } = data as Record<string, unknown>;
+    void _ignoredWeapon;
+    await updateWeaponRecord(db, contentId, patch as Parameters<typeof updateWeaponRecord>[2], {
       id: session.user.id,
       username: session.user.username,
     });
@@ -168,10 +201,18 @@ export const createAdminTrap = createServerFn({ method: "POST" })
       trapSubtype?: string;
       popularity?: number;
       sortOrder?: number;
-    }) => i,
+    }) => ({
+      title: requireTitle(i.title),
+      body: asOptionalString(i.body),
+      slug: asOptionalString(i.slug),
+      locale: asOptionalString(i.locale),
+      trapSubtype: asOptionalString(i.trapSubtype),
+      popularity: asOptionalNumber(i.popularity),
+      sortOrder: asOptionalNumber(i.sortOrder),
+    }),
   )
   .handler(async ({ data }) => {
-    const { db, session } = await requireInventorySession("cms.write");
+    const { db, session } = await requireInventorySession("cms.write", true);
     const { createContent, upsertContentTranslation } = await import("./db.server");
     const { createTrapRecord } = await import("./schematics-inventory.server");
     if (typeof data.title !== "string" || data.title.trim() === "")
@@ -219,12 +260,22 @@ export const updateAdminTrap = createServerFn({ method: "POST" })
       popularity?: number;
       sortOrder?: number;
       iconAssetId?: string | null;
-    }) => i,
+    }) =>
+      stripUndefined({
+        contentId: requireContentId(i.contentId),
+        trapSubtype: asOptionalString(i.trapSubtype),
+        popularity: asOptionalNumber(i.popularity),
+        sortOrder: asOptionalNumber(i.sortOrder),
+        iconAssetId: asOptionalStringOrNull(i.iconAssetId),
+      }),
   )
   .handler(async ({ data }) => {
-    const { db, session } = await requireInventorySession("cms.write");
+    const { db, session } = await requireInventorySession("cms.write", true);
     const { updateTrapRecord } = await import("./schematics-inventory.server");
-    await updateTrapRecord(db, data.contentId, data, {
+    const { contentId } = data as { contentId: string };
+    const { contentId: _ignoredTrap, ...patch } = data as Record<string, unknown>;
+    void _ignoredTrap;
+    await updateTrapRecord(db, contentId, patch as Parameters<typeof updateTrapRecord>[2], {
       id: session.user.id,
       username: session.user.username,
     });
@@ -241,10 +292,19 @@ export const createAdminPerk = createServerFn({ method: "POST" })
       perkType?: string;
       name?: string;
       description?: string;
-    }) => i,
+    }) => ({
+      title: requireTitle(i.title),
+      body: asOptionalString(i.body),
+      slug: asOptionalString(i.slug),
+      locale: asOptionalString(i.locale),
+      perkKey: requireNonEmptyString(i.perkKey, "perkKey"),
+      perkType: asOptionalString(i.perkType),
+      name: asOptionalString(i.name),
+      description: asOptionalString(i.description),
+    }),
   )
   .handler(async ({ data }) => {
-    const { db, session } = await requireInventorySession("cms.write");
+    const { db, session } = await requireInventorySession("cms.write", true);
     const { createContent, upsertContentTranslation } = await import("./db.server");
     const { createPerkRecord, upsertPerkTranslation } =
       await import("./schematics-inventory.server");
@@ -292,14 +352,32 @@ export const createAdminPerk = createServerFn({ method: "POST" })
     return { contentId: content.id };
   });
 export const upsertAdminPerkTranslation = createServerFn({ method: "POST" })
-  .validator((i: { contentId: string; locale: string; name: string; description?: string }) => i)
+  .validator((i: { contentId: string; locale: string; name: string; description?: string }) =>
+    stripUndefined({
+      contentId: requireContentId(i.contentId),
+      locale: requireNonEmptyString(i.locale, "locale"),
+      name: requireNonEmptyString(i.name, "name"),
+      description: asOptionalString(i.description),
+    }),
+  )
   .handler(async ({ data }) => {
-    const { db, session } = await requireInventorySession("cms.write");
+    const { db, session } = await requireInventorySession("cms.write", true);
     const { upsertPerkTranslation } = await import("./schematics-inventory.server");
-    await upsertPerkTranslation(db, data.contentId, data, {
-      id: session.user.id,
-      username: session.user.username,
-    });
+    const { contentId } = data as { contentId: string };
+    const patch = data as { locale?: string; name?: string; description?: string };
+    await upsertPerkTranslation(
+      db,
+      contentId,
+      {
+        locale: patch.locale ?? "en",
+        name: patch.name ?? "",
+        ...(patch.description !== undefined ? { description: patch.description } : {}),
+      },
+      {
+        id: session.user.id,
+        username: session.user.username,
+      },
+    );
     return { ok: true as const };
   });
 export const createAdminSchematic = createServerFn({ method: "POST" })
@@ -311,10 +389,17 @@ export const createAdminSchematic = createServerFn({ method: "POST" })
       locale?: string;
       weaponContentId?: string | null;
       trapContentId?: string | null;
-    }) => i,
+    }) => ({
+      title: requireTitle(i.title),
+      body: asOptionalString(i.body),
+      slug: asOptionalString(i.slug),
+      locale: asOptionalString(i.locale),
+      weaponContentId: asOptionalStringOrNull(i.weaponContentId),
+      trapContentId: asOptionalStringOrNull(i.trapContentId),
+    }),
   )
   .handler(async ({ data }) => {
-    const { db, session } = await requireInventorySession("cms.write");
+    const { db, session } = await requireInventorySession("cms.write", true);
     const { createContent, upsertContentTranslation } = await import("./db.server");
     const { createSchematicRecord } = await import("./schematics-inventory.server");
     if (typeof data.title !== "string" || data.title.trim() === "")
@@ -355,10 +440,19 @@ export const createAdminSchematic = createServerFn({ method: "POST" })
   });
 export const setAdminSchematicPerks = createServerFn({ method: "POST" })
   .validator(
-    (i: { contentId: string; perks: Array<{ perkContentId: string; slotOrder: number }> }) => i,
+    (i: { contentId: string; perks: Array<{ perkContentId: string; slotOrder: number }> }) => {
+      if (!Array.isArray(i.perks)) throw new Error("Invalid perks.");
+      for (const slot of i.perks) {
+        requireNonEmptyString(slot?.perkContentId, "perkContentId");
+        if (typeof slot?.slotOrder !== "number" || !Number.isInteger(slot.slotOrder)) {
+          throw new Error("Invalid slotOrder.");
+        }
+      }
+      return { contentId: requireContentId(i.contentId), perks: i.perks };
+    },
   )
   .handler(async ({ data }) => {
-    const { db, session } = await requireInventorySession("cms.write");
+    const { db, session } = await requireInventorySession("cms.write", true);
     const { setSchematicPerks } = await import("./schematics-inventory.server");
     await setSchematicPerks(db, data.contentId, data.perks, {
       id: session.user.id,
@@ -367,10 +461,16 @@ export const setAdminSchematicPerks = createServerFn({ method: "POST" })
     return { ok: true as const };
   });
 export const publishAdminInventoryContent = createServerFn({ method: "POST" })
-  .validator((i: { contentId: string; to: "published" | "draft" | "archived" }) => i)
+  .validator((i: { contentId: string; to: "published" | "draft" | "archived" }) => {
+    if (i.to !== "published" && i.to !== "draft" && i.to !== "archived") {
+      throw new Error("Invalid status transition.");
+    }
+    return { contentId: requireContentId(i.contentId), to: i.to };
+  })
   .handler(async ({ data }) => {
     const { db, session } = await requireInventorySession(
       data.to === "published" ? "cms.publish" : "cms.write",
+      true,
     );
     const { setContentStatus } = await import("./db.server");
     await setContentStatus(

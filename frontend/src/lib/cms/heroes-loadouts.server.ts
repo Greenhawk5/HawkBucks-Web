@@ -92,7 +92,7 @@ async function assertLoadoutContent(db: D1Database, contentId: string): Promise<
   return c;
 }
 export interface HeroInput {
-  heroClass: string;
+  heroClass?: string;
   category?: string | null;
   popularity?: number;
   sortOrder?: number;

@@ -542,9 +542,28 @@ export async function getPublishedBySlug(
   db: D1Database,
   input: { entityType: string; locale: string; slug: string },
 ): Promise<PublishedContent | null> {
-  const slugRow = await db
+  // Phase 19 — single round trip. The previous implementation issued three
+  // sequential queries (slug join, then a content re-read, then a translation
+  // re-read) even though the join already returns every published column.
+  // Explicit aliased columns avoid the c.*/t.* `id` collision (the
+  // translation id used to overwrite the content id in the merged row).
+  const row = await db
     .prepare(
-      `SELECT c.*, t.*
+      `SELECT
+         c.id AS content_id, c.entity_type AS content_entity_type,
+         c.default_locale AS content_default_locale, c.status AS content_status,
+         c.published_at AS content_published_at, c.created_by AS content_created_by,
+         c.updated_by AS content_updated_by, c.created_at AS content_created_at,
+         c.updated_at AS content_updated_at,
+         t.id AS translation_id, t.title AS translation_title, t.body AS translation_body,
+         t.slug AS translation_slug, t.seo_title AS translation_seo_title,
+         t.seo_description AS translation_seo_description,
+         t.seo_canonical_override AS translation_seo_canonical_override,
+         t.seo_robots AS translation_seo_robots, t.og_title AS translation_og_title,
+         t.og_description AS translation_og_description,
+         t.og_image_asset_id AS translation_og_image_asset_id,
+         t.translation_status AS translation_translation_status,
+         t.created_at AS translation_created_at, t.updated_at AS translation_updated_at
        FROM cms_slugs s
        JOIN cms_contents c ON c.id = s.content_id
        JOIN cms_content_translations t ON t.content_id = c.id AND t.locale = s.locale
@@ -552,15 +571,38 @@ export async function getPublishedBySlug(
          AND c.status = 'published'`,
     )
     .bind(input.entityType, input.locale, normalizeSlug(input.slug))
-    .first<ContentRow & ContentTranslationRow>();
-  if (!slugRow) return null;
-  const content = await getContentById(db, slugRow.content_id as string);
-  if (!content || content.status !== "published") return null;
-  const translation = await db
-    .prepare("SELECT * FROM cms_content_translations WHERE content_id = ? AND locale = ?")
-    .bind(content.id, input.locale)
-    .first<ContentTranslationRow>();
-  if (!translation) return null;
+    .first<Record<string, string | number | null>>();
+  if (!row || row["content_status"] !== "published") return null;
+  const content: ContentRow = {
+    id: String(row["content_id"] ?? ""),
+    entity_type: String(row["content_entity_type"] ?? ""),
+    default_locale: String(row["content_default_locale"] ?? ""),
+    status: String(row["content_status"] ?? ""),
+    published_at: (row["content_published_at"] as string | null) ?? null,
+    created_by: (row["content_created_by"] as string | null) ?? null,
+    updated_by: (row["content_updated_by"] as string | null) ?? null,
+    created_at: String(row["content_created_at"] ?? ""),
+    updated_at: String(row["content_updated_at"] ?? ""),
+  };
+  const translation: ContentTranslationRow = {
+    id: String(row["translation_id"] ?? ""),
+    content_id: String(row["content_id"] ?? ""),
+    locale: input.locale,
+    title: String(row["translation_title"] ?? ""),
+    body: String(row["translation_body"] ?? ""),
+    slug: String(row["translation_slug"] ?? ""),
+    seo_title: (row["translation_seo_title"] as string | null) ?? null,
+    seo_description: (row["translation_seo_description"] as string | null) ?? null,
+    seo_canonical_override: (row["translation_seo_canonical_override"] as string | null) ?? null,
+    seo_robots: (row["translation_seo_robots"] as string | null) ?? null,
+    og_title: (row["translation_og_title"] as string | null) ?? null,
+    og_description: (row["translation_og_description"] as string | null) ?? null,
+    og_image_asset_id: (row["translation_og_image_asset_id"] as string | null) ?? null,
+    translation_status: String(row["translation_translation_status"] ?? ""),
+    created_at: String(row["translation_created_at"] ?? ""),
+    updated_at: String(row["translation_updated_at"] ?? ""),
+  };
+  if (content.id === "" || translation.id === "") return null;
   return { content, translation };
 }
 
@@ -570,22 +612,68 @@ export async function listPublishedByEntity(
 ): Promise<PublishedContent[]> {
   const limit = Math.max(1, Math.min(100, Math.floor(input.limit ?? 50)));
   const offset = Math.max(0, Math.floor(input.offset ?? 0));
+  // Phase 19 — single round trip. The previous implementation issued one
+  // query for the content rows plus one translation re-read PER row (N+1).
+  // Translation columns are selected explicitly (aliased) in the same join.
   const { results } = await db
     .prepare(
-      `SELECT c.*, t.id AS t_id FROM cms_contents c
+      `SELECT
+         c.id AS content_id, c.entity_type AS content_entity_type,
+         c.default_locale AS content_default_locale, c.status AS content_status,
+         c.published_at AS content_published_at, c.created_by AS content_created_by,
+         c.updated_by AS content_updated_by, c.created_at AS content_created_at,
+         c.updated_at AS content_updated_at,
+         t.id AS translation_id, t.title AS translation_title, t.body AS translation_body,
+         t.slug AS translation_slug, t.seo_title AS translation_seo_title,
+         t.seo_description AS translation_seo_description,
+         t.seo_canonical_override AS translation_seo_canonical_override,
+         t.seo_robots AS translation_seo_robots, t.og_title AS translation_og_title,
+         t.og_description AS translation_og_description,
+         t.og_image_asset_id AS translation_og_image_asset_id,
+         t.translation_status AS translation_translation_status,
+         t.created_at AS translation_created_at, t.updated_at AS translation_updated_at
+       FROM cms_contents c
        JOIN cms_content_translations t ON t.content_id = c.id AND t.locale = ?
        WHERE c.entity_type = ? AND c.status = 'published'
        ORDER BY c.published_at DESC LIMIT ? OFFSET ?`,
     )
     .bind(input.locale, input.entityType, limit, offset)
-    .all<ContentRow & { t_id: string }>();
+    .all<Record<string, string | number | null>>();
   const out: PublishedContent[] = [];
   for (const row of results) {
-    const translation = await db
-      .prepare("SELECT * FROM cms_content_translations WHERE id = ?")
-      .bind(row.t_id)
-      .first<ContentTranslationRow>();
-    if (translation) out.push({ content: row, translation });
+    if (row["content_id"] == null || row["translation_id"] == null) continue;
+    out.push({
+      content: {
+        id: String(row["content_id"] ?? ""),
+        entity_type: String(row["content_entity_type"] ?? ""),
+        default_locale: String(row["content_default_locale"] ?? ""),
+        status: String(row["content_status"] ?? ""),
+        published_at: (row["content_published_at"] as string | null) ?? null,
+        created_by: (row["content_created_by"] as string | null) ?? null,
+        updated_by: (row["content_updated_by"] as string | null) ?? null,
+        created_at: String(row["content_created_at"] ?? ""),
+        updated_at: String(row["content_updated_at"] ?? ""),
+      },
+      translation: {
+        id: String(row["translation_id"] ?? ""),
+        content_id: String(row["content_id"] ?? ""),
+        locale: input.locale,
+        title: String(row["translation_title"] ?? ""),
+        body: String(row["translation_body"] ?? ""),
+        slug: String(row["translation_slug"] ?? ""),
+        seo_title: (row["translation_seo_title"] as string | null) ?? null,
+        seo_description: (row["translation_seo_description"] as string | null) ?? null,
+        seo_canonical_override:
+          (row["translation_seo_canonical_override"] as string | null) ?? null,
+        seo_robots: (row["translation_seo_robots"] as string | null) ?? null,
+        og_title: (row["translation_og_title"] as string | null) ?? null,
+        og_description: (row["translation_og_description"] as string | null) ?? null,
+        og_image_asset_id: (row["translation_og_image_asset_id"] as string | null) ?? null,
+        translation_status: String(row["translation_translation_status"] ?? ""),
+        created_at: String(row["translation_created_at"] ?? ""),
+        updated_at: String(row["translation_updated_at"] ?? ""),
+      },
+    });
   }
   return out;
 }

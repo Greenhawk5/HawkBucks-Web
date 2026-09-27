@@ -30,6 +30,7 @@ export function HeroCard({
           alt={hero.title}
           className="aspect-[4/3] w-full object-cover"
           loading="lazy"
+          decoding="async"
         />
       ) : (
         <div

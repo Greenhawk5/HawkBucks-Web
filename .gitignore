@@ -12,6 +12,7 @@ build/
 .wrangler/
 .dev.vars
 .dev.vars.*
+!*.example
 wrangler.toml.local
 
 # Environment files
@@ -46,6 +47,8 @@ Thumbs.db
 # Test / coverage output
 coverage/
 .nyc_output/
+frontend/.claude
+.claude
 
 # Temporary files
 *.tmp
@@ -57,3 +60,4 @@ coverage/
 todo.txt
 /seo
 /fix-helpers
+Cms Template

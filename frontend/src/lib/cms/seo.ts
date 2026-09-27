@@ -78,6 +78,16 @@ function isAllowedCanonicalOverride(value: string): boolean {
   }
 }
 
+function isSafeOgImageUrl(value: unknown): boolean {
+  if (typeof value !== "string" || value === "") return false;
+  try {
+    const url = new URL(value);
+    return url.protocol === "https:";
+  } catch {
+    return false;
+  }
+}
+
 export function resolveCmsSeo(input: CmsSeoInput): CmsSeoOutput {
   const indexable = isPubliclyVisible(input.status);
 
@@ -124,8 +134,7 @@ export function resolveCmsSeo(input: CmsSeoInput): CmsSeoOutput {
       toSafeSeoText(input.ogDescription, 300) ||
       toSafeSeoText(input.seoDescription, 300) ||
       input.fallbackDescription,
-    ogImageUrl:
-      typeof input.ogImageUrl === "string" && input.ogImageUrl !== "" ? input.ogImageUrl : null,
+    ogImageUrl: isSafeOgImageUrl(input.ogImageUrl) ? input.ogImageUrl! : null,
     indexable: true,
   };
 }

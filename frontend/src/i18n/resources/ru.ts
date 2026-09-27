@@ -294,5 +294,22 @@ export const ru: TranslationDictionary = {
     logoAlt: "Логотип HawkBucks",
     vbucksRewardAlt: "Значок награды V-Bucks",
     greenhawkLogoAlt: "Логотип Greenhawk",
+    heroesTitle: "Герои — Fortnite: Save the World | HawkBucks",
+    heroesDescription:
+      "Просматривайте всех опубликованных героев HawkBucks. Фильтруйте по классу, ищите по имени и сравнивайте характеристики.",
+    heroesOgTitle: "Герои | HawkBucks",
+    heroesOgDescription:
+      "Просматривайте всех опубликованных героев HawkBucks. Фильтруйте по классу, ищите по имени.",
+    loadoutsTitle: "Нагрузки — Fortnite: Save the World | HawkBucks",
+    loadoutsDescription:
+      "Просматривайте опубликованные нагрузки HawkBucks: Командир плюс пять слотов Поддержки для каждого стиля игры.",
+    loadoutsOgTitle: "Нагрузки | HawkBucks",
+    loadoutsOgDescription:
+      "Просматривайте опубликованные нагрузки HawkBucks: Командир плюс пять слотов Поддержки.",
+    articlesTitle: "Статьи — Fortnite: Save the World | HawkBucks",
+    articlesDescription:
+      "Просматривайте опубликованные редакционные статьи HawkBucks: руководства по миссиям, героям, нагрузкам и инвентарю.",
+    guidesTitle: "Guides | HawkBucks",
+    guidesDescription: "HawkBucks editorial guides.",
   },
 };

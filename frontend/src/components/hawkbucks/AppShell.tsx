@@ -89,7 +89,7 @@ function CollapsedBrandButton({ onOpen }: { onOpen: () => void }) {
         />
         <PanelLeftOpen
           aria-hidden="true"
-          className="absolute inset-0 m-auto h-5 w-5 text-muted-foreground opacity-0 transition-opacity duration-150 ease-linear group-hover:opacity-100 group-focus-visible:opacity-100 motion-reduce:transition-none"
+          className="absolute inset-0 m-auto h-5 w-5 text-muted-foreground opacity-0 transition-opacity duration-150 ease-linear group-hover:opacity-100 group-focus-visible:opacity-100 motion-reduce:transition-none rtl:scale-x-[-1]"
         />
       </span>
     </button>
@@ -145,7 +145,7 @@ function DesktopSidebar() {
                 title={t("shell.collapseSidebar")}
                 className="grid h-9 w-9 shrink-0 place-items-center rounded-lg text-muted-foreground outline-none transition-colors hover:bg-accent/10 hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
               >
-                <PanelLeftClose aria-hidden="true" className="h-5 w-5" />
+                <PanelLeftClose aria-hidden="true" className="h-5 w-5 rtl:scale-x-[-1]" />
               </button>
             </div>
           </>
@@ -209,7 +209,12 @@ function DesktopSidebar() {
               <li key={item.to}>
                 <Tooltip>
                   <TooltipTrigger asChild>{link}</TooltipTrigger>
-                  <TooltipContent side="right" align="center">
+                  <TooltipContent
+                    side={
+                      typeof document !== "undefined" && document.dir === "rtl" ? "left" : "right"
+                    }
+                    align="center"
+                  >
                     {label}
                   </TooltipContent>
                 </Tooltip>

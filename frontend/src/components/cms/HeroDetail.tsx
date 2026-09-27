@@ -4,6 +4,7 @@ import { getPublicStrings, heroClassLabel } from "@/lib/cms/public-strings";
 import type { PublicHeroDetail } from "@/lib/cms/public-hero-detail.loader";
 import { heroDetailHref } from "./HeroCard";
 import { loadoutDetailHref } from "./LoadoutCard";
+import { RelatedGuides } from "./RelatedGuides";
 
 export function HeroDetail({
   hero,
@@ -61,6 +62,7 @@ export function HeroDetail({
           </ul>
         </section>
       ) : null}
+      <RelatedGuides entityContentId={hero.contentId} locale={locale} />
       <p className="mt-8 text-xs text-muted-foreground">{heroDetailHref(locale, hero.slug)}</p>
     </main>
   );

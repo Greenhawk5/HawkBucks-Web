@@ -1,0 +1,12 @@
+# LOCAL-ONLY CMS admin bootstrap secrets for `npm run dev:cloudflare`.
+# Wrangler `pages dev` loads .dev.vars automatically from frontend/
+# (.dev.vars is gitignored — NEVER commit real values).
+#
+# 1. Generate a PBKDF2 envelope for your chosen local password:
+#      node scripts/make-cms-admin-hash.mjs "your-local-password"
+# 2. Paste the output as CMS_ADMIN_PASSWORD_HASH below.
+# 3. `ensureBootstrapAdmin()` creates the first admin from these values ONLY
+#    when the LOCAL cms_users table is empty; afterwards they are ignored.
+#    There is no default password — login fails closed without these.
+CMS_ADMIN_USERNAME=local-admin
+CMS_ADMIN_PASSWORD_HASH=pbkdf2$100000$REPLACE_WITH_SALT$REPLACE_WITH_HASH

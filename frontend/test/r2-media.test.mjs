@@ -87,7 +87,8 @@ test("r2: upload writes deterministic key + content type; D1 would store key onl
   const bucket = createMemoryBucket();
   const provider = r2.createR2Provider(bucket, CONFIG);
   const result = await provider.upload({
-    data: new Uint8Array([1, 2, 3]),
+    // Phase 20: genuine PNG magic bytes (89 50 4E 47 0D 0A 1A 0A).
+    data: new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0x01]),
     ...PNG,
     folder: "heroes",
   });
@@ -96,11 +97,15 @@ test("r2: upload writes deterministic key + content type; D1 would store key onl
   assert.equal(result.providerAssetId.startsWith("https://"), false);
   assert.equal(bucket.objects.get("heroes/kyle-artwork.png")?.contentType, "image/png");
   // Same slot overwrites (deterministic naming — no duplicates).
-  await provider.upload({ data: new Uint8Array([9]), ...PNG, folder: "heroes" });
+  await provider.upload({
+    data: new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0x09]),
+    ...PNG,
+    folder: "heroes",
+  });
   assert.equal(bucket.objects.size, 1);
   assert.deepEqual(
     [...bucket.objects.get("heroes/kyle-artwork.png").body],
-    [9],
+    [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0x09],
   );
 });
 
@@ -108,15 +113,30 @@ test("r2: upload validation rejects hostile input before bucket I/O", async () =
   const bucket = createMemoryBucket();
   const provider = r2.createR2Provider(bucket, CONFIG);
   await assert.rejects(
-    () => provider.upload({ data: new Uint8Array([1]), originalFilename: "x.svg", mimeType: "image/svg+xml" }),
+    () =>
+      provider.upload({
+        data: new Uint8Array([1]),
+        originalFilename: "x.svg",
+        mimeType: "image/svg+xml",
+      }),
     /Invalid upload/,
   );
   await assert.rejects(
-    () => provider.upload({ data: new Uint8Array(0), originalFilename: "x.png", mimeType: "image/png" }),
+    () =>
+      provider.upload({
+        data: new Uint8Array(0),
+        originalFilename: "x.png",
+        mimeType: "image/png",
+      }),
     /Invalid upload/,
   );
   await assert.rejects(
-    () => provider.upload({ data: new Uint8Array([1]), originalFilename: "../evil.png", mimeType: "image/png" }),
+    () =>
+      provider.upload({
+        data: new Uint8Array([1]),
+        originalFilename: "../evil.png",
+        mimeType: "image/png",
+      }),
     /Invalid upload/,
   );
   assert.equal(bucket.objects.size, 0);
@@ -142,12 +162,20 @@ test("r2: extension comes from MIME, never the filename", () => {
 test("r2: remove deletes the object; invalid ids throw", async () => {
   const bucket = createMemoryBucket();
   const provider = r2.createR2Provider(bucket, CONFIG);
-  await provider.upload({ data: new Uint8Array([1]), originalFilename: "a.png", mimeType: "image/png", folder: "og" });
+  await provider.upload({
+    data: new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]),
+    originalFilename: "a.png",
+    mimeType: "image/png",
+    folder: "og",
+  });
   assert.equal(await provider.exists("og/a.png"), true);
   await provider.remove("og/a.png");
   assert.equal(await provider.exists("og/a.png"), false);
   await assert.rejects(() => provider.remove("../escape.png"), /Invalid provider asset/);
-  await assert.rejects(() => provider.remove("https://evil.example/x.png"), /Invalid provider asset/);
+  await assert.rejects(
+    () => provider.remove("https://evil.example/x.png"),
+    /Invalid provider asset/,
+  );
   assert.equal(await provider.exists("../escape.png"), false);
 });
 
@@ -164,14 +192,22 @@ test("compat: r2 rows resolve key-only; imagekit rows serve stored URL", () => {
   const cfg = { r2BaseUrl: "https://media.hawkbucks.com" };
   assert.equal(
     compat.resolveCompatDeliveryUrl(
-      { provider: "r2", provider_asset_id: "heroes/kyle.webp", delivery_url: "https://media.hawkbucks.com/heroes/kyle.webp" },
+      {
+        provider: "r2",
+        provider_asset_id: "heroes/kyle.webp",
+        delivery_url: "https://media.hawkbucks.com/heroes/kyle.webp",
+      },
       cfg,
     ),
     "https://media.hawkbucks.com/heroes/kyle.webp",
   );
   assert.equal(
     compat.resolveCompatDeliveryUrl(
-      { provider: "imagekit", provider_asset_id: "file_abc", delivery_url: "https://ik.imagekit.io/demo/art.png" },
+      {
+        provider: "imagekit",
+        provider_asset_id: "file_abc",
+        delivery_url: "https://ik.imagekit.io/demo/art.png",
+      },
       cfg,
     ),
     "https://ik.imagekit.io/demo/art.png",
@@ -204,18 +240,33 @@ test("compat: r2 rows resolve key-only; imagekit rows serve stored URL", () => {
     true,
   );
   assert.equal(
-    compat.isMigratedToR2({ provider: "imagekit", provider_asset_id: "file_abc", delivery_url: "https://x" }),
+    compat.isMigratedToR2({
+      provider: "imagekit",
+      provider_asset_id: "file_abc",
+      delivery_url: "https://x",
+    }),
     false,
   );
 });
 
 test("compat: shared upload validation still guards the R2 path", () => {
+  // Phase 20: genuine WEBP magic bytes ("RIFF" .... "WEBP").
+  const webp = new Uint8Array([
+    0x52, 0x49, 0x46, 0x46, 0x01, 0x02, 0x03, 0x04, 0x57, 0x45, 0x42, 0x50,
+  ]);
   assert.deepEqual(
-    mediaProvider.validateUploadInput({ originalFilename: "a.webp", mimeType: "image/webp", data: new Uint8Array([1]) }),
+    mediaProvider.validateUploadInput({
+      originalFilename: "a.webp",
+      mimeType: "image/webp",
+      data: webp,
+    }),
     { ok: true },
   );
   assert.equal(
-    mediaProvider.validateUploadInput({ originalFilename: "a.webp", mimeType: "image/webp", data: new Uint8Array([1]) }, { maxBytes: 0 }).ok,
+    mediaProvider.validateUploadInput(
+      { originalFilename: "a.webp", mimeType: "image/webp", data: webp },
+      { maxBytes: 0 },
+    ).ok,
     false,
   );
 });
@@ -233,13 +284,24 @@ test("r2: no component manually builds image URLs; media flows through providers
     "components/cms/SchematicDetail.tsx",
   ]) {
     const src = await read(file);
-    assert.equal(src.includes("media.hawkbucks.com"), false, `${file} must not hardcode the R2 domain`);
+    assert.equal(
+      src.includes("media.hawkbucks.com"),
+      false,
+      `${file} must not hardcode the R2 domain`,
+    );
     assert.equal(src.includes("ik.imagekit.io"), false, `${file} must not hardcode ImageKit URLs`);
   }
   const mediaServer = await read("lib/cms/media.server.ts");
-  assert.ok(mediaServer.includes("@tanstack/react-start/server-only"), "media service must be server-only");
+  assert.ok(
+    mediaServer.includes("@tanstack/react-start/server-only"),
+    "media service must be server-only",
+  );
   assert.ok(mediaServer.includes("MEDIA_BUCKET"), "uploads must resolve the R2 bucket binding");
   const loader = await read("lib/cms/media-admin.loader.ts");
-  assert.equal(loader.includes("MEDIA_BUCKET"), false, "admin boundary must not touch the bucket directly");
+  assert.equal(
+    loader.includes("MEDIA_BUCKET"),
+    false,
+    "admin boundary must not touch the bucket directly",
+  );
   assert.equal(loader.includes("IMAGEKIT_PRIVATE_KEY"), false);
 });

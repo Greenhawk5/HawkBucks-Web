@@ -39,6 +39,7 @@ function SlotCard({
   );
 }
 
+import { RelatedGuides } from "./RelatedGuides";
 export function LoadoutDetail({
   loadout,
   locale,
@@ -92,6 +93,7 @@ export function LoadoutDetail({
           ))}
         </ol>
       </section>
+      <RelatedGuides entityContentId={loadout.contentId} locale={locale} />
     </main>
   );
 }

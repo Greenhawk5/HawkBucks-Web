@@ -29,6 +29,7 @@ export function InventoryCard({ item, locale }: { item: PublicInventoryItem; loc
           alt={item.title}
           className="aspect-[4/3] w-full object-cover"
           loading="lazy"
+          decoding="async"
         />
       ) : (
         <div

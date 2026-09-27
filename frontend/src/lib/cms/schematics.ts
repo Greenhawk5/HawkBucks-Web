@@ -15,18 +15,15 @@
  * unit tests.
  */
 
-export const WEAPON_ENTITY_TYPE = "weapon" as const;
-export const TRAP_ENTITY_TYPE = "trap" as const;
-export const SCHEMATIC_ENTITY_TYPE = "schematic" as const;
-export const PERK_ENTITY_TYPE = "perk" as const;
-
-export const INVENTORY_ENTITY_TYPES = [
-  WEAPON_ENTITY_TYPE,
-  TRAP_ENTITY_TYPE,
-  SCHEMATIC_ENTITY_TYPE,
+export {
+  INVENTORY_ENTITY_TYPES,
   PERK_ENTITY_TYPE,
-] as const;
-export type InventoryEntityType = (typeof INVENTORY_ENTITY_TYPES)[number];
+  SCHEMATIC_ENTITY_TYPE,
+  TRAP_ENTITY_TYPE,
+  WEAPON_ENTITY_TYPE,
+  isEntityType as isInventoryEntityType,
+  type InventoryEntityType,
+} from "./content-types";
 
 /** Editorial weapon groupings. Minimal set for Phase 15 filters. */
 export const WEAPON_SUBTYPES = [
@@ -53,10 +50,6 @@ export type PerkType = (typeof PERK_TYPES)[number];
 export const MAX_SCHEMATIC_PERKS = 12;
 /** Slot orders are small non-negative integers (gap-preserving, like loadouts). */
 export const MAX_PERK_SLOT_ORDER = 31;
-
-export function isInventoryEntityType(v: unknown): v is InventoryEntityType {
-  return typeof v === "string" && (INVENTORY_ENTITY_TYPES as readonly string[]).includes(v);
-}
 
 export function isWeaponSubtype(v: unknown): v is WeaponSubtype {
   return typeof v === "string" && (WEAPON_SUBTYPES as readonly string[]).includes(v);

@@ -121,7 +121,7 @@ export const faIR: TranslationDictionary = {
     feature3Title: "نمای فوری",
     feature3Detail: "پاداش، مکان، منطقه و سطح قدرت را در چند ثانیه ببینید.",
     feature4Title: "ابزار رایگان اجتماعی",
-    feature4Detail: "بدون حساب، بدون تبلیغات، بدون paywall. ساخته‌شده برای جامعه Save the World.",
+    feature4Detail: "بدون حساب، بدون تبلیغات، بدون پرداخت. ساخته‌شده برای جامعه Save the World.",
     guideEyebrow: "راهنمای مأموریت",
     guideTitle: "درباره مأموریت‌های V-Bucks",
     guideDesc: "راهنمای کاربردی هشدارهای مأموریت Fortnite: Save the World و ردیاب HawkBucks.",
@@ -193,7 +193,7 @@ export const faIR: TranslationDictionary = {
       "Open the HawkBucks Live Mission Tracker. It lists the V-Bucks mission alerts currently detected, with reward, location, zone, and power level for each one.",
     faqQ2: "Do I need a HawkBucks account?",
     faqA2:
-      "No. HawkBucks is a free community tool — no account, no ads, no paywall. Just open the tracker and read the alerts.",
+      "نه. HawkBucks یک ابزار اجتماعی رایگان است — بدون حساب، بدون تبلیغات، بدون دیوار پرداخت. فقط ردیاب را باز کنید و هشدارها را بخوانید.",
     faqQ3: "Why do some missions show a higher Power Level?",
     faqA3:
       "Power Level reflects how demanding a mission is. Treat it as a difficulty guide: higher levels expect a stronger squad and better loadouts.",
@@ -242,17 +242,20 @@ export const faIR: TranslationDictionary = {
     changeLanguage: "تغییر زبان",
   },
   welcome: {
-    eyebrow: "به خوش آمدید HawkBucks",
-    title: "همراه V-Bucks",
-    description: "HawkBucks پیگیری Fortnite: Save the World V-Bucks.",
-    trackingTitle: "پیگیری روزانه",
-    trackingDescription: "Fortnite: Save the World ? V-Bucks",
-    remindersTitle: "یادآورهای",
-    remindersDescription: "Fortnite: Save the World ? V-Bucks",
-    explore: "بگرد HawkBucks",
-    enableReminders: "فعال‌کردن",
-    remindersSaved: "یادآورهای ? HawkBucks",
-    close: "یادآورهای",
+    eyebrow: "به HawkBucks خوش آمدید",
+    title: "همراه روزانه مأموریت‌های V-Bucks شما",
+    description:
+      "HawkBucks مأموریت‌های روزانه V-Bucks در Fortnite: Save the World را ردیابی می‌کند تا به سرعت ببینید امروز چه چیزی در دسترس است.",
+    trackingTitle: "ردیابی روزانه مأموریت‌ها",
+    trackingDescription: "هشدارهای مأموریت V-Bucks فعلی و پاداش‌هایشان را در یک نمای واضح ببینید.",
+    remindersTitle: "یادآورهای مفید",
+    remindersDescription:
+      "یادآورها کمک می‌کنند بررسی مأموریت‌های روزانه را فراموش نکنید. می‌توانید الان فعال کنید و بعداً اعلان‌ها را مدیریت کنید.",
+    explore: "کاوش HawkBucks",
+    enableReminders: "فعال‌سازی یادآورها",
+    remindersSaved:
+      "ترجیح یادآوری ذخیره شد. تنظیم اعلان‌ها در به‌روزرسانی آینده در دسترس خواهد بود.",
+    close: "بستن خوشامدگویی",
   },
   notifications: {
     pushTitle: "HawkBucks",
@@ -293,5 +296,22 @@ export const faIR: TranslationDictionary = {
     logoAlt: "لوگوی HawkBucks",
     vbucksRewardAlt: "نماد پاداش V-Bucks",
     greenhawkLogoAlt: "لوگوی Greenhawk",
+    heroesTitle: "قهرمانان — Fortnite: Save the World | HawkBucks",
+    heroesDescription:
+      "تمام قهرمانان منتشر شده HawkBucks را مرور کنید. بر اساس کلاس فیلتر کنید، با نام جستجو کنید و آمار را مقایسه کنید.",
+    heroesOgTitle: "قهرمانان | HawkBucks",
+    heroesOgDescription:
+      "تمام قهرمانان منتشر شده HawkBucks را مرور کنید. بر اساس کلاس فیلتر کنید، با نام جستجو کنید.",
+    loadoutsTitle: "ست‌ها — Fortnite: Save the World | HawkBucks",
+    loadoutsDescription:
+      "ست‌های منتشر شده HawkBucks را مرور کنید: فرمانده به علاوه پنج اسلات پشتیبانی برای هر سبک بازی.",
+    loadoutsOgTitle: "ست‌ها | HawkBucks",
+    loadoutsOgDescription:
+      "ست‌های منتشر شده HawkBucks را مرور کنید: فرمانده به علاوه پنج اسلات پشتیبانی.",
+    articlesTitle: "مقالات — Fortnite: Save the World | HawkBucks",
+    articlesDescription:
+      "مقالات تحریریه منتشر شده HawkBucks را مرور کنید: راهنماهای مأموریت‌ها، قهرمانان، ست‌ها و موجودی.",
+    guidesTitle: "Guides | HawkBucks",
+    guidesDescription: "HawkBucks editorial guides.",
   },
 };

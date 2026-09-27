@@ -229,7 +229,7 @@
     z-index: -1;
     width: 120vw;
     height: 90vh;
-    margin-left: -60vw;
+    margin-inline-start: -60vw;
     pointer-events: none;
     background:
       radial-gradient(45% 55% at 30% 40%, oklch(0.82 0.23 145 / 12%), transparent 70%),

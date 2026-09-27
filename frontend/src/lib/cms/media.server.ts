@@ -19,11 +19,7 @@
 import "@tanstack/react-start/server-only";
 
 import type { CmsWorkerEnv, D1Database } from "./db.server";
-import {
-  validateUploadInput,
-  type MediaProvider,
-  type MediaUploadInput,
-} from "./media-provider";
+import { validateUploadInput, type MediaProvider, type MediaUploadInput } from "./media-provider";
 import {
   createR2Provider,
   r2ConfigFromEnv,
@@ -56,10 +52,10 @@ export interface MediaUploadArgs {
   data: Uint8Array | ArrayBuffer;
   originalFilename: string;
   mimeType: string;
-  altText?: string;
-  title?: string | null;
-  caption?: string | null;
-  folder?: string;
+  altText?: string | undefined;
+  title?: string | null | undefined;
+  caption?: string | null | undefined;
+  folder?: string | undefined;
   createdBy?: string | null;
 }
 
@@ -86,8 +82,8 @@ export async function uploadMediaAsset(
     originalFilename: args.originalFilename,
     mimeType: args.mimeType,
     ...(args.altText !== undefined ? { altText: args.altText } : {}),
-    ...(args.title !== undefined ? { title: args.title } : {}),
-    ...(args.caption !== undefined ? { caption: args.caption } : {}),
+    ...(typeof args.title === "string" ? { title: args.title } : {}),
+    ...(typeof args.caption === "string" ? { caption: args.caption } : {}),
     ...(args.folder !== undefined ? { folder: args.folder } : {}),
   };
   const result = await provider.upload(input);
@@ -95,9 +91,9 @@ export async function uploadMediaAsset(
     throw new Error("Media provider returned a URL instead of an object key.");
   }
 
-  const { createMediaAsset } = await import("./db.server");
-  const { buildAuditEvent, type AuditActor } = await import("./audit");
-  const { recordAuditEvent } = await import("./db.server");
+  const { createMediaAsset, recordAuditEvent } = await import("./db.server");
+  const { buildAuditEvent } = await import("./audit");
+  type AuditActor = import("./audit").AuditActor;
   const row = await createMediaAsset(db, {
     provider: ACTIVE_MEDIA_PROVIDER,
     providerAssetId: result.providerAssetId,
@@ -129,8 +125,8 @@ export async function uploadMediaAsset(
 /**
  * Delete a media asset: bucket delete first, then D1 tombstone. Refuses when
  * the row is still referenced by heroes / loadouts / schematics / perks /
- * translations / abilities — callers surface the error instead of orphaning
- * published content.
+ * translations / abilities / articles — callers surface the error instead of
+ * orphaning published content.
  */
 export async function deleteMediaAsset(
   db: D1Database,
@@ -138,7 +134,8 @@ export async function deleteMediaAsset(
   input: { id: string; deletedBy?: string | null },
 ): Promise<void> {
   const { getMediaAssetById, tombstoneMediaAsset, recordAuditEvent } = await import("./db.server");
-  const { buildAuditEvent, type AuditActor } = await import("./audit");
+  const { buildAuditEvent } = await import("./audit");
+  type DeleteAuditActor = import("./audit").AuditActor;
   const row = await getMediaAssetById(db, input.id);
   if (!row) throw new Error("Media asset not found.");
 
@@ -146,8 +143,10 @@ export async function deleteMediaAsset(
     await import("./heroes-loadouts.server");
   const { assertMediaUnreferenced: assertSchematicMediaUnreferenced } =
     await import("./schematics-inventory.server");
+  const { assertArticleMediaUnreferenced } = await import("./articles.server");
   await assertHeroMediaUnreferenced(db, input.id);
   await assertSchematicMediaUnreferenced(db, input.id);
+  await assertArticleMediaUnreferenced(db, input.id);
 
   // Only R2 rows have bucket bytes under this service. Legacy ImageKit rows
   // are tombstoned only (bytes die with the ImageKit account sunset, never
@@ -159,7 +158,10 @@ export async function deleteMediaAsset(
     throw new Error(`Unknown media provider: ${row.provider}`);
   }
   await tombstoneMediaAsset(db, input.id);
-  const actor: AuditActor = { id: input.deletedBy ?? null, username: input.deletedBy ?? "cms" };
+  const actor: DeleteAuditActor = {
+    id: input.deletedBy ?? null,
+    username: input.deletedBy ?? "cms",
+  };
   await recordAuditEvent(
     db,
     buildAuditEvent({

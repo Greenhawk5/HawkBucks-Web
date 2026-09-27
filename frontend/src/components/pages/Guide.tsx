@@ -145,7 +145,7 @@ export function GuidePage() {
             </span>
             <ArrowRight
               aria-hidden="true"
-              className="h-4 w-4 shrink-0 text-primary transition-transform duration-300 group-hover:translate-x-0.5 motion-reduce:transition-none rtl:rotate-180"
+              className="h-4 w-4 shrink-0 text-primary transition-transform duration-300 group-hover:translate-x-0.5 motion-reduce:transition-none rtl:group-hover:-translate-x-0.5 rtl:rotate-180"
             />
           </Link>
           <Link
@@ -162,7 +162,7 @@ export function GuidePage() {
             </span>
             <ArrowRight
               aria-hidden="true"
-              className="h-4 w-4 shrink-0 text-primary transition-transform duration-300 group-hover:translate-x-0.5 motion-reduce:transition-none rtl:rotate-180"
+              className="h-4 w-4 shrink-0 text-primary transition-transform duration-300 group-hover:translate-x-0.5 motion-reduce:transition-none rtl:group-hover:-translate-x-0.5 rtl:rotate-180"
             />
           </Link>
         </div>
