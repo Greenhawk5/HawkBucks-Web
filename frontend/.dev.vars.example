@@ -10,3 +10,15 @@
 #    There is no default password — login fails closed without these.
 CMS_ADMIN_USERNAME=local-admin
 CMS_ADMIN_PASSWORD_HASH=pbkdf2$100000$REPLACE_WITH_SALT$REPLACE_WITH_HASH
+#
+# Wave 1 — Cloudflare Turnstile bot protection for the CMS login (OPTIONAL
+# locally). Both lines absent = Turnstile off, password-only login (local dev
+# convenience — NEVER the production posture). Set BOTH to enforce:
+#   1. Create a widget at https://dash.cloudflare.com/?to=/:account/turnstile
+#      (managed or non-interactive mode both work; invisible needs no UI room).
+#   2. Paste the widget's SITE key below (public — safe in this gitignored file).
+#   3. Store the SECRET with `wrangler secret put CMS_TURNSTILE_SECRET` for
+#      production; locally, paste it below. NEVER commit the real secret.
+# Exactly one set = login fails closed (generic 401) until fixed.
+#CMS_TURNSTILE_SITE_KEY=0x4AAAAAAAxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+#CMS_TURNSTILE_SECRET=0x4AAAAAAAxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx

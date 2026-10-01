@@ -36,6 +36,15 @@ import type { CmsWorkerEnv, D1Database, D1Row } from "./db.server";
 
 export const CMS_SESSION_COOKIE = "hb_cms_session";
 export const CMS_SESSION_TTL_SECONDS = 12 * 60 * 60;
+/**
+ * Wave 1 — inactivity (idle) timeout: a session that has seen no authenticated
+ * request for 15 minutes is rejected server-side, even if its absolute
+ * `expires_at` is still in the future. Every successful session resolution
+ * refreshes the idle deadline (sliding window, capped by the absolute 12h
+ * `expires_at`, which remains the upper bound — this never extends a session
+ * past its original absolute expiry).
+ */
+export const CMS_SESSION_IDLE_TIMEOUT_SECONDS = 15 * 60;
 export const PBKDF2_ITERATIONS = 100_000;
 /**
  * Bounds accepted by verifyPassword for STORED envelopes. The Workers
@@ -239,18 +248,46 @@ export function buildClearedSessionCookie(): string {
 // ---------------------------------------------------------------------------
 
 interface SessionRow extends D1Row {
+  session_id: string;
   user_id: string;
   username: string;
   display_name: string;
   role: string;
   active: number;
+  /** Sliding inactivity deadline: refreshed on every authenticated request. */
   expires_at: string;
+  /** Session creation time: anchors the absolute 12h lifetime cap. */
+  created_at: string;
+}
+
+/**
+ * Absolute upper bound for any session, derived from the row's `created_at`
+ * (login time) — no schema change needed. Garbage timestamps fail closed.
+ */
+export function sessionAbsoluteExpiryIso(createdAt: string): string | null {
+  const createdMs = Date.parse(createdAt);
+  if (Number.isNaN(createdMs)) return null;
+  return new Date(createdMs + CMS_SESSION_TTL_SECONDS * 1000).toISOString();
 }
 
 /**
  * Resolve the current admin session from a raw token. Returns null for every
- * failure mode (unknown token, expired, revoked, inactive user) — callers
- * map null to 401 via requireCapability.
+ * failure mode (unknown token, idle-expired, absolute-expired, revoked,
+ * inactive user) — callers map null to 401 via requireCapability.
+ *
+ * Wave 1 — 15-minute INACTIVITY timeout (server-authoritative):
+ *   * `expires_at` is the sliding idle deadline. A session idle longer than
+ *     CMS_SESSION_IDLE_TIMEOUT_SECONDS is rejected, even with absolute
+ *     lifetime remaining.
+ *   * Every successful resolution refreshes the idle deadline to
+ *     min(now + idle, absolute cap) — the session can never slide past its
+ *     original 12h absolute expiry, so this is not an unlimited session.
+ *   * The refresh write is best-effort and skipped when the stored deadline
+ *     still has more than half the window left (bounds D1 writes to ~1 per
+ *     7.5 min of activity). A failed refresh never invalidates a live
+ *     session; worst case the user hits the older (earlier) deadline.
+ *   * Expired/revoked sessions return null WITHOUT writing — an expired
+ *     session can never be refreshed back to life.
  */
 export async function resolveSessionUser(
   db: D1Database,
@@ -261,7 +298,7 @@ export async function resolveSessionUser(
   const tokenHash = await hashSessionToken(token);
   const row = await db
     .prepare(
-      `SELECT s.user_id, u.username, u.display_name, u.role, u.active, s.expires_at
+      `SELECT s.id AS session_id, s.user_id, u.username, u.display_name, u.role, u.active, s.expires_at, s.created_at
        FROM cms_sessions s
        JOIN cms_users u ON u.id = s.user_id
        WHERE s.token_hash = ? AND s.revoked_at IS NULL`,
@@ -269,8 +306,61 @@ export async function resolveSessionUser(
     .bind(tokenHash)
     .first<SessionRow>();
   if (!row || row.active !== 1) return null;
-  if (isExpired(row.expires_at, now)) return null;
   if (!isCmsRole(row.role)) return null;
+  // Absolute cap first: created_at + 12h. Unparseable created_at fails closed.
+  const absoluteIso = sessionAbsoluteExpiryIso(row.created_at);
+  if (absoluteIso === null || isExpired(absoluteIso, now)) {
+    // Wave 2 — expiry telemetry (best-effort; distinguishes absolute expiry
+    // here vs idle expiry below by kind only in the audit row metadata path —
+    // kind stays session_expired for both, outcome is informational).
+    void import("./auth-telemetry.server").then(({ recordAuthTelemetry }) =>
+      recordAuthTelemetry(db, {
+        kind: "session_expired",
+        outcome: "success",
+        username: row.username,
+        actorId: row.user_id,
+        sessionId: row.session_id,
+        at: now.toISOString(),
+      }),
+    );
+    return null;
+  }
+  // Idle deadline second: unparseable expires_at fails closed.
+  if (isExpired(row.expires_at, now)) {
+    // Wave 2 — idle-timeout expiry telemetry (best-effort, same contract).
+    void import("./auth-telemetry.server").then(({ recordAuthTelemetry }) =>
+      recordAuthTelemetry(db, {
+        kind: "session_expired",
+        outcome: "success",
+        username: row.username,
+        actorId: row.user_id,
+        sessionId: row.session_id,
+        at: now.toISOString(),
+      }),
+    );
+    return null;
+  }
+  const idleMs = CMS_SESSION_IDLE_TIMEOUT_SECONDS * 1000;
+  // NaN-proof: isExpired() above already rejected garbage/unparseable
+  // timestamps (NaN comparisons are false), so remainingMs is a real number
+  // here — but the explicit guard keeps the refresh math honest if the flow
+  // above ever changes.
+  const expiresMs = Date.parse(row.expires_at);
+  if (Number.isNaN(expiresMs)) return null;
+  const remainingMs = expiresMs - now.getTime();
+  if (remainingMs < idleMs / 2) {
+    const refreshedIso = new Date(
+      Math.min(now.getTime() + idleMs, Date.parse(absoluteIso)),
+    ).toISOString();
+    try {
+      await db
+        .prepare("UPDATE cms_sessions SET expires_at = ? WHERE token_hash = ?")
+        .bind(refreshedIso, tokenHash)
+        .run();
+    } catch {
+      // Refresh is advisory — the session already validated above.
+    }
+  }
   return {
     user: {
       id: row.user_id,
@@ -385,7 +475,11 @@ export async function loginWithPassword(
     throw new CmsAuthError(401, "Invalid credentials.");
   }
   const token = createSessionToken();
-  const expiresAt = sessionExpiryIso(CMS_SESSION_TTL_SECONDS, now);
+  // Wave 1: a fresh session starts with a 15-minute IDLE deadline (refreshed
+  // by every authenticated request, capped by the 12h absolute lifetime —
+  // see resolveSessionUser/sessionAbsoluteExpiryIso). Previously a new
+  // session inherited the full 12h as its first deadline.
+  const expiresAt = sessionExpiryIso(CMS_SESSION_IDLE_TIMEOUT_SECONDS, now);
   await db
     .prepare(
       `INSERT INTO cms_sessions (id, user_id, token_hash, expires_at, created_at, revoked_at)
@@ -552,9 +646,163 @@ export function assertSameOriginForMutation(): void {
   }
 }
 
+/**
+ * Wave 1 — Turnstile server-side verification (official siteverify endpoint).
+ *
+ * Browser flow: Turnstile widget → challenge token → login request.
+ * Server flow: receive token → POST to
+ * https://challenges.cloudflare.com/turnstile/v0/siteverify with
+ * (secret, response[, remoteip]) → only continue password verification on
+ * `success: true`. The secret lives ONLY in server env
+ * (CMS_TURNSTILE_SECRET, set via `wrangler secret put` / .dev.vars locally)
+ * and NEVER enters the client bundle.
+ *
+ * Configuration modes (resolved per login attempt):
+ *   * secret + site key configured → Turnstile MANDATORY, fail closed:
+ *     missing/invalid/expired token, network error, or a failed verify all
+ *     reject with the generic 401 (no oracle distinguishing Turnstile vs
+ *     password vs account-state failures).
+ *   * neither configured → Turnstile disabled; password path unchanged. This
+ *     keeps local development working without committing credentials — but a
+ *     production deployment MUST set both keys, and operations MUST treat a
+ *     missing-keys production state as misconfigured, not as "Turnstile off
+ *     by design". The settings/admin surface never reports which mode is
+ *     active to unauthenticated callers.
+ *   * exactly one configured → treated as configured-but-broken → fail
+ *     closed (same generic 401). Half configuration never silently passes.
+ */
+const TURNSTILE_VERIFY_URL = "https://challenges.cloudflare.com/turnstile/v0/siteverify";
+const TURNSTILE_TIMEOUT_MS = 8000;
+const TURNSTILE_MAX_TOKEN_LENGTH = 2048;
+
+export function isTurnstileEnforced(env: CmsWorkerEnv): boolean {
+  const secret =
+    typeof env.CMS_TURNSTILE_SECRET === "string" ? env.CMS_TURNSTILE_SECRET.trim() : "";
+  const siteKey =
+    typeof env.CMS_TURNSTILE_SITE_KEY === "string" ? env.CMS_TURNSTILE_SITE_KEY.trim() : "";
+  return secret !== "" && siteKey !== "";
+}
+
+export function isTurnstileHalfConfigured(env: CmsWorkerEnv): boolean {
+  const secret =
+    typeof env.CMS_TURNSTILE_SECRET === "string" ? env.CMS_TURNSTILE_SECRET.trim() : "";
+  const siteKey =
+    typeof env.CMS_TURNSTILE_SITE_KEY === "string" ? env.CMS_TURNSTILE_SITE_KEY.trim() : "";
+  return (secret === "") !== (siteKey === "");
+}
+
+interface TurnstileVerifyResponse {
+  success?: boolean;
+  "error-codes"?: string[];
+  hostname?: string;
+  action?: string;
+}
+
+/**
+ * Verify a Turnstile challenge token against Cloudflare's siteverify
+ * endpoint. Returns true only on an explicit `success: true`. Every failure
+ * mode — network error, timeout, non-2xx, malformed JSON, success:false —
+ * returns false; the LOGIN caller maps false to the generic 401.
+ * The token is never logged, never persisted, never audited.
+ */
+export async function verifyTurnstileToken(input: {
+  secret: string;
+  token: string;
+  remoteIp?: string | null | undefined;
+  expectedHostname?: string | null | undefined;
+}): Promise<boolean> {
+  const token = typeof input.token === "string" ? input.token.trim() : "";
+  if (token === "" || token.length > TURNSTILE_MAX_TOKEN_LENGTH) return false;
+  if (input.secret === "") return false;
+  const body: Record<string, string> = { secret: input.secret, response: token };
+  if (input.remoteIp) body["remoteip"] = input.remoteIp;
+  let res: Response;
+  try {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), TURNSTILE_TIMEOUT_MS);
+    try {
+      res = await fetch(TURNSTILE_VERIFY_URL, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify(body),
+        signal: controller.signal,
+      });
+    } finally {
+      clearTimeout(timer);
+    }
+  } catch {
+    return false;
+  }
+  if (!res.ok) return false;
+  let parsed: TurnstileVerifyResponse;
+  try {
+    parsed = (await res.json()) as TurnstileVerifyResponse;
+  } catch {
+    return false;
+  }
+  if (parsed?.success !== true) return false;
+  if (
+    input.expectedHostname &&
+    typeof parsed.hostname === "string" &&
+    parsed.hostname !== input.expectedHostname
+  ) {
+    return false;
+  }
+  return true;
+}
+
+/**
+ * Enforce Turnstile for a login attempt. No-op when Turnstile is fully
+ * unconfigured (local dev without keys). Throws generic CmsAuthError(401)
+ * when enforced (or half-configured) and verification fails — callers must
+ * NOT distinguish this from a bad password.
+ */
+export async function assertTurnstileForLogin(input: {
+  env: CmsWorkerEnv;
+  token: unknown;
+  remoteIp?: string | null | undefined;
+  expectedHostname?: string | null | undefined;
+}): Promise<void> {
+  const enforced = isTurnstileEnforced(input.env);
+  const half = isTurnstileHalfConfigured(input.env);
+  if (!enforced && !half) return;
+  const secret =
+    typeof input.env.CMS_TURNSTILE_SECRET === "string" ? input.env.CMS_TURNSTILE_SECRET.trim() : "";
+  const ok =
+    secret !== "" &&
+    (await verifyTurnstileToken({
+      secret,
+      token: typeof input.token === "string" ? input.token : "",
+      remoteIp: input.remoteIp,
+      expectedHostname: input.expectedHostname,
+    }));
+  if (!ok) {
+    // Same failure shape as a bad password: verifyPassword already burns
+    // PBKDF2 time on the password path, so no extra delay is needed here to
+    // avoid an oracle — the caller tries password verification next and its
+    // timing dominates. (There is no standalone timing helper in this module;
+    // the constant-time password comparison + generic message carry the load.)
+    throw new CmsAuthError(401, "Invalid credentials.");
+  }
+}
+
 const LOGIN_ATTEMPT_WINDOW_MS = 10 * 60 * 1000;
 const LOGIN_ATTEMPT_MAX = 10;
 const LOGIN_ATTEMPT_MAX_KEYS = 500;
+/**
+ * Wave 1 — secondary IP-level throttle. Keyed ONLY on the Cloudflare-provided
+ * CF-Connecting-IP header (the documented trustworthy client-IP mechanism on
+ * Cloudflare; client-controlled X-Forwarded-For is NEVER read). Bounded like
+ * the username map — attacker-controlled IPs cannot grow memory unboundedly.
+ * 30 failures / 10 min / IP trips the gate; success never resets it (an IP
+ * hammering many usernames keeps its own counter — per-account success must
+ * not clear a distributed sweep's IP record).
+ */
+const LOGIN_IP_WINDOW_MS = 10 * 60 * 1000;
+const LOGIN_IP_MAX = 30;
+const LOGIN_IP_MAX_KEYS = 1000;
+
+const loginIpAttemptStore = new Map<string, LoginAttemptEntry>();
 
 interface LoginAttemptEntry {
   count: number;
@@ -607,4 +855,66 @@ export function noteLoginFailure(username: string, now = Date.now()): void {
 
 export function noteLoginSuccess(username: string): void {
   loginAttemptStore.delete(loginRateLimitKey(username));
+}
+
+/**
+ * Trustworthy client IP for the IP-level throttle: ONLY CF-Connecting-IP,
+ * which Cloudflare sets from the TCP peer and clients cannot spoof through
+ * the CDN. X-Forwarded-For / X-Real-IP are never consulted. Returns null
+ * outside the Cloudflare runtime or when the header is absent — callers
+ * treat null as "no IP signal", never as a throttle key.
+ */
+export function getRequestClientIp(): string | null {
+  let req: Request | null = null;
+  try {
+    req = getRequest();
+  } catch {
+    return null;
+  }
+  if (!req) return null;
+  const raw = req.headers.get("cf-connecting-ip");
+  if (!raw) return null;
+  const ip = raw.trim();
+  if (ip === "" || ip.length > 64) return null;
+  return ip;
+}
+
+function loginIpRateLimitKey(ip: string): string {
+  return ip.trim().toLowerCase().slice(0, 64);
+}
+
+/** Throw 403 when an IP burned through LOGIN_IP_MAX failures this window. */
+export function checkLoginIpRateLimit(ip: string | null, now = Date.now()): void {
+  if (!ip) return;
+  const key = loginIpRateLimitKey(ip);
+  const entry = loginIpAttemptStore.get(key);
+  if (!entry) return;
+  if (now - entry.windowStart >= LOGIN_IP_WINDOW_MS) {
+    loginIpAttemptStore.delete(key);
+    return;
+  }
+  if (entry.count >= LOGIN_IP_MAX) {
+    throw new CmsAuthError(403, "Too many login attempts. Try again later.");
+  }
+}
+
+/** Record an IP-level failure (bounded map; oldest evicted when full). */
+export function noteLoginIpFailure(ip: string | null, now = Date.now()): void {
+  if (!ip) return;
+  const key = loginIpRateLimitKey(ip);
+  const entry = loginIpAttemptStore.get(key);
+  if (!entry || now - entry.windowStart >= LOGIN_IP_WINDOW_MS) {
+    if (loginIpAttemptStore.size >= LOGIN_IP_MAX_KEYS && !loginIpAttemptStore.has(key)) {
+      const oldest = loginIpAttemptStore.keys().next();
+      if (!oldest.done) loginIpAttemptStore.delete(oldest.value);
+    }
+    loginIpAttemptStore.set(key, { count: 1, windowStart: now });
+    return;
+  }
+  entry.count += 1;
+}
+
+/** Test seam: clear the IP-level throttle (username map untouched). */
+export function resetLoginIpRateLimits(): void {
+  loginIpAttemptStore.clear();
 }

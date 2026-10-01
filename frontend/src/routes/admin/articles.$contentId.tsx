@@ -1,77 +1,111 @@
-import { useEffect, useMemo, useRef, useState } from "react";
-import { createFileRoute, Link, useRouter } from "@tanstack/react-router";
+import { useEffect, useRef, useState } from "react";
+import { createFileRoute } from "@tanstack/react-router";
+
 import { getAdminSession } from "@/lib/cms/admin.loader";
-import {
-  AdminError,
-  AdminPending,
-  AdminRouteError,
-  AdminSignInGate,
-} from "@/components/cms/AdminShell";
 import {
   getAdminArticleBody,
   getAdminArticleDetail,
   listAdminCategories,
   listAdminTags,
   previewAdminArticle,
+  publishAdminArticle,
   saveAdminArticleBody,
   setAdminArticleRefs,
   setAdminArticleRelated,
   setAdminArticleTags,
 } from "@/lib/cms/articles-admin.loader";
+import { validateArticleDocument, type ArticleBlock } from "@/lib/cms/articles";
+import { getContentByIdLite } from "@/lib/cms/inventory-admin-detail.loader";
+import { CmsRouteErrorStandalone, CmsRoutePending } from "@/components/cms/cc/CmsAuth";
+import { CmsCard, CmsField, CmsNotice } from "@/components/cms/cc/CmsPrimitives";
+import { CmsSelect } from "@/components/cms/cc/CmsSelect";
 import {
-  ARTICLE_BLOCK_TYPES,
-  validateArticleDocument,
-  type ArticleBlock,
-} from "@/lib/cms/articles";
-import { ArticleBlockView } from "@/components/cms/ArticleBody";
+  CmsEditorFeedback,
+  CmsEditorFrame,
+  CmsFormSection,
+  useCmsEditorState,
+} from "@/components/cms/cc/CmsEditor";
+import { CmsArticleBlocks } from "@/components/cms/cc/CmsArticleBlocks";
+import { CmsMediaPicker } from "@/components/cms/cc/CmsMediaPicker";
 
 export const Route = createFileRoute("/admin/articles/$contentId")({
   loader: async ({ params }) => {
     const session = await getAdminSession();
-    if (!session.authenticated) return { session, contentId: params.contentId, detail: null };
+    if (!session.authenticated)
+      return {
+        session,
+        contentId: params.contentId,
+        detail: null,
+        status: "draft",
+        categories: [],
+        tags: [],
+      };
+    const lite = await getContentByIdLite({ data: { contentId: params.contentId } }).catch(
+      () => null,
+    );
     const [detail, categories, tags] = await Promise.all([
       getAdminArticleDetail({ data: { contentId: params.contentId } }),
       listAdminCategories({ data: {} }),
       listAdminTags({ data: {} }),
     ]);
-    return { session, contentId: params.contentId, detail, categories, tags };
+    return {
+      session,
+      contentId: params.contentId,
+      detail,
+      status: lite?.status ?? "draft",
+      categories: categories.categories,
+      tags: tags.tags,
+    };
   },
   head: () => ({
-    meta: [{ title: "Edit article — CMS Admin" }, { name: "robots", content: "noindex, nofollow" }],
+    meta: [
+      { title: "Edit article — Control Center" },
+      { name: "robots", content: "noindex, nofollow" },
+    ],
   }),
-  pendingComponent: () => <AdminPending title="Edit article" />,
+  pendingComponent: () => <CmsRoutePending title="Edit article" />,
   errorComponent: ({ error }: { error: unknown }) => (
-    <AdminRouteError title="Edit article" backTo="/admin/articles" error={error} />
+    <CmsRouteErrorStandalone title="Edit article" backTo="/admin/articles" error={error} />
   ),
   component: ArticleEditor,
 });
 
+const LOCALES = ["en", "es", "fr", "ru", "de", "pt", "zh", "ar-SA", "fa-IR"] as const;
 const EMPTY_STARTER: ArticleBlock[] = [
   { type: "heading", level: 2, text: "Article heading" },
   { type: "paragraph", text: "Write the first paragraph here." },
 ];
 
+type Detail = Awaited<ReturnType<typeof getAdminArticleDetail>>;
+
 function ArticleEditor() {
-  const { session, contentId, detail, categories, tags } = Route.useLoaderData() as {
-    session: { authenticated: boolean };
+  const { session, contentId, detail, status, categories, tags } = Route.useLoaderData() as {
+    session: {
+      authenticated: boolean;
+      user: { id: string; username: string; displayName: string; role: string } | null;
+      expiresAt: string | null;
+    };
     contentId: string;
-    detail: {
-      bodyLocales: string[];
-      categoryIds: Record<string, string | null>;
-      tagIds: string[];
-      refs: Array<{ entityType: string; contentId: string }>;
-      relatedIds: string[];
-      mediaAssetIds: string[];
-    } | null;
-    categories: { categories: Array<{ id: string; slug: string; name: string }> };
-    tags: { tags: Array<{ id: string; slug: string; name: string }> };
+    detail: Detail | null;
+    status: string;
+    categories: Array<{ id: string; slug: string; name: string }>;
+    tags: Array<{ id: string; slug: string; name: string }>;
   };
-  const router = useRouter();
+  const editor = useCmsEditorState();
+  const [publishPending, setPublishPending] = useState(false);
   const [locale, setLocale] = useState("en");
   const [blocks, setBlocks] = useState<ArticleBlock[]>(EMPTY_STARTER);
   const [loadedLocale, setLoadedLocale] = useState<string | null>(null);
   const [localeLoading, setLocaleLoading] = useState(false);
   const localeRequest = useRef(0);
+  const [categoryId, setCategoryId] = useState("");
+  const [tagIdsText, setTagIdsText] = useState("");
+  const [refsText, setRefsText] = useState("");
+  const [relatedText, setRelatedText] = useState("");
+  const [coverAssetId, setCoverAssetId] = useState("");
+  const [coverPickerOpen, setCoverPickerOpen] = useState(false);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+
   // Load the selected locale's saved body; starter blocks only when nothing
   // is stored. Never clobber another locale's content.
   useEffect(() => {
@@ -86,6 +120,9 @@ function ArticleEditor() {
             const doc = validateArticleDocument(result.bodyJson);
             setBlocks(doc.blocks);
             setLoadedLocale(locale);
+            if (typeof (result as { coverAssetId?: string | null }).coverAssetId === "string") {
+              setCoverAssetId((result as { coverAssetId?: string | null }).coverAssetId ?? "");
+            }
           } catch {
             setBlocks(EMPTY_STARTER);
             setLoadedLocale(null);
@@ -104,15 +141,7 @@ function ArticleEditor() {
       cancelled = true;
     };
   }, [contentId, locale]);
-  const [draft, setDraft] = useState("");
-  const [draftType, setDraftType] = useState<ArticleBlock["type"]>("paragraph");
-  const [assetId, setAssetId] = useState("");
-  const [entityType, setEntityType] = useState("hero");
-  const [entityContentId, setEntityContentId] = useState("");
-  const [categoryId, setCategoryId] = useState("");
-  const [tagIdsText, setTagIdsText] = useState("");
-  const [refsText, setRefsText] = useState("");
-  const [relatedText, setRelatedText] = useState("");
+
   useEffect(() => {
     if (detail) {
       const first = detail.categoryIds[locale] ?? detail.categoryIds["en"] ?? null;
@@ -120,314 +149,277 @@ function ArticleEditor() {
       setTagIdsText((detail.tagIds ?? []).join(", "));
       setRefsText((detail.refs ?? []).map((r) => `${r.entityType}:${r.contentId}`).join("\n"));
       setRelatedText((detail.relatedIds ?? []).join(", "));
+      if (
+        Array.isArray(detail.mediaAssetIds) &&
+        detail.mediaAssetIds.length > 0 &&
+        coverAssetId === ""
+      ) {
+        setCoverAssetId(detail.mediaAssetIds[0] ?? "");
+      }
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [detail, locale]);
-  const [message, setMessage] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-  const docPreview = useMemo(() => {
-    try {
-      return validateArticleDocument({ version: 1, blocks });
-    } catch {
-      return null;
-    }
-  }, [blocks]);
-  function patchBlock(index: number, patch: Partial<ArticleBlock>) {
-    setBlocks((current) =>
-      current.map((block, i) => (i === index ? { ...block, ...patch } : block)),
-    );
-  }
-  function removeBlock(index: number) {
-    setBlocks((current) => current.filter((_, i) => i !== index));
-  }
-  function moveBlock(index: number, delta: -1 | 1) {
-    setBlocks((current) => {
-      const next = [...current];
-      const target = index + delta;
-      if (target < 0 || target >= next.length) return current;
-      const [moved] = next.splice(index, 1);
-      if (!moved) return current;
-      next.splice(target, 0, moved);
-      return next;
-    });
-  }
-  function addDraftBlock() {
-    if (draftType === "divider") {
-      setBlocks((current) => [...current, { type: "divider" }]);
-      setDraft("");
-      return;
-    }
-    if (draftType === "image") {
-      const id = assetId.trim();
-      if (id === "") {
-        setError("Media asset id is required.");
-        return;
-      }
-      setBlocks((current) => [...current, { type: "image", assetId: id }]);
-      setAssetId("");
-      setError(null);
-      return;
-    }
-    if (draftType === "entity") {
-      if (entityContentId.trim() === "") {
-        setError("Entity content id is required.");
-        return;
-      }
-      setBlocks((current) => [
-        ...current,
-        { type: "entity", entityType, contentId: entityContentId.trim() },
-      ]);
-      setEntityContentId("");
-      setError(null);
-      return;
-    }
-    const text = draft.trim();
-    if (text === "") {
-      setError("Block text is required.");
-      return;
-    }
-    if (draftType === "heading") {
-      setBlocks((current) => [...current, { type: "heading", level: 2, text }]);
-    } else if (draftType === "list") {
-      const items = text
-        .split("\n")
-        .map((line) => line.trim())
-        .filter((line) => line !== "");
-      if (items.length === 0) {
-        setError("List needs at least one item.");
-        return;
-      }
-      setBlocks((current) => [...current, { type: "list", items }]);
-    } else if (draftType === "quote" || draftType === "code" || draftType === "paragraph") {
-      setBlocks((current) => [...current, { type: draftType, text }]);
-    } else {
-      setError("Media and entity blocks attach via validated detail fields.");
-      return;
-    }
-    setDraft("");
-    setError(null);
-  }
-  if (!session.authenticated) {
+
+  if (!detail) {
     return (
-      <main className="mx-auto max-w-3xl px-4 py-16">
-        <h1 className="text-2xl font-bold">Edit article</h1>
-        <p className="mt-2 text-sm">
-          <Link to="/admin" className="underline">
-            Sign in
-          </Link>
-          .
-        </p>
-      </main>
+      <CmsEditorFrame
+        session={session}
+        backTo="/admin/articles"
+        backLabel="Articles"
+        eyebrow="Content · Article"
+        title="Article not found"
+        status="draft"
+        publishPending={false}
+        canPublish={false}
+        onPublish={() => undefined}
+      >
+        <CmsNotice kind="error">This article does not exist.</CmsNotice>
+      </CmsEditorFrame>
     );
   }
+
+  const canWrite = session.user?.role === "editor" || session.user?.role === "admin";
+  const canPublish = session.user?.role === "admin";
+
+  async function handlePublish(to: "published" | "draft" | "archived") {
+    if (
+      !window.confirm(
+        to === "published"
+          ? "Publishing makes this article publicly visible. Continue?"
+          : to === "archived"
+            ? "Archiving retires this article (never hard-deleted). Continue?"
+            : "Moving back to draft hides this article. Continue?",
+      )
+    ) {
+      return;
+    }
+    setPublishPending(true);
+    editor.setError(null);
+    try {
+      await publishAdminArticle({ data: { contentId, to } });
+      window.location.reload();
+    } catch (e) {
+      editor.setError(e instanceof Error ? e.message : "Publish failed.");
+    } finally {
+      setPublishPending(false);
+    }
+  }
+
   return (
-    <main className="mx-auto max-w-3xl px-4 py-10">
-      <h1 className="text-2xl font-bold">Edit article</h1>
-      <p className="mt-2 text-sm text-muted-foreground">Content: {contentId}</p>
-      <AdminError error={error} />
-      {message ? <p className="mt-3 text-sm text-green-700">{message}</p> : null}
-      <div className="mt-6 space-y-4 text-sm">
-        <p className="rounded border px-3 py-2 text-muted-foreground">
-          Preview status:{" "}
-          {docPreview ? `${docPreview.blocks.length} valid blocks` : "fix invalid blocks"}. Images
-          and entity cards resolve through validated media/entity lookups.
-        </p>
-        <label className="block">
-          <span className="font-medium">Locale</span>
-          <select
-            className="mt-1 block rounded border px-2 py-1"
-            value={locale}
-            onChange={(event) => setLocale(event.target.value)}
-          >
-            {["en", "es", "fr", "ru", "de", "pt", "zh", "ar-SA", "fa-IR"].map((code) => (
-              <option key={code} value={code}>
-                {code}
-              </option>
-            ))}
-          </select>
-        </label>
-        <section aria-label="Block list" className="space-y-2">
-          {blocks.length === 0 ? (
-            <p className="rounded border border-dashed px-3 py-4">No blocks yet. Add one below.</p>
-          ) : null}
-          {blocks.map((block, index) => (
-            <article key={index} className="rounded border px-3 py-2">
-              <p className="text-xs font-semibold uppercase">
-                {index + 1}. {block.type}
-              </p>
-              {block.type === "heading" ||
-              block.type === "paragraph" ||
-              block.type === "quote" ||
-              block.type === "code" ? (
-                <input
-                  className="mt-1 w-full rounded border px-2 py-1"
-                  value={block.text ?? ""}
-                  onChange={(event) => patchBlock(index, { text: event.target.value })}
-                />
-              ) : null}
-              {block.type === "list" ? (
-                <textarea
-                  className="mt-1 w-full rounded border px-2 py-1"
-                  rows={3}
-                  value={(block.items ?? []).join("\n")}
-                  onChange={(event) => patchBlock(index, { items: event.target.value.split("\n") })}
-                />
-              ) : null}
-              <div className="mt-2 flex flex-wrap gap-2">
-                <button type="button" className="underline" onClick={() => moveBlock(index, -1)}>
-                  Move up
-                </button>
-                <button type="button" className="underline" onClick={() => moveBlock(index, 1)}>
-                  Move down
-                </button>
-                <button type="button" className="underline" onClick={() => removeBlock(index)}>
-                  Remove
-                </button>
-              </div>
-            </article>
-          ))}
-        </section>
-        <section aria-label="Add block" className="rounded border px-3 py-2">
-          <label className="block">
-            <span className="font-medium">Block type</span>
-            <select
-              className="mt-1 block rounded border px-2 py-1"
-              value={draftType}
-              onChange={(event) => setDraftType(event.target.value as ArticleBlock["type"])}
-            >
-              {ARTICLE_BLOCK_TYPES.map((type) => (
-                <option key={type} value={type}>
-                  {type}
-                </option>
-              ))}
-            </select>
-          </label>
-          {draftType === "image" ? (
-            <label className="mt-2 block">
-              <span className="font-medium">Media asset id (existing R2 asset)</span>
-              <input
-                className="mt-1 w-full rounded border px-2 py-1"
-                value={assetId}
-                onChange={(event) => setAssetId(event.target.value)}
-              />
-            </label>
-          ) : null}
-          {draftType === "entity" ? (
-            <div className="mt-2 grid gap-2">
-              <label className="block">
-                <span className="font-medium">Entity type</span>
-                <select
-                  className="mt-1 block rounded border px-2 py-1"
-                  value={entityType}
-                  onChange={(event) => setEntityType(event.target.value)}
-                >
-                  {["hero", "loadout", "weapon", "trap", "perk", "schematic"].map((t) => (
-                    <option key={t} value={t}>
-                      {t}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <label className="block">
-                <span className="font-medium">Entity content id</span>
-                <input
-                  className="mt-1 w-full rounded border px-2 py-1"
-                  value={entityContentId}
-                  onChange={(event) => setEntityContentId(event.target.value)}
-                />
-              </label>
-            </div>
-          ) : null}
-          {draftType === "divider" ? null : (
-            <label className="mt-2 block">
-              <span className="font-medium">Text (lists: one item per line)</span>
-              <textarea
-                className="mt-1 w-full rounded border px-2 py-1"
-                rows={3}
-                value={draft}
-                onChange={(event) => setDraft(event.target.value)}
-              />
-            </label>
-          )}
-          <button type="button" className="mt-2 rounded border px-3 py-1" onClick={addDraftBlock}>
-            Add block
-          </button>
-        </section>
-        <section aria-label="Taxonomy and relations" className="rounded border px-3 py-2">
-          <h2 className="font-semibold">Categories, tags, references</h2>
-          {localeLoading ? <p className="mt-1 text-xs">Loading {locale} body…</p> : null}
-          {loadedLocale ? (
-            <p className="mt-1 text-xs">Editing saved {loadedLocale} body.</p>
-          ) : (
-            <p className="mt-1 text-xs">No saved {locale} body yet — starter blocks.</p>
-          )}
-          <label className="mt-2 block">
-            <span className="font-medium">Category</span>
-            <select
-              className="mt-1 block rounded border px-2 py-1"
-              value={categoryId}
-              onChange={(e) => setCategoryId(e.target.value)}
-            >
-              <option value="">None</option>
-              {categories.categories.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.name} ({c.slug})
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="mt-2 block">
-            <span className="font-medium">Tag ids (comma-separated)</span>
-            <input
-              className="mt-1 w-full rounded border px-2 py-1"
-              value={tagIdsText}
-              onChange={(e) => setTagIdsText(e.target.value)}
-            />
-            <span className="text-xs text-muted-foreground">
-              Available: {tags.tags.map((t) => `${t.name}=${t.id}`).join(", ") || "none"}
-            </span>
-          </label>
-          <label className="mt-2 block">
-            <span className="font-medium">Entity refs (one per line, type:contentId)</span>
-            <textarea
-              className="mt-1 w-full rounded border px-2 py-1"
-              rows={3}
-              value={refsText}
-              onChange={(e) => setRefsText(e.target.value)}
-            />
-          </label>
-          <label className="mt-2 block">
-            <span className="font-medium">Related article ids (comma-separated)</span>
-            <input
-              className="mt-1 w-full rounded border px-2 py-1"
-              value={relatedText}
-              onChange={(e) => setRelatedText(e.target.value)}
-            />
-          </label>
-          <div className="mt-2 flex flex-wrap gap-2">
+    <CmsEditorFrame
+      session={session}
+      backTo="/admin/articles"
+      backLabel="Articles"
+      eyebrow="Content · Article"
+      title={contentId}
+      subtitle={`Editing ${loadedLocale ? `saved ${loadedLocale} body` : `unsaved ${locale} body (starter)`} · body locales ${detail.bodyLocales.join(", ") || "none"}`}
+      status={status}
+      publishPending={publishPending}
+      canPublish={canPublish}
+      onPublish={handlePublish}
+      rail={
+        <>
+          <CmsCard title="Preview token">
+            <p className="text-[13px] leading-relaxed opacity-70">
+              Preview tokens are single-article, one-hour grants. The preview page is standalone —
+              noindex, no-store, never linked or sitemapped.
+            </p>
             <button
               type="button"
-              className="rounded border px-3 py-1"
-              onClick={() => {
-                setError(null);
-                setMessage(null);
+              className="cc-btn cc-btn-outline cc-btn-sm mt-3 w-full"
+              disabled={!canWrite || editor.pending}
+              onClick={() =>
+                editor.run(async () => {
+                  const grant = await previewAdminArticle({ data: { contentId } });
+                  const params = new URLSearchParams({ contentId, preview: grant.token });
+                  setPreviewUrl(`/articles/preview?${params.toString()}`);
+                  return `Token issued (expires ${grant.expiresAt}).`;
+                })
+              }
+            >
+              Generate preview token
+            </button>
+            {previewUrl ? (
+              <p className="mt-2 break-all text-xs">
+                <a className="cc-link" href={previewUrl} target="_blank" rel="noopener noreferrer">
+                  {previewUrl}
+                </a>
+              </p>
+            ) : null}
+          </CmsCard>
+          <CmsCard title="Record">
+            <dl className="space-y-2 text-[13px]">
+              <div className="flex justify-between gap-2">
+                <dt className="opacity-60">Body locales</dt>
+                <dd className="font-mono">{detail.bodyLocales.join(", ") || "none"}</dd>
+              </div>
+              <div className="flex justify-between gap-2">
+                <dt className="opacity-60">References</dt>
+                <dd className="tabular-nums">{detail.refs.length}</dd>
+              </div>
+              <div className="flex justify-between gap-2">
+                <dt className="opacity-60">Related</dt>
+                <dd className="tabular-nums">{detail.relatedIds.length}</dd>
+              </div>
+            </dl>
+          </CmsCard>
+        </>
+      }
+    >
+      <CmsEditorFeedback message={editor.message} error={editor.error} />
+      {!canWrite ? (
+        <CmsNotice kind="warning">
+          Your role ({session.user?.role}) is read-only. Editing requires the editor role.
+        </CmsNotice>
+      ) : null}
+      {localeLoading ? (
+        <p className="text-xs opacity-60" role="status">
+          Loading {locale} body…
+        </p>
+      ) : null}
+
+      <CmsFormSection
+        title="Body"
+        description="Structured blocks for the selected locale. Saving stores the body for this locale only."
+        action={
+          <button
+            type="button"
+            className="cc-btn cc-btn-primary cc-btn-sm"
+            disabled={!canWrite || editor.pending}
+            onClick={() =>
+              editor.run(async () => {
+                await saveAdminArticleBody({
+                  data: {
+                    contentId,
+                    locale,
+                    body: { version: 1, blocks },
+                    categoryId: categoryId || null,
+                    ...(coverAssetId.trim() === "" ? {} : { coverAssetId: coverAssetId.trim() }),
+                  },
+                });
+                return `Body saved (${locale}). Categories, tags, references, and related save separately below.`;
+              })
+            }
+          >
+            {editor.pending ? "Saving…" : `Save ${locale} body`}
+          </button>
+        }
+      >
+        <CmsField label="Locale" description="Per-locale bodies are independent documents.">
+          <CmsSelect
+            id="article-locale"
+            value={locale}
+            onChange={setLocale}
+            disabled={!canWrite}
+            width="full"
+            options={LOCALES.map((code) => ({ value: code, label: code }))}
+          />
+        </CmsField>
+        <CmsField
+          label="Cover asset id"
+          description="Optional R2 cover for this locale's body save."
+        >
+          <div className="flex flex-wrap gap-2">
+            <input
+              className="cc-input min-w-40 flex-1 font-mono"
+              value={coverAssetId}
+              disabled={!canWrite}
+              onChange={(e) => setCoverAssetId(e.target.value)}
+              placeholder="media_… (optional)"
+            />
+            <button
+              type="button"
+              className="cc-btn cc-btn-outline cc-btn-sm"
+              disabled={!canWrite}
+              onClick={() => setCoverPickerOpen(true)}
+            >
+              Browse…
+            </button>
+          </div>
+        </CmsField>
+        <CmsArticleBlocks
+          blocks={blocks}
+          onChange={setBlocks}
+          locale={locale}
+          disabled={!canWrite}
+        />
+      </CmsFormSection>
+
+      <CmsFormSection
+        title="Categories, tags, references"
+        description="Taxonomy and relations are content-wide (not per-locale)."
+      >
+        <CmsField
+          label="Category (for the edited locale)"
+          description="Stored alongside the body save above."
+        >
+          <CmsSelect
+            id="article-category"
+            value={categoryId}
+            onChange={setCategoryId}
+            disabled={!canWrite}
+            width="full"
+            options={[
+              { value: "", label: "None" },
+              ...categories.map((c) => ({ value: c.id, label: `${c.name} (${c.slug})` })),
+            ]}
+          />
+        </CmsField>
+        <CmsField
+          label="Tag ids (comma-separated)"
+          description={`Available: ${tags.map((t) => `${t.name}=${t.id}`).join(", ") || "none"}.`}
+        >
+          <input
+            className="cc-input font-mono"
+            value={tagIdsText}
+            disabled={!canWrite}
+            onChange={(e) => setTagIdsText(e.target.value)}
+          />
+        </CmsField>
+        <CmsField
+          label="Entity refs (one per line, type:contentId)"
+          description="hero, loadout, weapon, trap, perk, schematic."
+        >
+          <textarea
+            className="cc-input font-mono"
+            rows={3}
+            value={refsText}
+            disabled={!canWrite}
+            onChange={(e) => setRefsText(e.target.value)}
+          />
+        </CmsField>
+        <CmsField label="Related article ids (comma-separated)">
+          <input
+            className="cc-input font-mono"
+            value={relatedText}
+            disabled={!canWrite}
+            onChange={(e) => setRelatedText(e.target.value)}
+          />
+        </CmsField>
+        <div className="flex flex-wrap gap-2">
+          <button
+            type="button"
+            className="cc-btn cc-btn-outline cc-btn-sm"
+            disabled={!canWrite || editor.pending}
+            onClick={() =>
+              editor.run(async () => {
                 const tagIds = tagIdsText
                   .split(",")
                   .map((s) => s.trim())
                   .filter(Boolean);
-                setAdminArticleTags({ data: { contentId, tagIds } })
-                  .then(() => setMessage("Tags saved."))
-                  .catch((e: unknown) => setError(e instanceof Error ? e.message : "Save failed."));
-              }}
-            >
-              Save tags
-            </button>
-            <button
-              type="button"
-              className="rounded border px-3 py-1"
-              onClick={() => {
-                setError(null);
-                setMessage(null);
+                await setAdminArticleTags({ data: { contentId, tagIds } });
+                return "Tags saved.";
+              })
+            }
+          >
+            Save tags
+          </button>
+          <button
+            type="button"
+            className="cc-btn cc-btn-outline cc-btn-sm"
+            disabled={!canWrite || editor.pending}
+            onClick={() =>
+              editor.run(async () => {
                 const refs = refsText
                   .split("\n")
                   .map((s) => s.trim())
@@ -439,100 +431,39 @@ function ArticleEditor() {
                       targetContentId: rest.join(":").trim(),
                     };
                   });
-                setAdminArticleRefs({ data: { contentId, refs } })
-                  .then(() => setMessage("References saved."))
-                  .catch((e: unknown) => setError(e instanceof Error ? e.message : "Save failed."));
-              }}
-            >
-              Save references
-            </button>
-            <button
-              type="button"
-              className="rounded border px-3 py-1"
-              onClick={() => {
-                setError(null);
-                setMessage(null);
+                await setAdminArticleRefs({ data: { contentId, refs } });
+                return "References saved.";
+              })
+            }
+          >
+            Save references
+          </button>
+          <button
+            type="button"
+            className="cc-btn cc-btn-outline cc-btn-sm"
+            disabled={!canWrite || editor.pending}
+            onClick={() =>
+              editor.run(async () => {
                 const relatedIds = relatedText
                   .split(",")
                   .map((s) => s.trim())
                   .filter(Boolean);
-                setAdminArticleRelated({ data: { contentId, relatedIds } })
-                  .then(() => setMessage("Related saved."))
-                  .catch((e: unknown) => setError(e instanceof Error ? e.message : "Save failed."));
-              }}
-            >
-              Save related
-            </button>
-          </div>
-        </section>
-        <section aria-label="Live preview" className="rounded border px-3 py-2">
-          <h2 className="font-semibold">Live preview</h2>
-          {docPreview ? (
-            <div className="mt-2">
-              {docPreview.blocks.map((block, index) => (
-                <ArticleBlockView key={index} block={block} locale={locale} />
-              ))}
-            </div>
-          ) : (
-            <p className="mt-2">Fix invalid blocks to preview.</p>
-          )}
-        </section>
-        <div className="flex flex-wrap gap-2">
-          <button
-            type="button"
-            className="rounded border px-3 py-1"
-            onClick={() => {
-              setError(null);
-              setMessage(null);
-              previewAdminArticle({ data: { contentId } })
-                .then((grant) => {
-                  const params = new URLSearchParams({ contentId, preview: grant.token });
-                  setMessage(`Preview token: ${grant.token} (expires ${grant.expiresAt}).`);
-                  setPreviewUrl(`/articles/preview?${params.toString()}`);
-                  return undefined;
-                })
-                .catch((error_: unknown) =>
-                  setError(error_ instanceof Error ? error_.message : "Preview failed."),
-                );
-            }}
+                await setAdminArticleRelated({ data: { contentId, relatedIds } });
+                return "Related saved.";
+              })
+            }
           >
-            Generate preview token
+            Save related
           </button>
         </div>
-        {previewUrl ? (
-          <p className="text-sm">
-            Preview:{" "}
-            <a className="underline" href={previewUrl}>
-              {previewUrl}
-            </a>
-          </p>
-        ) : null}
-        <button
-          type="button"
-          className="rounded bg-primary px-3 py-1 text-primary-foreground"
-          onClick={() => {
-            setError(null);
-            setMessage(null);
-            saveAdminArticleBody({
-              data: {
-                contentId,
-                locale,
-                body: { version: 1, blocks },
-                categoryId: categoryId || null,
-              },
-            })
-              .then(() => {
-                setMessage("Article body saved.");
-                return router.invalidate();
-              })
-              .catch((error_: unknown) =>
-                setError(error_ instanceof Error ? error_.message : "Save failed."),
-              );
-          }}
-        >
-          Save body
-        </button>
-      </div>
-    </main>
+      </CmsFormSection>
+
+      <CmsMediaPicker
+        open={coverPickerOpen}
+        onClose={() => setCoverPickerOpen(false)}
+        title="Choose cover image"
+        onPick={(assetId) => setCoverAssetId(assetId)}
+      />
+    </CmsEditorFrame>
   );
 }

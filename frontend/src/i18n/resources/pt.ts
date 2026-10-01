@@ -61,6 +61,10 @@ export const pt: TranslationDictionary = {
     pageDesc: "Confira as missões mais recentes do Fortnite: Save the World que rendem V-Bucks.",
     trackerBadge: "Live tracker",
     guidePointer: "V-Bucks Missions Guide",
+    guideBridgeTitle: "Novo em Save the World?",
+    guideBridgeDesc:
+      "Saiba como funcionam as missões de V-Bucks, quem pode ganhá-las e como os Alertas de Missão giram.",
+    guideBridgeCta: "Ler o guia de missões de V-Bucks",
 
     todayHeading: "Missões de hoje",
     todayDesc: "Alertas de missões de V-Bucks disponíveis no Save the World.",
@@ -163,58 +167,139 @@ export const pt: TranslationDictionary = {
       "Criado e mantido por Greenhawk como um projeto comunitário independente para jogadores do Fortnite: Save the World.",
   },
   guide: {
-    // Phase 10: English fallback until full localization lands.
-    eyebrow: "Educational guide",
-    title: "V-Bucks Missions Guide",
+    eyebrow: "Guia de missões",
+    title: "Missões de V-Bucks do Fortnite Save the World",
     intro:
-      "A plain-language guide to how Fortnite: Save the World V-Bucks missions work and how to use the HawkBucks Live Mission Tracker. HawkBucks reports mission information — it never grants V-Bucks.",
-    openTracker: "Open the Live Mission Tracker",
-    whatTitle: "What are V-Bucks missions?",
+      "Um guia em linguagem simples sobre como funcionam as missões de V-Bucks do Fortnite: Save the World: quem pode ganhar V-Bucks, como reconhecer uma missão de V-Bucks no mapa-múndi, quanto ela paga e onde ver as missões de hoje. O HawkBucks informa dados de missões; nunca concede V-Bucks.",
+    openTracker: "Ver as missões de V-Bucks de hoje",
+    trackerCtaSecondary: "Como funcionam os V-Bucks do Save the World",
+    eligibilityTitle: "Posso ganhar V-Bucks com o Save the World?",
+    eligibilityDesc:
+      "O Save the World é gratuito para todos desde 16 de abril de 2026, mas ganhar V-Bucks dentro do jogo continua sendo um benefício Founder. Escolha a opção que corresponde à sua conta:",
+    eligibilityFounderTab: "Founder",
+    eligibilityF2pTab: "Novo jogador gratuito",
+    eligibilityAccessLabel: "Jogar Save the World",
+    eligibilityVbucksLabel: "Ganhar V-Bucks do Save the World",
+    eligibilityYes: "Sim",
+    eligibilityNo: "Não",
+    eligibilityFounderNote:
+      "Os Founders compraram o Save the World antes de 29 de junho de 2020. O status Founder é permanente, e os Founders continuam ganhando V-Bucks com atividades válidas do Save the World, como Daily Quests, Mission Alerts e missões de Storm Shield Defense.",
+    eligibilityF2pNote:
+      "Quem nunca comprou uma edição Founder pode aproveitar a experiência completa do Save the World, mas não pode ganhar V-Bucks com o jogo. As missões de V-Bucks continuam aparecendo no mapa; concluí-las simplesmente não rende V-Bucks para esse tipo de conta.",
+    whatTitle: "O que são missões de V-Bucks?",
     whatBody:
-      "V-Bucks missions are Fortnite: Save the World mission alerts that list V-Bucks as a completion reward. When an eligible player completes the mission in Fortnite, the game grants the listed V-Bucks to that player's account. HawkBucks only displays the detected alerts — it does not create, grant, or distribute rewards.",
-    rewardsTitle: "How mission rewards work",
-    rewardsBody:
-      "Each mission alert carries its own reward list. A V-Bucks reward means V-Bucks appear among that mission's rewards: complete that specific mission and you receive that specific reward. Eligibility depends on Fortnite's current rules and your account, not on HawkBucks.",
-    zonesTitle: "Where V-Bucks missions appear",
-    zonesBody:
-      "V-Bucks missions appear inside Save the World across the tracker's usual mission locations. The tracker shows each alert's location and zone exactly as reported by the mission data, so you can tell at a glance which area of the map to open in Fortnite.",
-    powerTitle: "Power Level and mission context",
-    powerBody:
-      "Power Level is the recommended strength shown with each mission. Higher values signal tougher enemies and objectives compared with lower values. Match the displayed level against your squad's strength, and read any extra mission context on the card before committing.",
-    refreshTitle: "Expiration, refresh, and local time",
-    refreshBody:
-      "Mission alerts are time-sensitive: they change as Fortnite's daily mission cycle updates. The tracker shows the latest update time and the next refresh countdown in your local time, so check the timestamps on the tracker to tell how fresh the information is.",
-    workflowTitle: "How to use HawkBucks",
-    workflowIntro: "From learning to earning in five steps:",
-    workflow1:
-      "Open the Live Mission Tracker to see the V-Bucks mission alerts detected right now.",
-    workflow2: "Review each alert's reward, location, zone, and power level.",
-    workflow3: "Inspect the update timestamps to confirm the information is fresh.",
-    workflow4: "Open Fortnite: Save the World and complete the mission you chose.",
-    workflow5:
-      "Return after the next refresh — HawkBucks checks for new mission data automatically.",
-    faqTitle: "V-Bucks mission questions",
-    faqDesc: "Short answers to the questions new players ask most.",
-    faqQ1: "How do I find today's V-Bucks missions?",
+      "Uma missão de V-Bucks é uma missão do Fortnite: Save the World cujo alerta ativo inclui V-Bucks como recompensa. Nem toda missão oferece: os V-Bucks são uma recompensa bônus ligada a alertas de missão específicos, não um pagamento padrão de cada nó. Elas ficam no mapa-múndi, e concluir a missão com sucesso concede a recompensa indicada.",
+    flowTitle: "Como uma recompensa de V-Bucks chega até você",
+    flowIntro: "Cada recompensa exibida vem de um alerta de missão específico:",
+    flowStep1: "Fortnite",
+    flowStep2: "Save the World",
+    flowStep3: "Mapa-múndi",
+    flowStep4: "Nó de missão",
+    flowStep5: "Alerta de missão",
+    flowStep6: "V-Bucks",
+    findTitle: "Como encontrar uma missão de V-Bucks",
+    findIntro: "Seis passos, direto do mapa:",
+    findStep1: "Abra o Fortnite e escolha Save the World.",
+    findStep2: "Abra o mapa-múndi.",
+    findStep3: "Examine os nós de missão ativos e seus alertas de missão.",
+    findStep4: "Selecione uma missão para abrir os detalhes.",
+    findStep5: "Confira o painel de recompensas do alerta.",
+    findStep6: "Se houver V-Bucks listados, você encontrou uma missão de V-Bucks.",
+    findNoteTitle: "O painel de recompensas é a fonte da verdade",
+    findNote:
+      "Um ícone de missão sozinho não é prova. O painel de recompensas do alerta mostra exatamente o que cada missão paga; abra sempre a missão e leia esse painel antes de se comprometer.",
+    miniBossTitle: "O que é um alerta de missão Mini-Boss?",
+    miniBossBody:
+      "Os alertas de missão Mini-Boss são um tipo especial de alerta de missão do mapa-múndi. Os V-Bucks podem aparecer como recompensa do alerta, e por isso surgem tanto no rastreamento de missões de V-Bucks; mas o tipo de alerta sozinho não garante V-Bucks.",
+    miniBossCaveat:
+      "Uma missão Mini-Boss não é automaticamente uma missão de V-Bucks. Abra a missão e confira as recompensas de alerta ativas para confirmar.",
+    rewardEyebrow: "Recompensa padrão atual",
+    rewardTitle: "Quantos V-Bucks uma missão rende?",
+    rewardAmountLabel: "V-Bucks",
+    rewardBody:
+      "Os alertas de missão de V-Bucks padrão atuais rendem {reward} V-Bucks. O rastreador lê a recompensa ao vivo de cada missão, então o número exibido é sempre o valor real de hoje.",
+    rotationTitle: "Rotação de hoje",
+    rotationDesc:
+      "Os alertas de missão giram diariamente, então o conjunto disponível muda após cada reinício.",
+    rotationActive: "Ao vivo",
+    rotationCount: "Missões de V-Bucks",
+    rotationTotalVbucks: "Total de V-Bucks",
+    rotationEmpty: "Nenhuma missão de V-Bucks detectada no momento",
+    rotationPending: "Verificando a rotação atual…",
+    rotationUnavailable:
+      "Os dados de missões ao vivo estão temporariamente indisponíveis. O rastreador tem o estado mais recente.",
+    rotationNext: "Próxima rotação",
+    rotationCta: "Ver as missões de V-Bucks de hoje",
+    otherTitle: "Missões de V-Bucks são uma via, não a única",
+    otherIntro:
+      "O Save the World é uma única fonte de V-Bucks dentro do ecossistema maior do Fortnite. Existem outras vias, e a disponibilidade delas pode mudar com o tempo:",
+    otherStwTitle: "Save the World",
+    otherStwDesc: "V-Bucks exclusivos para Founders por atividades válidas.",
+    otherBattlePassTitle: "Battle Pass",
+    otherBattlePassDesc: "Recompensas de V-Bucks ligadas ao passe.",
+    otherCrewTitle: "Fortnite Crew",
+    otherCrewDesc: "V-Bucks incluídos na assinatura.",
+    otherQuestTitle: "Recompensas de missões / pacotes",
+    otherQuestDesc: "Certas missões ou pacotes válidos podem conceder V-Bucks.",
+    otherPurchaseTitle: "Compra direta",
+    otherPurchaseDesc: "Compre V-Bucks diretamente na loja de itens.",
+    bridgeTitle: "O guia explica o sistema. O HawkBucks verifica as missões de hoje.",
+    bridgeDesc:
+      "O HawkBucks lê os alertas de missão atuais do Save the World e mostra as missões de V-Bucks de hoje, com recompensa, área, zona e nível de poder incluídos.",
+    bridgeCta: "Abrir o rastreador de missões de V-Bucks",
+    pathTitle: "O que devo fazer agora?",
+    pathIntro: "Dois caminhos rápidos, dependendo da sua situação:",
+    pathYesTitle: "Já jogo Save the World",
+    pathYesDesc: "Vá direto para as missões de V-Bucks de hoje ao vivo.",
+    pathNoTitle: "Sou novo no Save the World",
+    pathNoDesc:
+      "Comece pela verificação de elegibilidade acima e explore o rastreador quando estiver dentro.",
+    sourcesTitle: "Fontes e revisão",
+    sourcesLastReviewed: "Última revisão: {date}",
+    sourcesEpicLabel: "Suporte da Epic Games",
+    sourcesNote:
+      "As informações de acesso e elegibilidade são conferidas com o suporte da Epic Games e as informações atuais do Fortnite. As recompensas por missão do rastreador vêm de dados de missões ao vivo.",
+    faqTitle: "Perguntas sobre missões de V-Bucks",
+    faqDesc: "Respostas curtas e diretas para as perguntas mais comuns de novos jogadores.",
+    faqGroupEligibility: "Elegibilidade",
+    faqGroupMissions: "Missões",
+    faqGroupRewards: "Recompensas",
+    faqGroupFortnite: "V-Bucks no Fortnite",
+    faqQ1: "Todos podem ganhar V-Bucks com o Save the World?",
     faqA1:
-      "Open the HawkBucks Live Mission Tracker. It lists the V-Bucks mission alerts currently detected, with reward, location, zone, and power level for each one.",
-    faqQ2: "Do I need a HawkBucks account?",
+      "Não. O Save the World é gratuito para todos, mas só os Founders — quem comprou o Save the World antes de 29 de junho de 2020 — podem ganhar V-Bucks com o jogo.",
+    faqQ2: "O Save the World agora é gratuito?",
     faqA2:
-      "No. HawkBucks is a free community tool — no account, no ads, no paywall. Just open the tracker and read the alerts.",
-    faqQ3: "Why do some missions show a higher Power Level?",
+      "Sim. O Save the World passou a ser gratuito em 16 de abril de 2026, e todos os jogadores têm acesso à experiência completa. O acesso gratuito não inclui o benefício de V-Bucks dos Founders.",
+    faqQ3: "O que são missões de V-Bucks?",
     faqA3:
-      "Power Level reflects how demanding a mission is. Treat it as a difficulty guide: higher levels expect a stronger squad and better loadouts.",
-    faqQ4: "Why can't I see any V-Bucks missions right now?",
+      "Missões do Save the World cuja recompensa de alerta ativo inclui V-Bucks. Elas aparecem como alertas de missão no mapa-múndi, e concluir a missão concede os V-Bucks indicados.",
+    faqQ4: "O que são alertas de missão Mini-Boss?",
     faqA4:
-      "There may simply be no qualifying mission alerts at the moment. The tracker checks automatically, so return after the next refresh.",
-    faqQ5: "Does HawkBucks give me V-Bucks directly?",
+      "Um tipo especial de alerta de missão que pode incluir V-Bucks como recompensa. Nem toda missão Mini-Boss rende V-Bucks: abra a missão e confira as recompensas de alerta para ter certeza.",
+    faqQ5: "Como encontro uma missão de V-Bucks?",
     faqA5:
-      "No. V-Bucks are granted by Fortnite when you complete a qualifying mission in the game. HawkBucks only helps you find those missions.",
-    relatedTitle: "Keep exploring",
-    relatedTrackerTitle: "Live Mission Tracker",
-    relatedTrackerDesc: "See today's V-Bucks mission alerts and their details.",
-    relatedAboutTitle: "About HawkBucks",
-    relatedAboutDesc: "How the tracker pipeline and community tool work.",
+      "Abra o Save the World, abra o mapa-múndi, selecione um nó de missão e leia o painel de recompensas do alerta. Se houver V-Bucks listados, é uma missão de V-Bucks.",
+    faqQ6: "Com que frequência as missões de V-Bucks mudam?",
+    faqA6:
+      "Os alertas de missão giram diariamente. O conjunto disponível muda após cada reinício, então consulte a rotação atual em vez de uma captura antiga.",
+    faqQ7: "Quantos V-Bucks uma missão de V-Bucks rende?",
+    faqA7:
+      "Os alertas de missão de V-Bucks padrão atuais rendem {reward} V-Bucks. O rastreador HawkBucks mostra a recompensa ao vivo de cada missão.",
+    faqQ8: "Posso concluir várias missões de V-Bucks em um dia?",
+    faqA8:
+      "Sim: quando o mapa tem vários nós de missão válidos, você pode concluir cada um. Um mesmo nó de missão não paga a mesma recompensa de alerta repetidamente.",
+    faqQ9: "Preciso ser Founder para ganhar V-Bucks do Save the World?",
+    faqA9:
+      "Sim. Só os Founders ganham V-Bucks com o Save the World. Qualquer pessoa pode jogar o Save the World, mas o benefício de V-Bucks é exclusivo dos Founders.",
+    faqQ10: "De que outras formas posso ganhar V-Bucks no Fortnite?",
+    faqA10:
+      "O Save the World é uma via. O Fortnite também oferece V-Bucks pelo Battle Pass, pelo Fortnite Crew, por certas missões ou pacotes válidos e por compras diretas.",
+    relatedTitle: "Continue explorando",
+    relatedTrackerTitle: "Rastreador de missões ao vivo",
+    relatedTrackerDesc: "Veja os alertas de missão de V-Bucks de hoje e seus detalhes.",
+    relatedAboutTitle: "Sobre o HawkBucks",
+    relatedAboutDesc: "Como funcionam o rastreador e a ferramenta da comunidade.",
   },
 
   footer: {
@@ -274,6 +359,10 @@ export const pt: TranslationDictionary = {
     blocked:
       "As notificações do navegador estão bloqueadas. Você pode reativá-las nas configurações do site.",
     unsupported: "A configuração de notificações não é compatível com este navegador.",
+    enableLabel: "Ativar notificações de lembrete",
+    disableLabel: "Desativar notificações de lembrete",
+    blockedLabel: "Notificações de lembrete bloqueadas",
+    unsupportedLabel: "Notificações de lembrete indisponíveis",
   },
   seo: {
     siteDescription:
@@ -289,11 +378,12 @@ export const pt: TranslationDictionary = {
     missionsOgTitle: "Missões de V-Bucks do Fortnite hoje | HawkBucks",
     missionsOgDescription:
       "As missões de V-Bucks de hoje do Save the World com o rastreador HawkBucks.",
-    guideTitle: "Guia de missões de V-Bucks",
+    guideTitle: "Guia de missões de V-Bucks de Save the World | HawkBucks",
     guideDescription:
-      "Aprenda como funcionam as missões de V-Bucks do Fortnite: Save the World: recompensas, zonas, nível de poder, atualização e como usar o rastreador HawkBucks.",
-    guideOgTitle: "Guia de missões de V-Bucks | HawkBucks",
-    guideOgDescription: "Entenda as missões de V-Bucks do Save the World e o rastreador HawkBucks.",
+      "Saiba como funcionam as missões de V-Bucks de Save the World, quem pode ganhá-las, como encontrar Alertas de Missão e onde ver as de hoje.",
+    guideOgTitle: "Guia de missões de V-Bucks de Save the World | HawkBucks",
+    guideOgDescription:
+      "Como funcionam as missões de V-Bucks, quem pode ganhá-las e onde ver as de hoje.",
     aboutTitle: "Sobre o HawkBucks — Como funciona o rastreador de V-Bucks",
     aboutDescription:
       "O HawkBucks é uma ferramenta comunitária gratuita que rastreia automaticamente as missões de V-Bucks do Fortnite: Save the World a cada 30 minutos.",

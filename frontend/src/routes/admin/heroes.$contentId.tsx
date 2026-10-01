@@ -1,13 +1,7 @@
 import { useState } from "react";
-import { createFileRoute, Link, useRouter } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
+
 import { getAdminSession } from "@/lib/cms/admin.loader";
-import {
-  AdminError,
-  AdminNotice,
-  AdminPending,
-  AdminRouteError,
-  AdminSignInGate,
-} from "@/components/cms/AdminShell";
 import {
   deleteAdminAbility,
   getAdminHero,
@@ -16,6 +10,15 @@ import {
   upsertAdminTranslation,
 } from "@/lib/cms/heroes-admin.loader";
 import { upsertAdminAbility } from "@/lib/cms/loadouts-admin.loader";
+import { CmsRouteErrorStandalone, CmsRoutePending } from "@/components/cms/cc/CmsAuth";
+import { CmsCard, CmsField, CmsNotice } from "@/components/cms/cc/CmsPrimitives";
+import { CmsSelect } from "@/components/cms/cc/CmsSelect";
+import {
+  CmsEditorFeedback,
+  CmsEditorFrame,
+  CmsFormSection,
+  useCmsEditorState,
+} from "@/components/cms/cc/CmsEditor";
 
 export const Route = createFileRoute("/admin/heroes/$contentId")({
   loader: async ({ params }) => {
@@ -25,105 +28,145 @@ export const Route = createFileRoute("/admin/heroes/$contentId")({
     return { session, hero };
   },
   head: () => ({
-    meta: [{ title: "Edit hero — CMS Admin" }, { name: "robots", content: "noindex, nofollow" }],
+    meta: [
+      { title: "Edit hero — Control Center" },
+      { name: "robots", content: "noindex, nofollow" },
+    ],
   }),
-  pendingComponent: () => <AdminPending title="Edit hero" />,
+  pendingComponent: () => <CmsRoutePending title="Edit hero" />,
   errorComponent: ({ error }: { error: unknown }) => (
-    <AdminRouteError title="Edit hero" backTo="/admin/heroes" error={error} />
+    <CmsRouteErrorStandalone title="Edit hero" backTo="/admin/heroes" error={error} />
   ),
   component: HeroEditor,
 });
 
+const LOCALES = ["en", "es", "fr", "ru", "de", "pt", "zh", "ar-SA", "fa-IR"] as const;
+
 function HeroEditor() {
-  type HeroDetail = Awaited<ReturnType<typeof getAdminHero>>["hero"];
   const { session, hero } = Route.useLoaderData() as {
-    session: { authenticated: boolean };
-    hero: HeroDetail;
+    session: {
+      authenticated: boolean;
+      user: { id: string; username: string; displayName: string; role: string } | null;
+      expiresAt: string | null;
+    };
+    hero: Awaited<ReturnType<typeof getAdminHero>>["hero"] | null;
   };
-  const router = useRouter();
-  const [msg, setMsg] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const editor = useCmsEditorState();
+  const [publishPending, setPublishPending] = useState(false);
 
-  if (!session.authenticated || !hero) return <AdminSignInGate title="Edit hero" />;
+  if (!hero || !session.user) {
+    return (
+      <CmsEditorFrame
+        session={session}
+        backTo="/admin/heroes"
+        backLabel="Heroes"
+        eyebrow="Content · Hero"
+        title="Hero not found"
+        status="draft"
+        publishPending={false}
+        canPublish={false}
+        onPublish={() => undefined}
+      >
+        <CmsNotice kind="error">This hero does not exist.</CmsNotice>
+      </CmsEditorFrame>
+    );
+  }
 
-  async function run(action: () => Promise<string>) {
-    setError(null);
-    setMsg(null);
+  const currentHero = hero as NonNullable<typeof hero>;
+  const canWrite = session.user?.role === "editor" || session.user?.role === "admin";
+  const canPublish = session.user?.role === "admin";
+
+  async function handlePublish(to: "published" | "draft" | "archived") {
+    if (
+      !window.confirm(
+        to === "published"
+          ? "Publishing makes this hero publicly visible. Continue?"
+          : to === "archived"
+            ? "Archiving retires this hero (never hard-deleted). Continue?"
+            : "Moving back to draft hides this hero. Continue?",
+      )
+    ) {
+      return;
+    }
+    setPublishPending(true);
+    editor.setError(null);
     try {
-      setMsg(await action());
-      await router.invalidate();
+      await publishAdminContent({ data: { contentId: currentHero.contentId, to } });
+      window.location.reload();
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Save failed.");
+      editor.setError(e instanceof Error ? e.message : "Publish failed.");
+    } finally {
+      setPublishPending(false);
     }
   }
 
   return (
-    <main className="mx-auto max-w-3xl px-4 py-10">
-      <nav aria-label="CMS sections" className="border-b pb-2">
-        <ul className="flex flex-wrap gap-4 text-sm">
-          <li>
-            <Link to="/admin" className="underline">
-              Dashboard
-            </Link>
-          </li>
-          <li>
-            <Link to="/admin/heroes" className="underline">
-              Heroes
-            </Link>
-          </li>
-          <li>
-            <Link to="/admin/loadouts" className="underline">
-              Loadouts
-            </Link>
-          </li>
-          <li>
-            <Link to="/admin/inventory" className="underline">
-              Inventory
-            </Link>
-          </li>
-          <li>
-            <Link to="/admin/media" className="underline">
-              Media
-            </Link>
-          </li>
-        </ul>
-      </nav>
-      <h1 className="mt-6 text-2xl font-bold">Edit hero</h1>
-      <p className="mt-2 text-sm text-muted-foreground">
-        Status: {hero.status}. Abilities: {hero.abilities.length}. Locales:{" "}
-        {hero.locales.join(", ") || "none"}.
-      </p>
-      <AdminError error={error} />
-      <AdminNotice message={msg} />
-      <FullHeroForm
-        hero={hero}
-        onRun={run}
-        reload={() => router.invalidate()}
-        onPublish={(to) =>
-          run(async () => {
-            await publishAdminContent({ data: { contentId: hero.contentId, to } });
-            return to === "published"
-              ? "Published."
-              : to === "archived"
-                ? "Archived (never hard-deleted)."
-                : "Moved back to draft.";
-          })
-        }
+    <CmsEditorFrame
+      session={session}
+      backTo="/admin/heroes"
+      backLabel="Heroes"
+      eyebrow={`Content · Hero · ${hero.heroClass}`}
+      title={hero.title ?? hero.contentId}
+      subtitle={`Content id ${hero.contentId} · ${hero.abilities.length} abilities · locales ${hero.locales.join(", ") || "none"}`}
+      status={hero.status}
+      updatedAt={hero.updatedAt}
+      publishPending={publishPending}
+      canPublish={canPublish}
+      onPublish={handlePublish}
+      rail={
+        <CmsCard title="Record">
+          <dl className="space-y-2 text-[13px]">
+            <div className="flex justify-between gap-2">
+              <dt className="opacity-60">Class</dt>
+              <dd className="font-mono">{hero.heroClass}</dd>
+            </div>
+            <div className="flex justify-between gap-2">
+              <dt className="opacity-60">Default locale</dt>
+              <dd className="font-mono">{hero.defaultLocale}</dd>
+            </div>
+            <div className="flex justify-between gap-2">
+              <dt className="opacity-60">Abilities</dt>
+              <dd className="tabular-nums">{hero.abilities.length}</dd>
+            </div>
+          </dl>
+        </CmsCard>
+      }
+    >
+      <CmsEditorFeedback message={editor.message} error={editor.error} />
+      {!canWrite ? (
+        <CmsNotice kind="warning">
+          Your role ({session.user?.role}) is read-only. Editing requires the editor role.
+        </CmsNotice>
+      ) : null}
+      <IdentityForm
+        hero={currentHero}
+        disabled={!canWrite}
+        run={editor.run}
+        pending={editor.pending}
       />
-      <p className="mt-6 text-sm">
-        <Link to="/admin/heroes" className="underline">
-          Back to heroes
-        </Link>
-      </p>
-    </main>
+      <TranslationForm
+        hero={currentHero}
+        disabled={!canWrite}
+        run={editor.run}
+        pending={editor.pending}
+      />
+      <AbilitiesForm
+        hero={currentHero}
+        disabled={!canWrite}
+        run={editor.run}
+        pending={editor.pending}
+      />
+    </CmsEditorFrame>
   );
 }
 
-function FullHeroForm(props: {
-  hero: Awaited<ReturnType<typeof getAdminHero>>["hero"];
-  onRun: (action: () => Promise<string>) => Promise<void>;
-  reload: () => Promise<void>;
-  onPublish: (to: "published" | "draft" | "archived") => Promise<void>;
+type HeroDetail = Awaited<ReturnType<typeof getAdminHero>>["hero"];
+
+function IdentityForm(props: {
+  hero: HeroDetail;
+  disabled: boolean;
+  pending: boolean;
+  run: (action: () => Promise<string>) => Promise<boolean>;
 }) {
   const hero = props.hero;
   const [heroClass, setHeroClass] = useState(hero.heroClass);
@@ -132,90 +175,18 @@ function FullHeroForm(props: {
   const [sortOrder, setSortOrder] = useState(String(hero.sortOrder));
   const [portraitAssetId, setPortraitAssetId] = useState(hero.portraitAssetId ?? "");
   const [bannerAssetId, setBannerAssetId] = useState(hero.bannerAssetId ?? "");
-  const [locale, setLocale] = useState(hero.defaultLocale);
-  const active = hero.translations.find((t) => t.locale === locale) ?? hero.translations[0];
-  const [title, setTitle] = useState(active?.title ?? "");
-  const [body, setBody] = useState(active?.body ?? "");
-  const [seoTitle, setSeoTitle] = useState(active?.seoTitle ?? "");
-  const [seoDescription, setSeoDescription] = useState(active?.seoDescription ?? "");
-  const [abilityKey, setAbilityKey] = useState("");
-  const [abilityName, setAbilityName] = useState("");
 
   return (
-    <div className="mt-4 space-y-6 text-sm">
-      <section>
-        <h2 className="text-lg font-semibold">Identity</h2>
-        <div className="mt-2 flex flex-wrap items-end gap-2">
-          <label className="block">
-            Class{" "}
-            <select
-              className="rounded border px-2 py-1"
-              value={heroClass}
-              onChange={(e) => setHeroClass(e.target.value)}
-            >
-              <option value="soldier">Soldier</option>
-              <option value="constructor">Constructor</option>
-              <option value="ninja">Ninja</option>
-              <option value="outlander">Outlander</option>
-            </select>
-          </label>
-          <label>
-            Category{" "}
-            <select
-              className="rounded border px-2 py-1"
-              value={category}
-              onChange={(e) => setCategory(e.target.value)}
-            >
-              <option value="">None</option>
-              <option value="assault">Assault</option>
-              <option value="support">Support</option>
-              <option value="recon">Recon</option>
-              <option value="defense">Defense</option>
-              <option value="special">Special</option>
-            </select>
-          </label>
-          <label>
-            Popularity{" "}
-            <input
-              className="w-24 rounded border px-2 py-1"
-              value={popularity}
-              inputMode="numeric"
-              onChange={(e) => setPopularity(e.target.value)}
-            />
-          </label>
-          <label>
-            Sort order{" "}
-            <input
-              className="w-24 rounded border px-2 py-1"
-              value={sortOrder}
-              inputMode="numeric"
-              onChange={(e) => setSortOrder(e.target.value)}
-            />
-          </label>
-          <label>
-            Portrait asset id{" "}
-            <input
-              className="w-44 rounded border px-2 py-1"
-              value={portraitAssetId}
-              placeholder="media_… (optional)"
-              onChange={(e) => setPortraitAssetId(e.target.value)}
-            />
-          </label>
-          <label>
-            Banner asset id{" "}
-            <input
-              className="w-44 rounded border px-2 py-1"
-              value={bannerAssetId}
-              placeholder="media_… (optional)"
-              onChange={(e) => setBannerAssetId(e.target.value)}
-            />
-          </label>
-        </div>
+    <CmsFormSection
+      title="Identity"
+      description="Class, category, discovery ordering, and portrait/banner media references."
+      action={
         <button
           type="button"
-          className="mt-2 rounded bg-primary px-3 py-1 text-primary-foreground"
+          className="cc-btn cc-btn-primary cc-btn-sm"
+          disabled={props.disabled || props.pending}
           onClick={() =>
-            props.onRun(async () => {
+            props.run(async () => {
               await updateAdminHero({
                 data: {
                   contentId: hero.contentId,
@@ -231,189 +202,279 @@ function FullHeroForm(props: {
             })
           }
         >
-          Save identity
+          {props.pending ? "Saving…" : "Save identity"}
         </button>
-      </section>
-
-      <section>
-        <h2 className="text-lg font-semibold">Translation</h2>
-        <div className="mt-2 space-y-3">
-          <label className="block">
-            Locale{" "}
-            <select
-              className="rounded border px-2 py-1"
-              value={locale}
-              onChange={(e) => {
-                setLocale(e.target.value);
-                const t = hero.translations.find((x) => x.locale === e.target.value);
-                setTitle(t?.title ?? "");
-                setBody(t?.body ?? "");
-                setSeoTitle(t?.seoTitle ?? "");
-                setSeoDescription(t?.seoDescription ?? "");
-              }}
-            >
-              {["en", "es", "fr", "ru", "de", "pt", "zh", "ar-SA", "fa-IR"].map((l) => (
-                <option key={l} value={l}>
-                  {l}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="block">
-            Title{" "}
-            <input
-              className="w-full rounded border px-2 py-1"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-            />
-          </label>
-          <label className="block">
-            Description{" "}
-            <textarea
-              className="w-full rounded border px-2 py-1"
-              rows={4}
-              value={body}
-              onChange={(e) => setBody(e.target.value)}
-            />
-          </label>
-          <label className="block">
-            SEO title{" "}
-            <input
-              className="w-full rounded border px-2 py-1"
-              value={seoTitle}
-              onChange={(e) => setSeoTitle(e.target.value)}
-            />
-          </label>
-          <label className="block">
-            SEO description{" "}
-            <input
-              className="w-full rounded border px-2 py-1"
-              value={seoDescription}
-              onChange={(e) => setSeoDescription(e.target.value)}
-            />
-          </label>
-          <button
-            type="button"
-            className="rounded bg-primary px-3 py-1 text-primary-foreground"
-            onClick={() =>
-              props.onRun(async () => {
-                if (title.trim() === "") throw new Error("Title is required.");
-                await upsertAdminTranslation({
-                  data: {
-                    contentId: hero.contentId,
-                    locale,
-                    title: title.trim(),
-                    body,
-                    seoTitle: seoTitle.trim() === "" ? null : seoTitle.trim(),
-                    seoDescription: seoDescription.trim() === "" ? null : seoDescription.trim(),
-                  },
-                });
-                return "Translation saved.";
-              })
-            }
-          >
-            Save translation
-          </button>
-        </div>
-      </section>
-
-      <section>
-        <h2 className="text-lg font-semibold">Abilities ({hero.abilities.length})</h2>
-        {hero.abilities.length === 0 ? (
-          <p className="mt-2 text-muted-foreground">No abilities yet.</p>
-        ) : (
-          <ul className="mt-2 space-y-2">
-            {hero.abilities.map((ability) => (
-              <li key={ability.id} className="flex flex-wrap items-center gap-2 border-b pb-2">
-                <span className="font-mono text-xs">{ability.abilityKey}</span>
-                <span className="text-muted-foreground">
-                  {ability.translations.map((t) => `${t.locale}:${t.name}`).join(" · ") ||
-                    "untranslated"}
-                </span>
-                <button
-                  type="button"
-                  className="underline"
-                  onClick={() => {
-                    if (
-                      window.confirm(
-                        `Remove ability ${ability.abilityKey}? Its translations go with it; this cannot be undone.`,
-                      )
-                    ) {
-                      void props.onRun(async () => {
-                        await deleteAdminAbility({ data: { abilityId: ability.id } });
-                        return "Ability removed.";
-                      });
-                    }
-                  }}
-                >
-                  Remove
-                </button>
-              </li>
-            ))}
-          </ul>
-        )}
-        <div className="mt-3 flex flex-wrap gap-2">
+      }
+    >
+      <div className="grid gap-4 sm:grid-cols-2">
+        <CmsField label="Class" description="Soldier, constructor, ninja, or outlander.">
+          <CmsSelect
+            id="hero-class"
+            value={heroClass}
+            onChange={setHeroClass}
+            disabled={props.disabled}
+            width="full"
+            options={[
+              { value: "soldier", label: "Soldier" },
+              { value: "constructor", label: "Constructor" },
+              { value: "ninja", label: "Ninja" },
+              { value: "outlander", label: "Outlander" },
+            ]}
+          />
+        </CmsField>
+        <CmsField label="Category" description="Gameplay role used by public filters.">
+          <CmsSelect
+            id="hero-category"
+            value={category}
+            onChange={setCategory}
+            disabled={props.disabled}
+            width="full"
+            options={[
+              { value: "", label: "None" },
+              { value: "assault", label: "Assault" },
+              { value: "support", label: "Support" },
+              { value: "recon", label: "Recon" },
+              { value: "defense", label: "Defense" },
+              { value: "special", label: "Special" },
+            ]}
+          />
+        </CmsField>
+        <CmsField label="Popularity" description="Higher ranks first inside public listings.">
           <input
-            className="rounded border px-2 py-1"
+            className="cc-input"
+            value={popularity}
+            inputMode="numeric"
+            onChange={(e) => setPopularity(e.target.value)}
+            disabled={props.disabled}
+          />
+        </CmsField>
+        <CmsField label="Sort order" description="Tie-breaker within the same popularity.">
+          <input
+            className="cc-input"
+            value={sortOrder}
+            inputMode="numeric"
+            onChange={(e) => setSortOrder(e.target.value)}
+            disabled={props.disabled}
+          />
+        </CmsField>
+        <CmsField label="Portrait asset id" description="R2 media id (media_…), optional.">
+          <input
+            className="cc-input font-mono"
+            value={portraitAssetId}
+            placeholder="media_… (optional)"
+            onChange={(e) => setPortraitAssetId(e.target.value)}
+            disabled={props.disabled}
+          />
+        </CmsField>
+        <CmsField label="Banner asset id" description="R2 media id (media_…), optional.">
+          <input
+            className="cc-input font-mono"
+            value={bannerAssetId}
+            placeholder="media_… (optional)"
+            onChange={(e) => setBannerAssetId(e.target.value)}
+            disabled={props.disabled}
+          />
+        </CmsField>
+      </div>
+    </CmsFormSection>
+  );
+}
+
+function TranslationForm(props: {
+  hero: HeroDetail;
+  disabled: boolean;
+  pending: boolean;
+  run: (action: () => Promise<string>) => Promise<boolean>;
+}) {
+  const hero = props.hero;
+  const [locale, setLocale] = useState(hero.defaultLocale);
+  const active = hero.translations.find((t) => t.locale === locale) ?? hero.translations[0];
+  const [title, setTitle] = useState(active?.title ?? "");
+  const [body, setBody] = useState(active?.body ?? "");
+  const [seoTitle, setSeoTitle] = useState(active?.seoTitle ?? "");
+  const [seoDescription, setSeoDescription] = useState(active?.seoDescription ?? "");
+
+  return (
+    <CmsFormSection
+      title="Content & translations"
+      description="Per-locale title, description, and SEO metadata. Switching locale never clobbers another locale's text."
+      action={
+        <button
+          type="button"
+          className="cc-btn cc-btn-primary cc-btn-sm"
+          disabled={props.disabled || props.pending}
+          onClick={() =>
+            props.run(async () => {
+              if (title.trim() === "") throw new Error("Title is required.");
+              await upsertAdminTranslation({
+                data: {
+                  contentId: hero.contentId,
+                  locale,
+                  title: title.trim(),
+                  body,
+                  seoTitle: seoTitle.trim() === "" ? null : seoTitle.trim(),
+                  seoDescription: seoDescription.trim() === "" ? null : seoDescription.trim(),
+                },
+              });
+              return `Translation saved (${locale}).`;
+            })
+          }
+        >
+          {props.pending ? "Saving…" : "Save translation"}
+        </button>
+      }
+    >
+      <CmsField label="Locale" description={`Saved locales: ${hero.locales.join(", ") || "none"}.`}>
+        <CmsSelect
+          id="hero-locale"
+          value={locale}
+          disabled={props.disabled}
+          onChange={(v) => {
+            setLocale(v);
+            const t = hero.translations.find((x) => x.locale === v);
+            setTitle(t?.title ?? "");
+            setBody(t?.body ?? "");
+            setSeoTitle(t?.seoTitle ?? "");
+            setSeoDescription(t?.seoDescription ?? "");
+          }}
+          width="full"
+          options={LOCALES.map((l) => ({ value: l, label: l }))}
+        />
+      </CmsField>
+      <CmsField label="Title" description="Public display name for this locale.">
+        <input
+          className="cc-input"
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+          disabled={props.disabled}
+        />
+      </CmsField>
+      <CmsField label="Description" description="Body text shown on the public hero page.">
+        <textarea
+          className="cc-input"
+          rows={4}
+          value={body}
+          onChange={(e) => setBody(e.target.value)}
+          disabled={props.disabled}
+        />
+      </CmsField>
+      <div className="grid gap-4 sm:grid-cols-2">
+        <CmsField label="SEO title" description="Optional override, plain text.">
+          <input
+            className="cc-input"
+            value={seoTitle}
+            onChange={(e) => setSeoTitle(e.target.value)}
+            disabled={props.disabled}
+          />
+        </CmsField>
+        <CmsField label="SEO description" description="Optional override, plain text.">
+          <input
+            className="cc-input"
+            value={seoDescription}
+            onChange={(e) => setSeoDescription(e.target.value)}
+            disabled={props.disabled}
+          />
+        </CmsField>
+      </div>
+    </CmsFormSection>
+  );
+}
+
+function AbilitiesForm(props: {
+  hero: HeroDetail;
+  disabled: boolean;
+  pending: boolean;
+  run: (action: () => Promise<string>) => Promise<boolean>;
+}) {
+  const hero = props.hero;
+  const [abilityKey, setAbilityKey] = useState("");
+  const [abilityName, setAbilityName] = useState("");
+
+  return (
+    <CmsFormSection
+      title={`Abilities (${hero.abilities.length})`}
+      description="Named keys with per-locale translations. Removing an ability removes its translations and cannot be undone."
+    >
+      {hero.abilities.length === 0 ? (
+        <p className="text-sm opacity-70">No abilities yet.</p>
+      ) : (
+        <ul className="divide-y divide-white/5">
+          {hero.abilities.map((ability) => (
+            <li key={ability.id} className="flex flex-wrap items-center gap-2 py-2">
+              <span className="font-mono text-xs">{ability.abilityKey}</span>
+              <span className="text-xs opacity-60">
+                {ability.translations.map((t) => `${t.locale}:${t.name}`).join(" · ") ||
+                  "untranslated"}
+              </span>
+              <button
+                type="button"
+                className="cc-btn cc-btn-ghost cc-btn-sm ms-auto"
+                disabled={props.disabled || props.pending}
+                onClick={() => {
+                  if (
+                    window.confirm(
+                      `Remove ability ${ability.abilityKey}? Its translations go with it; this cannot be undone.`,
+                    )
+                  ) {
+                    void props.run(async () => {
+                      await deleteAdminAbility({ data: { abilityId: ability.id } });
+                      window.location.reload();
+                      return "Ability removed.";
+                    });
+                  }
+                }}
+              >
+                Remove
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+      <div className="flex flex-wrap items-end gap-2 border-t pt-3 cc-hairline">
+        <CmsField label="Ability key">
+          <input
+            className="cc-input font-mono"
             value={abilityKey}
             onChange={(e) => setAbilityKey(e.target.value)}
             placeholder="ability key"
+            disabled={props.disabled}
           />
+        </CmsField>
+        <CmsField label="Ability name (default locale)">
           <input
-            className="rounded border px-2 py-1"
+            className="cc-input"
             value={abilityName}
             onChange={(e) => setAbilityName(e.target.value)}
             placeholder="ability name"
+            disabled={props.disabled}
           />
-          <button
-            type="button"
-            className="rounded border px-3 py-1"
-            onClick={() =>
-              props.onRun(async () => {
-                if (abilityKey.trim() === "") throw new Error("Ability key is required.");
-                const trimmed = abilityName.trim();
-                await upsertAdminAbility({
-                  data: {
-                    heroContentId: hero.contentId,
-                    abilityKey: abilityKey.trim(),
-                    ...(trimmed === "" ? {} : { name: trimmed }),
-                    locale,
-                  },
-                });
-                setAbilityKey("");
-                setAbilityName("");
-                return "Ability saved.";
-              })
-            }
-          >
-            Add ability
-          </button>
-        </div>
-      </section>
-
-      <section className="flex flex-wrap gap-2 border-t pt-4">
+        </CmsField>
         <button
           type="button"
-          className="rounded bg-primary px-3 py-1 text-primary-foreground"
-          onClick={() => props.onPublish("published")}
+          className="cc-btn cc-btn-outline cc-btn-sm"
+          disabled={props.disabled || props.pending}
+          onClick={() =>
+            props.run(async () => {
+              if (abilityKey.trim() === "") throw new Error("Ability key is required.");
+              const trimmed = abilityName.trim();
+              await upsertAdminAbility({
+                data: {
+                  heroContentId: hero.contentId,
+                  abilityKey: abilityKey.trim(),
+                  ...(trimmed === "" ? {} : { name: trimmed }),
+                  locale: hero.defaultLocale,
+                },
+              });
+              setAbilityKey("");
+              setAbilityName("");
+              window.location.reload();
+              return "Ability saved.";
+            })
+          }
         >
-          Publish
+          Add ability
         </button>
-        <button
-          type="button"
-          className="rounded border px-3 py-1"
-          onClick={() => props.onPublish("draft")}
-        >
-          Unpublish
-        </button>
-        <button
-          type="button"
-          className="rounded border px-3 py-1"
-          onClick={() => props.onPublish("archived")}
-        >
-          Archive
-        </button>
-      </section>
-    </div>
+      </div>
+    </CmsFormSection>
   );
 }

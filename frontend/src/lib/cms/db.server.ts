@@ -60,6 +60,16 @@ export interface CmsWorkerEnv {
   CMS_DB?: D1Database;
   CMS_ADMIN_USERNAME?: unknown;
   CMS_ADMIN_PASSWORD_HASH?: unknown;
+  /**
+   * Wave 1 — Cloudflare Turnstile bot protection for the CMS login.
+   * CMS_TURNSTILE_SITE_KEY is PUBLIC (embedded in the login page to render
+   * the widget). CMS_TURNSTILE_SECRET is SERVER-ONLY (used exclusively in
+   * auth.server.ts siteverify calls — never imported by client code).
+   * Both set via `wrangler secret put` (production) / .dev.vars (local).
+   * Both absent = Turnstile off (local dev); exactly one set = fail closed.
+   */
+  CMS_TURNSTILE_SITE_KEY?: unknown;
+  CMS_TURNSTILE_SECRET?: unknown;
   IMAGEKIT_PRIVATE_KEY?: unknown;
   IMAGEKIT_PUBLIC_KEY?: unknown;
   IMAGEKIT_URL_ENDPOINT?: unknown;

@@ -4,7 +4,8 @@ import { I18nProvider } from "@/i18n/context";
 import { resolveLocale } from "@/i18n/config";
 import { translate } from "@/i18n/core";
 import { jsonLdScript } from "@/lib/seo";
-import { buildGuideFaqJsonLd } from "@/lib/guide-faq";
+import { buildGuideFaqJsonLd, buildGuideWebPageJsonLd } from "@/lib/guide-faq";
+import { STANDARD_VBUCKS_REWARD } from "@/lib/stw-facts";
 import {
   canonicalUrlFor,
   hreflangAlternates,
@@ -14,6 +15,7 @@ import {
   parseLocaleParam,
 } from "@/lib/locale-urls";
 import { DEFAULT_LANGUAGE } from "@/lib/preferences";
+import { missionsQueryOptions } from "@/services/missions.loader";
 
 export const Route = createFileRoute("/$locale/missions-guide")({
   beforeLoad: ({ params }) => {
@@ -27,10 +29,14 @@ export const Route = createFileRoute("/$locale/missions-guide")({
     }
     throw redirect({ href: "/missions-guide" });
   },
+  loader: async ({ context }) => {
+    await context.queryClient.ensureQueryData(missionsQueryOptions()).catch(() => undefined);
+  },
   head: (ctx) => {
     const param = (ctx.params as { locale?: unknown } | undefined)?.locale;
     const lang = parseLocaleParam(param) ?? DEFAULT_LANGUAGE;
     const self = canonicalUrlFor(localizePath("/missions-guide", lang));
+    const faqParams = { reward: STANDARD_VBUCKS_REWARD };
     return {
       meta: [
         { title: translate("seo.guideTitle", lang) },
@@ -65,7 +71,17 @@ export const Route = createFileRoute("/$locale/missions-guide")({
           href,
         })),
       ],
-      scripts: [jsonLdScript(buildGuideFaqJsonLd(lang, translate))],
+      scripts: [
+        jsonLdScript(
+          buildGuideWebPageJsonLd({
+            pageUrl: self,
+            name: translate("guide.title", lang),
+            description: translate("seo.guideDescription", lang),
+            inLanguage: lang,
+          }),
+        ),
+        jsonLdScript(buildGuideFaqJsonLd(lang, translate, faqParams)),
+      ],
     };
   },
   component: LocalizedGuidePage,

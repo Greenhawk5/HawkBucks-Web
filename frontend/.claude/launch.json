@@ -6,6 +6,11 @@
       "runtimeExecutable": "npm",
       "runtimeArgs": ["run", "dev", "--", "--port", "5173"],
       "port": 5173
+    },
+    {
+      "name": "hawkbucks-cms-local",
+      "port": 8788,
+      "url": "http://localhost:8788"
     }
   ]
 }

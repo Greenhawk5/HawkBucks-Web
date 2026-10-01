@@ -18,6 +18,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { HEADER_ICON, HEADER_ICON_BUTTON } from "@/components/hawkbucks/header-controls";
 import { useI18n } from "@/i18n";
 import { LANGUAGE_LIST } from "@/i18n/config";
 import type { LanguageCode } from "@/i18n/config";
@@ -30,19 +31,22 @@ const MENU_SURFACE =
 const ITEM_CLASSES =
   "relative flex cursor-pointer select-none items-center gap-2 rounded-lg px-2.5 py-2 pe-9 font-display text-xs font-bold tracking-wide outline-none transition-colors data-[highlighted]:bg-primary/15 data-[highlighted]:text-primary data-[state=checked]:text-primary focus-visible:bg-primary/15 focus-visible:text-primary";
 
+/**
+ * The one language selector. Always the compact globe icon button so the
+ * sidebar header and the mobile drawer header render the identical control;
+ * a second labelled variant used to exist for the drawer footer and duplicated
+ * the same action in the same drawer.
+ */
 export function LanguageMenu({
   className,
   align = "end",
-  showCurrentLabel = false,
 }: {
   className?: string | undefined;
   align?: "start" | "center" | "end";
-  showCurrentLabel?: boolean;
 }) {
   const { t, currentLanguage, setLanguage } = useI18n();
   const router = useRouter();
   const { pathname } = useLocation();
-  const active = LANGUAGE_LIST.find((entry) => entry.code === currentLanguage) ?? LANGUAGE_LIST[0];
 
   const selectLanguage = (code: LanguageCode) => {
     setLanguage(code);
@@ -60,26 +64,10 @@ export function LanguageMenu({
           type="button"
           aria-label={t("language.selectorAria")}
           title={t("language.changeLanguage")}
-          className={cn(
-            showCurrentLabel
-              ? "flex min-h-[2.75rem] w-full items-center gap-2.5 rounded-lg border border-panel-border bg-background/60 px-3 outline-none transition-colors hover:border-primary focus-visible:ring-2 focus-visible:ring-ring"
-              : "grid h-9 w-9 shrink-0 place-items-center rounded-lg text-muted-foreground outline-none transition-colors hover:bg-accent/10 hover:text-primary focus-visible:ring-2 focus-visible:ring-ring",
-            className,
-          )}
+          className={cn(HEADER_ICON_BUTTON, "hover:text-primary", className)}
         >
-          <Globe aria-hidden="true" className="h-5 w-5 shrink-0" />
-          {showCurrentLabel ? (
-            <>
-              <span className="min-w-0 flex-1 truncate text-start font-display text-xs font-bold tracking-wide">
-                {active?.nativeName}
-              </span>
-              <span className="shrink-0 font-display text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground/70">
-                {t("language.label")}
-              </span>
-            </>
-          ) : (
-            <span className="sr-only">{t("language.changeLanguage")}</span>
-          )}
+          <Globe aria-hidden="true" className={HEADER_ICON} />
+          <span className="sr-only">{t("language.changeLanguage")}</span>
         </button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align={align} sideOffset={8} className={MENU_SURFACE}>
@@ -111,12 +99,4 @@ export function LanguageMenu({
       </DropdownMenuContent>
     </DropdownMenu>
   );
-}
-
-/**
- * Backwards-compatible alias — the old native-selector export name now renders
- * the custom menu so prior import sites keep working without a selector element.
- */
-export function LanguageSelector({ className }: { className?: string }) {
-  return <LanguageMenu className={className} showCurrentLabel />;
 }

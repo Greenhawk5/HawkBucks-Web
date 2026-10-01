@@ -171,6 +171,9 @@ function createMemoryD1() {
             role: u.role,
             active: u.active,
             expires_at: s.expires_at,
+            // Wave 1: resolveSessionUser also selects s.created_at to anchor
+            // the 12h absolute lifetime cap.
+            created_at: s.created_at,
           };
         })
         .filter(Boolean);

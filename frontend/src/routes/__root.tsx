@@ -11,12 +11,14 @@ import {
 import { useEffect, type ReactNode } from "react";
 
 import appCss from "../styles.css?url";
+import cmsCss from "../cms.css?url";
 
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { jsonLdScript } from "../lib/seo";
 import { BRAND_NAME, SITE_URL } from "../lib/site";
 import { BackToTop } from "../components/hawkbucks/BackToTop";
 import { AppShell } from "../components/hawkbucks/AppShell";
+import { Toaster } from "../components/ui/sonner";
 import { I18nProvider } from "../i18n/context";
 import { getLanguageConfig, resolveDirection, resolveLocale } from "../i18n/config";
 import { translate } from "../i18n/core";
@@ -131,6 +133,14 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
           rel: "stylesheet",
           href: appCss,
         },
+        // Control Center stylesheet: every rule is scoped under `.cc-root`,
+        // so it cannot alter public pages (and public tokens never style it).
+        // Loaded globally to keep SSR/first-paint consistent; scope does the
+        // isolation, not load timing.
+        {
+          rel: "stylesheet",
+          href: cmsCss,
+        },
         { rel: "preconnect", href: "https://fonts.googleapis.com" },
         { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
         {
@@ -223,23 +233,51 @@ function RootComponent() {
   const { pathname } = useLocation();
   const urlLocale = splitLocalePath(pathname).locale;
 
+  // Control Center isolation: /admin/* and the standalone /articles/preview
+  // surface render OUTSIDE the public AppShell. They keep the shared runtime
+  // providers (QueryClient, I18n) but never inherit the public sidebar,
+  // footer, welcome dialog, or page container — the CMS is its own dark
+  // application with its own shell (components/cms/cc/CmsShell.tsx) and its
+  // own stylesheet (src/cms.css, `.cc-root` scoped).
+  const isStandaloneSurface =
+    pathname === "/admin" ||
+    pathname.startsWith("/admin/") ||
+    pathname === "/articles/preview" ||
+    pathname.startsWith("/articles/preview/");
+
   // Belt-and-suspenders: keep document lang/dir in sync when the user
   // switches language client-side (SSR already rendered the cookie value).
   useEffect(() => {
     try {
       const language = urlLocale ?? initialPreferences?.language ?? DEFAULT_LANGUAGE;
-      document.documentElement.lang = language;
-      document.documentElement.dir = resolveDirection(language);
+      document.documentElement.lang = isStandaloneSurface ? DEFAULT_LANGUAGE : language;
+      document.documentElement.dir = resolveDirection(
+        isStandaloneSurface ? DEFAULT_LANGUAGE : language,
+      );
     } catch {
       // Non-DOM environment — nothing to sync.
     }
-  }, [initialPreferences?.language, urlLocale]);
+  }, [initialPreferences?.language, urlLocale, isStandaloneSurface]);
+
+  // Standalone surfaces (Control Center + draft preview) keep the shared
+  // runtime providers but skip the public AppShell entirely — no public
+  // sidebar, footer, welcome dialog, BackToTop, or page container.
+  if (isStandaloneSurface) {
+    return (
+      <QueryClientProvider client={queryClient}>
+        <I18nProvider initialLanguage={DEFAULT_LANGUAGE} fixedLanguage={DEFAULT_LANGUAGE}>
+          <Outlet />
+        </I18nProvider>
+      </QueryClientProvider>
+    );
+  }
 
   return (
     <QueryClientProvider client={queryClient}>
       {/* Shared Phase 2 app shell: sidebar + top navbar + footer wrap every
-          route. Routes render only their own content via <Outlet />. Sidebar
-          persistence is preference-owned (Phase 3); behavior is unchanged. */}
+          public route. Routes render only their own content via <Outlet />.
+          Sidebar persistence is preference-owned (Phase 3); behavior is
+          unchanged. /admin/* never reaches this branch (see above). */}
       <I18nProvider
         initialLanguage={initialPreferences?.language ?? DEFAULT_LANGUAGE}
         fixedLanguage={urlLocale}
@@ -248,6 +286,7 @@ function RootComponent() {
           <Outlet />
         </AppShell>
         <BackToTop />
+        <Toaster richColors closeButton position="top-right" dir="auto" />
       </I18nProvider>
     </QueryClientProvider>
   );

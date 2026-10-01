@@ -168,6 +168,18 @@
   text-shadow: 0 0 18px oklch(0.82 0.23 145 / 45%);
 }
 
+/*
+ * Shared truncation utility.
+ *
+ * Tailwind ships `truncate` as a core utility (text-overflow + white-space +
+ * overflow). The project standardises the truncation font size for every
+ * `.truncate` usage (public site + Control Center), so the core utility is
+ * extended here with `font-size: 12px` in the same CSS-first config layer.
+ */
+@utility truncate {
+  font-size: 12px;
+}
+
 @layer base {
   * {
     border-color: var(--color-border);

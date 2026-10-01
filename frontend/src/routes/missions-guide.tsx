@@ -1,15 +1,25 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { GuidePage } from "@/components/pages/Guide";
 import { jsonLdScript } from "@/lib/seo";
-import { buildGuideFaqJsonLd } from "@/lib/guide-faq";
+import { buildGuideFaqJsonLd, buildGuideWebPageJsonLd } from "@/lib/guide-faq";
+import { STANDARD_VBUCKS_REWARD } from "@/lib/stw-facts";
 import { translate } from "@/i18n/core";
 import { resolveLocale } from "@/i18n/config";
 import { canonicalUrlFor, hreflangAlternates, localizePath, ogLocaleFor } from "@/lib/locale-urls";
+import { missionsQueryOptions } from "@/services/missions.loader";
 
 export const Route = createFileRoute("/missions-guide")({
+  loader: async ({ context }) => {
+    // Prime the same missions cache the tracker uses so the Guide's rotation
+    // card renders real counts in the SSR payload (no client fetch on load).
+    // Failure is non-fatal: the Guide's teaching content must still render,
+    // and the card has its own degraded state.
+    await context.queryClient.ensureQueryData(missionsQueryOptions()).catch(() => undefined);
+  },
   head: () => {
     const lang = "en" as const;
     const self = canonicalUrlFor(localizePath("/missions-guide", lang));
+    const faqParams = { reward: STANDARD_VBUCKS_REWARD };
     return {
       meta: [
         { title: translate("seo.guideTitle", lang) },
@@ -44,7 +54,17 @@ export const Route = createFileRoute("/missions-guide")({
           href,
         })),
       ],
-      scripts: [jsonLdScript(buildGuideFaqJsonLd(lang, translate))],
+      scripts: [
+        jsonLdScript(
+          buildGuideWebPageJsonLd({
+            pageUrl: self,
+            name: translate("guide.title", lang),
+            description: translate("seo.guideDescription", lang),
+            inLanguage: lang,
+          }),
+        ),
+        jsonLdScript(buildGuideFaqJsonLd(lang, translate, faqParams)),
+      ],
     };
   },
   component: GuidePage,

@@ -1,33 +1,31 @@
 import { useState } from "react";
-import { createFileRoute, Link, useRouter } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
+
 import { getAdminSession } from "@/lib/cms/admin.loader";
-import {
-  AdminError,
-  AdminNotice,
-  AdminPending,
-  AdminRouteError,
-  AdminSignInGate,
-} from "@/components/cms/AdminShell";
 import {
   getAdminLoadout,
   setAdminLoadoutHeroes,
   updateAdminLoadout,
 } from "@/lib/cms/loadouts-admin.loader";
-import { listAdminHeroes } from "@/lib/cms/heroes-admin.loader";
-import { formatLoadoutSlotInput, parseLoadoutSlotInput } from "@/lib/cms/public-content-slots";
-import { publishAdminContent, upsertAdminTranslation } from "@/lib/cms/heroes-admin.loader";
-
-/**
- * Rebuild the 0..5 slot array from admin hero rows. Empty slots have no row,
- * so they would vanish under a plain map+join; this preserves positions by
- * writing "(empty)" placeholders (the same token the save path maps to null).
- * Shared pure helper (client-safe): formatLoadoutSlotInput.
- */
-function initialHeroIds(
-  heroes: Array<{ contentId: string; slotOrder: number }> | null | undefined,
-): string {
-  return formatLoadoutSlotInput(heroes);
-}
+import {
+  listAdminHeroes,
+  publishAdminContent,
+  upsertAdminTranslation,
+} from "@/lib/cms/heroes-admin.loader";
+import {
+  formatLoadoutSlotInput,
+  mapLoadoutSlots,
+  parseLoadoutSlotInput,
+} from "@/lib/cms/public-content-slots";
+import { CmsRouteErrorStandalone, CmsRoutePending } from "@/components/cms/cc/CmsAuth";
+import { CmsCard, CmsField, CmsNotice } from "@/components/cms/cc/CmsPrimitives";
+import { CmsSelect } from "@/components/cms/cc/CmsSelect";
+import {
+  CmsEditorFeedback,
+  CmsEditorFrame,
+  CmsFormSection,
+  useCmsEditorState,
+} from "@/components/cms/cc/CmsEditor";
 
 export const Route = createFileRoute("/admin/loadouts/$contentId")({
   loader: async ({ params }) => {
@@ -53,328 +51,421 @@ export const Route = createFileRoute("/admin/loadouts/$contentId")({
     };
   },
   head: () => ({
-    meta: [{ title: "Edit loadout — CMS Admin" }, { name: "robots", content: "noindex, nofollow" }],
+    meta: [
+      { title: "Edit loadout — Control Center" },
+      { name: "robots", content: "noindex, nofollow" },
+    ],
   }),
-  pendingComponent: () => <AdminPending title="Edit loadout" />,
+  pendingComponent: () => <CmsRoutePending title="Edit loadout" />,
   errorComponent: ({ error }: { error: unknown }) => (
-    <AdminRouteError title="Edit loadout" backTo="/admin/loadouts" error={error} />
+    <CmsRouteErrorStandalone title="Edit loadout" backTo="/admin/loadouts" error={error} />
   ),
   component: LoadoutEditor,
 });
 
+type LoadoutDetail = Awaited<ReturnType<typeof getAdminLoadout>>["loadout"];
+type HeroOption = { contentId: string; title: string | null };
+const LOCALES = ["en", "es", "fr", "ru", "de", "pt", "zh", "ar-SA", "fa-IR"] as const;
+
 function LoadoutEditor() {
-  type LoadoutDetail = Awaited<ReturnType<typeof getAdminLoadout>>["loadout"];
   const { session, loadout, heroOptions } = Route.useLoaderData() as {
-    session: { authenticated: boolean };
-    loadout: LoadoutDetail;
-    heroOptions: Array<{ contentId: string; title: string | null }>;
+    session: {
+      authenticated: boolean;
+      user: { id: string; username: string; displayName: string; role: string } | null;
+      expiresAt: string | null;
+    };
+    loadout: LoadoutDetail | null;
+    heroOptions: HeroOption[];
   };
-  const router = useRouter();
-  const [msg, setMsg] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [heroIds, setHeroIds] = useState(initialHeroIds(loadout?.heroes));
-  const [loadoutType, setLoadoutType] = useState(loadout?.loadoutType ?? "custom");
-  const [popularity, setPopularity] = useState(String(loadout?.popularity ?? 0));
-  const [sortOrder, setSortOrder] = useState(String(loadout?.sortOrder ?? 0));
-  const [coverAssetId, setCoverAssetId] = useState(loadout?.coverAssetId ?? "");
-  const [locale, setLocale] = useState(loadout?.defaultLocale ?? "en");
-  const activeTranslation =
-    loadout?.translations.find((t) => t.locale === locale) ?? loadout?.translations[0];
-  const [title, setTitle] = useState(activeTranslation?.title ?? "");
-  const [body, setBody] = useState(activeTranslation?.body ?? "");
+  const editor = useCmsEditorState();
+  const [publishPending, setPublishPending] = useState(false);
 
-  if (!session.authenticated || !loadout) return <AdminSignInGate title="Edit loadout" />;
+  if (!loadout || !session.user) {
+    return (
+      <CmsEditorFrame
+        session={session}
+        backTo="/admin/loadouts"
+        backLabel="Loadouts"
+        eyebrow="Content · Loadout"
+        title="Loadout not found"
+        status="draft"
+        publishPending={false}
+        canPublish={false}
+        onPublish={() => undefined}
+      >
+        <CmsNotice kind="error">This loadout does not exist.</CmsNotice>
+      </CmsEditorFrame>
+    );
+  }
 
-  async function run(action: () => Promise<string>) {
-    setError(null);
-    setMsg(null);
+  const canWrite = session.user?.role === "editor" || session.user?.role === "admin";
+  const canPublish = session.user?.role === "admin";
+
+  async function handlePublish(to: "published" | "draft" | "archived") {
+    if (
+      !window.confirm(
+        to === "published"
+          ? "Publishing makes this loadout publicly visible. Continue?"
+          : to === "archived"
+            ? "Archiving retires this loadout (never hard-deleted). Continue?"
+            : "Moving back to draft hides this loadout. Continue?",
+      )
+    ) {
+      return;
+    }
+    setPublishPending(true);
+    editor.setError(null);
     try {
-      setMsg(await action());
-      await router.invalidate();
+      await publishAdminContent({
+        data: { contentId: (loadout as NonNullable<typeof loadout>).contentId, to },
+      });
+      window.location.reload();
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Save failed.");
+      editor.setError(e instanceof Error ? e.message : "Publish failed.");
+    } finally {
+      setPublishPending(false);
     }
   }
 
-  const titleById = new Map(heroOptions.map((h) => [h.contentId, h.title ?? h.contentId]));
+  const slots = mapLoadoutSlots(
+    loadout.heroes.map((h) => ({ heroContentId: h.contentId, slotOrder: h.slotOrder })),
+  );
 
   return (
-    <main className="mx-auto max-w-3xl px-4 py-10">
-      <nav aria-label="CMS sections" className="border-b pb-2">
-        <ul className="flex flex-wrap gap-4 text-sm">
-          <li>
-            <Link to="/admin" className="underline">
-              Dashboard
-            </Link>
-          </li>
-          <li>
-            <Link to="/admin/heroes" className="underline">
-              Heroes
-            </Link>
-          </li>
-          <li>
-            <Link to="/admin/loadouts" className="underline">
-              Loadouts
-            </Link>
-          </li>
-          <li>
-            <Link to="/admin/inventory" className="underline">
-              Inventory
-            </Link>
-          </li>
-          <li>
-            <Link to="/admin/media" className="underline">
-              Media
-            </Link>
-          </li>
-        </ul>
-      </nav>
-      <h1 className="mt-6 text-2xl font-bold">Edit loadout</h1>
-      <p className="mt-2 text-sm text-muted-foreground">
-        Status: {loadout.status}. Heroes: {loadout.heroes.length}. Locales:{" "}
-        {loadout.locales.join(", ") || "none"}.
-      </p>
-      <AdminError error={error} />
-      <AdminNotice message={msg} />
+    <CmsEditorFrame
+      session={session}
+      backTo="/admin/loadouts"
+      backLabel="Loadouts"
+      eyebrow={`Content · Loadout · ${loadout.loadoutType}`}
+      title={loadout.title ?? loadout.contentId}
+      subtitle={`Content id ${loadout.contentId} · ${loadout.heroes.length}/6 heroes · locales ${loadout.locales.join(", ") || "none"}`}
+      status={loadout.status}
+      updatedAt={loadout.updatedAt}
+      publishPending={publishPending}
+      canPublish={canPublish}
+      onPublish={handlePublish}
+      rail={
+        <CmsCard title="Roster">
+          <dl className="space-y-2 text-[13px]">
+            <div className="flex justify-between gap-2">
+              <dt className="opacity-60">Commander</dt>
+              <dd className="max-w-40 truncate">{slots.commander ?? "—"}</dd>
+            </div>
+            <div className="flex justify-between gap-2">
+              <dt className="opacity-60">Support filled</dt>
+              <dd className="tabular-nums">{slots.support.filter((s) => s !== null).length}/5</dd>
+            </div>
+            <div className="flex justify-between gap-2">
+              <dt className="opacity-60">Default locale</dt>
+              <dd className="font-mono">{loadout.defaultLocale}</dd>
+            </div>
+          </dl>
+        </CmsCard>
+      }
+    >
+      <CmsEditorFeedback message={editor.message} error={editor.error} />
+      {!canWrite ? (
+        <CmsNotice kind="warning">
+          Your role ({session.user?.role}) is read-only. Editing requires the editor role.
+        </CmsNotice>
+      ) : null}
+      <IdentityForm
+        loadout={loadout}
+        disabled={!canWrite}
+        run={editor.run}
+        pending={editor.pending}
+      />
+      <RosterForm
+        loadout={loadout}
+        heroOptions={heroOptions}
+        disabled={!canWrite}
+        run={editor.run}
+        pending={editor.pending}
+      />
+      <TranslationForm
+        loadout={loadout}
+        disabled={!canWrite}
+        run={editor.run}
+        pending={editor.pending}
+      />
+    </CmsEditorFrame>
+  );
+}
 
-      <section className="mt-6 text-sm">
-        <h2 className="text-lg font-semibold">Settings</h2>
-        <div className="mt-2 flex flex-wrap items-end gap-2">
-          <label>
-            Type{" "}
-            <select
-              className="rounded border px-2 py-1"
-              value={loadoutType}
-              onChange={(e) => setLoadoutType(e.target.value)}
-            >
-              <option value="beginner">Beginner</option>
-              <option value="meta">Meta</option>
-              <option value="farming">Farming</option>
-              <option value="boss">Boss</option>
-              <option value="fun">Fun</option>
-              <option value="custom">Custom</option>
-            </select>
-          </label>
-          <label>
-            Popularity{" "}
-            <input
-              className="w-24 rounded border px-2 py-1"
-              value={popularity}
-              inputMode="numeric"
-              onChange={(e) => setPopularity(e.target.value)}
-            />
-          </label>
-          <label>
-            Sort order{" "}
-            <input
-              className="w-24 rounded border px-2 py-1"
-              value={sortOrder}
-              inputMode="numeric"
-              onChange={(e) => setSortOrder(e.target.value)}
-            />
-          </label>
-          <label>
-            Cover asset id{" "}
-            <input
-              className="w-44 rounded border px-2 py-1"
-              value={coverAssetId}
-              placeholder="media_… (optional)"
-              onChange={(e) => setCoverAssetId(e.target.value)}
-            />
-          </label>
-          <button
-            type="button"
-            className="rounded bg-primary px-3 py-1 text-primary-foreground"
-            onClick={() =>
-              run(async () => {
-                await updateAdminLoadout({
-                  data: {
-                    contentId: loadout.contentId,
-                    loadoutType,
-                    popularity: Number(popularity),
-                    sortOrder: Number(sortOrder),
-                    coverAssetId: coverAssetId.trim() === "" ? null : coverAssetId.trim(),
-                  },
-                });
-                return "Settings saved.";
-              })
-            }
-          >
-            Save settings
-          </button>
-        </div>
-      </section>
+function IdentityForm(props: {
+  loadout: LoadoutDetail;
+  disabled: boolean;
+  pending: boolean;
+  run: (action: () => Promise<string>) => Promise<boolean>;
+}) {
+  const loadout = props.loadout;
+  const [loadoutType, setLoadoutType] = useState(loadout.loadoutType);
+  const [popularity, setPopularity] = useState(String(loadout.popularity));
+  const [sortOrder, setSortOrder] = useState(String(loadout.sortOrder));
+  const [coverAssetId, setCoverAssetId] = useState(loadout.coverAssetId ?? "");
 
-      <section className="mt-6 text-sm">
-        <h2 className="text-lg font-semibold">Translation</h2>
-        <div className="mt-2 space-y-3">
-          <label className="block">
-            Locale{" "}
-            <select
-              className="rounded border px-2 py-1"
-              value={locale}
-              onChange={(e) => {
-                setLocale(e.target.value);
-                const next = loadout.translations.find((t) => t.locale === e.target.value);
-                setTitle(next?.title ?? "");
-                setBody(next?.body ?? "");
-              }}
-            >
-              {["en", "es", "fr", "ru", "de", "pt", "zh", "ar-SA", "fa-IR"].map((l) => (
-                <option key={l} value={l}>
-                  {l}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="block">
-            Title{" "}
-            <input
-              className="w-full rounded border px-2 py-1"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-            />
-          </label>
-          <label className="block">
-            Body{" "}
-            <textarea
-              className="w-full rounded border px-2 py-1"
-              rows={3}
-              value={body}
-              onChange={(e) => setBody(e.target.value)}
-            />
-          </label>
-          <button
-            type="button"
-            className="rounded bg-primary px-3 py-1 text-primary-foreground"
-            onClick={() =>
-              run(async () => {
-                if (title.trim() === "") throw new Error("Title is required.");
-                await upsertAdminTranslation({
-                  data: { contentId: loadout.contentId, locale, title: title.trim(), body },
-                });
-                return "Translation saved.";
-              })
-            }
-          >
-            Save translation
-          </button>
-        </div>
-      </section>
+  return (
+    <CmsFormSection
+      title="Identity"
+      description="Type, discovery ordering, and cover media reference."
+      action={
+        <button
+          type="button"
+          className="cc-btn cc-btn-primary cc-btn-sm"
+          disabled={props.disabled || props.pending}
+          onClick={() =>
+            props.run(async () => {
+              await updateAdminLoadout({
+                data: {
+                  contentId: loadout.contentId,
+                  loadoutType,
+                  popularity: Number(popularity),
+                  sortOrder: Number(sortOrder),
+                  coverAssetId: coverAssetId.trim() === "" ? null : coverAssetId.trim(),
+                },
+              });
+              return "Identity saved.";
+            })
+          }
+        >
+          {props.pending ? "Saving…" : "Save identity"}
+        </button>
+      }
+    >
+      <div className="grid gap-4 sm:grid-cols-2">
+        <CmsField label="Type" description="Gameplay category for discovery.">
+          <CmsSelect
+            id="loadout-type"
+            value={loadoutType}
+            onChange={setLoadoutType}
+            disabled={props.disabled}
+            width="full"
+            options={["beginner", "meta", "farming", "boss", "fun", "custom"].map((t) => ({
+              value: t,
+              label: t,
+            }))}
+          />
+        </CmsField>
+        <CmsField label="Cover asset id" description="R2 media id (media_…), optional.">
+          <input
+            className="cc-input font-mono"
+            value={coverAssetId}
+            placeholder="media_… (optional)"
+            onChange={(e) => setCoverAssetId(e.target.value)}
+            disabled={props.disabled}
+          />
+        </CmsField>
+        <CmsField label="Popularity" description="Higher ranks first inside public listings.">
+          <input
+            className="cc-input"
+            value={popularity}
+            inputMode="numeric"
+            onChange={(e) => setPopularity(e.target.value)}
+            disabled={props.disabled}
+          />
+        </CmsField>
+        <CmsField label="Sort order" description="Tie-breaker within the same popularity.">
+          <input
+            className="cc-input"
+            value={sortOrder}
+            inputMode="numeric"
+            onChange={(e) => setSortOrder(e.target.value)}
+            disabled={props.disabled}
+          />
+        </CmsField>
+      </div>
+    </CmsFormSection>
+  );
+}
 
-      <section className="mt-6 text-sm">
-        <h2 className="text-lg font-semibold">Hero roster</h2>
-        <ul className="mt-2 space-y-1 text-muted-foreground">
-          {loadout.heroes.length === 0 ? (
-            <li>No heroes assigned yet. Slot 0 (Commander) is required.</li>
+function RosterForm(props: {
+  loadout: LoadoutDetail;
+  heroOptions: HeroOption[];
+  disabled: boolean;
+  pending: boolean;
+  run: (action: () => Promise<string>) => Promise<boolean>;
+}) {
+  const loadout = props.loadout;
+  const [heroIds, setHeroIds] = useState(() => formatLoadoutSlotInput(loadout.heroes));
+  const titleById = new Map(props.heroOptions.map((h) => [h.contentId, h.title ?? h.contentId]));
+  const slots = mapLoadoutSlots(
+    loadout.heroes.map((h) => ({ heroContentId: h.contentId, slotOrder: h.slotOrder })),
+  );
+  const supportLabels = ["Support 1", "Support 2", "Support 3", "Support 4", "Support 5"];
+
+  return (
+    <CmsFormSection
+      title="Roster — commander + support (max 6)"
+      description="Slot 0 is the commander (required, structurally distinct). Slots 1–5 are support. Interior empty slots keep their position; trailing empties are trimmed. Max 6 heroes."
+      action={
+        <button
+          type="button"
+          className="cc-btn cc-btn-primary cc-btn-sm"
+          disabled={props.disabled || props.pending}
+          onClick={() =>
+            props.run(async () => {
+              const slotsParsed = parseLoadoutSlotInput(heroIds);
+              await setAdminLoadoutHeroes({
+                data: { contentId: loadout.contentId, heroContentIds: [], heroSlots: slotsParsed },
+              });
+              return "Roster saved.";
+            })
+          }
+        >
+          {props.pending ? "Saving…" : "Save roster"}
+        </button>
+      }
+    >
+      <ul className="divide-y divide-white/5">
+        <RosterSlotRow
+          label="Commander (slot 0)"
+          heroId={slots.commander}
+          titleById={titleById}
+          required
+        />
+        {slots.support.map((id, i) => (
+          <RosterSlotRow
+            key={i}
+            label={`${supportLabels[i]} (slot ${i + 1})`}
+            heroId={id}
+            titleById={titleById}
+          />
+        ))}
+      </ul>
+      <CmsField
+        label="Hero content ids (comma-separated, max 6)"
+        description='Slot 0 = commander. Use the literal token (empty) for a gap, e.g. "idA, idB, (empty), idC" keeps Support 2 empty.'
+      >
+        <input
+          className="cc-input font-mono"
+          value={heroIds}
+          onChange={(e) => setHeroIds(e.target.value)}
+          disabled={props.disabled}
+          placeholder="commander-id, support-id, …"
+        />
+      </CmsField>
+      <details className="cc-panel" style={{ padding: "0.75rem 1rem" }}>
+        <summary className="cursor-pointer text-sm font-medium">Pick from available heroes</summary>
+        <ul className="mt-2 max-h-40 space-y-1 overflow-y-auto">
+          {props.heroOptions.length === 0 ? (
+            <li className="text-sm opacity-60">No heroes available yet.</li>
           ) : (
-            loadout.heroes.map((hero) => (
-              <li key={`${hero.contentId}-${hero.slotOrder}`}>
-                Slot {hero.slotOrder}: {titleById.get(hero.contentId) ?? hero.contentId} (
-                {hero.status})
+            props.heroOptions.map((hero) => (
+              <li key={hero.contentId}>
+                <button
+                  type="button"
+                  className="cc-link text-sm"
+                  title={hero.contentId}
+                  disabled={props.disabled}
+                  onClick={() =>
+                    setHeroIds((current) =>
+                      current.trim() === "" ? hero.contentId : `${current}, ${hero.contentId}`,
+                    )
+                  }
+                >
+                  {hero.title ?? hero.contentId}
+                </button>
               </li>
             ))
           )}
         </ul>
-        <label className="mt-3 block">
-          Hero content ids (comma-separated, max 6, slot 0 = Commander)
-          <input
-            className="mt-1 w-full rounded border px-2 py-1"
-            value={heroIds}
-            onChange={(e) => setHeroIds(e.target.value)}
-          />
-        </label>
-        <p className="mt-1 text-xs text-muted-foreground">
-          Use the literal token (empty) for an empty Support slot, e.g. “idA, idB, (empty), idC”
-          keeps Support 2 empty.
-        </p>
-        <div className="mt-3">
-          <h3 className="font-medium">Pick from available heroes</h3>
-          <ul className="mt-1 max-h-40 space-y-1 overflow-y-auto border p-2">
-            {heroOptions.length === 0 ? (
-              <li className="text-muted-foreground">No heroes available yet.</li>
-            ) : (
-              heroOptions.map((hero) => (
-                <li key={hero.contentId}>
-                  <button
-                    type="button"
-                    className="underline"
-                    title={hero.contentId}
-                    onClick={() =>
-                      setHeroIds((current) =>
-                        current.trim() === "" ? hero.contentId : `${current}, ${hero.contentId}`,
-                      )
-                    }
-                  >
-                    {hero.title ?? hero.contentId}
-                  </button>
-                </li>
-              ))
-            )}
-          </ul>
-        </div>
-      </section>
+      </details>
+    </CmsFormSection>
+  );
+}
 
-      <div className="mt-4 flex flex-wrap gap-2 text-sm">
+function RosterSlotRow(props: {
+  label: string;
+  heroId: string | null;
+  titleById: Map<string, string>;
+  required?: boolean;
+}) {
+  return (
+    <li className="flex flex-wrap items-center gap-2 py-2">
+      <span className="font-mono text-[11px] opacity-60">{props.label}</span>
+      {props.heroId ? (
+        <a href={`/admin/heroes/${props.heroId}`} className="cc-link text-sm">
+          {props.titleById.get(props.heroId) ?? props.heroId}
+        </a>
+      ) : (
+        <span className="text-sm opacity-50">
+          {props.required ? "missing — roster needs a commander" : "empty"}
+        </span>
+      )}
+    </li>
+  );
+}
+
+function TranslationForm(props: {
+  loadout: LoadoutDetail;
+  disabled: boolean;
+  pending: boolean;
+  run: (action: () => Promise<string>) => Promise<boolean>;
+}) {
+  const loadout = props.loadout;
+  const [locale, setLocale] = useState(loadout.defaultLocale);
+  const active = loadout.translations.find((t) => t.locale === locale) ?? loadout.translations[0];
+  const [title, setTitle] = useState(active?.title ?? "");
+  const [body, setBody] = useState(active?.body ?? "");
+
+  return (
+    <CmsFormSection
+      title="Content & translations"
+      description="Per-locale title and description. Switching locale never clobbers another locale's text."
+      action={
         <button
           type="button"
-          className="rounded bg-primary px-3 py-1 text-primary-foreground"
+          className="cc-btn cc-btn-primary cc-btn-sm"
+          disabled={props.disabled || props.pending}
           onClick={() =>
-            run(async () => {
-              const ids = parseLoadoutSlotInput(heroIds);
-              await setAdminLoadoutHeroes({
-                data: { contentId: loadout.contentId, heroContentIds: [], heroSlots: ids },
+            props.run(async () => {
+              if (title.trim() === "") throw new Error("Title is required.");
+              await upsertAdminTranslation({
+                data: { contentId: loadout.contentId, locale, title: title.trim(), body },
               });
-              return "Heroes saved.";
+              return `Translation saved (${locale}).`;
             })
           }
         >
-          Save heroes
+          {props.pending ? "Saving…" : "Save translation"}
         </button>
-        <button
-          type="button"
-          className="rounded border px-3 py-1"
-          onClick={() =>
-            run(async () => {
-              await publishAdminContent({
-                data: { contentId: loadout.contentId, to: "published" },
-              });
-              return "Published.";
-            })
-          }
-        >
-          Publish
-        </button>
-        <button
-          type="button"
-          className="rounded border px-3 py-1"
-          onClick={() =>
-            run(async () => {
-              await publishAdminContent({ data: { contentId: loadout.contentId, to: "draft" } });
-              return "Moved back to draft.";
-            })
-          }
-        >
-          Unpublish
-        </button>
-        <button
-          type="button"
-          className="rounded border px-3 py-1"
-          onClick={() =>
-            run(async () => {
-              await publishAdminContent({ data: { contentId: loadout.contentId, to: "archived" } });
-              return "Archived (never hard-deleted).";
-            })
-          }
-        >
-          Archive
-        </button>
-      </div>
-      <p className="mt-6 text-sm">
-        <Link to="/admin/loadouts" className="underline">
-          Back to loadouts
-        </Link>
-      </p>
-    </main>
+      }
+    >
+      <CmsField
+        label="Locale"
+        description={`Saved locales: ${loadout.locales.join(", ") || "none"}.`}
+      >
+        <CmsSelect
+          id="loadout-locale"
+          value={locale}
+          disabled={props.disabled}
+          onChange={(v) => {
+            setLocale(v);
+            const t = loadout.translations.find((x) => x.locale === v);
+            setTitle(t?.title ?? "");
+            setBody(t?.body ?? "");
+          }}
+          width="full"
+          options={LOCALES.map((l) => ({ value: l, label: l }))}
+        />
+      </CmsField>
+      <CmsField label="Title" description="Public display name for this locale.">
+        <input
+          className="cc-input"
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+          disabled={props.disabled}
+        />
+      </CmsField>
+      <CmsField label="Description" description="Body text shown on the public loadout page.">
+        <textarea
+          className="cc-input"
+          rows={4}
+          value={body}
+          onChange={(e) => setBody(e.target.value)}
+          disabled={props.disabled}
+        />
+      </CmsField>
+    </CmsFormSection>
   );
 }

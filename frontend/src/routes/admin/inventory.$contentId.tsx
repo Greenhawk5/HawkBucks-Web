@@ -1,13 +1,7 @@
 import { useState } from "react";
-import { createFileRoute, Link, useRouter } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
+
 import { getAdminSession } from "@/lib/cms/admin.loader";
-import {
-  AdminError,
-  AdminNotice,
-  AdminPending,
-  AdminRouteError,
-  AdminSignInGate,
-} from "@/components/cms/AdminShell";
 import { getContentByIdLite, getInventoryDetail } from "@/lib/cms/inventory-admin-detail.loader";
 import {
   publishAdminInventoryContent,
@@ -17,6 +11,15 @@ import {
   upsertAdminPerkTranslation,
 } from "@/lib/cms/schematics-admin.loader";
 import { upsertAdminTranslation } from "@/lib/cms/heroes-admin.loader";
+import { CmsRouteErrorStandalone, CmsRoutePending } from "@/components/cms/cc/CmsAuth";
+import { CmsCard, CmsField, CmsNotice } from "@/components/cms/cc/CmsPrimitives";
+import { CmsSelect } from "@/components/cms/cc/CmsSelect";
+import {
+  CmsEditorFeedback,
+  CmsEditorFrame,
+  CmsFormSection,
+  useCmsEditorState,
+} from "@/components/cms/cc/CmsEditor";
 
 export const Route = createFileRoute("/admin/inventory/$contentId")({
   loader: async ({ params }) => {
@@ -28,267 +31,359 @@ export const Route = createFileRoute("/admin/inventory/$contentId")({
   },
   head: () => ({
     meta: [
-      { title: "Edit inventory item — CMS Admin" },
+      { title: "Edit inventory item — Control Center" },
       { name: "robots", content: "noindex, nofollow" },
     ],
   }),
-  pendingComponent: () => <AdminPending title="Edit inventory item" />,
+  pendingComponent: () => <CmsRoutePending title="Edit inventory item" />,
   errorComponent: ({ error }: { error: unknown }) => (
-    <AdminRouteError title="Edit inventory item" backTo="/admin/inventory" error={error} />
+    <CmsRouteErrorStandalone title="Edit inventory item" backTo="/admin/inventory" error={error} />
   ),
   component: InventoryEditor,
 });
 
+type Detail = Awaited<ReturnType<typeof getInventoryDetail>> & {
+  entityType: string;
+  status: string;
+};
+const LOCALES = ["en", "es", "fr", "ru", "de", "pt", "zh", "ar-SA", "fa-IR"] as const;
+
 function InventoryEditor() {
-  const { session, detail } = Route.useLoaderData();
-  const router = useRouter();
-  const [msg, setMsg] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const { session, detail } = Route.useLoaderData() as {
+    session: {
+      authenticated: boolean;
+      user: { id: string; username: string; displayName: string; role: string } | null;
+      expiresAt: string | null;
+    };
+    detail: Detail | null;
+  };
+  const editor = useCmsEditorState();
+  const [publishPending, setPublishPending] = useState(false);
 
-  if (!session.authenticated || !detail) return <AdminSignInGate title="Edit inventory item" />;
+  if (!detail || !session.user) {
+    return (
+      <CmsEditorFrame
+        session={session}
+        backTo="/admin/inventory"
+        backLabel="Inventory"
+        eyebrow="Content · Inventory"
+        title="Inventory item not found"
+        status="draft"
+        publishPending={false}
+        canPublish={false}
+        onPublish={() => undefined}
+      >
+        <CmsNotice kind="error">This inventory item does not exist.</CmsNotice>
+      </CmsEditorFrame>
+    );
+  }
 
-  async function run(action: () => Promise<string>) {
-    setError(null);
-    setMsg(null);
+  const canWrite = session.user?.role === "editor" || session.user?.role === "admin";
+  const canPublish = session.user?.role === "admin";
+  const record = detail.record as Record<string, string | number | null>;
+  const kindLabel =
+    detail.entityType === "weapon"
+      ? "Weapon"
+      : detail.entityType === "trap"
+        ? "Trap"
+        : detail.entityType === "perk"
+          ? "Perk"
+          : "Schematic";
+
+  async function handlePublish(to: "published" | "draft" | "archived") {
+    if (
+      !window.confirm(
+        to === "published"
+          ? "Publishing makes this row publicly visible. Continue?"
+          : to === "archived"
+            ? "Archiving retires this row (never hard-deleted). Continue?"
+            : "Moving back to draft hides this row. Continue?",
+      )
+    ) {
+      return;
+    }
+    setPublishPending(true);
+    editor.setError(null);
     try {
-      setMsg(await action());
-      await router.invalidate();
+      await publishAdminInventoryContent({
+        data: { contentId: (detail as NonNullable<typeof detail>).contentId, to },
+      });
+      window.location.reload();
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Save failed.");
+      editor.setError(e instanceof Error ? e.message : "Publish failed.");
+    } finally {
+      setPublishPending(false);
     }
   }
 
   return (
-    <main className="mx-auto max-w-3xl px-4 py-10">
-      <nav aria-label="CMS sections" className="border-b pb-2">
-        <ul className="flex flex-wrap gap-4 text-sm">
-          <li>
-            <Link to="/admin" className="underline">
-              Dashboard
-            </Link>
-          </li>
-          <li>
-            <Link to="/admin/inventory" className="underline">
-              Inventory
-            </Link>
-          </li>
-        </ul>
-      </nav>
-      <h1 className="mt-6 text-2xl font-bold">Edit {detail.entityType}</h1>
-      <p className="mt-2 text-sm text-muted-foreground">
-        Status: {detail.status}. Content: {detail.contentId}.
-      </p>
-      <AdminError error={error} />
-      <AdminNotice message={msg} />
-      <div className="mt-6 space-y-8 text-sm">
-        <TranslationForm
-          contentId={detail.contentId}
-          translations={detail.translations}
-          onRun={run}
+    <CmsEditorFrame
+      session={session}
+      backTo="/admin/inventory"
+      backLabel="Inventory"
+      eyebrow={`Content · Inventory · ${detail.entityType}`}
+      title={detail.translations[0]?.title ?? detail.contentId}
+      subtitle={`Content id ${detail.contentId} · ${detail.translations.length} translation(s)`}
+      status={detail.status}
+      publishPending={publishPending}
+      canPublish={canPublish}
+      onPublish={handlePublish}
+      rail={
+        <CmsCard title="Record">
+          <dl className="space-y-2 text-[13px]">
+            <div className="flex justify-between gap-2">
+              <dt className="opacity-60">Kind</dt>
+              <dd className="font-mono">{detail.entityType}</dd>
+            </div>
+            {detail.entityType === "perk" ? (
+              <div className="flex justify-between gap-2">
+                <dt className="opacity-60">Perk key</dt>
+                <dd className="max-w-40 truncate font-mono">{String(record["perk_key"] ?? "—")}</dd>
+              </div>
+            ) : null}
+            {detail.entityType === "schematic" ? (
+              <div className="flex justify-between gap-2">
+                <dt className="opacity-60">Target</dt>
+                <dd className="max-w-40 truncate font-mono">
+                  {record["weapon_content_id"]
+                    ? `weapon ${record["weapon_content_id"]}`
+                    : record["trap_content_id"]
+                      ? `trap ${record["trap_content_id"]}`
+                      : "none"}
+                </dd>
+              </div>
+            ) : null}
+          </dl>
+        </CmsCard>
+      }
+    >
+      <CmsEditorFeedback message={editor.message} error={editor.error} />
+      {!canWrite ? (
+        <CmsNotice kind="warning">
+          Your role ({session.user?.role}) is read-only. Editing requires the editor role.
+        </CmsNotice>
+      ) : null}
+      {detail.entityType === "perk" ? (
+        <PerkEditor
+          detail={detail}
+          disabled={!canWrite}
+          run={editor.run}
+          pending={editor.pending}
         />
-        {detail.entityType === "weapon" ? (
-          <WeaponForm contentId={detail.contentId} record={detail.record} onRun={run} />
-        ) : null}
-        {detail.entityType === "trap" ? (
-          <TrapForm contentId={detail.contentId} record={detail.record} onRun={run} />
-        ) : null}
-        {detail.entityType === "perk" ? (
-          <PerkForm contentId={detail.contentId} record={detail.record} onRun={run} />
-        ) : null}
-        {detail.entityType === "schematic" ? (
-          <SchematicForm contentId={detail.contentId} record={detail.record} onRun={run} />
-        ) : null}
-        <div className="flex flex-wrap gap-2 border-t pt-4">
-          <button
-            type="button"
-            className="rounded bg-primary px-3 py-1 text-primary-foreground"
-            onClick={() =>
-              run(async () => {
-                await publishAdminInventoryContent({
-                  data: { contentId: detail.contentId, to: "published" },
-                });
-                return "Published.";
-              })
-            }
-          >
-            Publish
-          </button>
-          <button
-            type="button"
-            className="rounded border px-3 py-1"
-            onClick={() =>
-              run(async () => {
-                await publishAdminInventoryContent({
-                  data: { contentId: detail.contentId, to: "draft" },
-                });
-                return "Moved back to draft.";
-              })
-            }
-          >
-            Unpublish
-          </button>
-          <button
-            type="button"
-            className="rounded border px-3 py-1"
-            onClick={() =>
-              run(async () => {
-                await publishAdminInventoryContent({
-                  data: { contentId: detail.contentId, to: "archived" },
-                });
-                return "Archived (never hard-deleted).";
-              })
-            }
-          >
-            Archive
-          </button>
-        </div>
-      </div>
-      <p className="mt-6 text-sm">
-        <Link to="/admin/inventory" className="underline">
-          Back to inventory
-        </Link>
-      </p>
-    </main>
+      ) : (
+        <GenericTranslationForm
+          detail={detail}
+          kindLabel={kindLabel}
+          disabled={!canWrite}
+          run={editor.run}
+          pending={editor.pending}
+        />
+      )}
+      {detail.entityType === "weapon" ? (
+        <WeaponForm
+          contentId={detail.contentId}
+          record={detail.record}
+          disabled={!canWrite}
+          run={editor.run}
+          pending={editor.pending}
+        />
+      ) : null}
+      {detail.entityType === "trap" ? (
+        <TrapForm
+          contentId={detail.contentId}
+          record={detail.record}
+          disabled={!canWrite}
+          run={editor.run}
+          pending={editor.pending}
+        />
+      ) : null}
+      {detail.entityType === "schematic" ? (
+        <SchematicForm
+          contentId={detail.contentId}
+          record={detail.record}
+          disabled={!canWrite}
+          run={editor.run}
+          pending={editor.pending}
+        />
+      ) : null}
+    </CmsEditorFrame>
   );
 }
 
-function TranslationForm(props: {
-  contentId: string;
-  translations: Array<{ locale: string; title: string; body: string; slug: string }>;
-  onRun: (action: () => Promise<string>) => Promise<void>;
+function GenericTranslationForm(props: {
+  detail: Detail;
+  kindLabel: string;
+  disabled: boolean;
+  pending: boolean;
+  run: (action: () => Promise<string>) => Promise<boolean>;
 }) {
-  const active = props.translations[0];
+  const active = props.detail.translations[0];
   const [locale, setLocale] = useState(active?.locale ?? "en");
   const [title, setTitle] = useState(active?.title ?? "");
   const [body, setBody] = useState(active?.body ?? "");
-
   return (
-    <section>
-      <h2 className="text-lg font-semibold">Translation</h2>
-      <div className="mt-2 space-y-3">
-        <label className="block">
-          Locale{" "}
-          <select
-            className="rounded border px-2 py-1"
-            value={locale}
-            onChange={(e) => {
-              setLocale(e.target.value);
-              const next = props.translations.find((t) => t.locale === e.target.value);
-              setTitle(next?.title ?? "");
-              setBody(next?.body ?? "");
-            }}
-          >
-            {["en", "es", "fr", "ru", "de", "pt", "zh", "ar-SA", "fa-IR"].map((l) => (
-              <option key={l} value={l}>
-                {l}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label className="block">
-          Title{" "}
-          <input
-            className="w-full rounded border px-2 py-1"
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-          />
-        </label>
-        <label className="block">
-          Body{" "}
-          <textarea
-            className="w-full rounded border px-2 py-1"
-            rows={4}
-            value={body}
-            onChange={(e) => setBody(e.target.value)}
-          />
-        </label>
+    <CmsFormSection
+      title={`${props.kindLabel} translation`}
+      description="Per-locale title and body. Switching locale never clobbers another locale's text."
+      action={
         <button
           type="button"
-          className="rounded bg-primary px-3 py-1 text-primary-foreground"
+          className="cc-btn cc-btn-primary cc-btn-sm"
+          disabled={props.disabled || props.pending}
           onClick={() =>
-            props.onRun(async () => {
+            props.run(async () => {
               if (title.trim() === "") throw new Error("Title is required.");
               await upsertAdminTranslation({
-                data: { contentId: props.contentId, locale, title: title.trim(), body },
+                data: { contentId: props.detail.contentId, locale, title: title.trim(), body },
               });
-              return "Translation saved.";
+              return `Translation saved (${locale}).`;
             })
           }
         >
-          Save translation
+          {props.pending ? "Saving…" : "Save translation"}
         </button>
+      }
+    >
+      <CmsField label="Locale">
+        <CmsSelect
+          id="inventory-detail-locale"
+          value={locale}
+          disabled={props.disabled}
+          onChange={(v) => {
+            setLocale(v);
+            const next = props.detail.translations.find((t) => t.locale === v);
+            setTitle(next?.title ?? "");
+            setBody(next?.body ?? "");
+          }}
+          width="full"
+          options={LOCALES.map((l) => ({ value: l, label: l }))}
+        />
+      </CmsField>
+      <CmsField label="Title">
+        <input
+          className="cc-input"
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+          disabled={props.disabled}
+        />
+      </CmsField>
+      <CmsField label="Body">
+        <textarea
+          className="cc-input"
+          rows={4}
+          value={body}
+          onChange={(e) => setBody(e.target.value)}
+          disabled={props.disabled}
+        />
+      </CmsField>
+    </CmsFormSection>
+  );
+}
+
+function PerkEditor(props: {
+  detail: Detail;
+  disabled: boolean;
+  pending: boolean;
+  run: (action: () => Promise<string>) => Promise<boolean>;
+}) {
+  const record = props.detail.record as Record<string, string | number | null>;
+  const [locale, setLocale] = useState("en");
+  const [name, setName] = useState("");
+  const [description, setDescription] = useState("");
+  return (
+    <CmsFormSection
+      title="Perk translations"
+      description="Perk names/descriptions live in the perk table (not the generic translation table). The perk key is the immutable unique machine id."
+      action={
+        <button
+          type="button"
+          className="cc-btn cc-btn-primary cc-btn-sm"
+          disabled={props.disabled || props.pending}
+          onClick={() =>
+            props.run(async () => {
+              if (name.trim() === "") throw new Error("Perk name is required.");
+              await upsertAdminPerkTranslation({
+                data: {
+                  contentId: props.detail.contentId,
+                  locale,
+                  name: name.trim(),
+                  ...(description.trim() === "" ? {} : { description: description.trim() }),
+                },
+              });
+              setName("");
+              setDescription("");
+              return `Perk translation saved (${locale}).`;
+            })
+          }
+        >
+          {props.pending ? "Saving…" : "Save perk name"}
+        </button>
+      }
+    >
+      <CmsField label="Perk key (immutable)" description="Unique machine id set at creation.">
+        <input
+          className="cc-input font-mono"
+          value={String(record["perk_key"] ?? "")}
+          disabled
+          readOnly
+        />
+      </CmsField>
+      <div className="grid gap-4 sm:grid-cols-2">
+        <CmsField label="Locale">
+          <CmsSelect
+            id="inventory-perk-locale"
+            value={locale}
+            disabled={props.disabled}
+            onChange={setLocale}
+            width="full"
+            options={LOCALES.map((l) => ({ value: l, label: l }))}
+          />
+        </CmsField>
+        <CmsField label="Name" description="Display name for this locale.">
+          <input
+            className="cc-input"
+            value={name}
+            placeholder="Perk display name"
+            onChange={(e) => setName(e.target.value)}
+            disabled={props.disabled}
+          />
+        </CmsField>
       </div>
-    </section>
+      <CmsField label="Description" description="Optional flavor text for this locale.">
+        <textarea
+          className="cc-input"
+          rows={3}
+          value={description}
+          onChange={(e) => setDescription(e.target.value)}
+          disabled={props.disabled}
+        />
+      </CmsField>
+    </CmsFormSection>
   );
 }
 
 function WeaponForm(props: {
   contentId: string;
-  record: {
-    weapon_subtype?: string;
-    popularity?: number;
-    sort_order?: number;
-    icon_asset_id?: string | null;
-  };
-  onRun: (action: () => Promise<string>) => Promise<void>;
+  record: Record<string, string | number | null>;
+  disabled: boolean;
+  pending: boolean;
+  run: (action: () => Promise<string>) => Promise<boolean>;
 }) {
-  const [subtype, setSubtype] = useState(props.record.weapon_subtype ?? "other");
-  const [popularity, setPopularity] = useState(String(props.record.popularity ?? 0));
-  const [sortOrder, setSortOrder] = useState(String(props.record.sort_order ?? 0));
-  const [icon, setIcon] = useState(props.record.icon_asset_id ?? "");
-
+  const [subtype, setSubtype] = useState(String(props.record["weapon_subtype"] ?? "other"));
+  const [popularity, setPopularity] = useState(String(props.record["popularity"] ?? 0));
+  const [sortOrder, setSortOrder] = useState(String(props.record["sort_order"] ?? 0));
+  const [icon, setIcon] = useState(String(props.record["icon_asset_id"] ?? ""));
   return (
-    <section>
-      <h2 className="text-lg font-semibold">Weapon fields</h2>
-      <div className="mt-2 flex flex-wrap items-end gap-2">
-        <label>
-          Subtype{" "}
-          <select
-            className="rounded border px-2 py-1"
-            value={subtype}
-            onChange={(e) => setSubtype(e.target.value)}
-          >
-            {["assault", "smg", "pistol", "shotgun", "sniper", "melee", "explosive", "other"].map(
-              (s) => (
-                <option key={s} value={s}>
-                  {s}
-                </option>
-              ),
-            )}
-          </select>
-        </label>
-        <label>
-          Popularity{" "}
-          <input
-            className="w-24 rounded border px-2 py-1"
-            value={popularity}
-            inputMode="numeric"
-            onChange={(e) => setPopularity(e.target.value)}
-          />
-        </label>
-        <label>
-          Sort order{" "}
-          <input
-            className="w-24 rounded border px-2 py-1"
-            value={sortOrder}
-            inputMode="numeric"
-            onChange={(e) => setSortOrder(e.target.value)}
-          />
-        </label>
-        <label>
-          Icon asset id{" "}
-          <input
-            className="w-48 rounded border px-2 py-1"
-            value={icon}
-            placeholder="media_… (optional)"
-            onChange={(e) => setIcon(e.target.value)}
-          />
-        </label>
+    <CmsFormSection
+      title="Weapon fields"
+      description="Subtype, discovery ordering, and icon media reference."
+      action={
         <button
           type="button"
-          className="rounded bg-primary px-3 py-1 text-primary-foreground"
+          className="cc-btn cc-btn-primary cc-btn-sm"
+          disabled={props.disabled || props.pending}
           onClick={() =>
-            props.onRun(async () => {
+            props.run(async () => {
               await updateAdminWeapon({
                 data: {
                   contentId: props.contentId,
@@ -302,78 +397,84 @@ function WeaponForm(props: {
             })
           }
         >
-          Save weapon
+          {props.pending ? "Saving…" : "Save weapon"}
         </button>
+      }
+    >
+      <div className="grid gap-4 sm:grid-cols-2">
+        <CmsField label="Subtype">
+          <CmsSelect
+            id="inventory-weapon-subtype"
+            value={subtype}
+            disabled={props.disabled}
+            onChange={setSubtype}
+            width="full"
+            options={[
+              "assault",
+              "smg",
+              "pistol",
+              "shotgun",
+              "sniper",
+              "melee",
+              "explosive",
+              "other",
+            ].map((s) => ({ value: s, label: s }))}
+          />
+        </CmsField>
+        <CmsField label="Icon asset id" description="R2 media id (media_…), optional.">
+          <input
+            className="cc-input font-mono"
+            value={icon}
+            placeholder="media_… (optional)"
+            disabled={props.disabled}
+            onChange={(e) => setIcon(e.target.value)}
+          />
+        </CmsField>
+        <CmsField label="Popularity">
+          <input
+            className="cc-input"
+            value={popularity}
+            inputMode="numeric"
+            disabled={props.disabled}
+            onChange={(e) => setPopularity(e.target.value)}
+          />
+        </CmsField>
+        <CmsField label="Sort order">
+          <input
+            className="cc-input"
+            value={sortOrder}
+            inputMode="numeric"
+            disabled={props.disabled}
+            onChange={(e) => setSortOrder(e.target.value)}
+          />
+        </CmsField>
       </div>
-    </section>
+    </CmsFormSection>
   );
 }
 
 function TrapForm(props: {
   contentId: string;
-  record: {
-    trap_subtype?: string;
-    popularity?: number;
-    sort_order?: number;
-    icon_asset_id?: string | null;
-  };
-  onRun: (action: () => Promise<string>) => Promise<void>;
+  record: Record<string, string | number | null>;
+  disabled: boolean;
+  pending: boolean;
+  run: (action: () => Promise<string>) => Promise<boolean>;
 }) {
-  const [subtype, setSubtype] = useState(props.record.trap_subtype ?? "other");
-  const [popularity, setPopularity] = useState(String(props.record.popularity ?? 0));
-  const [sortOrder, setSortOrder] = useState(String(props.record.sort_order ?? 0));
-  const [icon, setIcon] = useState(props.record.icon_asset_id ?? "");
-
+  const [subtype, setSubtype] = useState(String(props.record["trap_subtype"] ?? "other"));
+  const [popularity, setPopularity] = useState(String(props.record["popularity"] ?? 0));
+  const [sortOrder, setSortOrder] = useState(String(props.record["sort_order"] ?? 0));
+  const [icon, setIcon] = useState(String(props.record["icon_asset_id"] ?? ""));
   return (
-    <section>
-      <h2 className="text-lg font-semibold">Trap fields</h2>
-      <div className="mt-2 flex flex-wrap items-end gap-2">
-        <label>
-          Subtype{" "}
-          <select
-            className="rounded border px-2 py-1"
-            value={subtype}
-            onChange={(e) => setSubtype(e.target.value)}
-          >
-            {["damage", "healer", "utility", "other"].map((s) => (
-              <option key={s} value={s}>
-                {s}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label>
-          Popularity{" "}
-          <input
-            className="w-24 rounded border px-2 py-1"
-            value={popularity}
-            inputMode="numeric"
-            onChange={(e) => setPopularity(e.target.value)}
-          />
-        </label>
-        <label>
-          Sort order{" "}
-          <input
-            className="w-24 rounded border px-2 py-1"
-            value={sortOrder}
-            inputMode="numeric"
-            onChange={(e) => setSortOrder(e.target.value)}
-          />
-        </label>
-        <label>
-          Icon asset id{" "}
-          <input
-            className="w-48 rounded border px-2 py-1"
-            value={icon}
-            placeholder="media_… (optional)"
-            onChange={(e) => setIcon(e.target.value)}
-          />
-        </label>
+    <CmsFormSection
+      title="Trap fields"
+      description="Subtype, discovery ordering, and icon media reference."
+      action={
         <button
           type="button"
-          className="rounded bg-primary px-3 py-1 text-primary-foreground"
+          className="cc-btn cc-btn-primary cc-btn-sm"
+          disabled={props.disabled || props.pending}
           onClick={() =>
-            props.onRun(async () => {
+            props.run(async () => {
               await updateAdminTrap({
                 data: {
                   contentId: props.contentId,
@@ -387,121 +488,114 @@ function TrapForm(props: {
             })
           }
         >
-          Save trap
+          {props.pending ? "Saving…" : "Save trap"}
         </button>
-      </div>
-    </section>
-  );
-}
-
-function PerkForm(props: {
-  contentId: string;
-  record: { perk_key?: string };
-  onRun: (action: () => Promise<string>) => Promise<void>;
-}) {
-  const [name, setName] = useState("");
-  const [locale, setLocale] = useState("en");
-
-  return (
-    <section>
-      <h2 className="text-lg font-semibold">Perk translation</h2>
-      <p className="text-muted-foreground">Perk key: {props.record.perk_key ?? "—"}</p>
-      <div className="mt-2 flex flex-wrap items-end gap-2">
-        <label>
-          Locale{" "}
-          <select
-            className="rounded border px-2 py-1"
-            value={locale}
-            onChange={(e) => setLocale(e.target.value)}
-          >
-            {["en", "es", "fr", "ru", "de", "pt", "zh", "ar-SA", "fa-IR"].map((l) => (
-              <option key={l} value={l}>
-                {l}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label>
-          Name{" "}
-          <input
-            className="rounded border px-2 py-1"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            placeholder="Perk display name"
+      }
+    >
+      <div className="grid gap-4 sm:grid-cols-2">
+        <CmsField label="Subtype">
+          <CmsSelect
+            id="inventory-trap-subtype"
+            value={subtype}
+            disabled={props.disabled}
+            onChange={setSubtype}
+            width="full"
+            options={["damage", "healer", "utility", "other"].map((s) => ({
+              value: s,
+              label: s,
+            }))}
           />
-        </label>
-        <button
-          type="button"
-          className="rounded bg-primary px-3 py-1 text-primary-foreground"
-          onClick={() =>
-            props.onRun(async () => {
-              if (name.trim() === "") throw new Error("Perk name is required.");
-              await upsertAdminPerkTranslation({
-                data: { contentId: props.contentId, locale, name: name.trim() },
-              });
-              setName("");
-              return "Perk translation saved.";
-            })
-          }
-        >
-          Save perk name
-        </button>
+        </CmsField>
+        <CmsField label="Icon asset id" description="R2 media id (media_…), optional.">
+          <input
+            className="cc-input font-mono"
+            value={icon}
+            placeholder="media_… (optional)"
+            disabled={props.disabled}
+            onChange={(e) => setIcon(e.target.value)}
+          />
+        </CmsField>
+        <CmsField label="Popularity">
+          <input
+            className="cc-input"
+            value={popularity}
+            inputMode="numeric"
+            disabled={props.disabled}
+            onChange={(e) => setPopularity(e.target.value)}
+          />
+        </CmsField>
+        <CmsField label="Sort order">
+          <input
+            className="cc-input"
+            value={sortOrder}
+            inputMode="numeric"
+            disabled={props.disabled}
+            onChange={(e) => setSortOrder(e.target.value)}
+          />
+        </CmsField>
       </div>
-    </section>
+    </CmsFormSection>
   );
 }
 
 function SchematicForm(props: {
   contentId: string;
-  record: { weapon_content_id?: string | null; trap_content_id?: string | null };
-  onRun: (action: () => Promise<string>) => Promise<void>;
+  record: Record<string, string | number | null>;
+  disabled: boolean;
+  pending: boolean;
+  run: (action: () => Promise<string>) => Promise<boolean>;
 }) {
   const [slots, setSlots] = useState("");
+  const target = props.record["weapon_content_id"]
+    ? `weapon ${props.record["weapon_content_id"]}`
+    : props.record["trap_content_id"]
+      ? `trap ${props.record["trap_content_id"]}`
+      : "nothing (fix via migration)";
   return (
-    <section>
-      <h2 className="text-lg font-semibold">Schematic perks</h2>
-      <p className="text-muted-foreground">
-        Linked to{" "}
-        {props.record.weapon_content_id
-          ? `weapon ${props.record.weapon_content_id}`
-          : props.record.trap_content_id
-            ? `trap ${props.record.trap_content_id}`
-            : "nothing (fix via migration)"}
-        . Enter perk assignments as contentId:slot pairs, one per line.
-      </p>
-      <textarea
-        className="mt-2 w-full rounded border px-2 py-1"
-        rows={4}
-        value={slots}
-        placeholder={"perk-content-id:0\nperk-content-id:1"}
-        onChange={(e) => setSlots(e.target.value)}
-      />
-      <button
-        type="button"
-        className="mt-2 rounded bg-primary px-3 py-1 text-primary-foreground"
-        onClick={() =>
-          props.onRun(async () => {
-            const perks = slots
-              .split("\n")
-              .map((line) => line.trim())
-              .filter((line) => line !== "")
-              .map((line) => {
-                const [perkContentId = "", slot = ""] = line.split(":");
-                if (perkContentId.trim() === "" || slot.trim() === "") {
-                  throw new Error("Each line must be contentId:slotOrder.");
-                }
-                const slotOrder = Number(slot);
-                if (!Number.isInteger(slotOrder)) throw new Error("slotOrder must be an integer.");
-                return { perkContentId: perkContentId.trim(), slotOrder };
-              });
-            await setAdminSchematicPerks({ data: { contentId: props.contentId, perks } });
-            setSlots("");
-            return `Saved ${perks.length} perk slot(s).`;
-          })
-        }
-      >
-        Save perks
-      </button>
-    </section>
+    <CmsFormSection
+      title="Schematic perks"
+      description={`Linked to ${target}. Perk assignments are contentId:slot pairs, one per line. Slot order must be unique integers.`}
+      action={
+        <button
+          type="button"
+          className="cc-btn cc-btn-primary cc-btn-sm"
+          disabled={props.disabled || props.pending}
+          onClick={() =>
+            props.run(async () => {
+              const perks = slots
+                .split("\n")
+                .map((line) => line.trim())
+                .filter((line) => line !== "")
+                .map((line) => {
+                  const [perkContentId = "", slot = ""] = line.split(":");
+                  if (perkContentId.trim() === "" || slot.trim() === "") {
+                    throw new Error("Each line must be contentId:slotOrder.");
+                  }
+                  const slotOrder = Number(slot);
+                  if (!Number.isInteger(slotOrder))
+                    throw new Error("slotOrder must be an integer.");
+                  return { perkContentId: perkContentId.trim(), slotOrder };
+                });
+              await setAdminSchematicPerks({ data: { contentId: props.contentId, perks } });
+              setSlots("");
+              return `Saved ${perks.length} perk slot(s).`;
+            })
+          }
+        >
+          {props.pending ? "Saving…" : "Save perks"}
+        </button>
+      }
+    >
+      <CmsField label="Perk slots" description="contentId:slotOrder, one per line.">
+        <textarea
+          className="cc-input font-mono"
+          rows={4}
+          value={slots}
+          placeholder={"perk-content-id:0\nperk-content-id:1"}
+          disabled={props.disabled}
+          onChange={(e) => setSlots(e.target.value)}
+        />
+      </CmsField>
+    </CmsFormSection>
   );
 }

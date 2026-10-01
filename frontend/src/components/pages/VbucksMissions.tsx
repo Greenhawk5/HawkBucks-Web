@@ -80,6 +80,35 @@ export function VbucksMissionsPage() {
 
       <MissionsHistory />
 
+      {/* Phase 15: beginner bridge — the tracker owns "today", the Guide owns
+          "how it works", and this is the crawlable anchor between them. */}
+      <aside
+        aria-labelledby="tracker-guide-bridge"
+        className="mt-10 flex flex-col gap-3 rounded-2xl border border-primary/30 bg-primary/5 p-4 sm:flex-row sm:items-center sm:justify-between sm:p-5"
+      >
+        <div className="min-w-0">
+          <h2
+            id="tracker-guide-bridge"
+            className="font-display text-sm font-extrabold tracking-tight sm:text-base"
+          >
+            {t("missions.guideBridgeTitle")}
+          </h2>
+          <p className="mt-1 break-words text-[13px] leading-6 text-muted-foreground">
+            {t("missions.guideBridgeDesc")}
+          </p>
+        </div>
+        <Link
+          to={guideTo}
+          className="inline-flex min-h-[44px] shrink-0 items-center justify-center gap-2 rounded-md border border-primary/50 px-4 py-2 font-display text-xs font-bold text-primary transition-colors hover:bg-primary/10 focus-visible:ring-2 focus-visible:ring-ring"
+        >
+          {t("missions.guideBridgeCta")}
+          <ArrowRight
+            aria-hidden="true"
+            className="h-3.5 w-3.5 transition-transform duration-200 group-hover:translate-x-0.5 motion-reduce:transition-none rtl:rotate-180"
+          />
+        </Link>
+      </aside>
+
       <section className="mt-10" aria-labelledby="today-missions-heading">
         <div className="mb-4 flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
           <div>

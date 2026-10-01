@@ -72,7 +72,12 @@ test("Persian welcome dialog translations are complete and natural", () => {
 
 test("Persian translations do not contain 'paywall' or other untranslated English terms in prose", () => {
   const dict = resources.RESOURCES["fa-IR"];
+  // Guide editorial is now fully localized; only protected product terms
+  // (Fortnite, Save the World, V-Bucks, HawkBucks, Founder, Mission Alerts,
+  // Daily/Storm Shield, Battle Pass, Crew) may appear in Latin script.
+  const SKIP_NAMESPACES = new Set([]);
   for (const [namespace, values] of Object.entries(dict)) {
+    if (SKIP_NAMESPACES.has(namespace)) continue;
     for (const [key, value] of Object.entries(values)) {
       if (typeof value !== "string") continue;
       // Brand names and tech terms are allowed; generic English words are not
@@ -218,20 +223,19 @@ test("VbucksMissions arrows reverse hover translate in RTL", async () => {
 
 // --- 5. CMS admin tables use logical properties ------------------------------
 
-test("admin table headers use text-start and pe-4", async () => {
-  const adminFiles = [
-    "routes/admin/heroes.tsx",
-    "routes/admin/loadouts.tsx",
-    "routes/admin/inventory.tsx",
-    "routes/admin/media.tsx",
-  ];
-  for (const file of adminFiles) {
-    const source = await fs.readFile(new URL(`../src/${file}`, import.meta.url), "utf8");
-    assert.ok(source.includes("text-start"), `${file} must use text-start`);
-    assert.ok(source.includes("pe-4"), `${file} must use pe-4 for header spacing`);
-    assert.ok(!source.includes("text-left"), `${file} must not use text-left`);
-    assert.ok(!source.includes("pr-4"), `${file} must not use pr-4`);
-  }
+// Control Center redesign: table headers moved into the shared CmsDataTable
+// (components/cms/cc/CmsPrimitives.tsx) + isolated stylesheet (src/cms.css).
+// The stylesheet uses `text-align: start` (logical) so headers stay correct
+// in RTL; per-route string checks no longer apply.
+test("admin table headers use logical start alignment", async () => {
+  const css = await fs.readFile(new URL("../src/cms.css", import.meta.url), "utf8");
+  assert.ok(css.includes("text-align: start"), "cms.css table headers must use text-align: start");
+  const primitives = await fs.readFile(
+    new URL("../src/components/cms/cc/CmsPrimitives.tsx", import.meta.url),
+    "utf8",
+  );
+  assert.ok(primitives.includes("CmsDataTable"), "shared admin table must exist");
+  assert.ok(!css.includes("text-align: left"), "cms.css must not use physical left alignment");
 });
 
 // --- 6. shadcn/ui primitives use logical properties --------------------------
@@ -317,8 +321,8 @@ test("LanguageSelector uses dir=auto for native language names", async () => {
 
 // --- 9. Translation completeness for RTL languages ---------------------------
 
-test("RTL languages have no English fallback text in non-guide namespaces", () => {
-  const SKIP_NAMESPACES = new Set(["guide"]);
+test("RTL languages have no English fallback text in any namespace", () => {
+  const SKIP_NAMESPACES = new Set([]);
   for (const code of RTL_LANGUAGES) {
     const dict = resources.RESOURCES[code];
     for (const [namespace, values] of Object.entries(dict)) {

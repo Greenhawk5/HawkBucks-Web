@@ -74,6 +74,9 @@ export interface TranslationDictionary {
     // Phase 9: explicit tracker-vs-guide naming (tracker stays live data-only).
     trackerBadge: string;
     guidePointer: string;
+    guideBridgeTitle: string;
+    guideBridgeDesc: string;
+    guideBridgeCta: string;
     todayHeading: string;
     todayDesc: string;
     updateStatus: string;
@@ -160,25 +163,96 @@ export interface TranslationDictionary {
     title: string;
     intro: string;
     openTracker: string;
+    trackerCtaSecondary: string;
+    // Eligibility
+    eligibilityTitle: string;
+    eligibilityDesc: string;
+    eligibilityFounderTab: string;
+    eligibilityF2pTab: string;
+    eligibilityAccessLabel: string;
+    eligibilityVbucksLabel: string;
+    eligibilityYes: string;
+    eligibilityNo: string;
+    eligibilityFounderNote: string;
+    eligibilityF2pNote: string;
+    // What are V-Bucks missions
     whatTitle: string;
     whatBody: string;
-    rewardsTitle: string;
-    rewardsBody: string;
-    zonesTitle: string;
-    zonesBody: string;
-    powerTitle: string;
-    powerBody: string;
-    refreshTitle: string;
-    refreshBody: string;
-    workflowTitle: string;
-    workflowIntro: string;
-    workflow1: string;
-    workflow2: string;
-    workflow3: string;
-    workflow4: string;
-    workflow5: string;
+    flowTitle: string;
+    flowIntro: string;
+    flowStep1: string;
+    flowStep2: string;
+    flowStep3: string;
+    flowStep4: string;
+    flowStep5: string;
+    flowStep6: string;
+    // How to find one
+    findTitle: string;
+    findIntro: string;
+    findStep1: string;
+    findStep2: string;
+    findStep3: string;
+    findStep4: string;
+    findStep5: string;
+    findStep6: string;
+    findNoteTitle: string;
+    findNote: string;
+    // Mini-boss
+    miniBossTitle: string;
+    miniBossBody: string;
+    miniBossCaveat: string;
+    // Reward
+    rewardEyebrow: string;
+    rewardTitle: string;
+    rewardAmountLabel: string;
+    rewardBody: string;
+    // Rotation
+    rotationTitle: string;
+    rotationDesc: string;
+    rotationActive: string;
+    rotationCount: string;
+    rotationTotalVbucks: string;
+    rotationEmpty: string;
+    rotationPending: string;
+    rotationUnavailable: string;
+    rotationNext: string;
+    rotationCta: string;
+    // Other sources
+    otherTitle: string;
+    otherIntro: string;
+    otherStwTitle: string;
+    otherStwDesc: string;
+    otherBattlePassTitle: string;
+    otherBattlePassDesc: string;
+    otherCrewTitle: string;
+    otherCrewDesc: string;
+    otherQuestTitle: string;
+    otherQuestDesc: string;
+    otherPurchaseTitle: string;
+    otherPurchaseDesc: string;
+    // Tracker bridge
+    bridgeTitle: string;
+    bridgeDesc: string;
+    bridgeCta: string;
+    // Path / decide
+    pathTitle: string;
+    pathIntro: string;
+    pathYesTitle: string;
+    pathYesDesc: string;
+    pathNoTitle: string;
+    pathNoDesc: string;
+    // Sources
+    sourcesTitle: string;
+    sourcesLastReviewed: string;
+    sourcesEpicLabel: string;
+    sourcesNote: string;
+    // FAQ
     faqTitle: string;
     faqDesc: string;
+    faqGroupEligibility: string;
+    faqGroupMissions: string;
+    faqGroupRewards: string;
+    faqGroupFortnite: string;
     faqQ1: string;
     faqA1: string;
     faqQ2: string;
@@ -189,6 +263,17 @@ export interface TranslationDictionary {
     faqA4: string;
     faqQ5: string;
     faqA5: string;
+    faqQ6: string;
+    faqA6: string;
+    faqQ7: string;
+    faqA7: string;
+    faqQ8: string;
+    faqA8: string;
+    faqQ9: string;
+    faqA9: string;
+    faqQ10: string;
+    faqA10: string;
+    // Related
     relatedTitle: string;
     relatedTrackerTitle: string;
     relatedTrackerDesc: string;
@@ -243,6 +328,10 @@ export interface TranslationDictionary {
     disabled: string;
     blocked: string;
     unsupported: string;
+    enableLabel: string;
+    disableLabel: string;
+    blockedLabel: string;
+    unsupportedLabel: string;
   };
   seo: {
     siteDescription: string;

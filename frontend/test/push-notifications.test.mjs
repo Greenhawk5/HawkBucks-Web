@@ -396,8 +396,13 @@ test("permission flow is explicit and browser APIs are guarded", async () => {
     "utf8",
   );
   assert.match(shell, /enableReminders/);
-  assert.match(shell, /subscribeForPush/);
-  assert.match(shell, /push-client/);
+  // Canonical reminder path lives in lib/reminders.ts (single enable/disable
+  // implementation shared by WelcomeDialog + sidebar ReminderToggle).
+  assert.match(shell, /lib\/reminders/);
+  assert.match(shell, /enableReminderNotifications/);
+  const reminders = await readFile(new URL("../src/lib/reminders.ts", import.meta.url), "utf8");
+  assert.match(reminders, /subscribeForPush/);
+  assert.match(reminders, /push-client/);
   const client = await readFile(new URL("../src/lib/push-client.ts", import.meta.url), "utf8");
   assert.match(client, /requestPermission/);
   assert.match(client, /typeof window === "undefined"/);
@@ -473,7 +478,18 @@ test("all nine locales ship notification keys with preserved terms", async () =>
   const { translate } = await import("../src/i18n/core.ts");
   for (const locale of prefs.SUPPORTED_LANGUAGES) {
     const n = RESOURCES[locale].notifications;
-    for (const key of ["pushTitle", "pushBody", "enabled", "disabled", "blocked", "unsupported"]) {
+    for (const key of [
+      "pushTitle",
+      "pushBody",
+      "enabled",
+      "disabled",
+      "blocked",
+      "unsupported",
+      "enableLabel",
+      "disableLabel",
+      "blockedLabel",
+      "unsupportedLabel",
+    ]) {
       assert.equal(typeof n[key], "string", `${locale}.notifications.${key} missing`);
       assert.ok(n[key].trim().length > 0, `${locale}.notifications.${key} empty`);
       assert.equal(translate(`notifications.${key}`, locale), n[key]);
@@ -481,4 +497,284 @@ test("all nine locales ship notification keys with preserved terms", async () =>
     assert.ok(n.pushBody.includes("V-Bucks"), `${locale} pushBody must keep V-Bucks`);
     assert.equal(n.pushTitle, "HawkBucks");
   }
+});
+
+test("sidebar header keeps Language -> Reminder -> Collapse order with compact icons", async () => {
+  const src = await readFile(
+    new URL("../src/components/hawkbucks/AppShell.tsx", import.meta.url),
+    "utf8",
+  );
+  const langPos = src.indexOf("<LanguageMenu");
+  const reminderPos = src.indexOf("<ReminderToggle");
+  assert.ok(
+    langPos !== -1 && reminderPos !== -1,
+    "header must contain Language + Reminder controls",
+  );
+  assert.ok(langPos < reminderPos, "Reminder must sit AFTER Language");
+  const collapsePos = src.indexOf("toggleDesktop", reminderPos);
+  assert.ok(collapsePos > reminderPos, "Reminder must sit BEFORE Collapse");
+  // Shared compact header system; sidebar width unchanged.
+  const header = await readFile(
+    new URL("../src/components/hawkbucks/header-controls.ts", import.meta.url),
+    "utf8",
+  );
+  // 28px is the measured ceiling: a larger button cluster overflows the 255px
+  // header row once the Sora webfont is unavailable.
+  assert.match(header, /h-7 w-7/);
+  assert.match(header, /h-4 w-4/);
+  assert.match(src, /DESKTOP_EXPANDED_WIDTH = "16rem"/);
+  // The chosen size must still clear the 24px WCAG 2.2 minimum target size,
+  // expressed in Tailwind's 0.25rem spacing units.
+  const buttonSize = /h-(\d+(?:\.\d+)?) w-\1\b/.exec(header);
+  assert.ok(buttonSize, "header control must declare a square size");
+  assert.ok(
+    Number(buttonSize[1]) * 4 >= 24,
+    `header icon button (${buttonSize[1]} * 4px) must keep an accessible hit area`,
+  );
+});
+
+test("mobile drawer mirrors desktop header: Language -> Reminder -> Close", async () => {
+  const src = await readFile(
+    new URL("../src/components/hawkbucks/AppShell.tsx", import.meta.url),
+    "utf8",
+  );
+  const drawerStart = src.indexOf("function MobileDrawer");
+  assert.ok(drawerStart !== -1, "MobileDrawer must exist");
+  const drawer = src.slice(drawerStart);
+  const langPos = drawer.indexOf("<LanguageMenu");
+  const reminderPos = drawer.indexOf("<ReminderToggle");
+  assert.ok(langPos !== -1 && reminderPos !== -1, "drawer header must contain Language + Reminder");
+  assert.ok(langPos < reminderPos, "drawer Reminder must sit AFTER Language");
+  const closePos = drawer.indexOf("shell.closeMenu", reminderPos);
+  assert.ok(closePos > reminderPos, "drawer Reminder must sit BEFORE Close");
+});
+
+test("mobile drawer exposes exactly ONE language control (globe in the header)", async () => {
+  const src = await readFile(
+    new URL("../src/components/hawkbucks/AppShell.tsx", import.meta.url),
+    "utf8",
+  );
+  const drawer = src.slice(src.indexOf("function MobileDrawer"));
+  // The duplicate lived in the drawer footer, which must render no language
+  // control at all — only the header globe remains.
+  const footerStart = drawer.indexOf("border-t border-border/60 p-4");
+  assert.ok(footerStart !== -1, "drawer footer must still exist");
+  const footer = drawer.slice(footerStart);
+  assert.ok(
+    !footer.includes("LanguageMenu"),
+    "drawer footer must not render a second language control",
+  );
+  assert.equal(
+    drawer.split("<LanguageMenu").length - 1,
+    1,
+    "drawer must contain exactly one LanguageMenu instance",
+  );
+  // The remaining one is the globe (compact icon) trigger.
+  assert.ok(!drawer.includes("showCurrentLabel"), "no labelled language variant in the drawer");
+  // The other legitimate footer content survives.
+  assert.match(footer, /checkTodaysMissions/, "mission CTA must remain in the drawer footer");
+});
+
+test("desktop sidebar keeps exactly one language control", async () => {
+  const src = await readFile(
+    new URL("../src/components/hawkbucks/AppShell.tsx", import.meta.url),
+    "utf8",
+  );
+  const sidebar = src.slice(
+    src.indexOf("function DesktopSidebar"),
+    src.indexOf("function MobileDrawer"),
+  );
+  assert.equal(
+    sidebar.split("<LanguageMenu").length - 1,
+    1,
+    "desktop sidebar must expose exactly one language entry point",
+  );
+});
+
+test("header controls share one compact style system and cannot overflow the row", async () => {
+  const src = await readFile(
+    new URL("../src/components/hawkbucks/AppShell.tsx", import.meta.url),
+    "utf8",
+  );
+  const header = await readFile(
+    new URL("../src/components/hawkbucks/header-controls.ts", import.meta.url),
+    "utf8",
+  );
+  const language = await readFile(
+    new URL("../src/components/hawkbucks/LanguageSelector.tsx", import.meta.url),
+    "utf8",
+  );
+  // Every header control draws from the shared constants instead of repeating
+  // the Tailwind string, so the cluster cannot drift apart again.
+  assert.match(header, /export const HEADER_ICON_BUTTON/);
+  assert.match(header, /export const HEADER_ICON\b/);
+  assert.match(header, /export const HEADER_CONTROLS/);
+  assert.match(header, /export const HEADER_BRAND_ROW/);
+  assert.match(header, /export const HEADER_WORDMARK/);
+  for (const [label, source] of [
+    ["AppShell", src],
+    ["LanguageSelector", language],
+    [
+      "ReminderToggle",
+      await readFile(
+        new URL("../src/components/hawkbucks/ReminderToggle.tsx", import.meta.url),
+        "utf8",
+      ),
+    ],
+  ]) {
+    assert.ok(
+      !/className="grid h-8 w-8 shrink-0 place-items-center rounded-lg/.test(source),
+      `${label} must use the shared HEADER_ICON_BUTTON constant`,
+    );
+  }
+  // The wordmark yields before the control cluster, so three controls stay
+  // inside the header instead of being pushed out of it.
+  assert.match(header, /min-w-0 overflow-hidden text-ellipsis whitespace-nowrap/);
+  // Sidebar width is unchanged.
+  assert.match(src, /DESKTOP_EXPANDED_WIDTH = "16rem"/);
+});
+
+test("reminder toggle reports the state that resulted, from one canonical source", async () => {
+  const toggle = await readFile(
+    new URL("../src/components/hawkbucks/ReminderToggle.tsx", import.meta.url),
+    "utf8",
+  );
+  // Toasts are driven by the outcome's state, so a partial failure can never
+  // announce the opposite of the icon the user sees.
+  assert.match(toggle, /outcome\.state === "on"/);
+  assert.match(toggle, /outcome\.state === "off"/);
+  assert.ok(
+    !/toast\.success\(t\(wasEnabled/.test(toggle),
+    "toast must not be chosen from a pre-click snapshot",
+  );
+  // The canonical hook remains the single state source for the control.
+  assert.match(toggle, /useReminderNotifications\(\)/);
+});
+
+test("reminder hook serializes mutations with a ref, not stale state", async () => {
+  const hook = await readFile(
+    new URL("../src/hooks/use-reminder-notifications.ts", import.meta.url),
+    "utf8",
+  );
+  // Two clicks in one render both see `busy === false`, so the guard must be a
+  // ref that flips synchronously.
+  assert.match(hook, /const inFlight = React\.useRef\(false\)/);
+  assert.match(hook, /if \(inFlight\.current\) return/);
+  // The action is decided from a live resolve, not a captured render value.
+  assert.match(hook, /const current = await resolveReminderState\(\)/);
+  assert.ok(
+    !/if \(state === "on"\) return disable\(\)/.test(hook),
+    "toggle must not branch on a stale state closure",
+  );
+});
+
+test("state resolution never hangs: no bare serviceWorker.ready in resolver paths", async () => {
+  const reminders = await readFile(new URL("../src/lib/reminders.ts", import.meta.url), "utf8");
+  assert.ok(
+    !/await navigator\.serviceWorker\.ready/.test(reminders),
+    "resolveReminderState must use getRegistration, never bare .ready",
+  );
+  const client = await readFile(new URL("../src/lib/push-client.ts", import.meta.url), "utf8");
+  // Any remaining .ready usage must be timeout-guarded.
+  assert.ok(
+    !/await navigator\.serviceWorker\.ready;/.test(client),
+    "bare `await navigator.serviceWorker.ready` must be timeout-guarded",
+  );
+});
+
+test("reminder lib loads the server boundary lazily, never at module scope", async () => {
+  const lib = await readFile(new URL("../src/lib/reminders.ts", import.meta.url), "utf8");
+  // `services/push.loader` reaches @tanstack/react-start, which touches
+  // node:async_hooks at import time. reminders.ts is on the sidebar's initial
+  // render path, so a static import drags that into first load and the browser
+  // entry throws before React can hydrate — dead toggles everywhere.
+  assert.ok(
+    !/^import\s[^;]*from\s*"@\/services\/push\.loader"/m.test(lib),
+    "push.loader must not be imported at module scope",
+  );
+  // No static binding may reference the module at all.
+  assert.ok(
+    !/from "@\/services\/push\.loader"/.test(lib),
+    "no static import binding may exist for push.loader",
+  );
+  assert.match(lib, /import\("@\/services\/push\.loader"\)/, "must load lazily on demand");
+  // The dynamic import must sit inside a function body (indented), never at
+  // module top level.
+  const dynamicLine = lib.split("\n").find((l) => l.includes('import("@/services/push.loader")'));
+  assert.ok(dynamicLine && /^\s+/.test(dynamicLine), "dynamic import must be inside a function");
+});
+
+test("ReminderToggle exposes real state (no optimistic aria-pressed), blocks re-prompt", async () => {
+  const src = await readFile(
+    new URL("../src/components/hawkbucks/ReminderToggle.tsx", import.meta.url),
+    "utf8",
+  );
+  assert.match(src, /aria-pressed=\{enabled\}/);
+  assert.match(src, /aria-label=\{label\}/);
+  assert.match(src, /data-testid="reminder-toggle"/);
+  assert.match(src, /BellOff/);
+  // Unsupported and blocked-off explain without requesting permission; an
+  // already-enabled subscription remains actionable so it can be disabled.
+  assert.match(src, /if \(unsupported\)/);
+  assert.match(src, /if \(blocked && !enabled\)/);
+  assert.ok(
+    !/Notification\.requestPermission/.test(src),
+    "toggle must not request permission directly",
+  );
+  assert.match(src, /await toggle\(\)/);
+  assert.match(src, /event\.stopPropagation\(\)/);
+  // i18n labels, never hardcoded UI text.
+  assert.match(src, /notifications\.disableLabel/);
+  assert.match(src, /notifications\.enableLabel/);
+  assert.match(src, /notifications\.blockedLabel/);
+  assert.match(src, /notifications\.unsupportedLabel/);
+});
+
+test("reminders lib is the single canonical enable/disable path (OFF = unsubscribe + server deactivate)", async () => {
+  const lib = await readFile(new URL("../src/lib/reminders.ts", import.meta.url), "utf8");
+  assert.match(lib, /export async function enableReminderNotifications/);
+  assert.match(lib, /export async function disableReminderNotifications/);
+  assert.match(lib, /export async function resolveReminderState/);
+  assert.match(lib, /unsubscribeFromPush/);
+  assert.match(lib, /unsubscribePush/);
+  assert.match(lib, /subscribePush/);
+  assert.match(lib, /loadPushPublicKey/);
+  // Denied permission never re-prompts.
+  assert.match(lib, /permission === "denied"/);
+  // WelcomeDialog reuses the canonical path (no duplicated push logic).
+  const shell = await readFile(
+    new URL("../src/components/hawkbucks/AppShell.tsx", import.meta.url),
+    "utf8",
+  );
+  assert.match(shell, /enableReminderNotifications\(currentLanguage\)/);
+  assert.ok(
+    !/subscribeForPush\(\{ publicKey/.test(shell),
+    "WelcomeDialog must not duplicate subscribe logic",
+  );
+});
+
+test("root mounts the sonner Toaster so toggle toasts are visible", async () => {
+  const root = await readFile(new URL("../src/routes/__root.tsx", import.meta.url), "utf8");
+  assert.match(root, /<Toaster/);
+  assert.match(root, /position="top-right"/);
+  assert.match(root, /dir="auto"/);
+});
+
+test("ReminderToggle keeps its accessible name and custom hover without native tooltip", async () => {
+  const toggle = await readFile(
+    new URL("../src/components/hawkbucks/ReminderToggle.tsx", import.meta.url),
+    "utf8",
+  );
+  const styles = await readFile(
+    new URL("../src/components/hawkbucks/header-controls.ts", import.meta.url),
+    "utf8",
+  );
+  assert.match(toggle, /aria-label=\{label\}/);
+  assert.match(toggle, /HEADER_ICON_BUTTON/);
+  assert.doesNotMatch(toggle, /\btitle=/);
+  assert.match(toggle, /from "@\/components\/ui\/tooltip"/);
+  assert.match(toggle, /<Tooltip>/);
+  assert.match(toggle, /<TooltipTrigger asChild>\{button\}<\/TooltipTrigger>/);
+  assert.match(toggle, /<TooltipContent>\{label\}<\/TooltipContent>/);
+  assert.match(styles, /hover:bg-accent\/10 hover:text-foreground/);
 });

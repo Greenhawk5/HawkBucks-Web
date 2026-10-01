@@ -13,8 +13,9 @@
     "preview": "vite preview",
     "dev:cloudflare": "node scripts/dev-cloudflare.mjs",
     "cms:local:setup": "node scripts/cms-local-setup.mjs",
+    "audit:cms-scroll": "node scripts/cms-scroll-audit.mjs",
     "lint": "eslint .",
-    "test:server": "node --import ./test/ts-path-alias-loader.mjs --experimental-strip-types --test test/missions.server.test.mjs test/missions.local-dev.test.mjs test/www-redirect.test.mjs test/cloudflare-pages-runtime.test.mjs test/preferences.test.mjs test/local-time.test.mjs test/i18n.test.mjs test/seo-localization.test.mjs test/welcome-onboarding.test.mjs test/push-notifications.test.mjs test/mission-tracker.test.mjs test/missions-guide.test.mjs test/cms-foundation.test.mjs test/cms-heroes-loadouts.test.mjs test/public-heroes-loadouts.test.mjs test/public-routes.test.mjs test/cms-schematics-inventory.test.mjs test/public-inventory.test.mjs test/public-inventory-routes.test.mjs test/deploy-demo-safety.test.mjs test/r2-media.test.mjs test/cms-phase16-hardening.test.mjs test/cms-articles.test.mjs test/phase19-performance.test.mjs test/rtl-localization.test.mjs test/phase16-18-remediation.test.mjs test/cms-security-phase20.test.mjs test/cms-seo.test.mjs test/commit4-remediation.test.mjs",
+    "test:server": "node --experimental-test-module-mocks --import ./test/ts-path-alias-loader.mjs --experimental-strip-types --test test/missions.server.test.mjs test/missions.local-dev.test.mjs test/www-redirect.test.mjs test/cloudflare-pages-runtime.test.mjs test/preferences.test.mjs test/local-time.test.mjs test/i18n.test.mjs test/seo-localization.test.mjs test/welcome-onboarding.test.mjs test/push-notifications.test.mjs test/reminder-toggle-state.test.mjs test/mission-tracker.test.mjs test/missions-guide.test.mjs test/cms-foundation.test.mjs test/cms-heroes-loadouts.test.mjs test/public-heroes-loadouts.test.mjs test/public-routes.test.mjs test/cms-schematics-inventory.test.mjs test/public-inventory.test.mjs test/public-inventory-routes.test.mjs test/deploy-demo-safety.test.mjs test/r2-media.test.mjs test/cms-phase16-hardening.test.mjs test/cms-articles.test.mjs test/phase19-performance.test.mjs test/rtl-localization.test.mjs test/phase16-18-remediation.test.mjs test/cms-security-phase20.test.mjs test/cms-seo.test.mjs test/commit4-remediation.test.mjs test/cms-wave1-auth.test.mjs test/cms-wave2-activity.test.mjs test/cms-scroll-ownership.test.mjs",
     "format": "prettier --write .",
     "prebuild": "npm rebuild || true"
   },
@@ -54,6 +55,7 @@
     "@tanstack/react-router": "1.170.18",
     "@tanstack/react-start": "1.168.32",
     "@tanstack/router-plugin": "1.168.23",
+    "@tanstack/start-client-core": "1.170.14",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "cmdk": "^1.1.1",

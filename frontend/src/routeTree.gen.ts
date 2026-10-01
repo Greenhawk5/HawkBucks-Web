@@ -28,11 +28,15 @@ import { Route as LocaleLoadoutsRouteImport } from './routes/$locale.loadouts'
 import { Route as LocaleMissionsGuideRouteImport } from './routes/$locale/missions-guide'
 import { Route as LocaleVbucksMissionsRouteImport } from './routes/$locale/vbucks-missions'
 import { Route as AdminIndexRouteImport } from './routes/admin/index'
+import { Route as AdminActivityRouteImport } from './routes/admin/activity'
 import { Route as AdminArticlesRouteImport } from './routes/admin/articles'
 import { Route as AdminHeroesRouteImport } from './routes/admin/heroes'
 import { Route as AdminInventoryRouteImport } from './routes/admin/inventory'
 import { Route as AdminLoadoutsRouteImport } from './routes/admin/loadouts'
 import { Route as AdminMediaRouteImport } from './routes/admin/media'
+import { Route as AdminPublishingRouteImport } from './routes/admin/publishing'
+import { Route as AdminSeoRouteImport } from './routes/admin/seo'
+import { Route as AdminSettingsRouteImport } from './routes/admin/settings'
 import { Route as ArticlesSlugRouteImport } from './routes/articles.$slug'
 import { Route as ArticlesPreviewRouteImport } from './routes/articles.preview'
 import { Route as GuidesSlugRouteImport } from './routes/guides.$slug'
@@ -144,6 +148,11 @@ const AdminIndexRoute = AdminIndexRouteImport.update({
   path: '/admin/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AdminActivityRoute = AdminActivityRouteImport.update({
+  id: '/admin/activity',
+  path: '/admin/activity',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AdminArticlesRoute = AdminArticlesRouteImport.update({
   id: '/admin/articles',
   path: '/admin/articles',
@@ -167,6 +176,21 @@ const AdminLoadoutsRoute = AdminLoadoutsRouteImport.update({
 const AdminMediaRoute = AdminMediaRouteImport.update({
   id: '/admin/media',
   path: '/admin/media',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminPublishingRoute = AdminPublishingRouteImport.update({
+  id: '/admin/publishing',
+  path: '/admin/publishing',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminSeoRoute = AdminSeoRouteImport.update({
+  id: '/admin/seo',
+  path: '/admin/seo',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminSettingsRoute = AdminSettingsRouteImport.update({
+  id: '/admin/settings',
+  path: '/admin/settings',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ArticlesSlugRoute = ArticlesSlugRouteImport.update({
@@ -263,11 +287,15 @@ export interface FileRoutesByFullPath {
   '/$locale/loadouts': typeof LocaleLoadoutsRouteWithChildren
   '/$locale/missions-guide': typeof LocaleMissionsGuideRoute
   '/$locale/vbucks-missions': typeof LocaleVbucksMissionsRoute
+  '/admin/activity': typeof AdminActivityRoute
   '/admin/articles': typeof AdminArticlesRouteWithChildren
   '/admin/heroes': typeof AdminHeroesRouteWithChildren
   '/admin/inventory': typeof AdminInventoryRouteWithChildren
   '/admin/loadouts': typeof AdminLoadoutsRouteWithChildren
   '/admin/media': typeof AdminMediaRoute
+  '/admin/publishing': typeof AdminPublishingRoute
+  '/admin/seo': typeof AdminSeoRoute
+  '/admin/settings': typeof AdminSettingsRoute
   '/articles/$slug': typeof ArticlesSlugRoute
   '/articles/preview': typeof ArticlesPreviewRoute
   '/guides/$slug': typeof GuidesSlugRoute
@@ -304,11 +332,15 @@ export interface FileRoutesByTo {
   '/$locale/loadouts': typeof LocaleLoadoutsRouteWithChildren
   '/$locale/missions-guide': typeof LocaleMissionsGuideRoute
   '/$locale/vbucks-missions': typeof LocaleVbucksMissionsRoute
+  '/admin/activity': typeof AdminActivityRoute
   '/admin/articles': typeof AdminArticlesRouteWithChildren
   '/admin/heroes': typeof AdminHeroesRouteWithChildren
   '/admin/inventory': typeof AdminInventoryRouteWithChildren
   '/admin/loadouts': typeof AdminLoadoutsRouteWithChildren
   '/admin/media': typeof AdminMediaRoute
+  '/admin/publishing': typeof AdminPublishingRoute
+  '/admin/seo': typeof AdminSeoRoute
+  '/admin/settings': typeof AdminSettingsRoute
   '/articles/$slug': typeof ArticlesSlugRoute
   '/articles/preview': typeof ArticlesPreviewRoute
   '/guides/$slug': typeof GuidesSlugRoute
@@ -346,11 +378,15 @@ export interface FileRoutesById {
   '/$locale/loadouts': typeof LocaleLoadoutsRouteWithChildren
   '/$locale/missions-guide': typeof LocaleMissionsGuideRoute
   '/$locale/vbucks-missions': typeof LocaleVbucksMissionsRoute
+  '/admin/activity': typeof AdminActivityRoute
   '/admin/articles': typeof AdminArticlesRouteWithChildren
   '/admin/heroes': typeof AdminHeroesRouteWithChildren
   '/admin/inventory': typeof AdminInventoryRouteWithChildren
   '/admin/loadouts': typeof AdminLoadoutsRouteWithChildren
   '/admin/media': typeof AdminMediaRoute
+  '/admin/publishing': typeof AdminPublishingRoute
+  '/admin/seo': typeof AdminSeoRoute
+  '/admin/settings': typeof AdminSettingsRoute
   '/articles/$slug': typeof ArticlesSlugRoute
   '/articles/preview': typeof ArticlesPreviewRoute
   '/guides/$slug': typeof GuidesSlugRoute
@@ -389,11 +425,15 @@ export interface FileRouteTypes {
     | '/$locale/loadouts'
     | '/$locale/missions-guide'
     | '/$locale/vbucks-missions'
+    | '/admin/activity'
     | '/admin/articles'
     | '/admin/heroes'
     | '/admin/inventory'
     | '/admin/loadouts'
     | '/admin/media'
+    | '/admin/publishing'
+    | '/admin/seo'
+    | '/admin/settings'
     | '/articles/$slug'
     | '/articles/preview'
     | '/guides/$slug'
@@ -430,11 +470,15 @@ export interface FileRouteTypes {
     | '/$locale/loadouts'
     | '/$locale/missions-guide'
     | '/$locale/vbucks-missions'
+    | '/admin/activity'
     | '/admin/articles'
     | '/admin/heroes'
     | '/admin/inventory'
     | '/admin/loadouts'
     | '/admin/media'
+    | '/admin/publishing'
+    | '/admin/seo'
+    | '/admin/settings'
     | '/articles/$slug'
     | '/articles/preview'
     | '/guides/$slug'
@@ -471,11 +515,15 @@ export interface FileRouteTypes {
     | '/$locale/loadouts'
     | '/$locale/missions-guide'
     | '/$locale/vbucks-missions'
+    | '/admin/activity'
     | '/admin/articles'
     | '/admin/heroes'
     | '/admin/inventory'
     | '/admin/loadouts'
     | '/admin/media'
+    | '/admin/publishing'
+    | '/admin/seo'
+    | '/admin/settings'
     | '/articles/$slug'
     | '/articles/preview'
     | '/guides/$slug'
@@ -513,11 +561,15 @@ export interface RootRouteChildren {
   LocaleLoadoutsRoute: typeof LocaleLoadoutsRouteWithChildren
   LocaleMissionsGuideRoute: typeof LocaleMissionsGuideRoute
   LocaleVbucksMissionsRoute: typeof LocaleVbucksMissionsRoute
+  AdminActivityRoute: typeof AdminActivityRoute
   AdminArticlesRoute: typeof AdminArticlesRouteWithChildren
   AdminHeroesRoute: typeof AdminHeroesRouteWithChildren
   AdminInventoryRoute: typeof AdminInventoryRouteWithChildren
   AdminLoadoutsRoute: typeof AdminLoadoutsRouteWithChildren
   AdminMediaRoute: typeof AdminMediaRoute
+  AdminPublishingRoute: typeof AdminPublishingRoute
+  AdminSeoRoute: typeof AdminSeoRoute
+  AdminSettingsRoute: typeof AdminSettingsRoute
   LocaleIndexRoute: typeof LocaleIndexRoute
   AdminIndexRoute: typeof AdminIndexRoute
 }
@@ -657,6 +709,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/admin/activity': {
+      id: '/admin/activity'
+      path: '/admin/activity'
+      fullPath: '/admin/activity'
+      preLoaderRoute: typeof AdminActivityRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/admin/articles': {
       id: '/admin/articles'
       path: '/admin/articles'
@@ -690,6 +749,27 @@ declare module '@tanstack/react-router' {
       path: '/admin/media'
       fullPath: '/admin/media'
       preLoaderRoute: typeof AdminMediaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin/publishing': {
+      id: '/admin/publishing'
+      path: '/admin/publishing'
+      fullPath: '/admin/publishing'
+      preLoaderRoute: typeof AdminPublishingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin/seo': {
+      id: '/admin/seo'
+      path: '/admin/seo'
+      fullPath: '/admin/seo'
+      preLoaderRoute: typeof AdminSeoRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin/settings': {
+      id: '/admin/settings'
+      path: '/admin/settings'
+      fullPath: '/admin/settings'
+      preLoaderRoute: typeof AdminSettingsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/articles/$slug': {
@@ -986,11 +1066,15 @@ const rootRouteChildren: RootRouteChildren = {
   LocaleLoadoutsRoute: LocaleLoadoutsRouteWithChildren,
   LocaleMissionsGuideRoute: LocaleMissionsGuideRoute,
   LocaleVbucksMissionsRoute: LocaleVbucksMissionsRoute,
+  AdminActivityRoute: AdminActivityRoute,
   AdminArticlesRoute: AdminArticlesRouteWithChildren,
   AdminHeroesRoute: AdminHeroesRouteWithChildren,
   AdminInventoryRoute: AdminInventoryRouteWithChildren,
   AdminLoadoutsRoute: AdminLoadoutsRouteWithChildren,
   AdminMediaRoute: AdminMediaRoute,
+  AdminPublishingRoute: AdminPublishingRoute,
+  AdminSeoRoute: AdminSeoRoute,
+  AdminSettingsRoute: AdminSettingsRoute,
   LocaleIndexRoute: LocaleIndexRoute,
   AdminIndexRoute: AdminIndexRoute,
 }

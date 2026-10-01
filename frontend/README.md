@@ -103,8 +103,8 @@ For CMS admin testing use the local Cloudflare runtime:
 # one-time setup (from frontend/):
 cp .dev.vars.example .dev.vars
 node scripts/make-cms-admin-hash.mjs "your-local-password"  # paste output into .dev.vars
-npm run cms:local:setup     # applies worker/migrations 0001–0010 to LOCAL D1 only
-npm run dev:cloudflare      # builds Pages artifact + starts wrangler pages dev
+npm run cms:local:setup     # applies all worker/migrations to LOCAL D1 only
+npm run dev:cloudflare      # preflights local D1, builds Pages artifact, starts wrangler pages dev
 ```
 
 - `npm run dev:cloudflare` = full local Cloudflare runtime: builds the
@@ -125,6 +125,31 @@ npm run dev:cloudflare      # builds Pages artifact + starts wrangler pages dev
   hand-written `--d1 DB=<name>`), or delete the stray
   `frontend/.wrangler/state/v3/d1/miniflare-D1DatabaseObject/*.sqlite` file
   that has no tables.
+- **Local D1 schema preflight (fail fast).** `dev-cloudflare.mjs` probes the
+  local D1 before building: it reads `d1_databases[0]` from
+  `wrangler.local.json`, then checks that `cms_users` / `cms_sessions` exist in
+  that exact store and that every `worker/migrations/*.sql` is recorded in its
+  `d1_migrations`. When they are not, it **refuses to start**, names the
+  database + id, and prints the fix (`npm run cms:local:setup`) — because the
+  Pages runtime binds that same store and `/admin` would otherwise answer
+  `D1_ERROR: no such table: cms_sessions` with opaque HTTP 500s. A missing
+  `cms_sessions` is exactly the symptom of a fresh or wiped
+  `frontend/.wrangler/state` (or a stray `--d1 DB=<name>` run). Only a
+  positively detected gap blocks startup; an unreadable probe only warns, so a
+  healthy setup is never blocked.
+- **Scroll ownership (CMS).** The Control Center shell keeps ONE vertical scroll
+  owner — the page column `.cc-shell-scroll` — inside a viewport-sized,
+  `overflow-hidden` `.cc-root`. `src/styles.css` positions `<body>` for the
+  public site, so any stray `position: absolute` element (Tailwind `sr-only`,
+  e.g. a search-field label) would anchor to `<body>`, escape the shell clip,
+  and give `<html>` a SECOND vertical scrollbar. `src/cms.css` therefore makes
+  `.cc-root` a positioned containing block (`position: relative` in the
+  `.cc-root` rule) so the clip always holds. Do not add another `overflow-y-auto`
+  to CMS pages, and do not remove `overflow-y-auto` from the page column.
+  Verify in the real engine with a local Chrome/Edge + running runtime:
+  `npm run audit:cms-scroll` (uses throwaway LOCAL admin
+  `cms-audit-temp` unless `HB_CMS_USER`/`HB_CMS_PASSWORD` are set; LOCAL D1
+  only). The suite contract test is `test/cms-scroll-ownership.test.mjs`.
 - Local D1 is **isolated from production**: database `hawkbucks-cms-local`
   (placeholder id in `wrangler.local.json`, local Miniflare state in
   `frontend/.wrangler/`). The production/shared id
@@ -135,6 +160,26 @@ npm run dev:cloudflare      # builds Pages artifact + starts wrangler pages dev
   when the local `cms_users` table is empty** (PBKDF2 envelope
   `pbkdf2$<iter>$<salt>$<hash>`, 10k–100k iterations). No default password
   exists; `.dev.vars` is gitignored — never commit real values.
+- Sessions: 15-minute **inactivity** timeout (sliding `expires_at`,
+  refreshed by every authenticated request, capped by the 12h absolute
+  lifetime from login) + 12h absolute cap. Idle 15 min → next request gets
+  the sign-in gate. Production password via `wrangler secret put`
+  (never in source, `.env`, or bundles); local dev keeps `.dev.vars`.
+- Turnstile (bot protection, OPTIONAL locally): leave
+  `CMS_TURNSTILE_SITE_KEY` / `CMS_TURNSTILE_SECRET` unset in `.dev.vars`
+  for password-only local login. To test the widget locally, create a
+  widget at `dash.cloudflare.com → Turnstile`, set both keys in `.dev.vars`
+  (secret via `wrangler secret put CMS_TURNSTILE_SECRET` in production —
+  NEVER commit it). Both set = widget enforced, fail closed; exactly one
+  set = login fails closed until fixed. Verification is server-side
+  (`siteverify` endpoint, 8s timeout, single-use 5-min tokens); only the
+  public site key reaches the browser.
+- Login rate limits (defense in depth, app layer): 10 failures / 10 min per
+  account + 30 failures / 10 min per IP (keyed ONLY on Cloudflare's
+  `CF-Connecting-IP` — `X-Forwarded-For` is never read). Success resets the
+  account counter; all rejections are the generic "Invalid credentials."
+  These bound per-instance abuse — distributed botnets remain the job of
+  Cloudflare WAF / rate-limiting rules in front of production.
 - Media: local R2 bucket `hawkbucks-media-local` (Miniflare, isolated from
   production `hawkbucks-media`). **Limitation:** no public delivery exists
   locally (`R2_PUBLIC_BASE_URL` is a non-routable placeholder), so uploaded

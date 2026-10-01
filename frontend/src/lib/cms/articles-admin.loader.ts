@@ -288,11 +288,22 @@ export const previewAdminArticle = createServerFn({ method: "POST" })
   .validator((i: { contentId: string }) => ({ contentId: requireContentId(i.contentId) }))
   .handler(async ({ data }) => {
     const { db, session } = await requireArticleSession("cms.read", true);
-    const { createPreviewToken } = await import("./db.server");
+    const { createPreviewToken, recordAuditEvent } = await import("./db.server");
+    const { buildAuditEvent } = await import("./audit");
     const grant = await createPreviewToken(db, {
       contentId: data.contentId,
       createdBy: session.user.id,
     });
+    // Wave 2 — preview issuance is a privileged draft-access grant: audit it.
+    await recordAuditEvent(
+      db,
+      buildAuditEvent({
+        actor: { id: session.user.id, username: session.user.username },
+        action: "preview.issue",
+        entityType: "article",
+        entityId: data.contentId,
+      }),
+    );
     return { token: grant.token, expiresAt: grant.expiresAt };
   });
 

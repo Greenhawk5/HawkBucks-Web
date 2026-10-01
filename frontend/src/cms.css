@@ -1,0 +1,474 @@
+/**
+ * HawkBucks Control Center — isolated dark design tokens.
+ *
+ * Scoped under `.cc-root` so NOTHING leaks into the public site, and the
+ * public site's light/dark theme tokens never dictate admin visuals.
+ * All colors use oklch (project convention).
+ */
+
+.cc-root {
+  /*
+   * Containing-block guard (document scroll ownership).
+   *
+   * The public base stylesheet sets `body { position: relative }`, so ANY
+   * descendant with `position: absolute` that has no positioned ancestor
+   * anchors to <body> instead. Such an element is then NOT clipped by this
+   * shell's `overflow: hidden` (an abspos box is only clipped by ancestors in
+   * its own containing-block chain) and leaks into the document's scrollable
+   * area. Tailwind's `sr-only` is exactly that shape (absolute, offsets auto),
+   * so a screen-reader label sitting deep in a long page — e.g. the Activity
+   * search field's "Search activity" span — used its in-flow static position
+   * (~1517px down) as a document-level offset and gave <html> a SECOND
+   * vertical scrollbar next to .cc-shell-scroll.
+   *
+   * Positioning the shell root makes it the containing block for every
+   * absolutely positioned descendant in the CMS, so this rule's
+   * `overflow: hidden` always clips them and the document never overflows.
+   * Geometry is unchanged for existing anchors: .cc-root is the full-viewport
+   * box (100dvh, full width), exactly like <body>, in every writing mode.
+   */
+  position: relative;
+  --cc-void: oklch(0.13 0.02 160);
+  --cc-abyss: oklch(0.16 0.025 160);
+  --cc-panel: oklch(0.2 0.035 158);
+  --cc-panel-2: oklch(0.24 0.045 157);
+  --cc-edge: oklch(0.82 0.23 145 / 16%);
+  --cc-edge-2: oklch(0.82 0.23 145 / 30%);
+  --cc-frost: oklch(0.96 0.01 150);
+  --cc-mist: oklch(0.72 0.04 152);
+  --cc-accent: oklch(0.82 0.23 145);
+  --cc-amber: oklch(0.8 0.16 80);
+  --cc-danger: oklch(0.65 0.23 22);
+  --cc-cyan: oklch(0.8 0.1 210);
+  color-scheme: dark;
+}
+
+.cc-root,
+.cc-shell-bg {
+  background-color: var(--cc-void);
+  color: var(--cc-frost);
+}
+
+.cc-panel {
+  background-color: color-mix(in oklch, var(--cc-panel) 82%, transparent);
+  border: 1px solid var(--cc-edge);
+  border-radius: 0.75rem;
+}
+
+.cc-panel-elevated {
+  background-color: color-mix(in oklch, var(--cc-panel-2) 88%, transparent);
+  border: 1px solid var(--cc-edge-2);
+  border-radius: 0.75rem;
+}
+
+.cc-hairline {
+  border-color: var(--cc-edge);
+}
+
+.cc-eyebrow {
+  font-family: var(--font-sans);
+  font-size: 0.625rem;
+  font-weight: 600;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--cc-mist);
+  opacity: 0.75;
+}
+
+/* ------------------------------------------------------------------ */
+/* Control Center sidebar — shared layout primitives (precision pass)  */
+/* Single source of geometry for brand + nav rows. No per-item offsets. */
+/* ------------------------------------------------------------------ */
+
+/* Brand subtitle: compact tracking so "CONTROL CENTER" fits the ~120px
+   text column beside the 36px logo + 36px collapse button in w-60 rail.
+   No ellipsis — the string must render in full. */
+.cc-brand-sub {
+  font-size: 0.5625rem; /* 9px */
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  line-height: 1.2;
+  text-transform: uppercase;
+  white-space: nowrap;
+  color: var(--cc-mist);
+  opacity: 0.75;
+}
+
+/* Shared nav icon box: fixed 22px container, ~19px visual glyph,
+   flex-centered so every SVG/text glyph shares one vertical centerline
+   with its label. Row uses flex + items-center; labels use leading-6.
+   Logical alignment only — RTL safe. */
+.cc-nav-glyph {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  inline-size: 1.375rem; /* 22px */
+  block-size: 1.375rem;
+  font-size: 1.1875rem; /* ~19px */
+  line-height: 1;
+}
+
+.cc-input {
+  width: 100%;
+  border-radius: 0.5rem;
+  border: 1px solid var(--cc-edge-2);
+  background-color: oklch(0.15 0.02 160);
+  color: var(--cc-frost);
+  padding: 0.5rem 0.75rem;
+  font-size: 0.875rem;
+  outline: none;
+}
+
+.cc-input::placeholder {
+  color: var(--cc-mist);
+  opacity: 0.6;
+}
+
+.cc-input:focus-visible {
+  border-color: var(--cc-accent);
+  box-shadow: 0 0 0 2px oklch(0.82 0.23 145 / 35%);
+}
+
+.cc-input:disabled {
+  opacity: 0.55;
+}
+
+select.cc-input {
+  width: auto;
+}
+
+/* ------------------------------------------------------------------ */
+/* Control Center select (Radix trigger + menu, HawkBucks surface)      */
+/* Uses logical properties throughout so RTL locales mirror correctly.  */
+/* ------------------------------------------------------------------ */
+
+.cc-select-trigger {
+  min-height: 2.5rem;
+  height: auto;
+  border-radius: 0.5rem;
+  border: 1px solid var(--cc-edge-2);
+  background-color: oklch(0.15 0.02 160);
+  color: var(--cc-frost);
+  padding-inline: 0.75rem;
+  font-size: 0.875rem;
+  gap: 0.625rem;
+  box-shadow: none;
+  transition:
+    border-color 0.15s ease,
+    background-color 0.15s ease;
+}
+
+.cc-select-trigger:hover:not(:disabled) {
+  border-color: var(--cc-accent);
+  background-color: color-mix(in oklch, var(--cc-panel) 82%, transparent);
+}
+
+.cc-select-trigger:focus-visible {
+  border-color: var(--cc-accent);
+  box-shadow: 0 0 0 2px oklch(0.82 0.23 145 / 35%);
+}
+
+.cc-select-trigger:disabled {
+  opacity: 0.55;
+}
+
+.cc-select-trigger > span {
+  text-align: start;
+}
+
+.cc-select-trigger svg {
+  color: var(--cc-mist);
+  opacity: 1;
+  transition:
+    color 0.15s ease,
+    transform 0.15s ease;
+}
+
+/* Radix flips [data-state] on the trigger content wrapper when open. */
+.cc-select-trigger[data-state="open"] {
+  border-color: var(--cc-accent);
+}
+
+.cc-select-trigger[data-state="open"] svg {
+  color: var(--cc-accent);
+}
+
+.cc-select-content {
+  /* Fully opaque solid CMS surface. Hard oklch literal repeating the
+     --cc-panel-2 token value — NOT var() and NOT color-mix — because
+     Radix renders this menu in a document.body portal outside .cc-root,
+     so the var is undefined there and any alpha/color-mix blend lets
+     page/dialog content bleed through. Border/radius/shadow/colors,
+     item states, z-index, portal, RTL, and keyboard behavior unchanged. */
+  background: oklch(0.24 0.045 157);
+  background-color: oklch(0.24 0.045 157);
+  border: 1px solid var(--cc-edge-2);
+  border-radius: 0.75rem;
+  box-shadow:
+    0 12px 32px oklch(0 0 0 / 55%),
+    0 2px 8px oklch(0 0 0 / 40%);
+  padding: 0.25rem;
+  color: var(--cc-frost);
+  /* Layering: Radix renders Select content in its own portal, and every
+     shadcn/Radix popover surface in this project defaults to z-50. The
+     Control Center dialog shell sits at z-[90], so a same-level z-50 menu
+     opens *behind* the dialog overlay blur. Keep the primitive shared:
+     one CMS-level z-index step above the dialog host (below toasts at
+     z-[95]), and a solid --cc-panel-2 surface so content behind the menu
+     can never bleed through. Portal/keyboard/Escape/focus behavior is
+     untouched — only surface + stacking. */
+  z-index: 92;
+}
+
+.cc-select-item {
+  border-radius: 0.5rem;
+  padding-block: 0.5rem;
+  padding-inline-start: 0.625rem;
+  padding-inline-end: 2rem;
+  cursor: pointer;
+  transition: background-color 0.12s ease;
+}
+
+.cc-select-item[data-highlighted] {
+  background-color: oklch(0.82 0.23 145 / 10%);
+  color: var(--cc-frost);
+  outline: none;
+}
+
+.cc-select-item[data-state="checked"] {
+  background-color: oklch(0.82 0.23 145 / 12%);
+  color: var(--cc-accent);
+  font-weight: 600;
+}
+
+.cc-select-item .cc-select-check {
+  position: absolute;
+  inset-inline-end: 0.5rem;
+  display: flex;
+  height: 1rem;
+  width: 1rem;
+  align-items: center;
+  justify-content: center;
+}
+
+.cc-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  min-height: 2.5rem;
+  border-radius: 0.5rem;
+  padding: 0.5rem 1rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  outline: none;
+  cursor: pointer;
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease,
+    color 0.15s ease,
+    transform 0.15s ease;
+}
+
+.cc-btn:focus-visible {
+  box-shadow:
+    0 0 0 2px var(--cc-void),
+    0 0 0 4px var(--cc-accent);
+}
+
+.cc-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.cc-btn-primary {
+  background-color: var(--cc-accent);
+  color: oklch(0.16 0.05 158);
+  border: 1px solid transparent;
+}
+
+.cc-btn-primary:hover:not(:disabled) {
+  filter: brightness(1.08);
+}
+
+.cc-btn-outline {
+  background-color: transparent;
+  border: 1px solid var(--cc-edge-2);
+  color: var(--cc-frost);
+}
+
+.cc-btn-outline:hover:not(:disabled) {
+  border-color: var(--cc-accent);
+  color: var(--cc-accent);
+}
+
+.cc-btn-ghost {
+  background-color: transparent;
+  border: 1px solid transparent;
+  color: var(--cc-mist);
+}
+
+.cc-btn-ghost:hover:not(:disabled) {
+  background-color: var(--cc-panel-2);
+  color: var(--cc-frost);
+}
+
+.cc-btn-danger-outline {
+  background-color: transparent;
+  border: 1px solid oklch(0.65 0.23 22 / 55%);
+  color: var(--cc-danger);
+}
+
+.cc-btn-danger-outline:hover:not(:disabled) {
+  background-color: oklch(0.65 0.23 22 / 12%);
+}
+
+.cc-btn-sm {
+  min-height: 2rem;
+  padding: 0.3rem 0.75rem;
+  font-size: 0.8rem;
+}
+
+/* ------------------------------------------------------------------ */
+/* Dashboard Quick actions — shared button + icon geometry              */
+/* One layout for every action: left-aligned label column, fixed 18px  */
+/* icon box, single gap token. No per-button offsets; RTL-safe via     */
+/* flex + logical padding only.                                        */
+/* ------------------------------------------------------------------ */
+
+.cc-quick-action {
+  justify-content: flex-start;
+  min-height: 2.75rem;
+  padding-block: 0.625rem;
+  padding-inline: 0.875rem;
+  font-weight: 500;
+  background-color: color-mix(in oklch, var(--cc-panel) 55%, transparent);
+}
+
+.cc-quick-action:hover:not(:disabled) {
+  background-color: color-mix(in oklch, var(--cc-panel-2) 85%, transparent);
+}
+
+.cc-quick-action-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  inline-size: 1.125rem; /* 18px */
+  block-size: 1.125rem;
+  color: var(--cc-mist);
+  transition: color 0.15s ease;
+}
+
+.cc-quick-action:hover:not(:disabled) .cc-quick-action-icon {
+  color: var(--cc-accent);
+}
+
+.cc-link {
+  color: var(--cc-accent);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.cc-navlink-active {
+  background-color: oklch(0.82 0.23 145 / 12%);
+  color: var(--cc-accent);
+  box-shadow: inset 2px 0 0 0 var(--cc-accent);
+}
+
+[dir="rtl"] .cc-navlink-active {
+  box-shadow: inset -2px 0 0 0 var(--cc-accent);
+}
+
+.cc-table {
+  width: 100%;
+  font-size: 0.875rem;
+  border-collapse: collapse;
+}
+
+.cc-table thead th {
+  text-align: start;
+  font-size: 0.65rem;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--cc-mist);
+  padding: 0.6rem 1rem;
+  border-bottom: 1px solid var(--cc-edge);
+  white-space: nowrap;
+}
+
+.cc-table tbody td {
+  padding: 0.7rem 1rem;
+  border-bottom: 1px solid var(--cc-edge);
+  vertical-align: middle;
+}
+
+.cc-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.cc-table tbody tr {
+  transition: background-color 0.12s ease;
+}
+
+.cc-table tbody tr:hover {
+  background-color: oklch(0.82 0.23 145 / 5%);
+}
+
+/* Collapse wide tables into stacked cards under 640px. Cells carry
+   data-label attributes rendered by the row component. */
+@media (max-width: 639px) {
+  .cc-table-stacked thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+  }
+
+  .cc-table-stacked,
+  .cc-table-stacked tbody,
+  .cc-table-stacked tr,
+  .cc-table-stacked td {
+    display: block;
+    width: 100%;
+  }
+
+  .cc-table-stacked tbody tr {
+    border-bottom: 1px solid var(--cc-edge-2);
+    padding: 0.5rem 0;
+  }
+
+  .cc-table-stacked tbody td {
+    border-bottom: none;
+    padding: 0.3rem 1rem;
+  }
+
+  .cc-table-stacked tbody td[data-label]::before {
+    content: attr(data-label);
+    display: block;
+    font-size: 0.625rem;
+    font-weight: 600;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--cc-mist);
+    margin-bottom: 0.15rem;
+  }
+}
+
+.cc-scroll-x {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cc-root *,
+  .cc-root *::before,
+  .cc-root *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}

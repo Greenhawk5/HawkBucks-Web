@@ -1,26 +1,56 @@
 import { Link, useLocation } from "@tanstack/react-router";
-import { ArrowRight, BookOpen, Compass } from "lucide-react";
+import {
+  ArrowRight,
+  BookOpen,
+  CheckCircle2,
+  Coins,
+  Compass,
+  Layers,
+  Package,
+  Sparkles,
+  Target,
+  Trophy,
+} from "lucide-react";
 import { useI18n, type TranslationKey } from "@/i18n";
 import { localizePath, splitLocalePath } from "@/lib/locale-urls";
-import { GUIDE_FAQ_KEYS } from "@/lib/guide-faq";
+import { LAST_REVIEWED_ISO, EPIC_SUPPORT_URL } from "@/lib/stw-facts";
+import { GuideEligibility } from "@/components/hawkbucks/guide/GuideEligibility";
+import { GuideMissionFlow } from "@/components/hawkbucks/guide/GuideMissionFlow";
+import { GuideRotationCard } from "@/components/hawkbucks/guide/GuideRotationCard";
+import { GuideRewardCard } from "@/components/hawkbucks/guide/GuideRewardCard";
+import { GuideFaq } from "@/components/hawkbucks/guide/GuideFaq";
 
-const sections: ReadonlyArray<{ titleKey: TranslationKey; bodyKey: TranslationKey }> = [
-  { titleKey: "guide.whatTitle", bodyKey: "guide.whatBody" },
-  { titleKey: "guide.rewardsTitle", bodyKey: "guide.rewardsBody" },
-  { titleKey: "guide.zonesTitle", bodyKey: "guide.zonesBody" },
-  { titleKey: "guide.powerTitle", bodyKey: "guide.powerBody" },
-  { titleKey: "guide.refreshTitle", bodyKey: "guide.refreshBody" },
+const FIND_STEPS: ReadonlyArray<TranslationKey> = [
+  "guide.findStep1",
+  "guide.findStep2",
+  "guide.findStep3",
+  "guide.findStep4",
+  "guide.findStep5",
+  "guide.findStep6",
 ];
 
-const workflow: ReadonlyArray<TranslationKey> = [
-  "guide.workflow1",
-  "guide.workflow2",
-  "guide.workflow3",
-  "guide.workflow4",
-  "guide.workflow5",
+const OTHER_SOURCES: ReadonlyArray<{
+  titleKey: TranslationKey;
+  descKey: TranslationKey;
+  Icon: typeof Layers;
+}> = [
+  { titleKey: "guide.otherStwTitle", descKey: "guide.otherStwDesc", Icon: Target },
+  { titleKey: "guide.otherBattlePassTitle", descKey: "guide.otherBattlePassDesc", Icon: Trophy },
+  { titleKey: "guide.otherCrewTitle", descKey: "guide.otherCrewDesc", Icon: Sparkles },
+  { titleKey: "guide.otherQuestTitle", descKey: "guide.otherQuestDesc", Icon: Package },
+  { titleKey: "guide.otherPurchaseTitle", descKey: "guide.otherPurchaseDesc", Icon: Coins },
 ];
 
-const faqs = GUIDE_FAQ_KEYS;
+/**
+ * The Missions Guide — the educational half of the Guide/Tracker pair.
+ *
+ * Teaches the system (what a V-Bucks mission is, who can earn, how to find
+ * one, what it pays, when it rotates) and hands the visitor to
+ * `/vbucks-missions` for today's live list. All teaching content is static
+ * text rendered from the i18n dictionary, so it is present in the
+ * server-rendered HTML; the only live element is the rotation card, which
+ * reuses the tracker's existing missions query.
+ */
 export function GuidePage() {
   const { t, currentLanguage } = useI18n();
   const { pathname } = useLocation();
@@ -30,6 +60,7 @@ export function GuidePage() {
 
   return (
     <div className="px-4 pb-16 pt-8 sm:px-6 sm:pt-10">
+      {/* --- Hero ------------------------------------------------------------ */}
       <section aria-labelledby="guide-heading" className="max-w-3xl">
         <p className="flex flex-wrap items-center gap-2 font-display text-[10px] font-bold uppercase tracking-[0.2em] text-primary">
           <BookOpen aria-hidden="true" className="h-3.5 w-3.5" />
@@ -37,54 +68,67 @@ export function GuidePage() {
         </p>
         <h1
           id="guide-heading"
-          className="mt-3 break-words font-display text-3xl font-extrabold tracking-tight sm:text-4xl"
+          className="mt-3 break-words font-display text-3xl font-extrabold tracking-tight sm:text-4xl lg:text-5xl"
         >
           {t("guide.title")}
         </h1>
-        <p className="mt-3 break-words text-sm leading-6 text-muted-foreground sm:text-base">
+        <p className="mt-4 max-w-2xl break-words text-sm leading-6 text-muted-foreground sm:text-base">
           {t("guide.intro")}
         </p>
-        <p className="mt-5">
+        <div className="mt-6 flex flex-wrap items-center gap-3">
           <Link
             to={trackerTo}
-            className="inline-flex min-h-[48px] items-center justify-center gap-2 rounded-md bg-primary px-5 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+            className="inline-flex min-h-[48px] items-center justify-center gap-2 rounded-md bg-primary px-5 py-2.5 font-display text-sm font-bold text-primary-foreground transition-colors hover:bg-primary/90 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
           >
             <Compass aria-hidden="true" className="h-4 w-4" />
             {t("guide.openTracker")}
           </Link>
+          <a
+            href="#guide-eligibility"
+            className="inline-flex min-h-[48px] items-center justify-center gap-2 rounded-md border border-panel-border px-5 py-2.5 font-display text-sm font-bold text-foreground transition-colors hover:border-primary hover:text-primary focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+          >
+            {t("guide.trackerCtaSecondary")}
+          </a>
+        </div>
+      </section>
+
+      {/* --- Quick answer: eligibility --------------------------------------- */}
+      <section id="guide-eligibility" className="mt-12 max-w-3xl scroll-mt-24">
+        <GuideEligibility />
+      </section>
+
+      {/* --- What are V-Bucks missions ---------------------------------------- */}
+      <section aria-labelledby="guide-what-heading" className="mt-12 max-w-3xl">
+        <h2
+          id="guide-what-heading"
+          className="break-words font-display text-2xl font-extrabold tracking-tight sm:text-3xl"
+        >
+          {t("guide.whatTitle")}
+        </h2>
+        <p className="mt-3 max-w-prose break-words text-sm leading-6 text-muted-foreground sm:text-[15px] sm:leading-7">
+          {t("guide.whatBody")}
         </p>
       </section>
 
-      <div className="mt-10 grid max-w-3xl gap-3">
-        {sections.map((s) => (
-          <section
-            key={s.titleKey}
-            aria-labelledby={s.titleKey}
-            className="glass-panel rounded-xl p-4 sm:p-5"
-          >
-            <h2
-              id={s.titleKey}
-              className="break-words font-display text-lg font-bold tracking-tight"
-            >
-              {t(s.titleKey)}
-            </h2>
-            <p className="mt-2 max-w-prose break-words text-sm leading-6 text-muted-foreground">
-              {t(s.bodyKey)}
-            </p>
-          </section>
-        ))}
+      {/* Breaks out of the prose column on desktop so the six flow cells each
+          hold their label on one line. */}
+      <div className="mt-6 max-w-3xl xl:max-w-none">
+        <GuideMissionFlow />
       </div>
 
-      <section aria-labelledby="guide-workflow" className="mt-10 max-w-3xl">
+      {/* --- How to find one -------------------------------------------------- */}
+      <section aria-labelledby="guide-find-heading" className="mt-12 max-w-3xl">
         <h2
-          id="guide-workflow"
-          className="break-words font-display text-xl font-bold tracking-tight"
+          id="guide-find-heading"
+          className="break-words font-display text-2xl font-extrabold tracking-tight sm:text-3xl"
         >
-          {t("guide.workflowTitle")}
+          {t("guide.findTitle")}
         </h2>
-        <p className="mt-1 break-words text-sm text-muted-foreground">{t("guide.workflowIntro")}</p>
-        <ol className="mt-4 space-y-2">
-          {workflow.map((key, index) => (
+        <p className="mt-2 max-w-prose break-words text-sm text-muted-foreground">
+          {t("guide.findIntro")}
+        </p>
+        <ol className="mt-5 grid gap-2 sm:grid-cols-2">
+          {FIND_STEPS.map((key, index) => (
             <li
               key={key}
               className="glass-panel flex items-start gap-3 rounded-xl p-4 text-sm leading-6"
@@ -99,34 +143,177 @@ export function GuidePage() {
             </li>
           ))}
         </ol>
-      </section>
 
-      <section aria-labelledby="guide-faq" className="mt-10 max-w-3xl">
-        <h2 id="guide-faq" className="break-words font-display text-xl font-bold tracking-tight">
-          {t("guide.faqTitle")}
-        </h2>
-        <p className="mt-1 break-words text-sm text-muted-foreground">{t("guide.faqDesc")}</p>
-        <div className="mt-4 space-y-2">
-          {faqs.map((faq) => (
-            <details
-              key={faq.q}
-              className="group glass-panel rounded-xl border-border/70 transition-colors duration-300 hover:border-primary/40 open:border-primary/60 open:shadow-[var(--shadow-glow)] motion-reduce:transition-none"
-            >
-              <summary className="flex cursor-pointer list-none items-center justify-between gap-4 px-4 py-4 font-display text-sm font-bold leading-6 outline-none transition-colors duration-200 hover:text-primary focus-visible:text-primary [&::-webkit-details-marker]:hidden">
-                {t(faq.q)}
-              </summary>
-              <p className="max-w-prose px-4 pb-5 text-[13px] leading-6 text-muted-foreground/90">
-                {t(faq.a)}
-              </p>
-            </details>
-          ))}
+        <div className="mt-4 flex items-start gap-3 rounded-xl border border-primary/30 bg-primary/5 p-4">
+          <CheckCircle2 aria-hidden="true" className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+          <div className="min-w-0">
+            <p className="break-words font-display text-sm font-bold">{t("guide.findNoteTitle")}</p>
+            <p className="mt-1 break-words text-[13px] leading-6 text-muted-foreground">
+              {t("guide.findNote")}
+            </p>
+          </div>
         </div>
       </section>
 
-      <section aria-labelledby="guide-related" className="mt-10 max-w-3xl">
+      {/* --- Mini-Boss Mission Alerts ---------------------------------------- */}
+      <section aria-labelledby="guide-miniboss-heading" className="mt-12 max-w-3xl">
         <h2
-          id="guide-related"
-          className="break-words font-display text-xl font-bold tracking-tight"
+          id="guide-miniboss-heading"
+          className="break-words font-display text-2xl font-extrabold tracking-tight sm:text-3xl"
+        >
+          {t("guide.miniBossTitle")}
+        </h2>
+        <p className="mt-3 max-w-prose break-words text-sm leading-6 text-muted-foreground sm:text-[15px] sm:leading-7">
+          {t("guide.miniBossBody")}
+        </p>
+        <p className="mt-4 max-w-prose break-words border-s-2 border-primary ps-4 font-display text-sm font-semibold leading-6">
+          {t("guide.miniBossCaveat")}
+        </p>
+      </section>
+
+      {/* --- Reward ----------------------------------------------------------- */}
+      <div className="mt-12 max-w-3xl">
+        <GuideRewardCard />
+      </div>
+
+      {/* --- Rotation (live) -------------------------------------------------- */}
+      <div className="mt-6 max-w-3xl">
+        <GuideRotationCard />
+      </div>
+
+      {/* --- Other V-Bucks sources ------------------------------------------- */}
+      <section aria-labelledby="guide-other-heading" className="mt-12 max-w-3xl">
+        <h2
+          id="guide-other-heading"
+          className="break-words font-display text-2xl font-extrabold tracking-tight sm:text-3xl"
+        >
+          {t("guide.otherTitle")}
+        </h2>
+        <p className="mt-2 max-w-prose break-words text-sm text-muted-foreground">
+          {t("guide.otherIntro")}
+        </p>
+        <ul className="mt-5 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+          {OTHER_SOURCES.map(({ titleKey, descKey, Icon }) => (
+            <li key={titleKey} className="glass-panel rounded-xl p-4">
+              <Icon aria-hidden="true" className="h-4 w-4 text-primary" />
+              <p className="mt-2.5 break-words font-display text-sm font-bold">{t(titleKey)}</p>
+              <p className="mt-1 break-words text-[13px] leading-5 text-muted-foreground">
+                {t(descKey)}
+              </p>
+            </li>
+          ))}
+        </ul>
+      </section>
+
+      {/* --- Decision path ---------------------------------------------------- */}
+      <section aria-labelledby="guide-path-heading" className="mt-12 max-w-3xl">
+        <h2
+          id="guide-path-heading"
+          className="break-words font-display text-2xl font-extrabold tracking-tight sm:text-3xl"
+        >
+          {t("guide.pathTitle")}
+        </h2>
+        <p className="mt-2 max-w-prose break-words text-sm text-muted-foreground">
+          {t("guide.pathIntro")}
+        </p>
+        <div className="mt-5 grid gap-3 sm:grid-cols-2">
+          <Link
+            to={trackerTo}
+            className="glass-panel glass-panel-hover group flex min-h-[48px] items-center justify-between gap-3 rounded-xl p-4"
+          >
+            <span className="min-w-0">
+              <span className="block break-words font-display text-sm font-bold">
+                {t("guide.pathYesTitle")}
+              </span>
+              <span className="mt-1 block break-words text-xs leading-5 text-muted-foreground">
+                {t("guide.pathYesDesc")}
+              </span>
+            </span>
+            <ArrowRight
+              aria-hidden="true"
+              className="h-4 w-4 shrink-0 text-primary transition-transform duration-300 group-hover:translate-x-0.5 motion-reduce:transition-none rtl:rotate-180 rtl:group-hover:-translate-x-0.5"
+            />
+          </Link>
+          <a
+            href="#guide-eligibility"
+            className="glass-panel glass-panel-hover group flex min-h-[48px] items-center justify-between gap-3 rounded-xl p-4"
+          >
+            <span className="min-w-0">
+              <span className="block break-words font-display text-sm font-bold">
+                {t("guide.pathNoTitle")}
+              </span>
+              <span className="mt-1 block break-words text-xs leading-5 text-muted-foreground">
+                {t("guide.pathNoDesc")}
+              </span>
+            </span>
+            <ArrowRight
+              aria-hidden="true"
+              className="h-4 w-4 shrink-0 rotate-90 text-primary rtl:rotate-90"
+            />
+          </a>
+        </div>
+      </section>
+
+      {/* --- Tracker bridge --------------------------------------------------- */}
+      <section
+        aria-labelledby="guide-bridge-heading"
+        className="mt-12 max-w-3xl overflow-hidden rounded-2xl border border-primary/40 bg-primary/5 p-6 sm:p-8"
+      >
+        <h2
+          id="guide-bridge-heading"
+          className="break-words font-display text-xl font-extrabold tracking-tight sm:text-2xl"
+        >
+          {t("guide.bridgeTitle")}
+        </h2>
+        <p className="mt-3 max-w-prose break-words text-sm leading-6 text-muted-foreground">
+          {t("guide.bridgeDesc")}
+        </p>
+        <p className="mt-5">
+          <Link
+            to={trackerTo}
+            className="inline-flex min-h-[48px] items-center justify-center gap-2 rounded-md bg-primary px-5 py-2.5 font-display text-sm font-bold text-primary-foreground transition-colors hover:bg-primary/90 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+          >
+            <Compass aria-hidden="true" className="h-4 w-4" />
+            {t("guide.bridgeCta")}
+          </Link>
+        </p>
+      </section>
+
+      {/* --- FAQ (grouped knowledge grid; questions render from GUIDE_FAQ_KEYS) -- */}
+      <GuideFaq />
+
+      {/* --- Sources / trust -------------------------------------------------- */}
+      <section aria-labelledby="guide-sources-heading" className="mt-12 max-w-3xl">
+        <h2
+          id="guide-sources-heading"
+          className="break-words font-display text-lg font-extrabold tracking-tight"
+        >
+          {t("guide.sourcesTitle")}
+        </h2>
+        <p className="mt-2 break-words text-[13px] leading-6 text-muted-foreground">
+          {t("guide.sourcesLastReviewed", { date: LAST_REVIEWED_ISO })}
+        </p>
+        <p className="mt-1 break-words text-[13px] leading-6 text-muted-foreground">
+          {t("guide.sourcesNote")}
+        </p>
+        <p className="mt-2">
+          <a
+            href={EPIC_SUPPORT_URL}
+            rel="noopener noreferrer"
+            target="_blank"
+            className="inline-flex min-h-[44px] items-center gap-1.5 text-[13px] font-semibold text-primary underline-offset-4 hover:underline focus-visible:rounded focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            {t("guide.sourcesEpicLabel")}
+            <ArrowRight aria-hidden="true" className="h-3.5 w-3.5 rtl:rotate-180" />
+          </a>
+        </p>
+      </section>
+
+      {/* --- Related ---------------------------------------------------------- */}
+      <section aria-labelledby="guide-related-heading" className="mt-12 max-w-3xl">
+        <h2
+          id="guide-related-heading"
+          className="break-words font-display text-2xl font-extrabold tracking-tight sm:text-3xl"
         >
           {t("guide.relatedTitle")}
         </h2>
@@ -145,7 +332,7 @@ export function GuidePage() {
             </span>
             <ArrowRight
               aria-hidden="true"
-              className="h-4 w-4 shrink-0 text-primary transition-transform duration-300 group-hover:translate-x-0.5 motion-reduce:transition-none rtl:group-hover:-translate-x-0.5 rtl:rotate-180"
+              className="h-4 w-4 shrink-0 text-primary transition-transform duration-300 group-hover:translate-x-0.5 motion-reduce:transition-none rtl:rotate-180 rtl:group-hover:-translate-x-0.5"
             />
           </Link>
           <Link
@@ -162,7 +349,7 @@ export function GuidePage() {
             </span>
             <ArrowRight
               aria-hidden="true"
-              className="h-4 w-4 shrink-0 text-primary transition-transform duration-300 group-hover:translate-x-0.5 motion-reduce:transition-none rtl:group-hover:-translate-x-0.5 rtl:rotate-180"
+              className="h-4 w-4 shrink-0 text-primary transition-transform duration-300 group-hover:translate-x-0.5 motion-reduce:transition-none rtl:rotate-180 rtl:group-hover:-translate-x-0.5"
             />
           </Link>
         </div>

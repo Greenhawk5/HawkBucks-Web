@@ -84,13 +84,17 @@ test("welcome remains SSR-safe and the reminder action requires explicit opt-in"
   assert.match(shell, /useWelcomePreference\(\)/);
   assert.match(shell, /welcome\.ready && reminders\.ready && !welcome\.completed/);
   assert.match(shell, /reminders\.setEnabled\(true\)/);
-  // Phase 8: the real subscription flow lives behind the explicit
-  // Enable Reminders click (permission + service worker + server functions).
-  // It must never run during SSR or on dialog open — only the click handler
-  // may touch Notification / PushManager / serviceWorker.
+  // Phase 8 + reminder toggle: the real subscription flow lives in the
+  // canonical lib/reminders.ts behind the explicit Enable Reminders click
+  // (permission + service worker + server functions). It must never run
+  // during SSR or on dialog open — only the click handler may touch
+  // Notification / PushManager / serviceWorker.
   assert.match(shell, /enableReminders/);
-  assert.match(shell, /subscribeForPush/);
-  assert.match(shell, /typeof window !== "undefined"/);
+  assert.match(shell, /enableReminderNotifications/);
+  assert.match(shell, /lib\/reminders/);
+  const remindersLib = await readFile(new URL("../src/lib/reminders.ts", import.meta.url), "utf8");
+  assert.match(remindersLib, /subscribeForPush/);
+  assert.match(remindersLib, /typeof window !== "undefined"/);
   assert.match(shell, /DialogContent/);
   assert.match(shell, /onOpenChange/);
 });

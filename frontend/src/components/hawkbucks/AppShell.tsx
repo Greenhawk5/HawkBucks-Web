@@ -3,8 +3,17 @@ import { Link, useLocation } from "@tanstack/react-router";
 import { BellRing, Compass, Menu, PanelLeftClose, PanelLeftOpen, Sparkles, X } from "lucide-react";
 
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import {
+  HEADER_BRAND_ROW,
+  HEADER_CONTROLS,
+  HEADER_ICON,
+  HEADER_ICON_BUTTON,
+  HEADER_PAD,
+  HEADER_WORDMARK,
+} from "@/components/hawkbucks/header-controls";
 import { Footer } from "@/components/hawkbucks/Footer";
 import { LanguageMenu } from "@/components/hawkbucks/LanguageSelector";
+import { ReminderToggle } from "@/components/hawkbucks/ReminderToggle";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -14,6 +23,8 @@ import {
   useWelcomePreference,
 } from "@/hooks/use-preferences";
 import type { InitialServerPreferences } from "@/hooks/use-preferences";
+import { useReminderNotifications as useReminderNotificationsShared } from "@/hooks/use-reminder-notifications";
+import { enableReminderNotifications, resolveReminderState } from "@/lib/reminders";
 import { useI18n } from "@/i18n";
 import { ASSETS } from "@/lib/assets";
 import { NAV_ITEMS, localizedNavTo, matchNavItem } from "@/lib/navigation";
@@ -41,14 +52,14 @@ function useShell() {
   return ctx;
 }
 
-function BrandLink() {
+function BrandLink({ hideWordmark = false }: { hideWordmark?: boolean }) {
   const { t, currentLanguage } = useI18n();
   const { pathname } = useLocation();
   return (
     <Link
       to={localizedNavTo("/", pathname, currentLanguage)}
       aria-label={t("shell.brandHome")}
-      className="flex min-h-[3rem] min-w-0 shrink-0 items-center gap-2 rounded-lg px-1.5 outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring"
+      className="flex min-h-[3rem] min-w-0 shrink items-center gap-1 rounded-lg px-0.5 outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring"
     >
       <img
         src={ASSETS.logo}
@@ -58,7 +69,7 @@ function BrandLink() {
         className="h-9 w-9 shrink-0 rounded-lg shadow-[var(--shadow-glow)]"
         draggable={false}
       />
-      <span className="shrink-0 whitespace-nowrap font-display text-base font-extrabold uppercase tracking-tight">
+      <span className={hideWordmark ? "sr-only" : HEADER_WORDMARK}>
         Hawk<span className="text-primary">Bucks</span>
       </span>
     </Link>
@@ -122,30 +133,32 @@ function DesktopSidebar() {
           "flex h-16 shrink-0 items-center gap-0.5",
           // Narrower padding on the collapsed rail so the 36px logo mark
           // fits the 68px column with room to center.
-          collapsed ? "justify-center overflow-hidden px-2" : "px-1.5",
+          collapsed ? "justify-center overflow-hidden px-2" : HEADER_PAD,
         )}
       >
         {collapsed ? (
           <CollapsedBrandButton onOpen={openSidebar} />
         ) : (
           <>
-            <div className="flex min-w-0 shrink-0 items-center">
+            <div className={HEADER_BRAND_ROW}>
               <BrandLink />
             </div>
-            {/* Expanded-header controls: grouped at the logical end edge via
-                ms-auto so the brand keeps its full width and never truncates.
-                Both are icon buttons with the same 36px footprint. */}
-            <div className="ms-auto flex shrink-0 items-center gap-0.5">
+            {/* Expanded-header controls: grouped at the logical end edge.
+                Order: Language → Reminder → Collapse. The control cluster is
+                non-shrinking; the brand row above yields first so these can
+                never be pushed out of the header. */}
+            <div className={HEADER_CONTROLS}>
               <LanguageMenu />
+              <ReminderToggle />
               <button
                 type="button"
                 onClick={toggleDesktop}
                 aria-label={t("shell.collapseSidebar")}
                 aria-expanded={true}
                 title={t("shell.collapseSidebar")}
-                className="grid h-9 w-9 shrink-0 place-items-center rounded-lg text-muted-foreground outline-none transition-colors hover:bg-accent/10 hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
+                className={HEADER_ICON_BUTTON}
               >
-                <PanelLeftClose aria-hidden="true" className="h-5 w-5 rtl:scale-x-[-1]" />
+                <PanelLeftClose aria-hidden="true" className={cn(HEADER_ICON, "rtl:scale-x-[-1]")} />
               </button>
             </div>
           </>
@@ -277,17 +290,27 @@ function MobileDrawer() {
         aria-label={t("shell.mobileNav")}
         className="fixed inset-y-0 start-0 z-50 flex h-full w-[18rem] max-w-[85vw] flex-col border-e border-border/60 bg-background shadow-2xl animate-in slide-in-from-left duration-200 motion-reduce:animate-none rtl:slide-in-from-right"
       >
-        <div className="flex h-16 shrink-0 items-center justify-between gap-2 px-3">
-          <BrandLink />
-          <button
-            ref={closeRef}
-            type="button"
-            onClick={() => setMobileOpen(false)}
-            aria-label={t("shell.closeMenu")}
-            className="grid h-11 w-11 shrink-0 place-items-center rounded-lg text-muted-foreground outline-none transition-colors hover:bg-accent/10 hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
-          >
-            <X aria-hidden="true" className="h-5 w-5" />
-          </button>
+        <div className="flex h-16 shrink-0 items-center gap-0.5 px-3">
+          {/* Icon-only brand saves ~110px so Language + Reminder + Close all
+              fit in the 288px drawer; the wordmark stays in the a11y tree. */}
+          <BrandLink hideWordmark />
+          {/* Drawer header controls mirror the desktop header exactly: the
+              Language → Reminder → Close order and the shared compact icon
+              button. The globe here is the ONLY language entry point — the
+              drawer footer must not repeat it. */}
+          <div className={HEADER_CONTROLS}>
+            <LanguageMenu />
+            <ReminderToggle />
+            <button
+              ref={closeRef}
+              type="button"
+              onClick={() => setMobileOpen(false)}
+              aria-label={t("shell.closeMenu")}
+              className={HEADER_ICON_BUTTON}
+            >
+              <X aria-hidden="true" className={HEADER_ICON} />
+            </button>
+          </div>
         </div>
 
         <nav
@@ -321,8 +344,9 @@ function MobileDrawer() {
           </ul>
         </nav>
 
-        <div className="shrink-0 space-y-3 border-t border-border/60 p-4">
-          <LanguageMenu showCurrentLabel align="start" />
+        {/* Footer: mission CTA only. The language entry point lives in the
+            drawer header (globe) — repeating it here duplicated the control. */}
+        <div className="shrink-0 border-t border-border/60 p-4">
           <Link
             to={localizedNavTo("/vbucks-missions", pathname, currentLanguage)}
             onClick={() => setMobileOpen(false)}
@@ -387,51 +411,31 @@ function WelcomeDialog() {
   const setWelcomeCompleted = welcome.setCompleted;
   const complete = React.useCallback(() => setWelcomeCompleted(true), [setWelcomeCompleted]);
 
-  // Phase 8: explicit opt-in only. Registers /sw.js, requests permission, and
-  // persists the subscription server-side via server functions. No
-  // auto-prompt on mount or on dialog open.
+  // Canonical enable path (shared with the sidebar ReminderToggle via
+  // useReminderNotifications): permission → subscription → backend
+  // registration. No auto-prompt on mount or on dialog open.
+  const sharedReminders = useReminderNotificationsShared();
   const enableReminders = React.useCallback(async () => {
     if (reminderBusy) return;
     setReminderBusy(true);
     setReminderStatus(null);
     try {
-      const { isPushSupported, subscribeForPush } = await import("@/lib/push-client");
-      const { loadPushPublicKey, subscribePush } = await import("@/services/push.loader");
-      if (!isPushSupported()) {
+      const { ok, state } = await enableReminderNotifications(currentLanguage);
+      await sharedReminders.refresh();
+      if (!ok) {
         reminders.setEnabled(false);
-        setReminderStatus(t("notifications.unsupported"));
-        return;
-      }
-      if (typeof window !== "undefined" && "serviceWorker" in navigator) {
-        try {
-          await navigator.serviceWorker.register("/sw.js", { scope: "/" });
-        } catch {
-          // Registration failure falls through to unsupported messaging below.
-        }
-      }
-      const { publicKey } = await loadPushPublicKey();
-      if (!publicKey) {
-        reminders.setEnabled(false);
-        setReminderStatus(t("notifications.unsupported"));
-        return;
-      }
-      const sub = await subscribeForPush({ publicKey, language: currentLanguage });
-      if (!sub) {
-        // Permission denied or dismissed: persist opt-out, do not re-prompt.
-        reminders.setEnabled(false);
-        const permission =
-          typeof window !== "undefined" && "Notification" in window
-            ? Notification.permission
-            : "default";
+        // Re-resolve: the mutation's own state can be "off" while the true
+        // cause is a blocked or unsupported browser.
+        const resolved = await resolveReminderState();
         setReminderStatus(
-          permission === "denied" ? t("notifications.blocked") : t("notifications.disabled"),
+          t(
+            resolved.state === "blocked" || state === "blocked"
+              ? "notifications.blocked"
+              : resolved.state === "unsupported" || state === "unsupported"
+                ? "notifications.unsupported"
+                : "notifications.disabled",
+          ),
         );
-        return;
-      }
-      const result = await subscribePush({ data: { ...sub, language: currentLanguage } });
-      if (result?.success === false) {
-        reminders.setEnabled(false);
-        setReminderStatus(t("notifications.disabled"));
         return;
       }
       reminders.setEnabled(true);

@@ -41,20 +41,58 @@ export const getAdminSession = createServerFn({ method: "GET" }).handler(
 export interface AdminLoginInput {
   username: string;
   password: string;
+  /**
+   * Wave 1 — Cloudflare Turnstile challenge token from the login-page widget.
+   * Optional at the transport layer so local dev without Turnstile keys keeps
+   * working; REQUIRED server-side whenever Turnstile is enforced (secret +
+   * site key configured) — assertTurnstileForLogin fails closed on a missing
+   * token in that mode. Never logged, persisted, or audited.
+   */
+  turnstileToken?: string;
 }
+
+/**
+ * Wave 1 — public, client-safe reader for the Turnstile SITE key (public by
+ * design; the SECRET never leaves auth.server.ts). Returns null when
+ * Turnstile is unconfigured so the login page skips the widget in local dev.
+ */
+export const getTurnstileSiteKey = createServerFn({ method: "GET" }).handler(
+  async (): Promise<{ siteKey: string | null }> => {
+    const { resolveRequestCmsDb } = await import("./db.server");
+    const { isTurnstileEnforced } = await import("./auth.server");
+    const { env } = await resolveRequestCmsDb();
+    if (!isTurnstileEnforced(env)) return { siteKey: null };
+    const siteKey =
+      typeof env.CMS_TURNSTILE_SITE_KEY === "string" ? env.CMS_TURNSTILE_SITE_KEY.trim() : "";
+    return { siteKey: siteKey === "" ? null : siteKey };
+  },
+);
 
 export const adminLogin = createServerFn({ method: "POST" })
   .validator((input: AdminLoginInput) => ({
     username: requireNonEmptyString(input.username, "username").trim(),
     password: requireNonEmptyString(input.password, "password"),
+    turnstileToken:
+      input.turnstileToken === undefined || input.turnstileToken === null
+        ? undefined
+        : (() => {
+            if (typeof input.turnstileToken !== "string") {
+              throw new Error("Invalid input: expected string.");
+            }
+            return input.turnstileToken.slice(0, 2048);
+          })(),
   }))
   .handler(async ({ data }): Promise<AdminSessionShape> => {
     const { resolveRequestCmsDb } = await import("./db.server");
     const {
       performRequestLogin,
       assertSameOriginForMutation,
+      assertTurnstileForLogin,
       checkLoginRateLimit,
+      checkLoginIpRateLimit,
+      getRequestClientIp,
       noteLoginFailure,
+      noteLoginIpFailure,
       noteLoginSuccess,
       CmsAuthError,
     } = await import("./auth.server");
@@ -64,14 +102,67 @@ export const adminLogin = createServerFn({ method: "POST" })
       throw new CmsAuthError(401, "Invalid credentials.");
     }
     assertSameOriginForMutation();
+    // Defense in depth: per-account throttle (primary) + per-IP throttle
+    // keyed ONLY on CF-Connecting-IP (secondary). Both checked BEFORE any
+    // password work; both recorded on failure. Success resets the account
+    // counter (existing behavior preserved); the IP counter is append-only
+    // per window so distributed sweeps keep their record.
     checkLoginRateLimit(username);
+    const clientIp = getRequestClientIp();
+    checkLoginIpRateLimit(clientIp);
     const { db, env } = await resolveRequestCmsDb();
     try {
+      // Bot gate FIRST: when Turnstile is enforced, an invalid token rejects
+      // before password verification burns PBKDF2 time on bot traffic — and
+      // every rejection (Turnstile, password, account state) surfaces the
+      // same generic 401, so no oracle distinguishes the cause.
+      // Hostname binding for the Turnstile response: derived from the
+      // incoming request's Host header (NOT client input, NOT a global).
+      // Null outside a request context → hostname check skipped, success
+      // boolean still enforced.
+      let expectedHostname: string | null = null;
+      try {
+        const { getCmsRequest } = await import("./auth.server");
+        const req = getCmsRequest();
+        const host = req?.headers.get("host") ?? null;
+        if (host) expectedHostname = host.split(",")[0]?.trim().split(":")[0] ?? null;
+        if (expectedHostname === "") expectedHostname = null;
+      } catch {
+        expectedHostname = null;
+      }
+      await assertTurnstileForLogin({
+        env,
+        token: data.turnstileToken,
+        remoteIp: clientIp,
+        expectedHostname,
+      });
       const session = await performRequestLogin(db, env, username, password);
       noteLoginSuccess(username);
+      // Wave 2 — auth telemetry (best-effort, privacy-scrubbed at write;
+      // never blocks authentication). Outcome only — no secrets, no raw IP.
+      void import("./auth-telemetry.server").then(({ recordAuthTelemetry }) =>
+        recordAuthTelemetry(db, {
+          kind: "login",
+          outcome: "success",
+          username,
+          actorId: session.user.id,
+        }),
+      );
       return { authenticated: true, user: session.user, expiresAt: session.expiresAt };
     } catch (error) {
       noteLoginFailure(username);
+      noteLoginIpFailure(clientIp);
+      // Wave 2 — failed-login telemetry. Same privacy contract; recorded even
+      // when the failure was a throttle or bot-gate rejection (generic 401/403
+      // surface unchanged — this only appends an audit row).
+      if (error instanceof CmsAuthError) {
+        const status = error.status;
+        if (status === 401 || status === 403) {
+          void import("./auth-telemetry.server").then(({ recordAuthTelemetry }) =>
+            recordAuthTelemetry(db, { kind: "login", outcome: "failure", username }),
+          );
+        }
+      }
       throw error;
     }
   });
@@ -79,10 +170,23 @@ export const adminLogin = createServerFn({ method: "POST" })
 export const adminLogout = createServerFn({ method: "POST" }).handler(
   async (): Promise<{ ok: true }> => {
     const { resolveRequestCmsDb } = await import("./db.server");
-    const { performRequestLogout, assertSameOriginForMutation } = await import("./auth.server");
+    const { performRequestLogout, assertSameOriginForMutation, resolveRequestSession } =
+      await import("./auth.server");
     assertSameOriginForMutation();
     const { db } = await resolveRequestCmsDb();
+    // Wave 2 — capture the actor BEFORE revocation clears the session.
+    const before = await resolveRequestSession(db).catch(() => null);
     await performRequestLogout(db);
+    // Wave 2 — logout telemetry (best-effort; anonymous logout still records
+    // the event with a null actor so session-end volume stays honest).
+    void import("./auth-telemetry.server").then(({ recordAuthTelemetry }) =>
+      recordAuthTelemetry(db, {
+        kind: "logout",
+        outcome: "success",
+        username: before?.user.username ?? null,
+        actorId: before?.user.id ?? null,
+      }),
+    );
     return { ok: true };
   },
 );
