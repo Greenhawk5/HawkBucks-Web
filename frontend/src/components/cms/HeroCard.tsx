@@ -1,6 +1,16 @@
 import { Link } from "@tanstack/react-router";
-import { heroClassLabel, getPublicStrings } from "@/lib/cms/public-strings";
+import { Shield } from "lucide-react";
+
+import { getPublicStrings, heroClassLabel } from "@/lib/cms/public-strings";
 import type { PublicHeroItem } from "@/lib/cms/public.loader";
+import { RarityBadge } from "./RarityBadge";
+import {
+  EntityCard,
+  EntityCardBody,
+  EntityCardMedia,
+  EntityCardTitleLink,
+  MetaChip,
+} from "@/components/content/EntityCard";
 
 export function heroDetailHref(locale: string, slug: string): string {
   return locale === "en" ? `/heroes/${slug}` : `/${locale}/heroes/${slug}`;
@@ -9,59 +19,45 @@ export function loadoutDetailHref(locale: string, slug: string): string {
   return locale === "en" ? `/loadouts/${slug}` : `/${locale}/loadouts/${slug}`;
 }
 
+/** Hero card — collectible framing: portrait, rarity edge, class chip. */
 export function HeroCard({
   hero,
   locale,
   onPreview,
 }: {
-  hero: PublicHeroItem;
+  hero: PublicHeroItem & { rarity?: string | null };
   locale: string;
   onPreview?: (hero: PublicHeroItem) => void;
 }) {
   const s = getPublicStrings(locale);
+  const rarity = (hero as { rarity?: string | null }).rarity;
   return (
-    <article
-      className="overflow-hidden rounded-xl border border-panel-border bg-background/40 transition-all hover:-translate-y-0.5 hover:border-primary"
-      data-testid="hero-card"
-    >
-      {hero.imageUrl ? (
-        <img
-          src={hero.imageUrl}
-          alt={hero.title}
-          className="aspect-[4/3] w-full object-cover"
-          loading="lazy"
-          decoding="async"
-        />
-      ) : (
-        <div
-          className="grid aspect-[4/3] w-full place-items-center bg-muted text-4xl"
-          aria-hidden="true"
-        >
-          🛡️
+    <EntityCard rarity={rarity} testId="hero-card">
+      <EntityCardMedia src={hero.imageUrl} alt={hero.title} fallbackIcon={Shield} />
+      <EntityCardBody>
+        <div className="flex flex-wrap items-center gap-2">
+          <RarityBadge rarity={rarity} />
+          <MetaChip>{heroClassLabel(locale, hero.heroClass)}</MetaChip>
         </div>
-      )}
-      <div className="p-4">
-        <h3 className="font-display text-base font-bold">
-          <Link
-            to={heroDetailHref(locale, hero.slug)}
-            className="rounded outline-none focus-visible:ring-2 focus-visible:ring-ring hover:text-primary"
-          >
+        <div className="mt-2">
+          <EntityCardTitleLink href={heroDetailHref(locale, hero.slug)}>
             {hero.title}
-          </Link>
-        </h3>
-        <p className="mt-1 text-xs uppercase tracking-wider text-muted-foreground">
-          {s.classNameLabel}: {heroClassLabel(locale, hero.heroClass)}
-          {hero.category ? ` · ${hero.category}` : ""}
-        </p>
+          </EntityCardTitleLink>
+        </div>
+        {hero.category ? (
+          <p className="mt-1 text-xs uppercase tracking-wider text-muted-foreground">
+            {hero.category}
+          </p>
+        ) : null}
         {hero.description ? (
-          <p className="mt-2 line-clamp-2 text-sm text-muted-foreground">
+          <p className="mt-2 line-clamp-2 text-sm leading-relaxed text-muted-foreground">
             {hero.description.slice(0, 140)}
           </p>
         ) : null}
-        <div className="mt-3 flex gap-2">
+        <div className="mt-auto flex items-center gap-2 pt-4">
           <Link
             to={heroDetailHref(locale, hero.slug)}
-            className="rounded-lg bg-primary px-3 py-1.5 text-xs font-bold text-primary-foreground"
+            className="relative z-10 inline-flex h-9 items-center rounded-lg bg-primary px-3 text-xs font-bold text-primary-foreground outline-none transition-colors hover:bg-primary/90 focus-visible:ring-2 focus-visible:ring-ring"
           >
             {s.viewDetails}
           </Link>
@@ -69,14 +65,14 @@ export function HeroCard({
             <button
               type="button"
               onClick={() => onPreview(hero)}
-              className="rounded-lg border border-panel-border px-3 py-1.5 text-xs font-semibold hover:border-primary"
               aria-haspopup="dialog"
+              className="relative z-10 inline-flex h-9 items-center rounded-lg border border-panel-border px-3 text-xs font-semibold text-muted-foreground outline-none transition-colors hover:border-primary hover:text-primary focus-visible:ring-2 focus-visible:ring-ring"
             >
               {s.openPreview}
             </button>
           ) : null}
         </div>
-      </div>
-    </article>
+      </EntityCardBody>
+    </EntityCard>
   );
 }

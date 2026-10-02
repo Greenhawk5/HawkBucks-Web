@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import type { PublicHeroItem, PublicLoadoutItem } from "./public.loader";
 export interface PublicHeroDetail extends PublicHeroItem {
+  rarity: string | null;
   abilities: Array<{ key: string; name: string; description: string; iconUrl: string | null }>;
   relatedLoadouts: PublicLoadoutItem[];
   /** Locales with complete published translations (drives per-entity hreflang). */
@@ -95,6 +96,7 @@ export const getPublicHero = createServerFn({ method: "GET" })
         description: h.translation.body,
         heroClass: h.hero.hero_class,
         category: h.hero.category,
+        rarity: (h.hero.rarity as string | null) ?? null,
         popularity: h.hero.popularity,
         sortOrder: h.hero.sort_order,
         imageUrl: h.portraitUrl,

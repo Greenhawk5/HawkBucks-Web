@@ -27,7 +27,7 @@ import { useReminderNotifications as useReminderNotificationsShared } from "@/ho
 import { enableReminderNotifications, resolveReminderState } from "@/lib/reminders";
 import { useI18n } from "@/i18n";
 import { ASSETS } from "@/lib/assets";
-import { NAV_ITEMS, localizedNavTo, matchNavItem } from "@/lib/navigation";
+import { NAV_GROUPS, localizedNavTo, matchNavItem } from "@/lib/navigation";
 import { localizePath, splitLocalePath } from "@/lib/locale-urls";
 import { cn } from "@/lib/utils";
 
@@ -158,7 +158,10 @@ function DesktopSidebar() {
                 title={t("shell.collapseSidebar")}
                 className={HEADER_ICON_BUTTON}
               >
-                <PanelLeftClose aria-hidden="true" className={cn(HEADER_ICON, "rtl:scale-x-[-1]")} />
+                <PanelLeftClose
+                  aria-hidden="true"
+                  className={cn(HEADER_ICON, "rtl:scale-x-[-1]")}
+                />
               </button>
             </div>
           </>
@@ -177,64 +180,99 @@ function DesktopSidebar() {
         >
           {t("navigation.navigate")}
         </p>
-        <ul className="flex flex-col gap-1">
-          {NAV_ITEMS.map((item) => {
-            const isActive = item.to === active.to;
-            const label = t(item.labelKey);
-            const link = (
-              <Link
-                to={localizedNavTo(item.to, pathname, currentLanguage)}
-                activeOptions={{ exact: item.exact }}
-                aria-current={isActive ? "page" : undefined}
-                aria-label={collapsed ? label : undefined}
-                data-active={isActive}
-                className={cn(
-                  "flex min-h-[2.75rem] items-center rounded-lg px-3 font-display text-[13px] font-bold uppercase tracking-[0.08em] outline-none transition-colors",
-                  "focus-visible:ring-2 focus-visible:ring-ring",
-                  // Only the horizontal axis adapts when collapsed; vertical
-                  // geometry (min-height, alignment) stays identical so icon
-                  // Y-positions never shift between states.
-                  collapsed ? "justify-center gap-0" : "gap-3",
-                  isActive
-                    ? "bg-primary/15 text-primary shadow-[inset_0_0_0_1px_var(--color-primary)]"
-                    : "text-muted-foreground hover:bg-accent/10 hover:text-foreground",
-                )}
-              >
-                <span aria-hidden="true" className="grid h-5 w-5 shrink-0 place-items-center">
-                  <item.Icon
-                    aria-hidden="true"
-                    className={cn("h-5 w-5", isActive ? "text-primary" : "")}
-                  />
-                </span>
-                <span className={cn(collapsed ? "sr-only" : "truncate")}>{label}</span>
-                {!collapsed && isActive && (
-                  <span
-                    aria-hidden="true"
-                    className="ms-auto h-1.5 w-1.5 shrink-0 rounded-full bg-primary"
-                  />
-                )}
-              </Link>
-            );
+        {/* Grouped nav: the tracker pair stays on top and unlabelled, the
+            content hubs sit under Explore, About under its own heading. Groups
+            with no translation key (the primary pair) render a bare list, so
+            no empty heading or extra rule is emitted for them. */}
+        <div className="flex flex-col gap-4">
+          {NAV_GROUPS.filter((group) => group.items.length > 0).map((group) => (
+            <div key={group.id} className="flex flex-col">
+              {group.labelKey ? (
+                <p
+                  className={cn(
+                    "px-2 pb-1 font-display text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground/60",
+                    collapsed && "sr-only",
+                  )}
+                >
+                  {t(group.labelKey)}
+                </p>
+              ) : null}
+              <ul className="flex flex-col gap-1">
+                {group.items.map((item) => {
+                  const isActive = item.to === active.to;
+                  const label = t(item.labelKey);
+                  const link = (
+                    <Link
+                      to={localizedNavTo(item.to, pathname, currentLanguage)}
+                      activeOptions={{ exact: item.exact }}
+                      aria-current={isActive ? "page" : undefined}
+                      aria-label={collapsed ? label : undefined}
+                      data-active={isActive}
+                      className={cn(
+                        "flex min-h-[2.75rem] items-center gap-3 rounded-lg border-s-2 px-3 py-2 font-display text-[13px] font-bold uppercase leading-tight tracking-[0.08em] outline-none transition-colors",
+                        "focus-visible:ring-2 focus-visible:ring-ring",
+                        // Only the horizontal axis adapts when collapsed; vertical
+                        // geometry (min-height, alignment) stays identical so icon
+                        // Y-positions never shift between states.
+                        collapsed ? "justify-center gap-0" : "gap-3",
+                        // `border-s-2` is a logical (direction-aware) property, so
+                        // the active edge renders on the left in LTR and on the
+                        // right in ar-SA / fa-IR with no duplicate markup. The
+                        // transparent default reserves the same 2px on inactive
+                        // items, so activating one never shifts its neighbours.
+                        // The existing inset ring is kept as the active box
+                        // treatment; the border is the edge indicator.
+                        isActive
+                          ? "border-s-primary bg-primary/15 text-primary shadow-[inset_0_0_0_1px_var(--color-primary)]"
+                          : "border-s-transparent text-muted-foreground hover:bg-accent/10 hover:text-foreground",
+                      )}
+                    >
+                      <span aria-hidden="true" className="grid h-5 w-5 shrink-0 place-items-center">
+                        <item.Icon
+                          aria-hidden="true"
+                          className={cn("h-5 w-5", isActive ? "text-primary" : "")}
+                        />
+                      </span>
+                      {/* Two lines maximum, never an ellipsis. `line-clamp-2`
+                          allows the natural break so long localized labels
+                          ("V-Bucks Mission Tracker") stay fully readable
+                          without widening the sidebar or shrinking the type.
+                          The full label remains the accessible name; only the
+                          visual overflow is clamped. */}
+                      <span
+                        className={cn(
+                          collapsed ? "sr-only" : "min-w-0 flex-1 line-clamp-2 break-words",
+                        )}
+                      >
+                        {label}
+                      </span>
+                    </Link>
+                  );
 
-            if (!collapsed) return <li key={item.to}>{link}</li>;
+                  if (!collapsed) return <li key={item.to}>{link}</li>;
 
-            return (
-              <li key={item.to}>
-                <Tooltip>
-                  <TooltipTrigger asChild>{link}</TooltipTrigger>
-                  <TooltipContent
-                    side={
-                      typeof document !== "undefined" && document.dir === "rtl" ? "left" : "right"
-                    }
-                    align="center"
-                  >
-                    {label}
-                  </TooltipContent>
-                </Tooltip>
-              </li>
-            );
-          })}
-        </ul>
+                  return (
+                    <li key={item.to}>
+                      <Tooltip>
+                        <TooltipTrigger asChild>{link}</TooltipTrigger>
+                        <TooltipContent
+                          side={
+                            typeof document !== "undefined" && document.dir === "rtl"
+                              ? "left"
+                              : "right"
+                          }
+                          align="center"
+                        >
+                          {label}
+                        </TooltipContent>
+                      </Tooltip>
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+          ))}
+        </div>
       </nav>
     </aside>
   );
@@ -317,31 +355,46 @@ function MobileDrawer() {
           aria-label={t("shell.primaryNav")}
           className="flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto px-3 pb-4"
         >
-          <ul className="flex flex-col gap-1">
-            {NAV_ITEMS.map((item) => {
-              const isActive = item.to === active.to;
-              return (
-                <li key={item.to}>
-                  <Link
-                    to={localizedNavTo(item.to, pathname, currentLanguage)}
-                    activeOptions={{ exact: item.exact }}
-                    aria-current={isActive ? "page" : undefined}
-                    onClick={() => setMobileOpen(false)}
-                    className={cn(
-                      "flex min-h-[3rem] items-center gap-3 rounded-lg px-3 font-display text-sm font-bold uppercase tracking-[0.08em] outline-none transition-colors",
-                      "focus-visible:ring-2 focus-visible:ring-ring",
-                      isActive
-                        ? "bg-primary/15 text-primary shadow-[inset_0_0_0_1px_var(--color-primary)]"
-                        : "text-muted-foreground hover:bg-accent/10 hover:text-foreground",
-                    )}
-                  >
-                    <item.Icon aria-hidden="true" className="h-5 w-5 shrink-0" />
-                    <span className="truncate">{t(item.labelKey)}</span>
-                  </Link>
-                </li>
-              );
-            })}
-          </ul>
+          <div className="flex flex-col gap-4">
+            {NAV_GROUPS.filter((group) => group.items.length > 0).map((group) => (
+              <div key={group.id} className="flex flex-col">
+                {group.labelKey ? (
+                  <p className="px-2 pb-1 font-display text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground/60">
+                    {t(group.labelKey)}
+                  </p>
+                ) : null}
+                <ul className="flex flex-col gap-1">
+                  {group.items.map((item) => {
+                    const isActive = item.to === active.to;
+                    return (
+                      <li key={item.to}>
+                        <Link
+                          to={localizedNavTo(item.to, pathname, currentLanguage)}
+                          activeOptions={{ exact: item.exact }}
+                          aria-current={isActive ? "page" : undefined}
+                          onClick={() => setMobileOpen(false)}
+                          className={cn(
+                            "flex min-h-[3rem] items-center gap-3 rounded-lg px-3 py-2 font-display text-sm font-bold uppercase leading-tight tracking-[0.08em] outline-none transition-colors",
+                            "focus-visible:ring-2 focus-visible:ring-ring",
+                            isActive
+                              ? "bg-primary/15 text-primary shadow-[inset_0_0_0_1px_var(--color-primary)]"
+                              : "text-muted-foreground hover:bg-accent/10 hover:text-foreground",
+                          )}
+                        >
+                          <item.Icon aria-hidden="true" className="h-5 w-5 shrink-0" />
+                          {/* Same two-line wrap as the desktop sidebar — the drawer is a
+                              different width, so labels break independently. */}
+                          <span className="min-w-0 flex-1 line-clamp-2 break-words">
+                            {t(item.labelKey)}
+                          </span>
+                        </Link>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </div>
+            ))}
+          </div>
         </nav>
 
         {/* Footer: mission CTA only. The language entry point lives in the

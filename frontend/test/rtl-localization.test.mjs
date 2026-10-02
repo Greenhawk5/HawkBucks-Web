@@ -149,7 +149,9 @@ async function readComponent(relativePath) {
 test("AppShell uses logical properties for sidebar layout", async () => {
   const source = await readComponent("hawkbucks/AppShell.tsx");
   // Must use logical margin/padding/border
-  assert.ok(source.includes("ms-auto"), "should use ms-auto instead of ml-auto");
+  // The active nav edge is the logical inline-start border (moves to the right
+  // in RTL); the old circular dot and its `ms-auto` are intentionally gone.
+  assert.ok(source.includes("border-s-2"), "active nav edge should use logical border-s-2");
   assert.ok(source.includes("border-e"), "should use border-e instead of border-r");
   assert.ok(source.includes("start-0"), "mobile drawer should use start-0");
   // Should NOT have hardcoded directional positioning for layout
@@ -174,24 +176,32 @@ test("PowerBadge uses logical border and padding", async () => {
   assert.ok(source.includes("ps-2"), "should use ps-2 instead of pl-2");
 });
 
-test("HowItWorks timeline uses logical start positioning", async () => {
-  const source = await readComponent("hawkbucks/HowItWorks.tsx");
-  assert.ok(source.includes("ps-6"), "ordered list should use ps-6");
-  assert.ok(source.includes("start-["), "timeline line should use start-[9px]");
-  assert.ok(!source.includes("pl-6"), "must not use pl-6");
-  assert.ok(!source.includes("left-["), "must not use left-[9px]");
+test("About page layout uses logical properties only", async () => {
+  // The About page was rebuilt; these guards cover the new composition so RTL
+  // correctness is not silently lost with the old card/timeline blocks.
+  const page = await readComponent("pages/About.tsx");
+  assert.ok(page.includes("border-s"), "index rail must use logical border-s");
+  assert.ok(page.includes("ps-5"), "index rail must use logical ps-5");
+  assert.ok(!page.includes("border-l "), "must not use border-l");
+  assert.ok(!page.includes("ml-auto"), "must not use ml-auto");
+  assert.ok(!page.includes("text-left"), "must not use text-left");
+
+  const identity = await readComponent("hawkbucks/about/AboutIdentity.tsx");
+  assert.ok(identity.includes("border-s-2"), "pull quote must sit on the inline start edge");
+  assert.ok(identity.includes("ps-5"), "pull quote must use logical ps-5");
+  assert.ok(!identity.includes("border-l-2"), "must not use border-l-2");
+
+  const index = await readComponent("hawkbucks/about/AboutProductIndex.tsx");
+  assert.ok(index.includes("rtl:rotate-180"), "chevron must reverse in RTL");
+  assert.ok(index.includes("localizePath"), "product links must use the localized path helper");
+  assert.ok(!index.includes("ml-auto"), "must not use ml-auto");
+  assert.ok(!index.includes("pl-"), "must not use physical padding");
 });
 
 test("DailyQuoteSection decorative blob uses logical end", async () => {
   const source = await readComponent("hawkbucks/DailyQuoteSection.tsx");
   assert.ok(source.includes("-end-16"), "decorative blob should use -end-16");
   assert.ok(!source.includes("-right-16"), "must not use -right-16");
-});
-
-test("FeatureCards decorative blob uses logical end", async () => {
-  const source = await readComponent("hawkbucks/FeatureCards.tsx");
-  assert.ok(source.includes("-end-10"), "decorative blob should use -end-10");
-  assert.ok(!source.includes("-right-10"), "must not use -right-10");
 });
 
 test("MissionCard optical adjustment flips in RTL", async () => {

@@ -100,49 +100,78 @@ test("missing English key returns the raw key, never undefined", async () => {
   }
 });
 
-// --- Phase 5 refinement: full About translation --------------------------------
+// --- About page content (redesigned IA) ---------------------------------------
 
+/**
+ * The About page was rebuilt around the project (masthead → product index →
+ * philosophy → platform → localization → independence → credits). It no longer
+ * carries mission-mechanics content, so the guard is now: every string the new
+ * page renders must resolve in every language, and none of the removed
+ * mission-FAQ keys may come back.
+ */
 const ABOUT_BODY_KEYS = [
-  "about.heroDesc",
-  "about.step1Tag",
-  "about.step1Title",
-  "about.step1Detail",
-  "about.step2Tag",
-  "about.step2Title",
-  "about.step2Detail",
-  "about.step3Tag",
-  "about.step3Title",
-  "about.step3Detail",
-  "about.step4Tag",
-  "about.step4Title",
-  "about.step4Detail",
-  "about.feature1Title",
-  "about.feature1Detail",
-  "about.feature2Title",
-  "about.feature2Detail",
-  "about.feature3Title",
-  "about.feature3Detail",
-  "about.feature4Title",
-  "about.feature4Detail",
-  "about.guideCard1Title",
-  "about.guideCard1Desc",
-  "about.guideCard2Title",
-  "about.guideCard2Desc",
-  "about.guideCard3Title",
-  "about.guideCard3Desc",
-  "about.faqQ1",
-  "about.faqA1",
-  "about.faqQ2",
-  "about.faqA2",
-  "about.faqQ3",
-  "about.faqA3",
-  "about.faqQ4",
-  "about.faqA4",
-  "about.faqQ5",
-  "about.faqA5",
+  "about.kicker",
+  "about.pageTitle",
+  "about.lede",
+  "about.glanceTypeLabel",
+  "about.glanceTypeValue",
+  "about.glanceStackLabel",
+  "about.glanceStackValue",
+  "about.glanceLangLabel",
+  "about.glanceLangValue",
+  "about.whatTitle",
+  "about.whatBody1",
+  "about.whatBody2",
+  "about.whatStatement",
+  "about.productTitle",
+  "about.productIntro",
+  "about.areaTrackerRole",
+  "about.areaTrackerDesc",
+  "about.areaBasicsRole",
+  "about.areaBasicsDesc",
+  "about.areaHeroesRole",
+  "about.areaHeroesDesc",
+  "about.areaSchematicsRole",
+  "about.areaSchematicsDesc",
+  "about.areaLoadoutsRole",
+  "about.areaLoadoutsDesc",
+  "about.areaGuidesRole",
+  "about.areaGuidesDesc",
+  "about.areaLinkLabel",
+  "about.philosophyTitle",
+  "about.philosophyIntro",
+  "about.principleNav",
+  "about.principleSearch",
+  "about.principleStructured",
+  "about.principleFilter",
+  "about.principleReadable",
+  "about.principleRelated",
+  "about.principleLocalized",
+  "about.principleFast",
+  "about.philosophyClose",
+  "about.platformTitle",
+  "about.platformBody1",
+  "about.platformBody2",
+  "about.platformBody3",
+  "about.localeTitle",
+  "about.localeIntro",
+  "about.localeNote",
+  "about.localeRtlNote",
+  "about.independenceTitle",
+  "about.independenceBody",
+  "about.notTitle",
+  "about.not1",
+  "about.not2",
+  "about.not3",
+  "about.not4",
+  "about.not5",
+  "about.notNote",
+  "about.creditsTitle",
+  "about.creditsDesc",
+  "about.creditsPortfolio",
 ];
 
-test("About body and FAQ resolve in every language without English fallback", async () => {
+test("About page copy resolves in every language without English fallback", async () => {
   for (const code of prefs.SUPPORTED_LANGUAGES) {
     for (const key of ABOUT_BODY_KEYS) {
       const value = core.translate(key, code);
@@ -152,18 +181,71 @@ test("About body and FAQ resolve in every language without English fallback", as
   }
 });
 
-test("Chinese, Persian, and Arabic About bodies are genuinely localized", async () => {
-  assert.ok(!core.translate("about.feature1Detail", "zh").includes("Mission alerts are checked"));
-  assert.ok(!core.translate("about.faqA1", "zh").includes("Use the HawkBucks tracker"));
-  assert.ok(!core.translate("about.guideCard1Desc", "fa-IR").includes("special Save the World"));
-  assert.ok(!core.translate("about.faqA2", "fa-IR").includes("Mission alerts can change"));
-  assert.ok(!core.translate("about.feature2Detail", "ar-SA").includes("Updated every 30 minutes"));
-  assert.ok(!core.translate("about.faqA3", "ar-SA").includes("Not necessarily"));
-  // FAQ answers differ from English rather than mirroring it.
-  for (const code of ["zh", "fa-IR", "ar-SA"]) {
-    for (const key of ["about.faqA1", "about.faqA3", "about.faqA5"]) {
-      assert.notEqual(core.translate(key, code), core.translate(key, "en"));
+test("About page keeps mission-FAQ and pipeline keys out of the dictionary", async () => {
+  // These described the old page. Mission mechanics belong to V-Bucks Mission
+  // Basics; the invented "Epic Games API / every 30 minutes" pipeline claims
+  // are not supported by the repository.
+  const removed = [
+    "about.faqQ1",
+    "about.faqA1",
+    "about.faqQ5",
+    "about.faqA5",
+    "about.guideCard1Desc",
+    "about.step1Title",
+    "about.step2Detail",
+    "about.feature2Title",
+    "about.heroDesc",
+  ];
+  for (const code of prefs.SUPPORTED_LANGUAGES) {
+    const dictionary = resources.RESOURCES[code];
+    for (const key of removed) {
+      const [namespace, name] = key.split(".");
+      assert.equal(
+        dictionary[namespace]?.[name],
+        undefined,
+        `${code} still defines the removed key ${key}`,
+      );
     }
+  }
+});
+
+test("Chinese, Persian, and Arabic About copy is genuinely localized", async () => {
+  assert.ok(!core.translate("about.whatBody1", "zh").includes("community-driven web application"));
+  assert.ok(!core.translate("about.areaHeroesDesc", "zh").includes("structured reference section"));
+  assert.ok(
+    !core.translate("about.philosophyIntro", "fa-IR").includes("social network or a content farm"),
+  );
+  assert.ok(
+    !core.translate("about.areaGuidesDesc", "fa-IR").includes("The editorial layer of HawkBucks"),
+  );
+  assert.ok(
+    !core.translate("about.platformBody2", "ar-SA").includes("separate, disconnected sources"),
+  );
+  assert.ok(
+    !core.translate("about.notNote", "ar-SA").includes("does not grant, sell, or distribute"),
+  );
+  // Long-form sections differ from English rather than mirroring it.
+  for (const code of ["zh", "fa-IR", "ar-SA"]) {
+    for (const key of ["about.whatBody1", "about.platformBody2", "about.independenceBody"]) {
+      assert.notEqual(core.translate(key, code), core.translate(key, "en"), `${code} ${key}`);
+    }
+  }
+});
+
+test("About page states independence without inventing an Epic relationship", async () => {
+  for (const code of prefs.SUPPORTED_LANGUAGES) {
+    const claims = [
+      core.translate("about.not1", code),
+      core.translate("about.not2", code),
+      core.translate("about.not3", code),
+      core.translate("about.not4", code),
+      core.translate("about.not5", code),
+      core.translate("about.notNote", code),
+    ].join(" ");
+    // The wording must negate, never assert: no "official Epic Games service",
+    // no guarantee of eligibility, no V-Bucks distribution.
+    assert.ok(!/is an official/i.test(claims), `${code} claims an official relationship`);
+    assert.ok(!/guarantees? (reward|eligibility)/i.test(claims), `${code} guarantees a reward`);
   }
 });
 
@@ -222,9 +304,12 @@ test("terminology policy: official names stay unchanged in all nine languages", 
   for (const code of prefs.SUPPORTED_LANGUAGES) {
     // Hero title is the canonical full game name in every language.
     assert.equal(core.translate("hero.title", code), "Fortnite: Save the World");
-    // Tech identifiers never localized.
-    assert.equal(core.translate("about.step1Title", code), "Epic Games API");
-    assert.equal(core.translate("about.step2Title", code), "Cloudflare Worker");
+    // Tech identifiers never localized — the surrounding sentence is
+    // translated, the platform name is not.
+    assert.ok(
+      core.translate("about.glanceStackValue", code).includes("Cloudflare"),
+      `${code} must keep the Cloudflare name untranslated`,
+    );
 
     const dictionary = resources.RESOURCES[code];
     const values = [];
@@ -244,7 +329,7 @@ test("terminology policy: official names stay unchanged in all nine languages", 
     }
     // Spot-checks: surrounding prose translated, names intact.
     assert.ok(core.translate("missions.pageDesc", code).includes("Fortnite: Save the World"));
-    assert.ok(core.translate("about.faqA4", code).includes("V-Bucks"));
+    assert.ok(core.translate("about.notNote", code).includes("V-Bucks"));
     assert.ok(core.translate("about.creditsDesc", code).includes("Greenhawk"));
   }
 });

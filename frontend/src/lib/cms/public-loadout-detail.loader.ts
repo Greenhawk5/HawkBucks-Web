@@ -3,11 +3,17 @@ import type { PublicHeroItem, PublicLoadoutItem } from "./public.loader";
 export interface PublicLoadoutDetail extends PublicLoadoutItem {
   commander: PublicHeroItem | null;
   support: Array<PublicHeroItem | null>;
+  teamPerk: PublicTeamPerk | null;
   heroSlugs: Record<string, string>;
   /** Locales with complete published translations (drives per-entity hreflang). */
   completeLocales: string[];
   /** Complete-translation slugs by locale (slugs are per-locale namespaced). */
   slugsByLocale: Record<string, string>;
+}
+export interface PublicTeamPerk {
+  contentId: string;
+  perkKey: string;
+  name: string | null;
 }
 export const getPublicLoadout = createServerFn({ method: "GET" })
   .validator((i: { locale?: string; slug?: string }) => i)
@@ -95,6 +101,7 @@ export const getPublicLoadout = createServerFn({ method: "GET" })
         slugsByLocale,
         commander,
         support,
+        teamPerk: l.teamPerk,
         heroSlugs,
       },
     };

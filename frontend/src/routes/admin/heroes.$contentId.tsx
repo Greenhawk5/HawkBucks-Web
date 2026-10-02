@@ -171,6 +171,7 @@ function IdentityForm(props: {
   const hero = props.hero;
   const [heroClass, setHeroClass] = useState(hero.heroClass);
   const [category, setCategory] = useState(hero.category ?? "");
+  const [rarity, setRarity] = useState((hero as { rarity?: string | null }).rarity ?? "");
   const [popularity, setPopularity] = useState(String(hero.popularity));
   const [sortOrder, setSortOrder] = useState(String(hero.sortOrder));
   const [portraitAssetId, setPortraitAssetId] = useState(hero.portraitAssetId ?? "");
@@ -192,6 +193,7 @@ function IdentityForm(props: {
                   contentId: hero.contentId,
                   heroClass,
                   category: category === "" ? null : category,
+                  rarity: rarity === "" ? null : rarity,
                   popularity: Number(popularity),
                   sortOrder: Number(sortOrder),
                   portraitAssetId: portraitAssetId.trim() === "" ? null : portraitAssetId.trim(),
@@ -236,6 +238,27 @@ function IdentityForm(props: {
               { value: "recon", label: "Recon" },
               { value: "defense", label: "Defense" },
               { value: "special", label: "Special" },
+            ]}
+          />
+        </CmsField>
+        <CmsField
+          label="Rarity"
+          description="Editorial rarity (drives public filters + card accents)."
+        >
+          <CmsSelect
+            id="hero-rarity"
+            value={rarity}
+            onChange={setRarity}
+            disabled={props.disabled}
+            width="full"
+            options={[
+              { value: "", label: "Unclassified" },
+              { value: "common", label: "Common" },
+              { value: "uncommon", label: "Uncommon" },
+              { value: "rare", label: "Rare" },
+              { value: "epic", label: "Epic" },
+              { value: "legendary", label: "Legendary" },
+              { value: "mythic", label: "Mythic" },
             ]}
           />
         </CmsField>

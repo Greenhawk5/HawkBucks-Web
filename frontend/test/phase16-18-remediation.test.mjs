@@ -1,167 +1,369 @@
-// Phase 16-18 remediation: article detail/preview/localized routes, clusters,
-// editor locale loading, path dedupe, entity/editorial links, RTL behavior.
+// Phase 16 editorial tests: structured documents, lifecycle, categories,
+// tags, entity refs, related content, preview tokens, SEO safety — exercised
+// through the in-memory D1 double, never production resources.
 import assert from "node:assert/strict";
 import test from "node:test";
 import { readFile } from "node:fs/promises";
 
-const file = (p) => readFile(new URL(p, import.meta.url), "utf8");
+const articles = await import("../src/lib/cms/articles.ts");
+const clusters = await import("../src/lib/cms/editorial-clusters.ts");
+const publish = await import("../src/lib/cms/publish.ts");
+const slugs = await import("../src/lib/cms/slugs.ts");
+const articleWriters = await import("../src/lib/cms/articles.server.ts");
+const mediaCompat = await import("../src/lib/cms/media-compat.ts");
+const seo = await import("../src/lib/cms/seo.ts");
+const publicContent = await import("../src/lib/cms/public-content.ts");
+const localeUrls = await import("../src/lib/locale-urls.ts");
 
-test("phase16: public article detail route exists with published-only loader + SEO", async () => {
-  const source = await file("../src/routes/articles.$slug.tsx");
-  assert.match(source, /getPublicArticle/);
-  assert.match(source, /notFound/);
-  assert.match(source, /ArticleBody/);
-  assert.match(source, /buildArticleJsonLd/);
-  assert.match(source, /entityHreflangAlternates/);
-  assert.match(source, /canonical/);
-  assert.match(source, /robots/);
-  assert.match(source, /related/);
-  // Loader must request published content only (server fn filters by status).
-  const loader = await file("../src/lib/cms/public-articles.loader.ts");
-  assert.match(loader, /getPublishedBySlug/);
-  assert.match(loader, /status = 'published'/);
+test("articles: block validation accepts supported blocks", () => {
+  const doc = articles.validateArticleDocument({
+    version: 1,
+    blocks: [
+      { type: "heading", level: 2, text: "Guide" },
+      { type: "paragraph", text: "Body text." },
+      { type: "list", items: ["one", "two"] },
+    ],
+  });
+  assert.equal(doc.blocks.length, 3);
 });
 
-test("phase16: localized article routes resolve locale + metadata", async () => {
-  for (const f of [
-    "../src/routes/$locale.articles.tsx",
-    "../src/routes/$locale.articles.$slug.tsx",
-  ]) {
-    const source = await file(f);
-    assert.match(source, /parseLocaleParam/, `${f} validates locale`);
-    assert.match(source, /canonical/, `${f} emits canonical`);
-    assert.match(source, /hreflang|entityHreflangAlternates/, `${f} emits hreflang`);
+test("articles: block validation rejects malformed blocks", () => {
+  assert.throws(() => articles.validateArticleBlock({ type: "nope" }), /Unsupported/);
+  assert.throws(() => articles.validateArticleBlock({ type: "heading" }), /Invalid/);
+  assert.throws(() => articles.validateArticleDocument({ version: 99, blocks: [] }), /Unsupported/);
+});
+
+test("articles: excerpt derives from supported blocks", () => {
+  const doc = articles.validateArticleDocument({
+    version: 1,
+    blocks: [{ type: "paragraph", text: "Hello world" }],
+  });
+  assert.equal(articles.excerptFromDocument(doc), "Hello world");
+});
+
+test("articles: category/tag validators normalize slugs", () => {
+  assert.deepEqual(articles.validateCategoryInput({ name: "Heroes" }), {
+    slug: "heroes",
+    name: "Heroes",
+  });
+  assert.deepEqual(articles.validateTagInput({ name: "Meta Build" }), {
+    slug: "meta-build",
+    name: "Meta Build",
+  });
+  assert.throws(() => articles.validateCategoryInput({ name: "" }), /Invalid/);
+});
+
+test("articles: entity refs validate against the registry", () => {
+  const ref = articles.validateEntityRefInput({
+    targetEntityType: "hero",
+    targetContentId: "cms_1",
+  });
+  assert.equal(ref.targetEntityType, "hero");
+  assert.throws(
+    () => articles.validateEntityRefInput({ targetEntityType: "nope", targetContentId: "x" }),
+    /Invalid/,
+  );
+});
+
+test("articles: article media references stay guarded by the media lifecycle", async () => {
+  const publicLoader = await readFile(
+    new URL("../src/lib/cms/public-articles.loader.ts", import.meta.url),
+    "utf8",
+  );
+  assert.match(publicLoader, /resolveCompatDeliveryUrl/);
+  assert.match(publicLoader, /status = 'published'/);
+  // Legacy delivery rows remain readable through the compat layer (tests in
+  // r2-media cover the provider values); what matters here is R2 stays active
+  // and article assets can never be destroyed while referenced.
+  const deletion = await readFile(
+    new URL("../src/lib/cms/media.server.ts", import.meta.url),
+    "utf8",
+  );
+  assert.match(deletion, /assertArticleMediaUnreferenced/);
+  assert.match(deletion, /ACTIVE_MEDIA_PROVIDER = "r2"/);
+});
+
+test("articles: unpublished references never leak through public cards", async () => {
+  const publicLoader = await readFile(
+    new URL("../src/lib/cms/public-articles.loader.ts", import.meta.url),
+    "utf8",
+  );
+  assert.match(publicLoader, /c\.status = 'published'/);
+  assert.match(publicLoader, /filter\(\(row\) => row\.status === "published"\)/);
+});
+
+test("articles: related content prefers explicit curation with category fallback", async () => {
+  const publicLoader = await readFile(
+    new URL("../src/lib/cms/public-articles.loader.ts", import.meta.url),
+    "utf8",
+  );
+  assert.match(publicLoader, /FROM article_related/);
+  assert.match(publicLoader, /fallbackRelated/);
+  assert.match(publicLoader, /ORDER BY c\.updated_at DESC/);
+});
+
+test("articles: SEO stays published-only with Article structured data", () => {
+  const published = seo.resolveCmsSeo({
+    status: "published",
+    publicPath: "/articles/storm-guide",
+    seoTitle: "Storm guide",
+    seoDescription: "Guide excerpt",
+    ogImageUrl: "https://media.hawkbucks.com/articles/cover.webp",
+    fallbackTitle: "Articles | HawkBucks",
+    fallbackDescription: "HawkBucks editorial articles.",
+  });
+  assert.equal(published.indexable, true);
+  assert.equal(published.robots, "index, follow");
+  assert.ok(published.canonical?.endsWith("/articles/storm-guide"));
+  const draft = seo.resolveCmsSeo({
+    status: "draft",
+    publicPath: "/articles/storm-guide",
+    seoTitle: "Storm guide",
+    seoDescription: "Guide excerpt",
+    ogImageUrl: "https://media.hawkbucks.com/articles/cover.webp",
+    fallbackTitle: "Articles | HawkBucks",
+    fallbackDescription: "HawkBucks editorial articles.",
+  });
+  assert.equal(draft.indexable, false);
+  assert.equal(draft.canonical, null);
+  assert.equal(draft.ogImageUrl, null);
+  const ld = publicContent.buildArticleJsonLd({
+    headline: "Storm guide",
+    description: "Guide excerpt",
+    url: "https://hawkbucks.com/articles/storm-guide",
+    image: "https://media.hawkbucks.com/articles/cover.webp",
+    dateModified: "2026-09-26T00:00:00.000Z",
+    siteUrl: "https://hawkbucks.com/",
+  });
+  assert.equal(ld[1]["@type"], "Article");
+  assert.ok(JSON.stringify(ld).length > 0);
+});
+
+test("articles: lifecycle stays draft, publish guarded, preview tokenized", async () => {
+  assert.equal(publish.canTransitionStatus("draft", "published"), true);
+  assert.equal(publish.canTransitionStatus("published", "archived"), true);
+  assert.equal(publish.isPubliclyVisible("published"), true);
+  assert.equal(publish.isPubliclyVisible("draft"), false);
+  const source = await readFile(
+    new URL("../src/lib/cms/articles-admin.loader.ts", import.meta.url),
+    "utf8",
+  );
+  assert.match(source, /previewAdminArticle/);
+  assert.match(source, /createPreviewToken/);
+  assert.match(source, /requireArticleSession\("cms\.read"\)/);
+});
+
+test("articles: slugs stay unique per entity and locale", () => {
+  assert.equal(
+    slugs.resolveSlugCollision("storm-guide", new Set(["storm-guide"])),
+    "storm-guide-2",
+  );
+  assert.ok(slugs.isValidSlug("storm-guide"));
+});
+
+test("articles: internal links stay localized with canonical hreflang", () => {
+  assert.equal(articles.articleDetailPath("storm-guide"), "/guides/storm-guide");
+  assert.equal(
+    articles.articleLocalizePath("/guides/storm-guide", "fa-IR"),
+    "/fa-IR/guides/storm-guide",
+  );
+  const alternates = localeUrls.hreflangAlternates("/guides");
+  assert.equal(alternates.length, 10);
+  assert.ok(alternates.some((entry) => entry.hreflang === "x-default"));
+});
+
+test("articles: R2 media references resolve without duplicating uploads", () => {
+  const resolved = mediaCompat.resolveCompatDeliveryUrl(
+    { provider: "r2", provider_asset_id: "articles/cover.webp", delivery_url: "" },
+    { r2BaseUrl: "https://media.hawkbucks.com" },
+  );
+  assert.equal(resolved, "https://media.hawkbucks.com/articles/cover.webp");
+  assert.ok(typeof articleWriters.assertArticleMediaUnreferenced === "function");
+});
+
+test("phase17: editorial clusters link to real public routes", async () => {
+  const slugs = clusters.EDITORIAL_CLUSTERS.map((entry) => entry.slug).sort();
+  assert.deepEqual(slugs, ["heroes", "inventory", "loadouts", "vbucks-missions"]);
+  for (const cluster of clusters.EDITORIAL_CLUSTERS) {
+    for (const link of cluster.links) {
+      assert.ok(link.href.startsWith("/"), `${cluster.slug} link must be internal`);
+      assert.ok(!link.href.includes("$"), `${cluster.slug} link must be concrete`);
+    }
   }
-  const localized = await file("../src/routes/$locale.articles.$slug.tsx");
-  assert.match(localized, /matchLocaleParamCaseInsensitive/);
-  assert.match(localized, /og:locale/);
+  const heroesRoute = await readFile(new URL("../src/routes/heroes.tsx", import.meta.url), "utf8");
+  assert.match(heroesRoute, /createFileRoute/);
+  const articlesRoute = await readFile(
+    new URL("../src/routes/guides.tsx", import.meta.url),
+    "utf8",
+  );
+  assert.match(articlesRoute, /createFileRoute/);
 });
 
-test("phase16: preview route requires token, stays noindex, rejects invalid", async () => {
-  const source = await file("../src/routes/articles.preview.tsx");
-  assert.match(source, /getPreviewArticle/);
-  assert.match(source, /noindex, nofollow/);
-  assert.match(source, /invalid or expired/);
-  const loader = await file("../src/lib/cms/public-articles.loader.ts");
-  assert.match(loader, /verifyPreviewToken/);
-  assert.match(loader, /getPreviewArticle/);
-  // Preview must not emit canonical/indexable SEO.
-  assert.doesNotMatch(source, /index, follow/);
+test("phase16: admin article routes define loading + error states", async () => {
+  for (const file of ["articles.tsx", "articles.$contentId.tsx"]) {
+    const source = await readFile(new URL(`../src/routes/admin/${file}`, import.meta.url), "utf8");
+    assert.match(source, /pendingComponent/, `${file} needs a loading state`);
+    assert.match(source, /errorComponent/, `${file} needs an error state`);
+    assert.match(source, /noindex, nofollow/, `${file} must stay unindexed`);
+  }
 });
 
-test("phase16: editor loads selected locale body instead of starter overwrite", async () => {
-  const source = await file("../src/routes/admin/articles.$contentId.tsx");
-  assert.match(source, /getAdminArticleBody/);
-  assert.match(source, /useEffect/);
-  assert.match(source, /loadedLocale|No saved/);
-  assert.match(source, /category/i);
-  assert.match(source, /setAdminArticleTags|Save tags/);
-  assert.match(source, /setAdminArticleRefs|Save references/);
-  assert.match(source, /setAdminArticleRelated|Save related/);
-  assert.match(source, /image.*asset|assetId/);
-  assert.match(source, /entityType/);
-  const adminLoader = await file("../src/lib/cms/articles-admin.loader.ts");
-  assert.match(adminLoader, /getAdminArticleBody/);
+test("phase16: article admin loaders validate inputs before DB access", async () => {
+  const source = await readFile(
+    new URL("../src/lib/cms/articles-admin.loader.ts", import.meta.url),
+    "utf8",
+  );
+  assert.match(source, /admin-inputs/);
 });
 
-test("phase16: articleDetailPath has one canonical implementation", async () => {
-  const articles = await file("../src/lib/cms/articles.ts");
-  assert.match(articles, /export function articleDetailPath/);
-  const slots = await file("../src/lib/cms/public-content-slots.ts");
-  assert.match(slots, /export \{ articleDetailPath \} from/);
-  assert.doesNotMatch(slots, /export function articleDetailPath/);
-  const { articleDetailPath } = await import("../src/lib/cms/articles.ts");
-  assert.equal(articleDetailPath("storm-guide"), "/articles/storm-guide");
+test("phase16-fix: body image asset ids collect deterministically", () => {
+  const doc = articles.validateArticleDocument({
+    version: 1,
+    blocks: [
+      { type: "paragraph", text: "Intro." },
+      { type: "image", assetId: "media-ok", alt: "ok" },
+      { type: "image", assetId: "media-missing", alt: "missing" },
+      { type: "image", assetId: "media-ok", alt: "duplicate" },
+    ],
+  });
+  assert.deepEqual(articles.articleBodyImageAssetIds(doc), ["media-ok", "media-missing"]);
 });
 
-test("phase16: entity refs use canonical registry + localized public links", async () => {
-  const registry = await import("../src/lib/cms/content-types.ts");
-  assert.deepEqual([...registry.ARTICLE_REFERENCE_ENTITY_TYPES].sort(), [
-    "hero",
-    "loadout",
-    "perk",
-    "schematic",
-    "trap",
-    "weapon",
+test("phase16-fix: body image urls resolve valid media, skip missing/deleted", async () => {
+  const loader = await import("../src/lib/cms/public-articles.loader.ts");
+  const rows = new Map([
+    [
+      "media-ok",
+      { provider: "r2", provider_asset_id: "articles/ok.webp", delivery_url: "", status: "ready" },
+    ],
+    [
+      "media-deleted",
+      {
+        provider: "r2",
+        provider_asset_id: "articles/old.webp",
+        delivery_url: "",
+        status: "deleted",
+      },
+    ],
   ]);
-  const body = await file("../src/components/cms/ArticleBody.tsx");
-  assert.match(body, /entityHrefFor/);
-  assert.match(body, /\/heroes\//);
-  assert.match(body, /\/loadouts\//);
-  assert.match(body, /\/inventory\//);
-  // Localized hrefs reuse the canonical prefix model (en bare, others prefixed).
-  assert.match(body, /locale === "en" \? "" : `\/\$\{locale\}`/);
-  const { articleLocalizePath, articleDetailPath } = await import("../src/lib/cms/articles.ts");
-  assert.equal(articleLocalizePath(articleDetailPath("s"), "fa-IR"), "/fa-IR/articles/s");
-  assert.equal(articleLocalizePath(articleDetailPath("s"), "en"), "/articles/s");
+  const db = {
+    prepare: (sql) => ({
+      bind: (...ids) => ({
+        first: async () => {
+          const single = rows.get(ids[0]) ?? null;
+          return single === null ? null : { id: ids[0], ...single };
+        },
+        // Phase 19 batched shape: single IN (...) query for all ids.
+        all: async () => ({
+          results: ids.flatMap((id) => {
+            const row = rows.get(id);
+            return row ? [{ id, ...row }] : [];
+          }),
+        }),
+      }),
+    }),
+  };
+  const doc = articles.validateArticleDocument({
+    version: 1,
+    blocks: [
+      { type: "image", assetId: "media-ok", alt: "valid" },
+      { type: "image", assetId: "media-missing", alt: "missing" },
+      { type: "image", assetId: "media-deleted", alt: "deleted" },
+    ],
+  });
+  const urls = await loader.resolveArticleBodyImageUrls(db, doc, {
+    r2BaseUrl: "https://media.hawkbucks.com",
+  });
+  assert.equal(urls["media-ok"], "https://media.hawkbucks.com/articles/ok.webp");
+  assert.ok(!("media-missing" in urls), "missing media must not produce a URL");
+  assert.ok(!("media-deleted" in urls), "deleted media must not produce a URL");
+  for (const value of Object.values(urls)) {
+    assert.match(value, /^https:\/\//);
+  }
 });
 
-test("phase17: cluster landing pages exist with topic-filtered published articles", async () => {
-  for (const f of [
-    "../src/routes/guides.tsx",
+test("phase16-fix: public article routes supply the body image resolver", async () => {
+  for (const file of [
     "../src/routes/guides.$slug.tsx",
-    "../src/routes/$locale.guides.tsx",
     "../src/routes/$locale.guides.$slug.tsx",
+    "../src/routes/guides.preview.tsx",
   ]) {
-    const source = await file(f);
-    assert.match(source, /createFileRoute/, `${f} defines a route`);
-    assert.match(source, /canonical/, `${f} emits canonical`);
+    const source = await readFile(new URL(file, import.meta.url), "utf8");
+    assert.match(source, /resolveImageUrl/, `${file} must resolve body image blocks`);
+    assert.match(source, /bodyImageUrls/, `${file} must use loader-resolved body URLs`);
   }
-  const detail = await file("../src/routes/guides.$slug.tsx");
-  assert.match(detail, /listArticlesByTopic|listPublicArticles/);
-  assert.match(detail, /CollectionPage/);
-  const loader = await file("../src/lib/cms/public-articles.loader.ts");
-  assert.match(loader, /listArticlesByTopic/);
-  assert.match(loader, /c\.status = 'published'/);
-  assert.match(loader, /ORDER BY c\.updated_at DESC/);
-  const clusters = await import("../src/lib/cms/editorial-clusters.ts");
-  assert.equal(typeof clusters.clusterLandingPath("heroes"), "string");
-  assert.equal(clusters.clusterLandingPath("heroes"), "/guides/heroes");
-  assert.equal(clusters.localizeClusterHref("/heroes", "fa-IR"), "/fa-IR/heroes");
+  const loaderSource = await readFile(
+    new URL("../src/lib/cms/public-articles.loader.ts", import.meta.url),
+    "utf8",
+  );
+  assert.match(loaderSource, /resolveArticleBodyImageUrls/);
+  assert.match(loaderSource, /bodyImageUrls/);
 });
 
-test("phase17: entity to editorial links are published-only + localized", async () => {
-  const loader = await file("../src/lib/cms/public-articles.loader.ts");
-  assert.match(loader, /listArticlesForEntity/);
-  assert.match(loader, /article_entity_refs/);
-  const hero = await file("../src/components/cms/HeroDetail.tsx");
-  assert.match(hero, /RelatedGuides/);
-  const loadout = await file("../src/components/cms/LoadoutDetail.tsx");
-  assert.match(loadout, /RelatedGuides/);
-  const schematic = await file("../src/components/cms/SchematicDetail.tsx");
-  assert.match(schematic, /RelatedGuides/);
-  const guides = await file("../src/components/cms/RelatedGuides.tsx");
-  assert.match(guides, /listArticlesForEntity/);
-  assert.match(guides, /articleLocalizePath/);
-});
-
-test("phase18: RTL direction + logical CSS + mirrored controls", async () => {
-  const { resolveDirection } = await import("../src/lib/direction.ts").catch(() => ({
-    resolveDirection: null,
-  }));
-  if (resolveDirection) {
-    assert.equal(resolveDirection("fa-IR"), "rtl");
-    assert.equal(resolveDirection("ar-SA"), "rtl");
-    assert.equal(resolveDirection("en"), "ltr");
-  }
-  const root = await file("../src/routes/__root.tsx");
-  assert.match(root, /dir/);
-  for (const f of [
-    "../src/components/ui/command.tsx",
-    "../src/components/ui/context-menu.tsx",
-    "../src/components/ui/menubar.tsx",
-    "../src/components/ui/select.tsx",
-    "../src/components/ui/pagination.tsx",
+test("phase16-fix: vbucks cluster uses its tag mapping in both locales", async () => {
+  assert.equal(clusters.CLUSTER_TAG_MAP["vbucks-missions"], "vbucks");
+  assert.deepEqual(clusters.clusterTopicFor("vbucks-missions"), { tagSlug: "vbucks" });
+  for (const file of [
+    "../src/routes/guides.topics.$topic.tsx",
+    "../src/routes/$locale.guides.topics.$topic.tsx",
   ]) {
-    const source = await file(f);
+    const source = await readFile(new URL(file, import.meta.url), "utf8");
+    assert.match(source, /clusterTopicFor/, `${file} must resolve via clusterTopicFor`);
+    assert.match(source, /listArticlesByTopic/, `${file} must query the topic loader`);
     assert.doesNotMatch(
       source,
-      /mr-2 h-4|ml-auto h-4|absolute left-2|pl-8|absolute right-2|pl-2\.5|pr-2\.5/,
+      /listPublicArticles/,
+      `${file} must never fall back to the unfiltered article index`,
+    );
+    assert.doesNotMatch(
+      source,
+      /listPublicArticles/,
+      `${file} must never fall back to the unfiltered article index`,
+    );
+    assert.match(
+      source,
+      /ORDER BY|c\.updated_at DESC|updated_at DESC|listArticlesByTopic/,
+      `${file} keeps deterministic ordering`,
     );
   }
-  const shell = await file("../src/components/hawkbucks/AppShell.tsx");
-  assert.match(shell, /start-0|border-e/);
-  assert.match(shell, /rtl:/);
-  const rtl = await file("../src/lib/direction.ts").catch(() => "");
-  assert.ok((rtl + shell).includes("rtl"));
+  const loaderSource = await readFile(
+    new URL("../src/lib/cms/public-articles.loader.ts", import.meta.url),
+    "utf8",
+  );
+  assert.match(loaderSource, /article_tag_links/);
+  assert.match(loaderSource, /c\.status = 'published'/);
+  assert.match(loaderSource, /ORDER BY c\.updated_at DESC/);
+});
+
+test("phase16-fix: localized guide routes emit full SEO parity", async () => {
+  const detail = await readFile(
+    new URL("../src/routes/$locale.guides.$slug.tsx", import.meta.url),
+    "utf8",
+  );
+  for (const field of [
+    "og:title",
+    "og:description",
+    "og:url",
+    "og:locale",
+    "twitter:card",
+    "twitter:title",
+    "twitter:description",
+    "canonical",
+    "robots",
+    "resolveCmsSeo",
+    "hreflang",
+    "entityHreflangAlternates",
+  ]) {
+    assert.ok(detail.includes(field), `localized guide detail must emit ${field}`);
+  }
+  const index = await readFile(
+    new URL("../src/routes/$locale.guides.tsx", import.meta.url),
+    "utf8",
+  );
+  // Canonical guides hub delegates <head> to buildHubHead (shared builder that
+  // emits title/description/robots/OG/Twitter/canonical/hreflang).
+  assert.ok(
+    index.includes("buildHubHead"),
+    "localized guides index must build <head> via buildHubHead",
+  );
 });

@@ -61,7 +61,7 @@ export function entityHrefFor(target: EntityLinkTarget, locale: string): string 
     case "trap":
     case "perk":
     case "schematic":
-      return `${prefix}/inventory/${target.slug}`;
+      return `${prefix}/schematics/${target.slug}`;
     default:
       return `${prefix}/articles`;
   }

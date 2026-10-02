@@ -1,60 +1,72 @@
-import { Globe } from "lucide-react";
-import { useI18n } from "@/i18n";
-import { AboutHero } from "@/components/hawkbucks/AboutHero";
-import { HowItWorks } from "@/components/hawkbucks/HowItWorks";
-import { FeatureCards } from "@/components/hawkbucks/FeatureCards";
-import { AboutMissionGuide } from "@/components/hawkbucks/AboutMissionGuide";
-import { ASSETS } from "@/lib/assets";
+import { useI18n, type TranslationKey } from "@/i18n";
+import { AboutMasthead } from "@/components/hawkbucks/about/AboutMasthead";
+import { AboutIdentity } from "@/components/hawkbucks/about/AboutIdentity";
+import { AboutPhilosophy } from "@/components/hawkbucks/about/AboutPhilosophy";
+import { AboutPlatform } from "@/components/hawkbucks/about/AboutPlatform";
+import { AboutProductIndex } from "@/components/hawkbucks/about/AboutProductIndex";
+import { AboutTrust } from "@/components/hawkbucks/about/AboutTrust";
+import { AboutCredits } from "@/components/hawkbucks/about/AboutCredits";
 
-const credits = [
-  { icon: ASSETS.github, label: "GitHub", href: "https://github.com/Greenhawk5" },
-  { icon: ASSETS.telegram, label: "Telegram", href: "https://t.me/Greenhawk5" },
-  { icon: null, Icon: Globe, label: "Portfolio", href: "https://alifaniani.ir" },
+/**
+ * About HawkBucks.
+ *
+ * The page explains the project: what it is, how its sections relate, how it
+ * handles information and localization, and what it does and does not claim.
+ * It deliberately teaches no Save the World mechanics — that is the job of the
+ * V-Bucks Mission Basics page — so no mission walkthrough, mission FAQ, or
+ * tracker marketing appears here.
+ *
+ * Composition: a flat masthead, then a two-column body where a sticky section
+ * index (desktop only) orients the reader beside hairline-ruled sections. No
+ * card grids, no timeline, no numbered steps.
+ */
+const SECTIONS: readonly { id: string; labelKey: TranslationKey }[] = [
+  { id: "what", labelKey: "about.whatTitle" },
+  { id: "product", labelKey: "about.productTitle" },
+  { id: "philosophy", labelKey: "about.philosophyTitle" },
+  { id: "platform", labelKey: "about.platformTitle" },
+  { id: "localization", labelKey: "about.localeTitle" },
+  { id: "independence", labelKey: "about.independenceTitle" },
+  { id: "credits", labelKey: "about.creditsTitle" },
 ];
 
 export function AboutPage() {
   const { t } = useI18n();
+
   return (
-    <div className="space-y-20 px-4 pb-10 pt-6 sm:px-6 sm:pt-8">
-      <AboutHero />
-      <HowItWorks />
-      <FeatureCards />
-      <AboutMissionGuide />
-      <section className="glass-panel rounded-2xl px-6 py-10 text-center">
-        <img src={ASSETS.greenhawk} alt={t("seo.greenhawkLogoAlt")} className="mx-auto h-14 w-14" />
-        <h2 className="mt-4 font-display text-xl font-extrabold uppercase tracking-wide">
-          {t("about.creditsTitle")}
-        </h2>
-        <p className="mx-auto mt-3 max-w-xl text-sm leading-relaxed text-muted-foreground">
-          {t("about.creditsDesc")}
-        </p>
-        <div className="mt-6 flex flex-wrap items-center justify-center gap-2.5">
-          {credits.map((c) => (
-            <a
-              key={c.href}
-              href={c.href}
-              target="_blank"
-              rel="noreferrer noopener"
-              className="group inline-flex min-h-[48px] items-center justify-center gap-2 rounded-full border border-panel-border bg-background/40 px-4 py-2 font-display text-xs font-bold uppercase leading-none tracking-widest text-muted-foreground transition-all duration-300 hover:-translate-y-0.5 hover:border-primary hover:text-primary hover:shadow-[var(--shadow-glow)]"
-            >
-              {c.Icon ? (
-                <c.Icon
-                  aria-hidden
-                  className="h-4 w-4 shrink-0 opacity-80 transition-transform duration-300 group-hover:scale-110 group-hover:opacity-100"
-                />
-              ) : (
-                <img
-                  src={c.icon}
-                  alt=""
-                  aria-hidden
-                  className="h-4 w-4 shrink-0 opacity-80 transition-transform duration-300 group-hover:scale-110 group-hover:opacity-100"
-                />
-              )}
-              <span>{c.label}</span>
-            </a>
-          ))}
+    <div className="px-4 pb-20 pt-10 sm:px-6 sm:pt-14">
+      <div className="mx-auto w-full max-w-[1100px]">
+        <AboutMasthead />
+
+        <div className="mt-12 lg:grid lg:grid-cols-[minmax(0,1fr)_14rem] lg:gap-14 xl:gap-20">
+          <div className="min-w-0 space-y-14">
+            <AboutIdentity />
+            <AboutProductIndex />
+            <AboutPhilosophy />
+            <AboutPlatform />
+            <AboutTrust />
+            <AboutCredits />
+          </div>
+
+          {/* The index rail is a reading aid, not navigation chrome: it is
+              hidden below lg where the two-column split would only squeeze the
+              measure, and it never becomes a second menu for the site. */}
+          <nav aria-label={t("about.pageTitle")} className="hidden lg:block">
+            <ol className="sticky top-24 list-none border-s border-border/50 ps-5">
+              {SECTIONS.map((s) => (
+                <li key={s.id}>
+                  <a
+                    href={`#${s.id}`}
+                    className="block py-1.5 text-sm leading-6 text-muted-foreground outline-none transition-colors hover:text-primary focus-visible:rounded focus-visible:ring-2 focus-visible:ring-ring"
+                  >
+                    {t(s.labelKey)}
+                  </a>
+                </li>
+              ))}
+            </ol>
+          </nav>
         </div>
-      </section>
+      </div>
     </div>
   );
 }

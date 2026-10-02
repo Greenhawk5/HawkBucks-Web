@@ -279,8 +279,10 @@ test("r2: no component manually builds image URLs; media flows through providers
   for (const file of [
     "components/cms/HeroCard.tsx",
     "components/cms/HeroDetail.tsx",
-    "components/cms/InventoryCard.tsx",
+    "components/cms/SchematicCard.tsx",
     "components/cms/LoadoutCard.tsx",
+    "components/cms/GuideCard.tsx",
+    "components/content/EntityCard.tsx",
     "components/cms/SchematicDetail.tsx",
   ]) {
     const src = await read(file);

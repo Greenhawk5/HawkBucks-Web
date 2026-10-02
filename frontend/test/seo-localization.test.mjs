@@ -38,8 +38,7 @@ test("locale-urls: split/localize/canonical primitives", async () => {
       "/missions-guide",
       "/heroes",
       "/loadouts",
-      "/inventory",
-      "/articles",
+      "/schematics",
       "/guides",
     ],
   );
@@ -106,7 +105,10 @@ test("every variant URL is self-canonical", async () => {
 const EN_SEO_KEYS = Object.keys(en.seo).sort();
 
 test("every language ships exactly the same seo keys as English", async () => {
-  assert.equal(EN_SEO_KEYS.length, 34);
+  // 36 = the original 34, minus the retired article-index pair (the public hub
+  // is /guides now), plus the 4-key schematics block. Asserted as a literal so
+  // a key silently vanishing from English still fails loudly.
+  assert.equal(EN_SEO_KEYS.length, 36);
   for (const code of prefs.SUPPORTED_LANGUAGES) {
     const dictionary = resources.RESOURCES[code];
     assert.ok(dictionary, `missing RESOURCES entry for ${code}`);
@@ -164,12 +166,12 @@ test("seo values preserve official names in all nine languages", async () => {
 
 // --- sitemap.xml --------------------------------------------------------------
 
-test("sitemap.xml lists 81 locs with reciprocal hreflang on every url", async () => {
+test("sitemap.xml lists 72 locs with reciprocal hreflang on every url", async () => {
   const xml = await readFile(new URL("../public/sitemap.xml", import.meta.url), "utf8");
   assert.ok(xml.includes("xmlns:xhtml"), "missing xhtml namespace");
 
   const locs = [...xml.matchAll(/<loc>([^<]+)<\/loc>/g)].map((match) => match[1]);
-  assert.equal(locs.length, 81, `expected 81 locs (9 paths x 9 langs), got ${locs.length}`);
+  assert.equal(locs.length, 72, `expected 72 locs (8 paths x 9 langs), got ${locs.length}`);
   assert.equal(new Set(locs).size, locs.length, "duplicate loc values");
 
   // The loc set is exactly the 9 localized variants of each base path.
@@ -182,7 +184,7 @@ test("sitemap.xml lists 81 locs with reciprocal hreflang on every url", async ()
   assert.deepEqual([...locs].sort(), expected.sort());
 
   const blocks = xml.split(/<url>/).slice(1);
-  assert.equal(blocks.length, 81);
+  assert.equal(blocks.length, 72);
   blocks.forEach((block, index) => {
     const loc = locs[index];
     const links = [...block.matchAll(/<xhtml:link[^>]*>/g)];
@@ -348,12 +350,17 @@ test("unknown locale prefixes redirect to the bare English route", async () => {
 // --- H1/H2 localization spot-check --------------------------------------------
 
 test("key headings render localized keys, not hardcoded English", async () => {
-  const guide = await readFile(
-    new URL("../src/components/hawkbucks/AboutMissionGuide.tsx", import.meta.url),
+  const about = await readFile(
+    new URL("../src/components/pages/About.tsx", import.meta.url),
     "utf8",
   );
-  assert.ok(guide.includes("about.faqQ1"), "FAQ question key missing");
-  assert.ok(guide.includes("about.faqA1"), "FAQ answer key missing");
+  assert.ok(about.includes("about.pageTitle"), "About H1 key missing");
+  assert.ok(about.includes("about.whatTitle"), "About section heading key missing");
+  const index = await readFile(
+    new URL("../src/components/hawkbucks/about/AboutProductIndex.tsx", import.meta.url),
+    "utf8",
+  );
+  assert.ok(index.includes("about.areaTrackerDesc"), "product index description key missing");
   const missions = await readFile(
     new URL("../src/components/pages/VbucksMissions.tsx", import.meta.url),
     "utf8",

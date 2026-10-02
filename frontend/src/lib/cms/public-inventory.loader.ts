@@ -195,6 +195,13 @@ export interface PublicInventoryItem {
   kind: "weapon" | "trap";
   weaponSubtype: string | null;
   trapSubtype: string | null;
+  /**
+   * Canonical trap placement (floor/wall/ceiling). Optional because readers
+   * that resolve a schematic for other surfaces (detail, content graph) do
+   * not always join the trap record; the hub listing always fills it.
+   */
+  trapPlacement?: string | null;
+  rarity?: string | null;
   popularity: number;
   sortOrder: number;
   imageUrl: string | null;

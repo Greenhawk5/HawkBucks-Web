@@ -1,89 +1,28 @@
 import { createFileRoute, redirect } from "@tanstack/react-router";
-import { I18nProvider } from "@/i18n/context";
-import { translate } from "@/i18n/core";
-import {
-  canonicalUrlFor,
-  hreflangAlternates,
-  localizePath,
-  matchLocaleParamCaseInsensitive,
-  ogLocaleFor,
-  parseLocaleParam,
-} from "@/lib/locale-urls";
+import { matchLocaleParamCaseInsensitive, parseLocaleParam } from "@/lib/locale-urls";
 import { DEFAULT_LANGUAGE } from "@/lib/preferences";
-import { resolveLocale } from "@/i18n/config";
-import { listPublicArticles } from "@/lib/cms/public-articles.loader";
-import { articleDetailPath } from "@/lib/cms/articles";
 
+/**
+ * Legacy route: /:locale/articles → /:locale/guides, permanently (308).
+ *
+ * Parent of /:locale/articles/$slug, so it must re-attach any remaining path
+ * segments — otherwise a localized legacy detail URL would land on the hub and
+ * lose its slug. Query strings are preserved.
+ */
 export const Route = createFileRoute("/$locale/articles")({
-  beforeLoad: ({ params }) => {
+  beforeLoad: ({ location, params, search }) => {
     const raw = (params as { locale?: unknown }).locale;
-    if (parseLocaleParam(raw) !== undefined) return;
-    const corrected = matchLocaleParamCaseInsensitive(raw);
-    if (corrected !== undefined)
-      throw redirect({
-        href: corrected === DEFAULT_LANGUAGE ? "/articles" : `/${corrected}/articles`,
-      });
-    throw redirect({ href: "/articles" });
-  },
-  loader: async ({ params }) => {
-    const lang = parseLocaleParam((params as { locale?: unknown }).locale) ?? DEFAULT_LANGUAGE;
-    try {
-      const result = await listPublicArticles({ data: { locale: lang } });
-      return { ...result, lang };
-    } catch {
-      return { items: [], total: 0, lang };
+    const lang = parseLocaleParam(raw) ?? matchLocaleParamCaseInsensitive(raw);
+    const marker = `/${String(raw ?? "")}/articles`;
+    const rest = location.pathname.startsWith(marker) ? location.pathname.slice(marker.length) : "";
+    const paramsQ = new URLSearchParams();
+    for (const [k, v] of Object.entries((search ?? {}) as Record<string, unknown>)) {
+      if (v === undefined || v === null || v === "") continue;
+      paramsQ.set(k, String(v));
     }
+    const qs = paramsQ.toString() === "" ? "" : `?${paramsQ.toString()}`;
+    if (lang === undefined) throw redirect({ href: `/guides${rest}${qs}`, statusCode: 308 });
+    const base = lang === DEFAULT_LANGUAGE ? "/guides" : `/${lang}/guides`;
+    throw redirect({ href: `${base}${rest}${qs}`, statusCode: 308 });
   },
-  head: (ctx) => {
-    const param = (ctx.params as { locale?: unknown } | undefined)?.locale;
-    const lang = parseLocaleParam(param) ?? DEFAULT_LANGUAGE;
-    const self = canonicalUrlFor(localizePath("/articles", lang));
-    return {
-      meta: [
-        { title: translate("seo.articlesTitle", lang) },
-        { name: "description", content: translate("seo.articlesDescription", lang) },
-        { name: "robots", content: "index, follow" },
-        { property: "og:title", content: translate("seo.articlesTitle", lang) },
-        { property: "og:url", content: self },
-        { property: "og:locale", content: ogLocaleFor(resolveLocale(lang)) },
-      ],
-      links: [
-        { rel: "canonical", href: self },
-        ...hreflangAlternates("/articles").map(({ hreflang, href }) => ({
-          rel: "alternate",
-          hrefLang: hreflang,
-          href,
-        })),
-      ],
-    };
-  },
-  component: LocalizedArticlesListing,
 });
-
-function LocalizedArticlesListing() {
-  const data = Route.useLoaderData() as {
-    items: Array<{ slug: string; title: string }>;
-    lang: string;
-  };
-  const prefix = data.lang === "en" ? "" : `/${data.lang}`;
-  return (
-    <I18nProvider initialLanguage={data.lang as never} fixedLanguage={data.lang as never}>
-      <main className="mx-auto max-w-3xl px-4 py-10">
-        <h1 className="text-2xl font-bold">Articles</h1>
-        {data.items.length === 0 ? (
-          <p className="mt-4 text-sm">No published articles yet.</p>
-        ) : (
-          <ul className="mt-4 space-y-2 text-sm">
-            {data.items.map((item) => (
-              <li key={item.slug}>
-                <a className="underline" href={`${prefix}${articleDetailPath(item.slug)}`}>
-                  {item.title}
-                </a>
-              </li>
-            ))}
-          </ul>
-        )}
-      </main>
-    </I18nProvider>
-  );
-}

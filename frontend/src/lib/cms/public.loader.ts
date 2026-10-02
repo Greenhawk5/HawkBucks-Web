@@ -30,6 +30,15 @@ export interface PublicLoadoutItem {
   sortOrder: number;
   imageUrl: string | null;
   translationStatus: string;
+  /**
+   * Optional card-display summary. The SQL-backed hub listing fills these so
+   * a card can name its Commander, count its filled Support slots, and show
+   * its Team Perk without per-card follow-up queries. Loaders that resolve a
+   * loadout for other purposes (hero detail, related content) omit them.
+   */
+  commander?: { title: string } | null;
+  supportCount?: number;
+  teamPerkName?: string | null;
 }
 function clamp(n: number, lo: number, hi: number): number {
   return Math.max(lo, Math.min(hi, Math.floor(n)));

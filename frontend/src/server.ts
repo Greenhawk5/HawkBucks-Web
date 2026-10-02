@@ -86,6 +86,65 @@ function isH3SwallowedErrorBody(body: string): boolean {
   }
 }
 
+/**
+ * Dynamic sitemap (Content Platform): static hubs + every published entity
+ * detail URL from D1. Drafts/previews/admin/filters excluded by
+ * construction. Falls back to a hubs-only document when D1 is unavailable
+ * (local dev without bindings) so the route never 500s. Static
+ * public/sitemap.xml remains as the deploy-time fallback underneath.
+ */
+async function serveDynamicSitemap(request: Request, env: unknown): Promise<Response> {
+  const fallback = (hubs: string[]): Response => {
+    const urls = hubs.map((h) => `  <url><loc>https://hawkbucks.com${h}</loc></url>`).join("\n");
+    return new Response(
+      `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls}\n</urlset>`,
+      { status: 200, headers: { "content-type": "application/xml; charset=utf-8" } },
+    );
+  };
+  try {
+    const runtime = (
+      request as unknown as {
+        runtime?: { cloudflare?: { env?: { DB?: unknown; CMS_DB?: unknown } } };
+      }
+    ).runtime?.cloudflare?.env;
+    const rawEnv = (env ?? runtime) as
+      | {
+          DB?: {
+            prepare(q: string): {
+              bind(...v: unknown[]): {
+                all<T>(): Promise<{ results: T[] }>;
+              };
+            };
+          };
+          CMS_DB?: unknown;
+        }
+      | undefined;
+    const db = (rawEnv?.DB ?? (rawEnv as { CMS_DB?: unknown } | undefined)?.CMS_DB) as
+      | {
+          prepare(q: string): {
+            bind(...v: unknown[]): {
+              all<T>(): Promise<{ results: T[] }>;
+            };
+          };
+        }
+      | undefined;
+    if (!db || typeof db.prepare !== "function") {
+      return fallback(["/", "/heroes", "/schematics", "/loadouts", "/guides"]);
+    }
+    const { buildSitemapXml } = await import("./lib/cms/sitemap.server");
+    const xml = await buildSitemapXml(db as unknown as import("./lib/cms/db.server").D1Database);
+    return new Response(xml, {
+      status: 200,
+      headers: {
+        "content-type": "application/xml; charset=utf-8",
+        "cache-control": "public, max-age=3600",
+      },
+    });
+  } catch {
+    return fallback(["/", "/heroes", "/schematics", "/loadouts", "/guides"]);
+  }
+}
+
 export default {
   async fetch(request: Request, env: unknown, ctx: unknown) {
     // Phase 9: redirect the www host to the canonical apex domain before any
@@ -109,6 +168,9 @@ export default {
     // TanStack Start keeps that same request object in its request-scoped
     // AsyncLocalStorage, so the server-only transport resolves the binding
     // from the current request (see src/services/missions.server.ts).
+    if (requestUrl.pathname === "/sitemap.xml") {
+      return serveDynamicSitemap(request, env);
+    }
     try {
       const handler = await getServerEntry();
       const response = await handler.fetch(request, env, ctx);

@@ -8,6 +8,7 @@ import {
   TRAP_ENTITY_TYPE,
   WEAPON_ENTITY_TYPE,
   isPerkType,
+  isTrapPlacement,
   isTrapSubtype,
   isValidPerkKey,
   isValidPopularity,
@@ -18,6 +19,7 @@ import {
   normalizeTrapSubtype,
   normalizeWeaponSubtype,
 } from "./schematics";
+import { isRarity } from "./taxonomy";
 import { isContentStatus } from "./publish";
 import { isCmsContentLocale } from "./heroes";
 import {
@@ -37,6 +39,7 @@ function newId(p: string): string {
 export interface WeaponRecordRow extends D1Row {
   content_id: string;
   weapon_subtype: string;
+  rarity: string | null;
   popularity: number;
   sort_order: number;
   icon_asset_id: string | null;
@@ -46,6 +49,8 @@ export interface WeaponRecordRow extends D1Row {
 export interface TrapRecordRow extends D1Row {
   content_id: string;
   trap_subtype: string;
+  trap_placement: string | null;
+  rarity: string | null;
   popularity: number;
   sort_order: number;
   icon_asset_id: string | null;
@@ -122,41 +127,65 @@ async function assertPerkContent(db: D1Database, contentId: string): Promise<Con
 }
 export interface WeaponInput {
   weaponSubtype?: string;
+  rarity?: string | null;
   popularity?: number;
   sortOrder?: number;
   iconAssetId?: string | null;
 }
 function validateWeaponInput(i: WeaponInput): {
   weaponSubtype: string;
+  rarity: string | null;
   popularity: number;
   sortOrder: number;
 } {
   const subtype = normalizeWeaponSubtype(i.weaponSubtype ?? "other");
   if (!subtype) throw new Error("Invalid weapon_subtype.");
+  let rarity: string | null = null;
+  if (i.rarity !== undefined && i.rarity !== null && i.rarity !== "") {
+    const r = String(i.rarity).trim().toLowerCase();
+    if (!isRarity(r)) throw new Error("Invalid rarity.");
+    rarity = r;
+  }
   const popularity = i.popularity ?? 0;
   const sortOrder = i.sortOrder ?? 0;
   if (!isValidPopularity(popularity)) throw new Error("Invalid popularity.");
   if (!isValidSortOrder(sortOrder)) throw new Error("Invalid sort_order.");
-  return { weaponSubtype: subtype, popularity, sortOrder };
+  return { weaponSubtype: subtype, rarity, popularity, sortOrder };
 }
 export interface TrapInput {
   trapSubtype?: string;
+  trapPlacement?: string | null;
+  rarity?: string | null;
   popularity?: number;
   sortOrder?: number;
   iconAssetId?: string | null;
 }
 function validateTrapInput(i: TrapInput): {
   trapSubtype: string;
+  trapPlacement: string | null;
+  rarity: string | null;
   popularity: number;
   sortOrder: number;
 } {
   const subtype = normalizeTrapSubtype(i.trapSubtype ?? "other");
   if (!subtype) throw new Error("Invalid trap_subtype.");
+  let placement: string | null = null;
+  if (i.trapPlacement !== undefined && i.trapPlacement !== null && i.trapPlacement !== "") {
+    const p = String(i.trapPlacement).trim().toLowerCase();
+    if (!isTrapPlacement(p)) throw new Error("Invalid trap_placement.");
+    placement = p;
+  }
+  let rarity: string | null = null;
+  if (i.rarity !== undefined && i.rarity !== null && i.rarity !== "") {
+    const r = String(i.rarity).trim().toLowerCase();
+    if (!isRarity(r)) throw new Error("Invalid rarity.");
+    rarity = r;
+  }
   const popularity = i.popularity ?? 0;
   const sortOrder = i.sortOrder ?? 0;
   if (!isValidPopularity(popularity)) throw new Error("Invalid popularity.");
   if (!isValidSortOrder(sortOrder)) throw new Error("Invalid sort_order.");
-  return { trapSubtype: subtype, popularity, sortOrder };
+  return { trapSubtype: subtype, trapPlacement: placement, rarity, popularity, sortOrder };
 }
 export interface PerkInput {
   perkKey: string;
@@ -212,10 +241,19 @@ export async function createWeaponRecord(
   await db
     .prepare(
       `INSERT INTO weapon_records
-        (content_id, weapon_subtype, popularity, sort_order, icon_asset_id, created_at, updated_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?)`,
+        (content_id, weapon_subtype, rarity, popularity, sort_order, icon_asset_id, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
     )
-    .bind(base.id, v.weaponSubtype, v.popularity, v.sortOrder, input.iconAssetId ?? null, now, now)
+    .bind(
+      base.id,
+      v.weaponSubtype,
+      v.rarity,
+      v.popularity,
+      v.sortOrder,
+      input.iconAssetId ?? null,
+      now,
+      now,
+    )
     .run();
   await recordAuditEvent(
     db,
@@ -249,6 +287,13 @@ export async function updateWeaponRecord(
   await assertWeaponContent(db, contentId);
   const current = await getWeaponRecord(db, contentId);
   if (!current) throw new Error("Weapon not found.");
+  const nextRarity =
+    input.rarity !== undefined
+      ? input.rarity === null || input.rarity === ""
+        ? null
+        : String(input.rarity).trim().toLowerCase()
+      : ((current.rarity as string | null) ?? null);
+  if (nextRarity !== null && !isRarity(nextRarity)) throw new Error("Invalid rarity.");
   const next = {
     weaponSubtype:
       input.weaponSubtype !== undefined
@@ -266,10 +311,18 @@ export async function updateWeaponRecord(
   const now = utcNow();
   await db
     .prepare(
-      `UPDATE weapon_records SET weapon_subtype = ?, popularity = ?,
+      `UPDATE weapon_records SET weapon_subtype = ?, rarity = ?, popularity = ?,
         sort_order = ?, icon_asset_id = ?, updated_at = ? WHERE content_id = ?`,
     )
-    .bind(next.weaponSubtype, next.popularity, next.sortOrder, next.iconAssetId, now, contentId)
+    .bind(
+      next.weaponSubtype,
+      nextRarity,
+      next.popularity,
+      next.sortOrder,
+      next.iconAssetId,
+      now,
+      contentId,
+    )
     .run();
   await recordAuditEvent(
     db,
@@ -298,10 +351,20 @@ export async function createTrapRecord(
   await db
     .prepare(
       `INSERT INTO trap_records
-        (content_id, trap_subtype, popularity, sort_order, icon_asset_id, created_at, updated_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?)`,
+        (content_id, trap_subtype, trap_placement, rarity, popularity, sort_order, icon_asset_id, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     )
-    .bind(base.id, v.trapSubtype, v.popularity, v.sortOrder, input.iconAssetId ?? null, now, now)
+    .bind(
+      base.id,
+      v.trapSubtype,
+      v.trapPlacement,
+      v.rarity,
+      v.popularity,
+      v.sortOrder,
+      input.iconAssetId ?? null,
+      now,
+      now,
+    )
     .run();
   await recordAuditEvent(
     db,
@@ -335,6 +398,21 @@ export async function updateTrapRecord(
   await assertTrapContent(db, contentId);
   const current = await getTrapRecord(db, contentId);
   if (!current) throw new Error("Trap not found.");
+  const nextPlacement =
+    input.trapPlacement !== undefined
+      ? input.trapPlacement === null || input.trapPlacement === ""
+        ? null
+        : String(input.trapPlacement).trim().toLowerCase()
+      : ((current.trap_placement as string | null) ?? null);
+  if (nextPlacement !== null && !isTrapPlacement(nextPlacement))
+    throw new Error("Invalid trap_placement.");
+  const nextRarity =
+    input.rarity !== undefined
+      ? input.rarity === null || input.rarity === ""
+        ? null
+        : String(input.rarity).trim().toLowerCase()
+      : ((current.rarity as string | null) ?? null);
+  if (nextRarity !== null && !isRarity(nextRarity)) throw new Error("Invalid rarity.");
   const next = {
     trapSubtype:
       input.trapSubtype !== undefined
@@ -352,10 +430,19 @@ export async function updateTrapRecord(
   const now = utcNow();
   await db
     .prepare(
-      `UPDATE trap_records SET trap_subtype = ?, popularity = ?,
+      `UPDATE trap_records SET trap_subtype = ?, trap_placement = ?, rarity = ?, popularity = ?,
         sort_order = ?, icon_asset_id = ?, updated_at = ? WHERE content_id = ?`,
     )
-    .bind(next.trapSubtype, next.popularity, next.sortOrder, next.iconAssetId, now, contentId)
+    .bind(
+      next.trapSubtype,
+      nextPlacement,
+      nextRarity,
+      next.popularity,
+      next.sortOrder,
+      next.iconAssetId,
+      now,
+      contentId,
+    )
     .run();
   await recordAuditEvent(
     db,
@@ -1078,7 +1165,13 @@ export async function getPublishedWeaponBySlug(
 }
 export async function listPublishedWeapons(
   db: D1Database,
-  input: { locale: string; weaponSubtype?: string; limit?: number; offset?: number },
+  input: {
+    locale: string;
+    weaponSubtype?: string;
+    rarity?: string;
+    limit?: number;
+    offset?: number;
+  },
 ): Promise<
   Array<{
     content: ContentRow;
@@ -1090,11 +1183,16 @@ export async function listPublishedWeapons(
   const offset = Math.max(0, Math.floor(input.offset ?? 0));
   if (input.weaponSubtype !== undefined && !isWeaponSubtype(input.weaponSubtype))
     throw new Error("Invalid weapon_subtype.");
+  if (input.rarity !== undefined && !isRarity(input.rarity)) throw new Error("Invalid rarity.");
   const clauses = ["c.entity_type = 'weapon'", "c.status = 'published'"];
   const values: unknown[] = [];
   if (input.weaponSubtype !== undefined) {
     clauses.push("w.weapon_subtype = ?");
     values.push(input.weaponSubtype);
+  }
+  if (input.rarity !== undefined) {
+    clauses.push("w.rarity = ?");
+    values.push(input.rarity);
   }
   const { results } = await db
     .prepare(
@@ -1136,7 +1234,14 @@ export async function getPublishedTrapBySlug(
 }
 export async function listPublishedTraps(
   db: D1Database,
-  input: { locale: string; trapSubtype?: string; limit?: number; offset?: number },
+  input: {
+    locale: string;
+    trapSubtype?: string;
+    trapPlacement?: string;
+    rarity?: string;
+    limit?: number;
+    offset?: number;
+  },
 ): Promise<
   Array<{
     content: ContentRow;
@@ -1148,11 +1253,22 @@ export async function listPublishedTraps(
   const offset = Math.max(0, Math.floor(input.offset ?? 0));
   if (input.trapSubtype !== undefined && !isTrapSubtype(input.trapSubtype))
     throw new Error("Invalid trap_subtype.");
+  if (input.trapPlacement !== undefined && !isTrapPlacement(input.trapPlacement))
+    throw new Error("Invalid trap_placement.");
+  if (input.rarity !== undefined && !isRarity(input.rarity)) throw new Error("Invalid rarity.");
   const clauses = ["c.entity_type = 'trap'", "c.status = 'published'"];
   const values: unknown[] = [];
   if (input.trapSubtype !== undefined) {
     clauses.push("t2.trap_subtype = ?");
     values.push(input.trapSubtype);
+  }
+  if (input.trapPlacement !== undefined) {
+    clauses.push("t2.trap_placement = ?");
+    values.push(input.trapPlacement);
+  }
+  if (input.rarity !== undefined) {
+    clauses.push("t2.rarity = ?");
+    values.push(input.rarity);
   }
   const { results } = await db
     .prepare(

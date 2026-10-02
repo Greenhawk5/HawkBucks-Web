@@ -19,7 +19,7 @@ test("inventory loaders published-only, no secret leakage", async () => {
     "utf8",
   );
   assert.ok(server.includes('status !== "published"'), "member status re-check");
-  for (const f of ["components/cms/InventoryCard.tsx", "components/cms/InventoryPage.tsx"]) {
+  for (const f of ["components/cms/SchematicCard.tsx", "components/cms/SchematicsPage.tsx"]) {
     const src = await readFile(new URL(`../src/${f}`, import.meta.url), "utf8");
     assert.equal(
       /from ["']@\/lib\/cms\/db\.server|heroes-loadouts\.server|schematics-inventory\.server/.test(
@@ -28,11 +28,15 @@ test("inventory loaders published-only, no secret leakage", async () => {
       false,
       f,
     );
-    assert.equal(/delivery_url|provider_asset|privateKey/i.test(src), false, f);
+    assert.equal(/provider_asset|privateKey/i.test(src), false, f);
+    // The hub may only read `delivery_url` off the server row it maps into
+    // `imageUrl`; it must never build a media URL from provider internals.
+    const mapped = src.replace(/imageUrl:\s*r\.delivery_url,?/g, "");
+    assert.equal(/delivery_url/.test(mapped), false, f);
   }
 });
 
-test("inventory routes exist with canonical hreflang and locale redirects", async () => {
+test("legacy inventory routes permanently redirect to canonical schematics", async () => {
   const files = [
     "routes/inventory.tsx",
     "routes/inventory.$slug.tsx",
@@ -42,35 +46,46 @@ test("inventory routes exist with canonical hreflang and locale redirects", asyn
   for (const f of files) {
     const src = await readFile(new URL(`../src/${f}`, import.meta.url), "utf8");
     assert.ok(src.includes("createFileRoute"), f);
-    assert.ok(src.includes("canonical") && src.includes("hreflang"), f);
   }
-  for (const f of ["routes/$locale.inventory.tsx", "routes/$locale.inventory.$slug.tsx"]) {
+  for (const f of [
+    "routes/inventory.tsx",
+    "routes/inventory.$slug.tsx",
+    "routes/$locale.inventory.tsx",
+    "routes/$locale.inventory.$slug.tsx",
+  ]) {
     const src = await readFile(new URL(`../src/${f}`, import.meta.url), "utf8");
     assert.ok(src.includes("throw redirect"), f);
+    assert.ok(src.includes("/schematics"), f);
   }
   const card = await readFile(
-    new URL("../src/components/cms/InventoryCard.tsx", import.meta.url),
+    new URL("../src/components/cms/SchematicCard.tsx", import.meta.url),
     "utf8",
   );
-  assert.ok(card.includes("inventoryDetailHref") && card.includes("<Link"));
+  assert.ok(card.includes("schematicDetailHref") && card.includes("<Link"));
   assert.ok(card.includes("alt={item.title}"));
+  // Cards link to the canonical /schematics detail path, never /inventory.
+  assert.ok(card.includes("/schematics/"));
+  assert.equal(card.includes("/inventory/"), false);
   const detail = await readFile(
     new URL("../src/components/cms/SchematicDetail.tsx", import.meta.url),
     "utf8",
   );
   assert.ok(detail.includes("perk-slot") || detail.includes("perksLabel"));
-  assert.ok(detail.includes("backToInventory"));
-  assert.equal(/damage|rarity|reload|durability|headshot/i.test(detail), false);
+  // The reader-facing back link follows the Schematics IA, never "Inventory".
+  assert.ok(detail.includes("backToSchematics"));
+  // Rarity is a real CMS editorial field now; fabricated combat stats are not.
+  assert.equal(/damage|reload|durability|headshot|aggregateRating/i.test(detail), false);
   const sitemap = await readFile(new URL("../public/sitemap.xml", import.meta.url), "utf8");
-  assert.ok(sitemap.includes("https://hawkbucks.com/inventory"));
-  assert.ok(sitemap.includes("https://hawkbucks.com/fa-IR/inventory"));
-  assert.equal(sitemap.includes("/en/inventory"), false);
+  assert.ok(sitemap.includes("https://hawkbucks.com/schematics"));
+  assert.ok(sitemap.includes("https://hawkbucks.com/fa-IR/schematics"));
+  assert.equal(sitemap.includes("/en/schematics"), false);
+  assert.equal(sitemap.includes("/inventory"), false);
 });
 
 test("inventory detail hreflang only complete translations advertised", async () => {
-  for (const f of ["routes/inventory.$slug.tsx", "routes/$locale.inventory.$slug.tsx"]) {
+  for (const f of ["routes/schematics.$slug.tsx", "routes/$locale.schematics.$slug.tsx"]) {
     const src = await readFile(new URL(`../src/${f}`, import.meta.url), "utf8");
-    assert.ok(src.includes("entityHreflangAlternates"), f);
+    assert.ok(src.includes("entityHreflangAlternates") || src.includes("buildDetailHead"), f);
     assert.ok(src.includes("completeLocales") && src.includes("slugsByLocale"), f);
   }
   const src = await readFile(

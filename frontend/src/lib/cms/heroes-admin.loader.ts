@@ -27,6 +27,7 @@ export interface HeroAdminItem {
   status: string;
   heroClass: string;
   category: string | null;
+  rarity: string | null;
   popularity: number;
   sortOrder: number;
   defaultLocale: string;
@@ -101,6 +102,7 @@ export const listAdminHeroes = createServerFn({ method: "GET" })
         status: c.status,
         heroClass: r.hero_class,
         category: r.category,
+        rarity: (r.rarity as string | null) ?? null,
         popularity: r.popularity,
         sortOrder: r.sort_order,
         defaultLocale: c.default_locale,
@@ -144,6 +146,7 @@ export const getAdminHero = createServerFn({ method: "GET" })
       status: c.status,
       heroClass: record.hero_class,
       category: record.category,
+      rarity: (record.rarity as string | null) ?? null,
       popularity: record.popularity,
       sortOrder: record.sort_order,
       defaultLocale: c.default_locale,
@@ -184,6 +187,7 @@ export const createAdminHero = createServerFn({ method: "POST" })
     (i: {
       heroClass: string;
       category?: string | null;
+      rarity?: string | null;
       popularity?: number;
       sortOrder?: number;
       title: string;
@@ -193,6 +197,7 @@ export const createAdminHero = createServerFn({ method: "POST" })
     }) => ({
       heroClass: requireNonEmptyString(i.heroClass, "heroClass"),
       category: asOptionalStringOrNull(i.category),
+      rarity: asOptionalStringOrNull(i.rarity),
       popularity: asOptionalNumber(i.popularity),
       sortOrder: asOptionalNumber(i.sortOrder),
       title: requireTitle(i.title),
@@ -218,6 +223,7 @@ export const createAdminHero = createServerFn({ method: "POST" })
         {
           heroClass: data.heroClass,
           category: data.category ?? null,
+          rarity: data.rarity ?? null,
           popularity: data.popularity ?? 0,
           sortOrder: data.sortOrder ?? 0,
         },
@@ -247,6 +253,7 @@ export const updateAdminHero = createServerFn({ method: "POST" })
       contentId: string;
       heroClass?: string;
       category?: string | null;
+      rarity?: string | null;
       popularity?: number;
       sortOrder?: number;
       portraitAssetId?: string | null;
@@ -256,6 +263,7 @@ export const updateAdminHero = createServerFn({ method: "POST" })
         contentId: requireContentId(i.contentId),
         heroClass: asOptionalString(i.heroClass),
         category: asOptionalStringOrNull(i.category),
+        rarity: asOptionalStringOrNull(i.rarity),
         popularity: asOptionalNumber(i.popularity),
         sortOrder: asOptionalNumber(i.sortOrder),
         portraitAssetId: asOptionalStringOrNull(i.portraitAssetId),

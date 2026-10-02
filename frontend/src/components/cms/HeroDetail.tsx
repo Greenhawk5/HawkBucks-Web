@@ -2,8 +2,11 @@ import * as React from "react";
 import { Link } from "@tanstack/react-router";
 import { getPublicStrings, heroClassLabel } from "@/lib/cms/public-strings";
 import type { PublicHeroDetail } from "@/lib/cms/public-hero-detail.loader";
+import { getHeroGraph } from "@/lib/cms/content-graph.server";
 import { heroDetailHref } from "./HeroCard";
 import { loadoutDetailHref } from "./LoadoutCard";
+import { ContentGraph } from "./ContentGraphClient";
+import { RarityBadge } from "./RarityBadge";
 import { RelatedGuides } from "./RelatedGuides";
 
 export function HeroDetail({
@@ -22,6 +25,9 @@ export function HeroDetail({
         ← {s.backToHeroes}
       </Link>
       <h1 className="mt-3 font-display text-3xl font-extrabold">{hero.title}</h1>
+      <div className="mt-2 flex flex-wrap items-center gap-2">
+        <RarityBadge rarity={(hero as { rarity?: string | null }).rarity} />
+      </div>
       <p className="mt-1 text-xs uppercase tracking-wider text-muted-foreground">
         {s.classNameLabel}: {heroClassLabel(locale, hero.heroClass)}
         {hero.category ? ` · ${s.categoryLabel}: ${hero.category}` : ""}
@@ -63,6 +69,13 @@ export function HeroDetail({
         </section>
       ) : null}
       <RelatedGuides entityContentId={hero.contentId} locale={locale} />
+      <ContentGraph
+        load={getHeroGraph}
+        contentId={hero.contentId}
+        locale={locale}
+        title="Related loadouts & guides"
+        testId="hero-content-graph"
+      />
       <p className="mt-8 text-xs text-muted-foreground">{heroDetailHref(locale, hero.slug)}</p>
     </main>
   );

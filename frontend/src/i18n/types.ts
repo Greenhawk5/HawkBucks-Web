@@ -21,8 +21,17 @@ export interface TranslationDictionary {
   navigation: {
     home: string;
     vbucksMissions: string;
+    missionsBasics: string;
     guide: string;
+    heroes: string;
+    schematics: string;
+    loadouts: string;
+    guides: string;
     about: string;
+    /** Sidebar group heading above the content hubs. */
+    explore: string;
+    /** Sidebar group heading above the About entry. */
+    aboutGroup: string;
     navigate: string;
     checkTodaysMissions: string;
   };
@@ -106,57 +115,72 @@ export interface TranslationDictionary {
     empty: string;
     credit: string;
   };
+  /**
+   * About HawkBucks. The page explains the project itself (identity, product
+   * areas, philosophy, data approach, localization, independence, credits) —
+   * deliberately NOT Save the World mission mechanics, which belong to the
+   * V-Bucks Mission Basics page.
+   */
   about: {
-    heroTitle: string;
-    heroSubtitle: string;
-    heroDesc: string;
-    pipelineEyebrow: string;
-    pipelineTitle: string;
-    step1Tag: string;
-    step1Title: string;
-    step1Detail: string;
-    step2Tag: string;
-    step2Title: string;
-    step2Detail: string;
-    step3Tag: string;
-    step3Title: string;
-    step3Detail: string;
-    step4Tag: string;
-    step4Title: string;
-    step4Detail: string;
-    featuresEyebrow: string;
-    featuresTitle: string;
-    feature1Title: string;
-    feature1Detail: string;
-    feature2Title: string;
-    feature2Detail: string;
-    feature3Title: string;
-    feature3Detail: string;
-    feature4Title: string;
-    feature4Detail: string;
-    guideEyebrow: string;
-    guideTitle: string;
-    guideDesc: string;
-    guideCard1Title: string;
-    guideCard1Desc: string;
-    guideCard2Title: string;
-    guideCard2Desc: string;
-    guideCard3Title: string;
-    guideCard3Desc: string;
-    faqTitle: string;
-    faqDesc: string;
-    faqQ1: string;
-    faqA1: string;
-    faqQ2: string;
-    faqA2: string;
-    faqQ3: string;
-    faqA3: string;
-    faqQ4: string;
-    faqA4: string;
-    faqQ5: string;
-    faqA5: string;
+    kicker: string;
+    pageTitle: string;
+    lede: string;
+    glanceTypeLabel: string;
+    glanceTypeValue: string;
+    glanceStackLabel: string;
+    glanceStackValue: string;
+    glanceLangLabel: string;
+    glanceLangValue: string;
+    whatTitle: string;
+    whatBody1: string;
+    whatBody2: string;
+    whatStatement: string;
+    productTitle: string;
+    productIntro: string;
+    areaTrackerRole: string;
+    areaTrackerDesc: string;
+    areaBasicsRole: string;
+    areaBasicsDesc: string;
+    areaHeroesRole: string;
+    areaHeroesDesc: string;
+    areaSchematicsRole: string;
+    areaSchematicsDesc: string;
+    areaLoadoutsRole: string;
+    areaLoadoutsDesc: string;
+    areaGuidesRole: string;
+    areaGuidesDesc: string;
+    areaLinkLabel: string;
+    philosophyTitle: string;
+    philosophyIntro: string;
+    principleNav: string;
+    principleSearch: string;
+    principleStructured: string;
+    principleFilter: string;
+    principleReadable: string;
+    principleRelated: string;
+    principleLocalized: string;
+    principleFast: string;
+    philosophyClose: string;
+    platformTitle: string;
+    platformBody1: string;
+    platformBody2: string;
+    platformBody3: string;
+    localeTitle: string;
+    localeIntro: string;
+    localeNote: string;
+    localeRtlNote: string;
+    independenceTitle: string;
+    independenceBody: string;
+    notTitle: string;
+    not1: string;
+    not2: string;
+    not3: string;
+    not4: string;
+    not5: string;
+    notNote: string;
     creditsTitle: string;
     creditsDesc: string;
+    creditsPortfolio: string;
   };
   guide: {
     eyebrow: string;
@@ -178,14 +202,6 @@ export interface TranslationDictionary {
     // What are V-Bucks missions
     whatTitle: string;
     whatBody: string;
-    flowTitle: string;
-    flowIntro: string;
-    flowStep1: string;
-    flowStep2: string;
-    flowStep3: string;
-    flowStep4: string;
-    flowStep5: string;
-    flowStep6: string;
     // How to find one
     findTitle: string;
     findIntro: string;
@@ -364,8 +380,10 @@ export interface TranslationDictionary {
     loadoutsDescription: string;
     loadoutsOgTitle: string;
     loadoutsOgDescription: string;
-    articlesTitle: string;
-    articlesDescription: string;
+    schematicsTitle: string;
+    schematicsDescription: string;
+    schematicsOgTitle: string;
+    schematicsOgDescription: string;
     guidesTitle: string;
     guidesDescription: string;
   };

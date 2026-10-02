@@ -2,7 +2,7 @@ import { Link, useLocation } from "@tanstack/react-router";
 import { useI18n } from "@/i18n";
 import type { TranslationKey } from "@/i18n/types";
 import { ASSETS } from "@/lib/assets";
-import { localizedNavTo } from "@/lib/navigation";
+import { localizedNavTo, type NavTo } from "@/lib/navigation";
 
 const connect = [
   {
@@ -19,14 +19,34 @@ const connect = [
 
 const stack = ["React", "Tailwind CSS", "Cloudflare Workers", "Cloudflare Pages", "Epic Games API"];
 
-const nav: ReadonlyArray<{
-  to: "/" | "/vbucks-missions" | "/missions-guide" | "/about";
+/**
+ * Footer navigation mirrors the sidebar's grouping so the two never disagree
+ * about the site's information architecture. "Home" deliberately lives in the
+ * brand column (via the logo) rather than here, which keeps the Explore column
+ * focused on destinations.
+ */
+const navGroups: ReadonlyArray<{
   labelKey: TranslationKey;
+  items: ReadonlyArray<{ to: NavTo; labelKey: TranslationKey }>;
 }> = [
-  { to: "/", labelKey: "navigation.home" },
-  { to: "/vbucks-missions", labelKey: "navigation.vbucksMissions" },
-  { to: "/missions-guide", labelKey: "navigation.guide" },
-  { to: "/about", labelKey: "navigation.about" },
+  {
+    labelKey: "navigation.explore",
+    items: [
+      { to: "/vbucks-missions", labelKey: "navigation.vbucksMissions" },
+      { to: "/missions-guide", labelKey: "navigation.missionsBasics" },
+      { to: "/heroes", labelKey: "navigation.heroes" },
+      { to: "/schematics", labelKey: "navigation.schematics" },
+      { to: "/loadouts", labelKey: "navigation.loadouts" },
+      { to: "/guides", labelKey: "navigation.guides" },
+    ],
+  },
+  {
+    labelKey: "navigation.aboutGroup",
+    items: [
+      { to: "/", labelKey: "navigation.home" },
+      { to: "/about", labelKey: "navigation.about" },
+    ],
+  },
 ];
 
 const APP_VERSION = "v1.2.0";
@@ -46,7 +66,7 @@ export function Footer() {
   return (
     <footer className="mt-16 border-t border-border/60 bg-background/40 backdrop-blur-xl">
       <div className="mx-auto max-w-[1100px] px-4 py-14 sm:px-6">
-        <div className="grid gap-10 sm:grid-cols-2 lg:grid-cols-[1.6fr_1fr_1fr_1.2fr] lg:gap-12">
+        <div className="grid gap-x-8 gap-y-10 sm:grid-cols-2 lg:grid-cols-[minmax(16rem,1.4fr)_minmax(max-content,1fr)_minmax(max-content,.8fr)_minmax(6rem,.55fr)_minmax(14rem,1fr)] lg:gap-x-8">
           <div>
             <div className="flex items-center gap-3">
               <img
@@ -63,22 +83,29 @@ export function Footer() {
             </p>
           </div>
 
-          <nav aria-label={t("footer.navigate")}>
-            <ColTitle>{t("footer.navigate")}</ColTitle>
-            <ul className="mt-2 space-y-1">
-              {nav.map((l) => (
-                <li key={l.to}>
-                  <Link
-                    to={localizedNavTo(l.to, pathname, currentLanguage)}
-                    activeOptions={{ exact: l.to === "/" }}
-                    className="relative inline-flex items-center text-sm text-muted-foreground transition-colors after:absolute after:content-[''] after:-inset-x-2 after:-inset-y-[14px] hover:text-primary data-[status=active]:text-primary"
-                  >
-                    {t(l.labelKey)}
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </nav>
+          {/* Grouped footer nav (Explore / About). One outer grid cell holds
+              both groups so the footer's 4-track layout is unchanged; the two
+              lists sit side by side and stack on the narrowest viewports. */}
+          <div className="contents">
+            {navGroups.map((group) => (
+              <nav key={group.labelKey} aria-label={t(group.labelKey)}>
+                <ColTitle>{t(group.labelKey)}</ColTitle>
+                <ul className="mt-2 space-y-1">
+                  {group.items.map((l) => (
+                    <li key={l.to}>
+                      <Link
+                        to={localizedNavTo(l.to, pathname, currentLanguage)}
+                        activeOptions={{ exact: l.to === "/" }}
+                        className="relative inline-flex items-center whitespace-nowrap text-sm text-muted-foreground transition-colors after:absolute after:content-[''] after:-inset-x-2 after:-inset-y-[14px] hover:text-primary data-[status=active]:text-primary"
+                      >
+                        {t(l.labelKey)}
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              </nav>
+            ))}
+          </div>
 
           <div>
             <ColTitle>{t("footer.connect")}</ColTitle>

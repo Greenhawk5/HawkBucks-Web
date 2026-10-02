@@ -5,6 +5,7 @@ import { getAdminSession } from "@/lib/cms/admin.loader";
 import {
   getAdminLoadout,
   setAdminLoadoutHeroes,
+  setAdminLoadoutTeamPerk,
   updateAdminLoadout,
 } from "@/lib/cms/loadouts-admin.loader";
 import {
@@ -178,6 +179,12 @@ function LoadoutEditor() {
       <RosterForm
         loadout={loadout}
         heroOptions={heroOptions}
+        disabled={!canWrite}
+        run={editor.run}
+        pending={editor.pending}
+      />
+      <TeamPerkForm
+        loadout={loadout}
         disabled={!canWrite}
         run={editor.run}
         pending={editor.pending}
@@ -370,6 +377,55 @@ function RosterForm(props: {
           )}
         </ul>
       </details>
+    </CmsFormSection>
+  );
+}
+
+function TeamPerkForm(props: {
+  loadout: LoadoutDetail;
+  disabled: boolean;
+  pending: boolean;
+  run: (action: () => Promise<string>) => Promise<boolean>;
+}) {
+  const loadout = props.loadout;
+  const [teamPerkId, setTeamPerkId] = useState(loadout.teamPerkContentId ?? "");
+  return (
+    <CmsFormSection
+      title="Team Perk"
+      description="One published perk grants its bonus to the whole team. Empty = no team perk."
+      action={
+        <button
+          type="button"
+          className="cc-btn cc-btn-primary cc-btn-sm"
+          disabled={props.disabled || props.pending}
+          onClick={() =>
+            props.run(async () => {
+              await setAdminLoadoutTeamPerk({
+                data: {
+                  contentId: loadout.contentId,
+                  teamPerkContentId: teamPerkId.trim() === "" ? null : teamPerkId.trim(),
+                },
+              });
+              return "Team perk saved.";
+            })
+          }
+        >
+          {props.pending ? "Saving…" : "Save team perk"}
+        </button>
+      }
+    >
+      <CmsField
+        label="Team perk content id"
+        description={`Current: ${loadout.teamPerkTitle ?? loadout.teamPerkContentId ?? "none"}. Use a published perk content id (cms_…).`}
+      >
+        <input
+          className="cc-input font-mono"
+          value={teamPerkId}
+          placeholder="(none)"
+          onChange={(e) => setTeamPerkId(e.target.value)}
+          disabled={props.disabled}
+        />
+      </CmsField>
     </CmsFormSection>
   );
 }

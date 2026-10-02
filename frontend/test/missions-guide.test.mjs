@@ -90,20 +90,60 @@ test("guide FAQ renders all ten questions exactly once with an expand affordance
   assert.doesNotMatch(faq, /\^/);
 });
 
-test("mission-flow steps render all six labels with a responsive rail", async () => {
-  const flow = await file("../src/components/hawkbucks/guide/GuideMissionFlow.tsx");
-  // All six step labels must survive the redesign.
+test("the duplicated reward-path flow is gone and the find steps stay", async () => {
+  // The old "How a V-Bucks reward reaches you" six-box rail restated the same
+  // Fortnite → World Map → Mission Alert path as the finding steps, and its
+  // step details literally reused guide.whatBody / guide.findStep*. It is
+  // removed; the reward path is explained once, in the definition.
+  await assert.rejects(
+    readFile(new URL("../src/components/hawkbucks/guide/GuideMissionFlow.tsx", import.meta.url), "utf8"),
+    /ENOENT/,
+    "GuideMissionFlow must no longer exist",
+  );
+
+  const page = await file("../src/components/pages/Guide.tsx");
+  assert.doesNotMatch(page, /GuideMissionFlow/);
   for (let i = 1; i <= 6; i++) {
-    assert.ok(flow.includes(`guide.flowStep${i}`), `flow step ${i} missing`);
+    assert.doesNotMatch(page, new RegExp(`guide\\.flowStep${i}`), `flow step ${i} still referenced`);
   }
-  // Stacked cells must not force uppercase (the cramped look came from
-  // uppercase + tracking on long labels) and must not clip text.
-  assert.doesNotMatch(flow, /uppercase/);
-  assert.doesNotMatch(flow, /truncate|overflow-hidden|whitespace-nowrap/);
-  // Mobile pattern: a horizontal snap rail; desktop connects steps in a row.
-  assert.match(flow, /snap-x/);
-  assert.match(flow, /overflow-x-auto/);
-  assert.match(flow, /ChevronRight/);
+
+  const { RESOURCES } = await import("../src/i18n/resources/index.ts");
+  for (const [lang, dict] of Object.entries(RESOURCES)) {
+    const flowKeys = Object.keys(dict.guide).filter((k) => k.startsWith("flow"));
+    assert.deepEqual(flowKeys, [], `${lang} still defines flow keys: ${flowKeys.join(", ")}`);
+  }
+
+  // The finding workflow is still present and still a full sequence.
+  for (let i = 1; i <= 6; i++) {
+    assert.match(page, new RegExp(`guide\\.findStep${i}`), `find step ${i} missing`);
+  }
+  // Findings render as one semantic ordered list, not six equal-weight cards.
+  assert.match(page, /<ol/);
+  assert.doesNotMatch(page, /glass-panel flex items-start gap-3 rounded-xl p-4 text-sm leading-6/);
+  // Verification stays a distinct, separate piece of content.
+  assert.match(page, /guide\.findNoteTitle/);
+  assert.match(page, /guide\.findNote/);
+});
+
+test("finding section is action-oriented and does not restate the definition", async () => {
+  const { RESOURCES } = await import("../src/i18n/resources/index.ts");
+  for (const [lang, dict] of Object.entries(RESOURCES)) {
+    const g = dict.guide;
+    // The definition defines; it must not narrate the whole find workflow.
+    assert.ok(
+      !/how to find|find a v-bucks mission/i.test(g.whatBody),
+      `${lang} whatBody re-explains how to find a mission`,
+    );
+    // The verification note must not repeat the workflow opening.
+    assert.ok(
+      !/world map/i.test(g.findNote),
+      `${lang} findNote repeats the World Map workflow`,
+    );
+    // Steps must read as actions.
+    for (let i = 1; i <= 6; i++) {
+      assert.ok(g[`findStep${i}`].length > 0, `${lang} findStep${i} is empty`);
+    }
+  }
 });
 
 test("guide interactive components are accessible and reuse shared data", async () => {
@@ -113,10 +153,6 @@ test("guide interactive components are accessible and reuse shared data", async 
   assert.match(eligibility, /aria-pressed/);
   assert.match(eligibility, /guide\.eligibilityYes/);
   assert.match(eligibility, /guide\.eligibilityNo/);
-
-  const flow = await file("../src/components/hawkbucks/guide/GuideMissionFlow.tsx");
-  assert.match(flow, /aria-expanded/);
-  assert.match(flow, /aria-controls/);
 
   const rotation = await file("../src/components/hawkbucks/guide/GuideRotationCard.tsx");
   // Reuses the tracker's query + countdown; never a new feed.
@@ -196,14 +232,6 @@ test("guide i18n resources are complete with protected terminology", async () =>
     "eligibilityF2pNote",
     "whatTitle",
     "whatBody",
-    "flowTitle",
-    "flowIntro",
-    "flowStep1",
-    "flowStep2",
-    "flowStep3",
-    "flowStep4",
-    "flowStep5",
-    "flowStep6",
     "findTitle",
     "findIntro",
     "findStep1",

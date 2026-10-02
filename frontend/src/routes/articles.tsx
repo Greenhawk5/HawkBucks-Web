@@ -1,59 +1,24 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { translate } from "@/i18n/core";
-import { canonicalUrlFor, hreflangAlternates, ogLocaleFor } from "@/lib/locale-urls";
-import { resolveLocale } from "@/i18n/config";
-import { listPublicArticles } from "@/lib/cms/public-articles.loader";
+import { createFileRoute, redirect } from "@tanstack/react-router";
 
+/**
+ * Legacy hub: /articles → canonical /guides hub, permanently (308).
+ *
+ * Parent of /articles/$slug, so any remaining path segments are re-attached to
+ * keep legacy detail links resolving to their guide rather than the hub.
+ * Query strings are preserved verbatim.
+ */
 export const Route = createFileRoute("/articles")({
-  loader: async () => {
-    try {
-      return await listPublicArticles({ data: { locale: "en" } });
-    } catch {
-      return { items: [], total: 0 };
+  beforeLoad: ({ location, search }) => {
+    const rest = location.pathname.replace(/^\/articles/, "");
+    const params = new URLSearchParams();
+    for (const [k, v] of Object.entries((search ?? {}) as Record<string, unknown>)) {
+      if (v === undefined || v === null || v === "") continue;
+      params.set(k, String(v));
     }
+    const qs = params.toString();
+    throw redirect({
+      href: `/guides${rest}${qs === "" ? "" : `?${qs}`}`,
+      statusCode: 308,
+    });
   },
-  head: () => {
-    const self = canonicalUrlFor("/articles");
-    return {
-      meta: [
-        { title: translate("seo.articlesTitle", "en") },
-        { name: "description", content: translate("seo.articlesDescription", "en") },
-        { name: "robots", content: "index, follow" },
-        { property: "og:title", content: translate("seo.articlesTitle", "en") },
-        { property: "og:url", content: self },
-        { property: "og:locale", content: ogLocaleFor(resolveLocale("en")) },
-      ],
-      links: [
-        { rel: "canonical", href: self },
-        ...hreflangAlternates("/articles").map(({ hreflang, href }) => ({
-          rel: "alternate",
-          hrefLang: hreflang,
-          href,
-        })),
-      ],
-    };
-  },
-  component: ArticlesListing,
 });
-
-function ArticlesListing() {
-  const data = Route.useLoaderData() as { items: Array<{ slug: string; title: string }> };
-  return (
-    <main className="mx-auto max-w-3xl px-4 py-10">
-      <h1 className="text-2xl font-bold">Articles</h1>
-      {data.items.length === 0 ? (
-        <p className="mt-4 text-sm">No published articles yet.</p>
-      ) : (
-        <ul className="mt-4 space-y-2 text-sm">
-          {data.items.map((item) => (
-            <li key={item.slug}>
-              <a className="underline" href={`/articles/${item.slug}`}>
-                {item.title}
-              </a>
-            </li>
-          ))}
-        </ul>
-      )}
-    </main>
-  );
-}

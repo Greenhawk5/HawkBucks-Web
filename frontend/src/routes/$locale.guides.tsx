@@ -1,21 +1,15 @@
-import { createFileRoute, redirect } from "@tanstack/react-router";
+import { createFileRoute, Outlet, redirect, useChildMatches } from "@tanstack/react-router";
 import { I18nProvider } from "@/i18n/context";
-import {
-  canonicalUrlFor,
-  hreflangAlternates,
-  localizePath,
-  matchLocaleParamCaseInsensitive,
-  ogLocaleFor,
-  parseLocaleParam,
-} from "@/lib/locale-urls";
+import { GuidesHub } from "@/components/cms/GuidesHub";
+import { EDITORIAL_CLUSTERS } from "@/lib/cms/editorial-clusters";
+import { buildHubHead, hasChildMatch } from "@/lib/cms/entity-meta";
+import { matchLocaleParamCaseInsensitive, parseLocaleParam } from "@/lib/locale-urls";
 import { DEFAULT_LANGUAGE } from "@/lib/preferences";
-import { resolveLocale } from "@/i18n/config";
-import {
-  EDITORIAL_CLUSTERS,
-  clusterLandingPath,
-  localizeClusterHref,
-} from "@/lib/cms/editorial-clusters";
+import { translate } from "@/i18n/core";
+import { listHubGuides } from "@/lib/cms/public-hubs.loader";
+import { parsePageParam, parseSearchParam, PUBLIC_PAGE_SIZE } from "@/lib/cms/public-content";
 
+/** Localized canonical Guides hub (CMS-driven). */
 export const Route = createFileRoute("/$locale/guides")({
   beforeLoad: ({ params }) => {
     const raw = (params as { locale?: unknown }).locale;
@@ -25,33 +19,40 @@ export const Route = createFileRoute("/$locale/guides")({
       throw redirect({ href: corrected === DEFAULT_LANGUAGE ? "/guides" : `/${corrected}/guides` });
     throw redirect({ href: "/guides" });
   },
+  validateSearch: (s: Record<string, unknown>) => ({
+    category: typeof s["category"] === "string" ? s["category"] : undefined,
+    q: typeof s["q"] === "string" ? s["q"] : undefined,
+    page: typeof s["page"] === "string" || typeof s["page"] === "number" ? s["page"] : undefined,
+  }),
+  loaderDeps: ({ search }) => search,
+  loader: async ({ params, deps }) => {
+    const lang = parseLocaleParam((params as { locale?: unknown }).locale) ?? DEFAULT_LANGUAGE;
+    const category =
+      typeof deps.category === "string" && deps.category.trim() !== ""
+        ? deps.category.trim()
+        : undefined;
+    const q = parseSearchParam(deps.q) ?? "";
+    const page = parsePageParam(deps.page);
+    return listHubGuides({
+      data: {
+        locale: lang,
+        ...(category === undefined ? {} : { category }),
+        ...(q === "" ? {} : { search: q }),
+        limit: PUBLIC_PAGE_SIZE,
+        offset: (page - 1) * PUBLIC_PAGE_SIZE,
+      },
+    });
+  },
   head: (ctx) => {
+    if (hasChildMatch(ctx)) return { meta: [], links: [] };
     const param = (ctx.params as { locale?: unknown } | undefined)?.locale;
     const lang = parseLocaleParam(param) ?? DEFAULT_LANGUAGE;
-    const self = canonicalUrlFor(localizePath("/guides", lang));
-    return {
-      meta: [
-        { title: "Guides | HawkBucks" },
-        { name: "description", content: "HawkBucks guides." },
-        { name: "robots", content: "index, follow" },
-        { property: "og:title", content: "Guides | HawkBucks" },
-        { property: "og:description", content: "HawkBucks guides." },
-        { property: "og:type", content: "website" },
-        { property: "og:url", content: self },
-        { property: "og:locale", content: ogLocaleFor(resolveLocale(lang)) },
-        { name: "twitter:card", content: "summary_large_image" },
-        { name: "twitter:title", content: "Guides | HawkBucks" },
-        { name: "twitter:description", content: "HawkBucks guides." },
-      ],
-      links: [
-        { rel: "canonical", href: self },
-        ...hreflangAlternates("/guides").map(({ hreflang, href }) => ({
-          rel: "alternate",
-          hrefLang: hreflang,
-          href,
-        })),
-      ],
-    };
+    return buildHubHead({
+      basePath: "/guides",
+      locale: lang,
+      title: translate("seo.guidesTitle", lang),
+      description: translate("seo.guidesDescription", lang),
+    });
   },
   component: LocalizedGuidesIndex,
 });
@@ -59,24 +60,22 @@ export const Route = createFileRoute("/$locale/guides")({
 function LocalizedGuidesIndex() {
   const { locale } = Route.useParams() as { locale?: unknown };
   const lang = parseLocaleParam(locale) ?? DEFAULT_LANGUAGE;
+  const search = Route.useSearch() as Record<string, unknown>;
+  const data = Route.useLoaderData() as { items: unknown[]; total: number } | undefined;
+  // This hub route is the PARENT of its detail route, so a child match
+  // must paint through the Outlet; rendering the listing unconditionally
+  // made every detail URL show the hub instead of the entity.
+  const hasChild = useChildMatches({ select: (m) => m.length > 0 });
+  if (hasChild) return <Outlet />;
   return (
     <I18nProvider initialLanguage={lang as never} fixedLanguage={lang as never}>
-      <main className="mx-auto max-w-3xl px-4 py-10">
-        <h1 className="text-2xl font-bold">Guides</h1>
-        <ul className="mt-4 space-y-4">
-          {EDITORIAL_CLUSTERS.map((c) => (
-            <li key={c.slug} className="rounded border p-4">
-              <a
-                className="text-lg font-semibold underline"
-                href={localizeClusterHref(clusterLandingPath(c.slug), lang)}
-              >
-                {c.title}
-              </a>
-              <p className="mt-1 text-sm text-muted-foreground">{c.description}</p>
-            </li>
-          ))}
-        </ul>
-      </main>
+      <GuidesHub
+        locale={lang}
+        search={search}
+        basePath={lang === "en" ? "/guides" : `/${lang}/guides`}
+        topics={EDITORIAL_CLUSTERS}
+        initial={data as never}
+      />
     </I18nProvider>
   );
 }

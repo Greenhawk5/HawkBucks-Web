@@ -1,7 +1,10 @@
 import { Link } from "@tanstack/react-router";
 import { getPublicStrings } from "@/lib/cms/public-strings";
 import type { PublicSchematicDetail } from "@/lib/cms/public-schematic-detail.loader";
-import { inventoryDetailHref } from "./InventoryCard";
+import { getSchematicGraph } from "@/lib/cms/content-graph.server";
+import { schematicDetailHref } from "./SchematicCard";
+import { ContentGraph } from "./ContentGraphClient";
+import { RarityBadge } from "./RarityBadge";
 import { RelatedGuides } from "./RelatedGuides";
 
 /**
@@ -25,9 +28,12 @@ export function SchematicDetail({
   return (
     <main className="mx-auto max-w-4xl px-4 py-10">
       <Link to={backHref} className="text-sm underline">
-        ← {s.backToInventory}
+        ← {s.backToSchematics}
       </Link>
       <h1 className="mt-3 font-display text-3xl font-extrabold">{schematic.title}</h1>
+      <div className="mt-2 flex flex-wrap items-center gap-2">
+        <RarityBadge rarity={(schematic as { rarity?: string | null }).rarity} />
+      </div>
       <p className="mt-1 text-xs uppercase tracking-wider text-muted-foreground">
         {kindLabel}
         {subtype ? ` · ${s.subtypeLabel}: ${subtype}` : ""}
@@ -106,8 +112,15 @@ export function SchematicDetail({
         </section>
       ) : null}
       <RelatedGuides entityContentId={schematic.contentId} locale={locale} />
+      <ContentGraph
+        load={getSchematicGraph}
+        contentId={schematic.contentId}
+        locale={locale}
+        title="Related loadouts & guides"
+        testId="schematic-content-graph"
+      />
       <p className="mt-8 text-xs text-muted-foreground">
-        {inventoryDetailHref(locale, schematic.slug)}
+        {schematicDetailHref(locale, schematic.slug)}
       </p>
     </main>
   );

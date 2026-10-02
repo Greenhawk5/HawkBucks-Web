@@ -59,6 +59,8 @@ export {
   heroDetailPath,
   loadoutDetailPath,
   schematicDetailPath,
+  legacyInventoryDetailPath,
+  legacyArticleDetailPath,
   articleDetailPath,
   detailBaseForKind,
   buildArticleJsonLd,

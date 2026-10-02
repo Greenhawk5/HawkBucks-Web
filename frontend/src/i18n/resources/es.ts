@@ -8,9 +8,16 @@ import type { TranslationDictionary } from "../types";
 export const es: TranslationDictionary = {
   navigation: {
     home: "Inicio",
-    vbucksMissions: "Misiones de V-Bucks",
-    guide: "Guía de misiones",
+    vbucksMissions: "Rastreador de misiones de V-Bucks",
+    missionsBasics: "Conceptos básicos de misiones de V-Bucks",
+    guide: "Conceptos básicos de misiones de V-Bucks",
+    heroes: "Héroes",
+    schematics: "Esquemas",
+    loadouts: "Equipos",
+    guides: "Guías",
     about: "Acerca de HawkBucks",
+    explore: "Explorar",
+    aboutGroup: "Información",
     navigate: "Navegar",
     checkTodaysMissions: "Ver las misiones de hoy",
   },
@@ -98,73 +105,86 @@ export const es: TranslationDictionary = {
     credit: "HawkBucks · Transmisión diaria",
   },
   about: {
-    heroTitle: "¿Qué es HawkBucks?",
-    heroSubtitle:
-      "Tu panel diario de inteligencia de misiones de V-Bucks de Fortnite: Save the World.",
-    heroDesc:
-      "HawkBucks analiza automáticamente las alertas de misión de Fortnite: Save the World y muestra a los jugadores dónde hay misiones de V-Bucks disponibles, incluyendo recompensa, ubicación, tipo de misión, zona y nivel de poder, sin abrir el juego.",
-    pipelineEyebrow: "Proceso",
-    pipelineTitle: "Cómo funciona",
-    step1Tag: "Origen",
-    step1Title: "Epic Games API",
-    step1Detail:
-      "Fuente oficial de datos de misiones de Fortnite, consultada directamente en la fuente.",
-    step2Tag: "Cómputo",
-    step2Title: "Cloudflare Worker",
-    step2Detail:
-      "Backend automático en el edge que revisa las alertas de misión cada 30 minutos UTC.",
-    step3Tag: "Análisis",
-    step3Title: "Análisis de misiones",
-    step3Detail: "Filtra las alertas de misión e identifica cada recompensa de V-Bucks disponible.",
-    step4Tag: "Resultado",
-    step4Title: "Panel HawkBucks",
-    step4Detail: "Presenta los resultados en un resumen diario rápido y claro.",
-    featuresEyebrow: "Capacidades",
-    featuresTitle: "Características",
-    feature1Title: "Rastreo automático",
-    feature1Detail:
-      "Las alertas de misión se revisan automáticamente para que nunca pierdas oportunidades diarias de V-Bucks.",
-    feature2Title: "Actualizaciones en tiempo real",
-    feature2Detail: "Actualizado cada 30 minutos según el calendario de reinicio UTC de Fortnite.",
-    feature3Title: "Vista instantánea",
-    feature3Detail: "Consulta recompensa, ubicación, zona y nivel de poder en segundos.",
-    feature4Title: "Herramienta comunitaria gratuita",
-    feature4Detail:
-      "Sin cuenta, sin anuncios, sin pago. Hecha para la comunidad de Save the World.",
-    guideEyebrow: "Guía de misiones",
-    guideTitle: "Acerca de las misiones de V-Bucks",
-    guideDesc:
-      "Guía práctica de alertas de misión de Fortnite: Save the World y el rastreador HawkBucks.",
-    guideCard1Title: "¿Qué son las misiones de V-Bucks?",
-    guideCard1Desc:
-      "Las misiones de V-Bucks son alertas especiales de Save the World que pueden otorgar V-Bucks a jugadores elegibles. HawkBucks facilita encontrarlas reuniendo y presentando las alertas disponibles en un solo lugar.",
-    guideCard2Title: "¿Cuándo se actualiza HawkBucks?",
-    guideCard2Desc:
-      "HawkBucks busca datos actualizados automáticamente durante el día. El rastreador muestra la última hora de actualización para que veas al instante lo reciente que es la información.",
-    guideCard3Title: "¿Cómo funciona HawkBucks?",
-    guideCard3Desc:
-      "HawkBucks es una herramienta de seguimiento, no un proveedor de V-Bucks. Supervisa la información de misiones de Save the World y destaca las que ofrecen recompensas de V-Bucks.",
-    faqTitle: "Preguntas frecuentes sobre misiones de V-Bucks",
-    faqDesc:
-      "Respuestas a preguntas comunes sobre alertas diarias de misión y recompensas de V-Bucks.",
-    faqQ1: "¿Cómo encuentro las misiones de V-Bucks de hoy en Save the World?",
-    faqA1:
-      "Usa el rastreador HawkBucks para ver las alertas de misión de V-Bucks detectadas hoy. Cada misión disponible incluye sus detalles relevantes para que identifiques rápidamente dónde está la recompensa.",
-    faqQ2: "¿Con qué frecuencia cambian las misiones de V-Bucks de Save the World?",
-    faqA2:
-      "Las alertas pueden cambiar con el ciclo diario de misiones de Fortnite. HawkBucks actualiza sus datos automáticamente durante el día y muestra la última hora de actualización para que compruebes si se detectó información nueva.",
-    faqQ3: "¿Todo jugador de Fortnite puede ganar V-Bucks con estas misiones?",
-    faqA3:
-      "No necesariamente. Las recompensas de V-Bucks dependen de las reglas vigentes de Fortnite y de la elegibilidad del jugador. HawkBucks solo informa sobre las misiones y no otorga ni distribuye V-Bucks.",
-    faqQ4: "¿Qué rastrea realmente HawkBucks?",
-    faqA4:
-      "HawkBucks se centra en alertas de misión de Fortnite: Save the World que ofrecen recompensas de V-Bucks. Recopila la información disponible y la presenta en un rastreador diario más sencillo.",
-    faqQ5: "¿Por qué no veo misiones de V-Bucks hoy?",
-    faqA5:
-      "Si no se detecta ninguna misión de V-Bucks, puede que simplemente no haya alertas válidas disponibles ahora mismo. HawkBucks busca datos actualizados automáticamente, así que vuelve tras la próxima actualización.",
-    creditsTitle: "Créditos",
+    kicker: "Proyecto comunitario independiente",
+    pageTitle: "About HawkBucks",
+    lede: "Una herramienta feita por la comunidad para descubrir y entender la información de misiones de Fortnite: Save the World, con una plataforma de conocimiento en crecimiento para Héroes, Esquemas, Equipamientos y Guías.",
+    glanceTypeLabel: "Tipo",
+    glanceTypeValue: "Proyecto comunitario independiente",
+    glanceStackLabel: "Infraestructura",
+    glanceStackValue: "Cloudflare, con procesamiento de datos en el servidor",
+    glanceLangLabel: "Idiomas",
+    glanceLangValue: "Nueve, incluidos árabe y persa de derecha a izquierda",
+    whatTitle: "¿Qué es HawkBucks?",
+    whatBody1:
+      "HawkBucks es una aplicación web feita por la comunidad y centrada en Fortnite: Save the World. Su propósito original era facilitar el descubrimiento de la información de misiones de V-Bucks, recopilando los datos disponibles de las alertas de misión y presentan la información relevante en un resumen diario claro.",
+    whatBody2:
+      "El proyecto ha crecido más allá del rastreador de misiones original hasta convertirse en una plataforma de conocimiento de Save the World más amplia. El sitio público reúne la información de misiones, Héroes, Esquemas, Equipamientos y Guías editoriales en una experiencia coherente.",
+    whatStatement:
+      "La información útil de Save the World debería ser fácil de encontrar, fácil de entender y fácil de volver a consultar.",
+    productTitle: "Un solo lugar para la información de Save the World",
+    productIntro:
+      "HawkBucks se organiza en varias partes complementarias. Cada una responde a una pregunta distinta y se conecta con las demás cuando resulta útil.",
+    areaTrackerRole: "Datos actuales",
+    areaTrackerDesc:
+      "El rastreador se centra en la información de misiones disponible ahora mismo y facilita el descubrimiento de las alertas de misiones de V-Bucks. Es la parte operativa de HawkBucks, la que trabaja con datos actuales.",
+    areaBasicsRole: "Documentación",
+    areaBasicsDesc:
+      "Esta sección explica el proceso básico para encontrar y verificar las recompensas de las misiones de V-Bucks. Existe como documentación educativa y no duplica el rastreador en vivo.",
+    areaHeroesRole: "Referencia",
+    areaHeroesDesc:
+      "La sección de referencia estructurada sobre Héroes, pensada para que la información sea fácil de buscar y de explorar por propiedades como la clase y la rareza.",
+    areaSchematicsRole: "Referencia",
+    areaSchematicsDesc:
+      "La sección de referencia estructurada sobre armas y trampas, construida para que la información del equipo sea más fácil de explorar, buscar, filtrar y entender.",
+    areaLoadoutsRole: "Combinaciones",
+    areaLoadoutsDesc:
+      "Equipamientos de Héroes estructurados y combinaciones que siguen los conceptos de Comandante, Héroe de Apoyo y perk de Equipo, en lugar de tratar un equipamiento como una colección arbitraria de personajes.",
+    areaGuidesRole: "Editorial",
+    areaGuidesDesc:
+      "La capa editorial de HawkBucks: artículos útiles y legibles como comparativas, explicaciones prácticas, combinaciones, recomendaciones y otros temas de Save the World.",
+    areaLinkLabel: "Abrir",
+    philosophyTitle: "Diseñado para la claridad, no para el ruido",
+    philosophyIntro:
+      "HawkBucks está pensado deliberadamente como una herramienta práctica de información, no como una red social ni como una fábrica de contenido. El objetivo es reducir el esfuerzo necesario para encontrar información útil.",
+    principleNav: "Navegación clara",
+    principleSearch: "Información que se puede buscar",
+    principleStructured: "Contenido estructurado",
+    principleFilter: "Filtros útiles",
+    principleReadable: "Explicaciones legibles",
+    principleRelated: "Enlaces directos entre contenido relacionado",
+    principleLocalized: "Experiencias localizadas",
+    principleFast: "Acceso rápido a la información que importa",
+    philosophyClose:
+      "La interfaz debería ayudarte a entender la información, no competir con ella.",
+    platformTitle: "De dónde viene la información",
+    platformBody1:
+      "HawkBucks usa datos estructurados de la aplicación y procesamiento en el servidor para preparar la información del sitio público. En la parte de seguimiento de misiones, la aplicación trabaja con información de misiones de Fortnite: Save the World y la procesa hasta convertirla en algo que se puede mostrar y buscar en HawkBucks.",
+    platformBody2:
+      "El proyecto usa Cloudflare para sus flujos de aplicación y de datos, y las páginas públicas se generan a partir de los datos del propio sitio en lugar de fijar el contenido en cada página. Eso es lo que permite que el proyecto pase del rastreador de misiones original a una plataforma de contenidos más amplia sin crear fuentes de verdad separadas y desconectadas.",
+    platformBody3:
+      "Cuando una página presenta información actual o estructurada del juego, la interfaz deja claro qué representa esa información, en lugar de dar a entender que HawkBucks es un servicio oficial de Epic Games.",
+    localeTitle: "Pensado para una comunidad global",
+    localeIntro:
+      "La experiencia pública admite rutas localizadas y contenido de interfaz traducido en nueve idiomas: inglés, español, francés, ruso, alemán, portugués, chino, árabe y persa.",
+    localeNote:
+      "La localización cubre la interfaz y el contenido público. No significa que todo el contenido del CMS esté traducido: el CMS se opera en inglés y el contenido traducido es una cuestión aparte.",
+    localeRtlNote:
+      "El árabe y el persa se presentan de derecha a izquierda, mientras que las URL canónicas y las relaciones con los buscadores se mantienen coherentes en todos los idiomas.",
+    independenceTitle: "Un proyecto comunitario independiente",
+    independenceBody:
+      "HawkBucks se desarrolla y se mantiene de forma independiente como proyecto comunitario. No se presenta como un sitio web ni como un servicio oficial de Epic Games, y existe para hacer más accesible la información útil de Save the World mediante una experiencia web enfocada.",
+    notTitle: "Lo que HawkBucks no es",
+    not1: "Un sitio web oficial de Epic Games ni un servicio oficial de Fortnite",
+    not2: "Un proveedor ni un distribuidor de V-Bucks",
+    not3: "Un sustituto de Fortnite",
+    not4: "Una garantía de que eres elegible para una recompensa concreta",
+    not5: "Una fuente oficial de datos de Fortnite",
+    notNote:
+      "HawkBucks presenta información y herramientas. No concede, vende ni distribuye V-Bucks.",
+    creditsTitle: "Créditos del proyecto",
     creditsDesc:
-      "Creado y mantenido por Greenhawk como proyecto comunitario independiente para jugadores de Fortnite: Save the World.",
+      "Creado y mantenido por Greenhawk como proyecto comunitario independiente para los jugadores de Fortnite: Save the World.",
+    creditsPortfolio: "Portfolio",
   },
   guide: {
     eyebrow: "Guía de misiones",
@@ -189,25 +209,17 @@ export const es: TranslationDictionary = {
     whatTitle: "¿Qué son las misiones de V-Bucks?",
     whatBody:
       "Una misión de V-Bucks es una misión de Fortnite: Save the World cuya alerta activa incluye V-Bucks como recompensa. No todas las misiones los ofrecen: los V-Bucks son una recompensa adicional ligada a alertas de misión concretas, no un pago estándar de cada nodo. Se encuentran en el mapa del mundo, y completar la misión con éxito otorga la recompensa indicada.",
-    flowTitle: "Cómo llega hasta ti una recompensa de V-Bucks",
-    flowIntro: "Cada recompensa que ves proviene de una alerta de misión concreta:",
-    flowStep1: "Fortnite",
-    flowStep2: "Save the World",
-    flowStep3: "Mapa del mundo",
-    flowStep4: "Nodo de misión",
-    flowStep5: "Alerta de misión",
-    flowStep6: "V-Bucks",
     findTitle: "Cómo encontrar una misión de V-Bucks",
-    findIntro: "Seis pasos, directamente desde el mapa:",
-    findStep1: "Abre Fortnite y elige Save the World.",
+    findIntro: "Todo ocurre en el mapa del mundo. Una vez allí:",
+    findStep1: "Abre Fortnite y entra en Save the World.",
     findStep2: "Abre el mapa del mundo.",
     findStep3: "Revisa los nodos de misión activos y sus alertas de misión.",
-    findStep4: "Selecciona una misión para ver sus detalles.",
-    findStep5: "Consulta el panel de recompensas de alerta.",
-    findStep6: "Si aparecen V-Bucks, has encontrado una misión de V-Bucks.",
-    findNoteTitle: "El panel de recompensas es la fuente de la verdad",
+    findStep4: "Abre una misión que te interese.",
+    findStep5: "Consulta su panel de recompensas de alerta.",
+    findStep6: "Si ahí aparecen V-Bucks, esa misión ofrece la recompensa de V-Bucks indicada.",
+    findNoteTitle: "Verifica la recompensa indicada",
     findNote:
-      "Un icono de misión por sí solo no es prueba. El panel de recompensas de alerta indica exactamente lo que paga cada misión, así que abre siempre la misión y lee ese panel antes de decidirte.",
+      "El panel de recompensas de alerta muestra qué paga la misión. Compruébalo antes de decidirte: un icono de misión por sí solo no es prueba.",
     miniBossTitle: "¿Qué es una alerta de misión Mini-Boss?",
     miniBossBody:
       "Las alertas de misión Mini-Boss son un tipo especial de alerta de misión del mapa del mundo. Los V-Bucks pueden aparecer como su recompensa de alerta, por eso surgen tan a menudo en el seguimiento de misiones de V-Bucks; pero el tipo de alerta por sí solo no garantiza V-Bucks.",
@@ -378,18 +390,18 @@ export const es: TranslationDictionary = {
     missionsOgTitle: "Misiones de V-Bucks de Fortnite hoy | HawkBucks",
     missionsOgDescription:
       "Consulta las misiones de V-Bucks de hoy de Save the World con el rastreador HawkBucks.",
-    guideTitle: "Guía de misiones de V-Bucks de Save the World | HawkBucks",
+    guideTitle: "Conceptos básicos de misiones de V-Bucks | HawkBucks",
     guideDescription:
       "Aprende cómo funcionan las misiones de V-Bucks de Save the World, quién puede ganarlos, cómo encontrar Alertas de Misión y dónde ver las misiones de hoy.",
-    guideOgTitle: "Guía de misiones de V-Bucks de Save the World | HawkBucks",
+    guideOgTitle: "Conceptos básicos de misiones de V-Bucks | HawkBucks",
     guideOgDescription:
       "Cómo funcionan las misiones de V-Bucks, quién puede ganarlos y dónde ver las misiones de hoy.",
-    aboutTitle: "Acerca de HawkBucks — Cómo funciona el rastreador de V-Bucks",
+    aboutTitle: "About HawkBucks: herramienta comunitaria de Save the World",
     aboutDescription:
-      "HawkBucks es una herramienta comunitaria gratuita que rastrea automáticamente las misiones de V-Bucks de Fortnite: Save the World cada 30 minutos.",
-    aboutOgTitle: "Acerca de HawkBucks",
+      "Descubre qué es HawkBucks, cómo funcionan su rastreador de misiones y su plataforma de conocimiento de Save the World, y cómo encajan Héroes, Esquemas, Equipamientos y Guías.",
+    aboutOgTitle: "About HawkBucks",
     aboutOgDescription:
-      "Cómo funciona el rastreador de misiones de V-Bucks de Save the World de HawkBucks.",
+      "Qué es HawkBucks, cómo encajan sus secciones y qué hace y qué no hace el proyecto.",
     ogImageAlt: "HawkBucks — Rastreador de misiones de V-Bucks de Fortnite: Save the World",
     webAppDescription:
       "Una aplicación web comunitaria que rastrea las misiones de Fortnite: Save the World que otorgan V-Bucks.",
@@ -398,20 +410,22 @@ export const es: TranslationDictionary = {
     greenhawkLogoAlt: "Logotipo de Greenhawk",
     heroesTitle: "Héroes — Fortnite: Save the World | HawkBucks",
     heroesDescription:
-      "Explora todos los héroes publicados en HawkBucks. Filtra por clase, busca por nombre y compara estadísticas.",
+      "Explora los Héroes de Save the World: sus clases, rarezas, habilidades y ventajas.",
     heroesOgTitle: "Héroes | HawkBucks",
-    heroesOgDescription:
-      "Explora todos los héroes publicados en HawkBucks. Filtra por clase, busca por nombre.",
+    heroesOgDescription: "Explora los Héroes de Save the World por clase, rareza y ventajas.",
     loadoutsTitle: "Equipamientos — Fortnite: Save the World | HawkBucks",
     loadoutsDescription:
-      "Explora los equipamientos publicados en HawkBucks: Comandante más cinco espacios de Apoyo para cada estilo de juego.",
+      "Explora equipos de Héroes creados en torno a Comandantes, Héroes de apoyo y Ventajas de equipo.",
     loadoutsOgTitle: "Equipamientos | HawkBucks",
-    loadoutsOgDescription:
-      "Explora los equipamientos publicados en HawkBucks: Comandante más cinco espacios de Apoyo.",
-    articlesTitle: "Artículos — Fortnite: Save the World | HawkBucks",
-    articlesDescription:
-      "Explora los artículos editoriales publicados en HawkBucks: guías de misiones, héroes, equipamientos e inventario.",
+    loadoutsOgDescription: "Equipos de Héroes creados en torno a Comandantes y Héroes de apoyo.",
+    schematicsTitle: "Esquemas — Fortnite: Save the World | HawkBucks",
+    schematicsDescription:
+      "Explora las armas y trampas de Save the World: tipos, subtipos y ventajas de cada esquema.",
+    schematicsOgTitle: "Esquemas | HawkBucks",
+    schematicsOgDescription:
+      "Explora las armas y trampas de Save the World y compara sus tipos y ventajas.",
     guidesTitle: "Guides | HawkBucks",
-    guidesDescription: "HawkBucks editorial guides.",
+    guidesDescription:
+      "Guías, comparativas, configuraciones y consejos prácticos para Save the World.",
   },
 };

@@ -39,6 +39,8 @@ function SlotCard({
   );
 }
 
+import { getLoadoutGraph } from "@/lib/cms/content-graph.server";
+import { ContentGraph } from "./ContentGraphClient";
 import { RelatedGuides } from "./RelatedGuides";
 export function LoadoutDetail({
   loadout,
@@ -93,7 +95,22 @@ export function LoadoutDetail({
           ))}
         </ol>
       </section>
+      {loadout.teamPerk ? (
+        <section className="mt-8" aria-label="Team perk" data-testid="team-perk">
+          <h2 className="font-display text-xl font-bold">Team Perk</h2>
+          <div className="mt-3 rounded-xl border border-panel-border p-4">
+            <p className="font-bold">{loadout.teamPerk.name ?? loadout.teamPerk.perkKey}</p>
+          </div>
+        </section>
+      ) : null}
       <RelatedGuides entityContentId={loadout.contentId} locale={locale} />
+      <ContentGraph
+        load={getLoadoutGraph}
+        contentId={loadout.contentId}
+        locale={locale}
+        title="Recommended schematics & guides"
+        testId="loadout-content-graph"
+      />
     </main>
   );
 }

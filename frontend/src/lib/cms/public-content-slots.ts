@@ -122,13 +122,22 @@ export function heroDetailPath(slug: string): string {
 export function loadoutDetailPath(slug: string): string {
   return `/loadouts/${slug}`;
 }
+/**
+ * Canonical schematic detail path (Master Spec §1.5). Legacy /inventory/:slug
+ * URLs redirect permanently; this is the only canonical form emitted in
+ * links, canonical tags, hreflang, sitemap, and structured data.
+ */
 export function schematicDetailPath(slug: string): string {
+  return `/schematics/${slug}`;
+}
+/** Legacy inventory detail path (redirect-only, never canonical). */
+export function legacyInventoryDetailPath(slug: string): string {
   return `/inventory/${slug}`;
 }
 // Canonical article path lives in articles.ts (single implementation);
 // re-exported here so existing detailBaseForKind/entity helpers keep working.
 import { articleDetailPath as canonicalArticleDetailPath } from "./articles";
-export { articleDetailPath } from "./articles";
+export { articleDetailPath, legacyArticleDetailPath } from "./articles";
 
 /** Route-prefix resolver shared by hreflang helpers (article-aware). */
 export function detailBaseForKind(kind: string, slug: string): string {
@@ -168,7 +177,7 @@ export function buildInventoryJsonLd(input: { url: string; breadcrumbBase: strin
     "@type": "BreadcrumbList",
     itemListElement: [
       { "@type": "ListItem", position: 1, name: "Home", item: input.breadcrumbBase },
-      { "@type": "ListItem", position: 2, name: "Inventory", item: input.url },
+      { "@type": "ListItem", position: 2, name: "Schematics", item: input.url },
     ],
   };
 }
@@ -189,8 +198,8 @@ export function buildSchematicJsonLd(input: {
       {
         "@type": "ListItem",
         position: 2,
-        name: "Inventory",
-        item: `${input.breadcrumbBase}inventory`,
+        name: "Schematics",
+        item: `${input.breadcrumbBase}schematics`,
       },
       { "@type": "ListItem", position: 3, name: input.name, item: input.url },
     ],

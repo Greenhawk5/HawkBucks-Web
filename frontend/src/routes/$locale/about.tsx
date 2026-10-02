@@ -13,6 +13,7 @@ import {
   parseLocaleParam,
 } from "@/lib/locale-urls";
 import { DEFAULT_LANGUAGE } from "@/lib/preferences";
+import { BRAND_NAME } from "@/lib/site";
 
 export const Route = createFileRoute("/$locale/about")({
   beforeLoad: ({ params }) => {
@@ -65,36 +66,21 @@ export const Route = createFileRoute("/$locale/about")({
         })),
       ],
       scripts: [
+        // Mirrors the bare route: the mission FAQ moved to V-Bucks Mission
+        // Basics, so this page describes the project instead of a FAQPage, and
+        // references the site-level WebSite node the root route already emits.
         jsonLdScript({
           "@context": "https://schema.org",
-          "@type": "FAQPage",
-          mainEntity: [
-            {
-              "@type": "Question",
-              name: translate("about.faqQ1", lang),
-              acceptedAnswer: { "@type": "Answer", text: translate("about.faqA1", lang) },
-            },
-            {
-              "@type": "Question",
-              name: translate("about.faqQ2", lang),
-              acceptedAnswer: { "@type": "Answer", text: translate("about.faqA2", lang) },
-            },
-            {
-              "@type": "Question",
-              name: translate("about.faqQ3", lang),
-              acceptedAnswer: { "@type": "Answer", text: translate("about.faqA3", lang) },
-            },
-            {
-              "@type": "Question",
-              name: translate("about.faqQ4", lang),
-              acceptedAnswer: { "@type": "Answer", text: translate("about.faqA4", lang) },
-            },
-            {
-              "@type": "Question",
-              name: translate("about.faqQ5", lang),
-              acceptedAnswer: { "@type": "Answer", text: translate("about.faqA5", lang) },
-            },
-          ],
+          "@type": "AboutPage",
+          name: translate("seo.aboutTitle", lang),
+          description: translate("seo.aboutDescription", lang),
+          url: self,
+          inLanguage: lang,
+          isPartOf: {
+            "@type": "WebSite",
+            name: BRAND_NAME,
+            url: canonicalUrlFor("/"),
+          },
         }),
       ],
     };

@@ -4,6 +4,7 @@ import { jsonLdScript } from "@/lib/seo";
 import { translate } from "@/i18n/core";
 import { resolveLocale } from "@/i18n/config";
 import { canonicalUrlFor, hreflangAlternates, localizePath, ogLocaleFor } from "@/lib/locale-urls";
+import { BRAND_NAME } from "@/lib/site";
 
 export const Route = createFileRoute("/about")({
   // Bare head is intentionally English-deterministic (never cookie-dependent):
@@ -46,36 +47,24 @@ export const Route = createFileRoute("/about")({
         })),
       ],
       scripts: [
+        // The page no longer carries a mission FAQ (that content belongs to the
+        // V-Bucks Mission Basics page), so the old FAQPage schema is gone. What
+        // remains describes the page and points at the site-level WebSite node
+        // already emitted by the root route — the site-wide Organization is NOT
+        // restated here, and there is no Product schema, no reviews, no ratings
+        // and no invented organization properties.
         jsonLdScript({
           "@context": "https://schema.org",
-          "@type": "FAQPage",
-          mainEntity: [
-            {
-              "@type": "Question",
-              name: translate("about.faqQ1", lang),
-              acceptedAnswer: { "@type": "Answer", text: translate("about.faqA1", lang) },
-            },
-            {
-              "@type": "Question",
-              name: translate("about.faqQ2", lang),
-              acceptedAnswer: { "@type": "Answer", text: translate("about.faqA2", lang) },
-            },
-            {
-              "@type": "Question",
-              name: translate("about.faqQ3", lang),
-              acceptedAnswer: { "@type": "Answer", text: translate("about.faqA3", lang) },
-            },
-            {
-              "@type": "Question",
-              name: translate("about.faqQ4", lang),
-              acceptedAnswer: { "@type": "Answer", text: translate("about.faqA4", lang) },
-            },
-            {
-              "@type": "Question",
-              name: translate("about.faqQ5", lang),
-              acceptedAnswer: { "@type": "Answer", text: translate("about.faqA5", lang) },
-            },
-          ],
+          "@type": "AboutPage",
+          name: translate("seo.aboutTitle", lang),
+          description: translate("seo.aboutDescription", lang),
+          url: self,
+          inLanguage: lang,
+          isPartOf: {
+            "@type": "WebSite",
+            name: BRAND_NAME,
+            url: canonicalUrlFor("/"),
+          },
         }),
       ],
     };

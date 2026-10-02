@@ -1,55 +1,70 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Outlet, useChildMatches } from "@tanstack/react-router";
+import { GuidesHub } from "@/components/cms/GuidesHub";
+import { listHubGuides } from "@/lib/cms/public-hubs.loader";
+import { parsePageParam, parseSearchParam, PUBLIC_PAGE_SIZE } from "@/lib/cms/public-content";
+import { EDITORIAL_CLUSTERS } from "@/lib/cms/editorial-clusters";
+import { buildHubHead, hasChildMatch } from "@/lib/cms/entity-meta";
 import { translate } from "@/i18n/core";
-import { canonicalUrlFor, hreflangAlternates, ogLocaleFor } from "@/lib/locale-urls";
-import { resolveLocale } from "@/i18n/config";
-import { EDITORIAL_CLUSTERS, clusterLandingPath } from "@/lib/cms/editorial-clusters";
 
+function guidesSearch(s: Record<string, unknown>) {
+  return {
+    category: typeof s["category"] === "string" ? s["category"] : undefined,
+    q: typeof s["q"] === "string" ? s["q"] : undefined,
+    page: typeof s["page"] === "string" || typeof s["page"] === "number" ? s["page"] : undefined,
+  };
+}
+
+/**
+ * Canonical Guides hub: the CMS-driven editorial listing. The listing resolves
+ * in the route loader so the featured story, the grid and the count are all in
+ * the SSR HTML.
+ */
 export const Route = createFileRoute("/guides")({
-  head: () => {
-    const self = canonicalUrlFor("/guides");
-    return {
-      meta: [
-        { title: translate("seo.guidesTitle", "en") ?? "Guides | HawkBucks" },
-        {
-          name: "description",
-          content: translate("seo.guidesDescription", "en") ?? "HawkBucks guides.",
-        },
-        { name: "robots", content: "index, follow" },
-        {
-          property: "og:title",
-          content: translate("seo.guidesTitle", "en") ?? "Guides | HawkBucks",
-        },
-        { property: "og:url", content: self },
-        { property: "og:locale", content: ogLocaleFor(resolveLocale("en")) },
-        { name: "twitter:card", content: "summary_large_image" },
-      ],
-      links: [
-        { rel: "canonical", href: self },
-        ...hreflangAlternates("/guides").map(({ hreflang, href }) => ({
-          rel: "alternate",
-          hrefLang: hreflang,
-          href,
-        })),
-      ],
-    };
+  validateSearch: guidesSearch,
+  loaderDeps: ({ search }) => search,
+  loader: async ({ deps }) => {
+    const category =
+      typeof deps.category === "string" && deps.category.trim() !== ""
+        ? deps.category.trim()
+        : undefined;
+    const q = parseSearchParam(deps.q) ?? "";
+    const page = parsePageParam(deps.page);
+    return listHubGuides({
+      data: {
+        locale: "en",
+        ...(category === undefined ? {} : { category }),
+        ...(q === "" ? {} : { search: q }),
+        limit: PUBLIC_PAGE_SIZE,
+        offset: (page - 1) * PUBLIC_PAGE_SIZE,
+      },
+    });
+  },
+  head: (headArgs) => {
+    if (hasChildMatch(headArgs)) return { meta: [], links: [] };
+    return buildHubHead({
+      basePath: "/guides",
+      locale: "en",
+      title: translate("seo.guidesTitle", "en"),
+      description: translate("seo.guidesDescription", "en"),
+    });
   },
   component: GuidesIndex,
 });
 
 function GuidesIndex() {
+  const search = Route.useSearch() as Record<string, unknown>;
+  const data = Route.useLoaderData() as { items: unknown[]; total: number } | undefined;
+  // Parent of `/guides/$slug` and `/guides/topics/$topic`: those matches paint
+  // through this Outlet. Without it the topic landings and guide details both
+  // rendered the hub body while advertising their own <title>.
+  if (useChildMatches({ select: (m) => m.length > 0 })) return <Outlet />;
   return (
-    <main className="mx-auto max-w-3xl px-4 py-10">
-      <h1 className="text-2xl font-bold">Guides</h1>
-      <ul className="mt-4 space-y-4">
-        {EDITORIAL_CLUSTERS.map((c) => (
-          <li key={c.slug} className="rounded border p-4">
-            <a className="text-lg font-semibold underline" href={clusterLandingPath(c.slug)}>
-              {c.title}
-            </a>
-            <p className="mt-1 text-sm text-muted-foreground">{c.description}</p>
-          </li>
-        ))}
-      </ul>
-    </main>
+    <GuidesHub
+      locale="en"
+      search={search}
+      basePath="/guides"
+      topics={EDITORIAL_CLUSTERS}
+      initial={data as never}
+    />
   );
 }

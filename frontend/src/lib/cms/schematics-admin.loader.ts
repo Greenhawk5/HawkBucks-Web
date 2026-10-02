@@ -109,6 +109,7 @@ export const createAdminWeapon = createServerFn({ method: "POST" })
       slug?: string;
       locale?: string;
       weaponSubtype?: string;
+      rarity?: string | null;
       popularity?: number;
       sortOrder?: number;
     }) => ({
@@ -117,6 +118,7 @@ export const createAdminWeapon = createServerFn({ method: "POST" })
       slug: asOptionalString(i.slug),
       locale: asOptionalString(i.locale),
       weaponSubtype: asOptionalString(i.weaponSubtype),
+      rarity: asOptionalStringOrNull(i.rarity),
       popularity: asOptionalNumber(i.popularity),
       sortOrder: asOptionalNumber(i.sortOrder),
     }),
@@ -139,6 +141,7 @@ export const createAdminWeapon = createServerFn({ method: "POST" })
         content,
         {
           weaponSubtype: data.weaponSubtype ?? "other",
+          rarity: (data as { rarity?: string | null }).rarity ?? null,
           popularity: data.popularity ?? 0,
           sortOrder: data.sortOrder ?? 0,
         },
@@ -167,6 +170,7 @@ export const updateAdminWeapon = createServerFn({ method: "POST" })
     (i: {
       contentId: string;
       weaponSubtype?: string;
+      rarity?: string | null;
       popularity?: number;
       sortOrder?: number;
       iconAssetId?: string | null;
@@ -174,6 +178,7 @@ export const updateAdminWeapon = createServerFn({ method: "POST" })
       stripUndefined({
         contentId: requireContentId(i.contentId),
         weaponSubtype: asOptionalString(i.weaponSubtype),
+        rarity: asOptionalStringOrNull(i.rarity),
         popularity: asOptionalNumber(i.popularity),
         sortOrder: asOptionalNumber(i.sortOrder),
         iconAssetId: asOptionalStringOrNull(i.iconAssetId),
@@ -199,6 +204,8 @@ export const createAdminTrap = createServerFn({ method: "POST" })
       slug?: string;
       locale?: string;
       trapSubtype?: string;
+      trapPlacement?: string | null;
+      rarity?: string | null;
       popularity?: number;
       sortOrder?: number;
     }) => ({
@@ -207,6 +214,8 @@ export const createAdminTrap = createServerFn({ method: "POST" })
       slug: asOptionalString(i.slug),
       locale: asOptionalString(i.locale),
       trapSubtype: asOptionalString(i.trapSubtype),
+      trapPlacement: asOptionalStringOrNull(i.trapPlacement),
+      rarity: asOptionalStringOrNull(i.rarity),
       popularity: asOptionalNumber(i.popularity),
       sortOrder: asOptionalNumber(i.sortOrder),
     }),
@@ -229,6 +238,8 @@ export const createAdminTrap = createServerFn({ method: "POST" })
         content,
         {
           trapSubtype: data.trapSubtype ?? "other",
+          trapPlacement: (data as { trapPlacement?: string | null }).trapPlacement ?? null,
+          rarity: (data as { rarity?: string | null }).rarity ?? null,
           popularity: data.popularity ?? 0,
           sortOrder: data.sortOrder ?? 0,
         },
@@ -257,6 +268,8 @@ export const updateAdminTrap = createServerFn({ method: "POST" })
     (i: {
       contentId: string;
       trapSubtype?: string;
+      trapPlacement?: string | null;
+      rarity?: string | null;
       popularity?: number;
       sortOrder?: number;
       iconAssetId?: string | null;
@@ -264,6 +277,8 @@ export const updateAdminTrap = createServerFn({ method: "POST" })
       stripUndefined({
         contentId: requireContentId(i.contentId),
         trapSubtype: asOptionalString(i.trapSubtype),
+        trapPlacement: asOptionalStringOrNull(i.trapPlacement),
+        rarity: asOptionalStringOrNull(i.rarity),
         popularity: asOptionalNumber(i.popularity),
         sortOrder: asOptionalNumber(i.sortOrder),
         iconAssetId: asOptionalStringOrNull(i.iconAssetId),

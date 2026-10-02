@@ -145,14 +145,14 @@ test("mutations: preview token issuance is a guarded POST", async () => {
 // --- 2. Preview no-store -----------------------------------------------------
 
 test("preview: route emits Cache-Control private, no-store on the document", async () => {
-  const src = await read("../src/routes/articles.preview.tsx");
+  const src = await read("../src/routes/guides.preview.tsx");
   assert.match(src, /headers:\s*\(\)\s*=>\s*\(\{\s*"Cache-Control":\s*"private, no-store"/);
   assert.match(src, /noindex, nofollow/);
 });
 
 test("preview: _headers pins the preview path to private, no-store", async () => {
   const headers = await read("../public/_headers");
-  const idx = headers.indexOf("/articles/preview");
+  const idx = headers.indexOf("/guides/preview");
   assert.ok(idx !== -1, "preview path must be pinned in _headers");
   const block = headers.slice(idx, idx + 200);
   assert.match(block, /Cache-Control:\s*private,\s*no-store/);
@@ -286,8 +286,8 @@ test("clusters: vbucks-tagged article DOES appear (en + localized share the mapp
 
 test("clusters: guide routes never use the unfiltered article index", async () => {
   for (const route of [
-    "../src/routes/guides.$slug.tsx",
-    "../src/routes/$locale.guides.$slug.tsx",
+    "../src/routes/guides.topics.$topic.tsx",
+    "../src/routes/$locale.guides.topics.$topic.tsx",
   ]) {
     const src = await read(route);
     assert.equal(

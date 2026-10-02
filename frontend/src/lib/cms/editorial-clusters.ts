@@ -23,7 +23,7 @@ export const EDITORIAL_CLUSTERS: EditorialCluster[] = [
     links: [
       { label: "Live mission tracker", href: "/vbucks-missions" },
       { label: "Missions guide", href: "/missions-guide" },
-      { label: "Mission articles", href: "/articles" },
+      { label: "Mission guides", href: "/guides" },
     ],
   },
   {
@@ -32,7 +32,7 @@ export const EDITORIAL_CLUSTERS: EditorialCluster[] = [
     description: "Browse published heroes and hero guides.",
     links: [
       { label: "Hero index", href: "/heroes" },
-      { label: "Hero articles", href: "/articles" },
+      { label: "Hero guides", href: "/guides" },
     ],
   },
   {
@@ -41,16 +41,19 @@ export const EDITORIAL_CLUSTERS: EditorialCluster[] = [
     description: "Commander plus support rosters for every playstyle.",
     links: [
       { label: "Loadout index", href: "/loadouts" },
-      { label: "Loadout articles", href: "/articles" },
+      { label: "Loadout guides", href: "/guides" },
     ],
   },
   {
+    // Slug stays "inventory": it is the persisted article-category machine
+    // value that existing content is filed under. Only the reader-facing
+    // label follows the Schematics IA.
     slug: "inventory",
-    title: "Inventory",
+    title: "Schematics",
     description: "Weapons, traps, perks, and schematics.",
     links: [
-      { label: "Inventory index", href: "/inventory" },
-      { label: "Inventory articles", href: "/articles" },
+      { label: "Schematics index", href: "/schematics" },
+      { label: "Schematics guides", href: "/guides" },
     ],
   },
 ];

@@ -219,7 +219,16 @@ export function validateEntityRefInput(input: {
   };
 }
 
+/**
+ * Canonical guide detail path. CMS entity_type stays `article`; the public IA
+ * is Guides (Master Spec §7.1). Legacy /articles/:slug redirects here.
+ */
 export function articleDetailPath(slug: string): string {
+  return `/guides/${slug}`;
+}
+
+/** Legacy article path (redirect-only, never canonical). */
+export function legacyArticleDetailPath(slug: string): string {
   return `/articles/${slug}`;
 }
 

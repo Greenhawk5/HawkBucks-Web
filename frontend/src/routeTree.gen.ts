@@ -17,6 +17,7 @@ import { Route as HeroesRouteImport } from './routes/heroes'
 import { Route as InventoryRouteImport } from './routes/inventory'
 import { Route as LoadoutsRouteImport } from './routes/loadouts'
 import { Route as MissionsGuideRouteImport } from './routes/missions-guide'
+import { Route as SchematicsRouteImport } from './routes/schematics'
 import { Route as VbucksMissionsRouteImport } from './routes/vbucks-missions'
 import { Route as LocaleIndexRouteImport } from './routes/$locale/index'
 import { Route as LocaleAboutRouteImport } from './routes/$locale/about'
@@ -26,6 +27,7 @@ import { Route as LocaleHeroesRouteImport } from './routes/$locale.heroes'
 import { Route as LocaleInventoryRouteImport } from './routes/$locale.inventory'
 import { Route as LocaleLoadoutsRouteImport } from './routes/$locale.loadouts'
 import { Route as LocaleMissionsGuideRouteImport } from './routes/$locale/missions-guide'
+import { Route as LocaleSchematicsRouteImport } from './routes/$locale.schematics'
 import { Route as LocaleVbucksMissionsRouteImport } from './routes/$locale/vbucks-missions'
 import { Route as AdminIndexRouteImport } from './routes/admin/index'
 import { Route as AdminActivityRouteImport } from './routes/admin/activity'
@@ -40,18 +42,23 @@ import { Route as AdminSettingsRouteImport } from './routes/admin/settings'
 import { Route as ArticlesSlugRouteImport } from './routes/articles.$slug'
 import { Route as ArticlesPreviewRouteImport } from './routes/articles.preview'
 import { Route as GuidesSlugRouteImport } from './routes/guides.$slug'
+import { Route as GuidesPreviewRouteImport } from './routes/guides.preview'
 import { Route as HeroesSlugRouteImport } from './routes/heroes.$slug'
 import { Route as InventorySlugRouteImport } from './routes/inventory.$slug'
 import { Route as LoadoutsSlugRouteImport } from './routes/loadouts.$slug'
+import { Route as SchematicsSlugRouteImport } from './routes/schematics.$slug'
 import { Route as LocaleArticlesSlugRouteImport } from './routes/$locale.articles.$slug'
 import { Route as LocaleGuidesSlugRouteImport } from './routes/$locale.guides.$slug'
 import { Route as LocaleHeroesSlugRouteImport } from './routes/$locale.heroes.$slug'
 import { Route as LocaleInventorySlugRouteImport } from './routes/$locale.inventory.$slug'
 import { Route as LocaleLoadoutsSlugRouteImport } from './routes/$locale.loadouts.$slug'
+import { Route as LocaleSchematicsSlugRouteImport } from './routes/$locale.schematics.$slug'
 import { Route as AdminArticlesContentIdRouteImport } from './routes/admin/articles.$contentId'
 import { Route as AdminHeroesContentIdRouteImport } from './routes/admin/heroes.$contentId'
 import { Route as AdminInventoryContentIdRouteImport } from './routes/admin/inventory.$contentId'
 import { Route as AdminLoadoutsContentIdRouteImport } from './routes/admin/loadouts.$contentId'
+import { Route as GuidesTopicsTopicRouteImport } from './routes/guides.topics.$topic'
+import { Route as LocaleGuidesTopicsTopicRouteImport } from './routes/$locale.guides.topics.$topic'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -91,6 +98,11 @@ const LoadoutsRoute = LoadoutsRouteImport.update({
 const MissionsGuideRoute = MissionsGuideRouteImport.update({
   id: '/missions-guide',
   path: '/missions-guide',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SchematicsRoute = SchematicsRouteImport.update({
+  id: '/schematics',
+  path: '/schematics',
   getParentRoute: () => rootRouteImport,
 } as any)
 const VbucksMissionsRoute = VbucksMissionsRouteImport.update({
@@ -136,6 +148,11 @@ const LocaleLoadoutsRoute = LocaleLoadoutsRouteImport.update({
 const LocaleMissionsGuideRoute = LocaleMissionsGuideRouteImport.update({
   id: '/$locale/missions-guide',
   path: '/$locale/missions-guide',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LocaleSchematicsRoute = LocaleSchematicsRouteImport.update({
+  id: '/$locale/schematics',
+  path: '/$locale/schematics',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LocaleVbucksMissionsRoute = LocaleVbucksMissionsRouteImport.update({
@@ -208,6 +225,11 @@ const GuidesSlugRoute = GuidesSlugRouteImport.update({
   path: '/$slug',
   getParentRoute: () => GuidesRoute,
 } as any)
+const GuidesPreviewRoute = GuidesPreviewRouteImport.update({
+  id: '/preview',
+  path: '/preview',
+  getParentRoute: () => GuidesRoute,
+} as any)
 const HeroesSlugRoute = HeroesSlugRouteImport.update({
   id: '/$slug',
   path: '/$slug',
@@ -222,6 +244,11 @@ const LoadoutsSlugRoute = LoadoutsSlugRouteImport.update({
   id: '/$slug',
   path: '/$slug',
   getParentRoute: () => LoadoutsRoute,
+} as any)
+const SchematicsSlugRoute = SchematicsSlugRouteImport.update({
+  id: '/$slug',
+  path: '/$slug',
+  getParentRoute: () => SchematicsRoute,
 } as any)
 const LocaleArticlesSlugRoute = LocaleArticlesSlugRouteImport.update({
   id: '/$slug',
@@ -248,6 +275,11 @@ const LocaleLoadoutsSlugRoute = LocaleLoadoutsSlugRouteImport.update({
   path: '/$slug',
   getParentRoute: () => LocaleLoadoutsRoute,
 } as any)
+const LocaleSchematicsSlugRoute = LocaleSchematicsSlugRouteImport.update({
+  id: '/$slug',
+  path: '/$slug',
+  getParentRoute: () => LocaleSchematicsRoute,
+} as any)
 const AdminArticlesContentIdRoute = AdminArticlesContentIdRouteImport.update({
   id: '/$contentId',
   path: '/$contentId',
@@ -268,6 +300,16 @@ const AdminLoadoutsContentIdRoute = AdminLoadoutsContentIdRouteImport.update({
   path: '/$contentId',
   getParentRoute: () => AdminLoadoutsRoute,
 } as any)
+const GuidesTopicsTopicRoute = GuidesTopicsTopicRouteImport.update({
+  id: '/topics/$topic',
+  path: '/topics/$topic',
+  getParentRoute: () => GuidesRoute,
+} as any)
+const LocaleGuidesTopicsTopicRoute = LocaleGuidesTopicsTopicRouteImport.update({
+  id: '/topics/$topic',
+  path: '/topics/$topic',
+  getParentRoute: () => LocaleGuidesRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -278,6 +320,7 @@ export interface FileRoutesByFullPath {
   '/inventory': typeof InventoryRouteWithChildren
   '/loadouts': typeof LoadoutsRouteWithChildren
   '/missions-guide': typeof MissionsGuideRoute
+  '/schematics': typeof SchematicsRouteWithChildren
   '/vbucks-missions': typeof VbucksMissionsRoute
   '/$locale/about': typeof LocaleAboutRoute
   '/$locale/articles': typeof LocaleArticlesRouteWithChildren
@@ -286,6 +329,7 @@ export interface FileRoutesByFullPath {
   '/$locale/inventory': typeof LocaleInventoryRouteWithChildren
   '/$locale/loadouts': typeof LocaleLoadoutsRouteWithChildren
   '/$locale/missions-guide': typeof LocaleMissionsGuideRoute
+  '/$locale/schematics': typeof LocaleSchematicsRouteWithChildren
   '/$locale/vbucks-missions': typeof LocaleVbucksMissionsRoute
   '/admin/activity': typeof AdminActivityRoute
   '/admin/articles': typeof AdminArticlesRouteWithChildren
@@ -299,9 +343,11 @@ export interface FileRoutesByFullPath {
   '/articles/$slug': typeof ArticlesSlugRoute
   '/articles/preview': typeof ArticlesPreviewRoute
   '/guides/$slug': typeof GuidesSlugRoute
+  '/guides/preview': typeof GuidesPreviewRoute
   '/heroes/$slug': typeof HeroesSlugRoute
   '/inventory/$slug': typeof InventorySlugRoute
   '/loadouts/$slug': typeof LoadoutsSlugRoute
+  '/schematics/$slug': typeof SchematicsSlugRoute
   '/$locale/': typeof LocaleIndexRoute
   '/admin/': typeof AdminIndexRoute
   '/$locale/articles/$slug': typeof LocaleArticlesSlugRoute
@@ -309,10 +355,13 @@ export interface FileRoutesByFullPath {
   '/$locale/heroes/$slug': typeof LocaleHeroesSlugRoute
   '/$locale/inventory/$slug': typeof LocaleInventorySlugRoute
   '/$locale/loadouts/$slug': typeof LocaleLoadoutsSlugRoute
+  '/$locale/schematics/$slug': typeof LocaleSchematicsSlugRoute
   '/admin/articles/$contentId': typeof AdminArticlesContentIdRoute
   '/admin/heroes/$contentId': typeof AdminHeroesContentIdRoute
   '/admin/inventory/$contentId': typeof AdminInventoryContentIdRoute
   '/admin/loadouts/$contentId': typeof AdminLoadoutsContentIdRoute
+  '/guides/topics/$topic': typeof GuidesTopicsTopicRoute
+  '/$locale/guides/topics/$topic': typeof LocaleGuidesTopicsTopicRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -323,6 +372,7 @@ export interface FileRoutesByTo {
   '/inventory': typeof InventoryRouteWithChildren
   '/loadouts': typeof LoadoutsRouteWithChildren
   '/missions-guide': typeof MissionsGuideRoute
+  '/schematics': typeof SchematicsRouteWithChildren
   '/vbucks-missions': typeof VbucksMissionsRoute
   '/$locale/about': typeof LocaleAboutRoute
   '/$locale/articles': typeof LocaleArticlesRouteWithChildren
@@ -331,6 +381,7 @@ export interface FileRoutesByTo {
   '/$locale/inventory': typeof LocaleInventoryRouteWithChildren
   '/$locale/loadouts': typeof LocaleLoadoutsRouteWithChildren
   '/$locale/missions-guide': typeof LocaleMissionsGuideRoute
+  '/$locale/schematics': typeof LocaleSchematicsRouteWithChildren
   '/$locale/vbucks-missions': typeof LocaleVbucksMissionsRoute
   '/admin/activity': typeof AdminActivityRoute
   '/admin/articles': typeof AdminArticlesRouteWithChildren
@@ -344,9 +395,11 @@ export interface FileRoutesByTo {
   '/articles/$slug': typeof ArticlesSlugRoute
   '/articles/preview': typeof ArticlesPreviewRoute
   '/guides/$slug': typeof GuidesSlugRoute
+  '/guides/preview': typeof GuidesPreviewRoute
   '/heroes/$slug': typeof HeroesSlugRoute
   '/inventory/$slug': typeof InventorySlugRoute
   '/loadouts/$slug': typeof LoadoutsSlugRoute
+  '/schematics/$slug': typeof SchematicsSlugRoute
   '/$locale': typeof LocaleIndexRoute
   '/admin': typeof AdminIndexRoute
   '/$locale/articles/$slug': typeof LocaleArticlesSlugRoute
@@ -354,10 +407,13 @@ export interface FileRoutesByTo {
   '/$locale/heroes/$slug': typeof LocaleHeroesSlugRoute
   '/$locale/inventory/$slug': typeof LocaleInventorySlugRoute
   '/$locale/loadouts/$slug': typeof LocaleLoadoutsSlugRoute
+  '/$locale/schematics/$slug': typeof LocaleSchematicsSlugRoute
   '/admin/articles/$contentId': typeof AdminArticlesContentIdRoute
   '/admin/heroes/$contentId': typeof AdminHeroesContentIdRoute
   '/admin/inventory/$contentId': typeof AdminInventoryContentIdRoute
   '/admin/loadouts/$contentId': typeof AdminLoadoutsContentIdRoute
+  '/guides/topics/$topic': typeof GuidesTopicsTopicRoute
+  '/$locale/guides/topics/$topic': typeof LocaleGuidesTopicsTopicRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -369,6 +425,7 @@ export interface FileRoutesById {
   '/inventory': typeof InventoryRouteWithChildren
   '/loadouts': typeof LoadoutsRouteWithChildren
   '/missions-guide': typeof MissionsGuideRoute
+  '/schematics': typeof SchematicsRouteWithChildren
   '/vbucks-missions': typeof VbucksMissionsRoute
   '/$locale/about': typeof LocaleAboutRoute
   '/$locale/articles': typeof LocaleArticlesRouteWithChildren
@@ -377,6 +434,7 @@ export interface FileRoutesById {
   '/$locale/inventory': typeof LocaleInventoryRouteWithChildren
   '/$locale/loadouts': typeof LocaleLoadoutsRouteWithChildren
   '/$locale/missions-guide': typeof LocaleMissionsGuideRoute
+  '/$locale/schematics': typeof LocaleSchematicsRouteWithChildren
   '/$locale/vbucks-missions': typeof LocaleVbucksMissionsRoute
   '/admin/activity': typeof AdminActivityRoute
   '/admin/articles': typeof AdminArticlesRouteWithChildren
@@ -390,9 +448,11 @@ export interface FileRoutesById {
   '/articles/$slug': typeof ArticlesSlugRoute
   '/articles/preview': typeof ArticlesPreviewRoute
   '/guides/$slug': typeof GuidesSlugRoute
+  '/guides/preview': typeof GuidesPreviewRoute
   '/heroes/$slug': typeof HeroesSlugRoute
   '/inventory/$slug': typeof InventorySlugRoute
   '/loadouts/$slug': typeof LoadoutsSlugRoute
+  '/schematics/$slug': typeof SchematicsSlugRoute
   '/$locale/': typeof LocaleIndexRoute
   '/admin/': typeof AdminIndexRoute
   '/$locale/articles/$slug': typeof LocaleArticlesSlugRoute
@@ -400,10 +460,13 @@ export interface FileRoutesById {
   '/$locale/heroes/$slug': typeof LocaleHeroesSlugRoute
   '/$locale/inventory/$slug': typeof LocaleInventorySlugRoute
   '/$locale/loadouts/$slug': typeof LocaleLoadoutsSlugRoute
+  '/$locale/schematics/$slug': typeof LocaleSchematicsSlugRoute
   '/admin/articles/$contentId': typeof AdminArticlesContentIdRoute
   '/admin/heroes/$contentId': typeof AdminHeroesContentIdRoute
   '/admin/inventory/$contentId': typeof AdminInventoryContentIdRoute
   '/admin/loadouts/$contentId': typeof AdminLoadoutsContentIdRoute
+  '/guides/topics/$topic': typeof GuidesTopicsTopicRoute
+  '/$locale/guides/topics/$topic': typeof LocaleGuidesTopicsTopicRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -416,6 +479,7 @@ export interface FileRouteTypes {
     | '/inventory'
     | '/loadouts'
     | '/missions-guide'
+    | '/schematics'
     | '/vbucks-missions'
     | '/$locale/about'
     | '/$locale/articles'
@@ -424,6 +488,7 @@ export interface FileRouteTypes {
     | '/$locale/inventory'
     | '/$locale/loadouts'
     | '/$locale/missions-guide'
+    | '/$locale/schematics'
     | '/$locale/vbucks-missions'
     | '/admin/activity'
     | '/admin/articles'
@@ -437,9 +502,11 @@ export interface FileRouteTypes {
     | '/articles/$slug'
     | '/articles/preview'
     | '/guides/$slug'
+    | '/guides/preview'
     | '/heroes/$slug'
     | '/inventory/$slug'
     | '/loadouts/$slug'
+    | '/schematics/$slug'
     | '/$locale/'
     | '/admin/'
     | '/$locale/articles/$slug'
@@ -447,10 +514,13 @@ export interface FileRouteTypes {
     | '/$locale/heroes/$slug'
     | '/$locale/inventory/$slug'
     | '/$locale/loadouts/$slug'
+    | '/$locale/schematics/$slug'
     | '/admin/articles/$contentId'
     | '/admin/heroes/$contentId'
     | '/admin/inventory/$contentId'
     | '/admin/loadouts/$contentId'
+    | '/guides/topics/$topic'
+    | '/$locale/guides/topics/$topic'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -461,6 +531,7 @@ export interface FileRouteTypes {
     | '/inventory'
     | '/loadouts'
     | '/missions-guide'
+    | '/schematics'
     | '/vbucks-missions'
     | '/$locale/about'
     | '/$locale/articles'
@@ -469,6 +540,7 @@ export interface FileRouteTypes {
     | '/$locale/inventory'
     | '/$locale/loadouts'
     | '/$locale/missions-guide'
+    | '/$locale/schematics'
     | '/$locale/vbucks-missions'
     | '/admin/activity'
     | '/admin/articles'
@@ -482,9 +554,11 @@ export interface FileRouteTypes {
     | '/articles/$slug'
     | '/articles/preview'
     | '/guides/$slug'
+    | '/guides/preview'
     | '/heroes/$slug'
     | '/inventory/$slug'
     | '/loadouts/$slug'
+    | '/schematics/$slug'
     | '/$locale'
     | '/admin'
     | '/$locale/articles/$slug'
@@ -492,10 +566,13 @@ export interface FileRouteTypes {
     | '/$locale/heroes/$slug'
     | '/$locale/inventory/$slug'
     | '/$locale/loadouts/$slug'
+    | '/$locale/schematics/$slug'
     | '/admin/articles/$contentId'
     | '/admin/heroes/$contentId'
     | '/admin/inventory/$contentId'
     | '/admin/loadouts/$contentId'
+    | '/guides/topics/$topic'
+    | '/$locale/guides/topics/$topic'
   id:
     | '__root__'
     | '/'
@@ -506,6 +583,7 @@ export interface FileRouteTypes {
     | '/inventory'
     | '/loadouts'
     | '/missions-guide'
+    | '/schematics'
     | '/vbucks-missions'
     | '/$locale/about'
     | '/$locale/articles'
@@ -514,6 +592,7 @@ export interface FileRouteTypes {
     | '/$locale/inventory'
     | '/$locale/loadouts'
     | '/$locale/missions-guide'
+    | '/$locale/schematics'
     | '/$locale/vbucks-missions'
     | '/admin/activity'
     | '/admin/articles'
@@ -527,9 +606,11 @@ export interface FileRouteTypes {
     | '/articles/$slug'
     | '/articles/preview'
     | '/guides/$slug'
+    | '/guides/preview'
     | '/heroes/$slug'
     | '/inventory/$slug'
     | '/loadouts/$slug'
+    | '/schematics/$slug'
     | '/$locale/'
     | '/admin/'
     | '/$locale/articles/$slug'
@@ -537,10 +618,13 @@ export interface FileRouteTypes {
     | '/$locale/heroes/$slug'
     | '/$locale/inventory/$slug'
     | '/$locale/loadouts/$slug'
+    | '/$locale/schematics/$slug'
     | '/admin/articles/$contentId'
     | '/admin/heroes/$contentId'
     | '/admin/inventory/$contentId'
     | '/admin/loadouts/$contentId'
+    | '/guides/topics/$topic'
+    | '/$locale/guides/topics/$topic'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -552,6 +636,7 @@ export interface RootRouteChildren {
   InventoryRoute: typeof InventoryRouteWithChildren
   LoadoutsRoute: typeof LoadoutsRouteWithChildren
   MissionsGuideRoute: typeof MissionsGuideRoute
+  SchematicsRoute: typeof SchematicsRouteWithChildren
   VbucksMissionsRoute: typeof VbucksMissionsRoute
   LocaleAboutRoute: typeof LocaleAboutRoute
   LocaleArticlesRoute: typeof LocaleArticlesRouteWithChildren
@@ -560,6 +645,7 @@ export interface RootRouteChildren {
   LocaleInventoryRoute: typeof LocaleInventoryRouteWithChildren
   LocaleLoadoutsRoute: typeof LocaleLoadoutsRouteWithChildren
   LocaleMissionsGuideRoute: typeof LocaleMissionsGuideRoute
+  LocaleSchematicsRoute: typeof LocaleSchematicsRouteWithChildren
   LocaleVbucksMissionsRoute: typeof LocaleVbucksMissionsRoute
   AdminActivityRoute: typeof AdminActivityRoute
   AdminArticlesRoute: typeof AdminArticlesRouteWithChildren
@@ -632,6 +718,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof MissionsGuideRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/schematics': {
+      id: '/schematics'
+      path: '/schematics'
+      fullPath: '/schematics'
+      preLoaderRoute: typeof SchematicsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/vbucks-missions': {
       id: '/vbucks-missions'
       path: '/vbucks-missions'
@@ -693,6 +786,13 @@ declare module '@tanstack/react-router' {
       path: '/$locale/missions-guide'
       fullPath: '/$locale/missions-guide'
       preLoaderRoute: typeof LocaleMissionsGuideRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/$locale/schematics': {
+      id: '/$locale/schematics'
+      path: '/$locale/schematics'
+      fullPath: '/$locale/schematics'
+      preLoaderRoute: typeof LocaleSchematicsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/$locale/vbucks-missions': {
@@ -793,6 +893,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof GuidesSlugRouteImport
       parentRoute: typeof GuidesRoute
     }
+    '/guides/preview': {
+      id: '/guides/preview'
+      path: '/preview'
+      fullPath: '/guides/preview'
+      preLoaderRoute: typeof GuidesPreviewRouteImport
+      parentRoute: typeof GuidesRoute
+    }
     '/heroes/$slug': {
       id: '/heroes/$slug'
       path: '/$slug'
@@ -813,6 +920,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/loadouts/$slug'
       preLoaderRoute: typeof LoadoutsSlugRouteImport
       parentRoute: typeof LoadoutsRoute
+    }
+    '/schematics/$slug': {
+      id: '/schematics/$slug'
+      path: '/$slug'
+      fullPath: '/schematics/$slug'
+      preLoaderRoute: typeof SchematicsSlugRouteImport
+      parentRoute: typeof SchematicsRoute
     }
     '/$locale/articles/$slug': {
       id: '/$locale/articles/$slug'
@@ -849,6 +963,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LocaleLoadoutsSlugRouteImport
       parentRoute: typeof LocaleLoadoutsRoute
     }
+    '/$locale/schematics/$slug': {
+      id: '/$locale/schematics/$slug'
+      path: '/$slug'
+      fullPath: '/$locale/schematics/$slug'
+      preLoaderRoute: typeof LocaleSchematicsSlugRouteImport
+      parentRoute: typeof LocaleSchematicsRoute
+    }
     '/admin/articles/$contentId': {
       id: '/admin/articles/$contentId'
       path: '/$contentId'
@@ -877,6 +998,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminLoadoutsContentIdRouteImport
       parentRoute: typeof AdminLoadoutsRoute
     }
+    '/guides/topics/$topic': {
+      id: '/guides/topics/$topic'
+      path: '/topics/$topic'
+      fullPath: '/guides/topics/$topic'
+      preLoaderRoute: typeof GuidesTopicsTopicRouteImport
+      parentRoute: typeof GuidesRoute
+    }
+    '/$locale/guides/topics/$topic': {
+      id: '/$locale/guides/topics/$topic'
+      path: '/topics/$topic'
+      fullPath: '/$locale/guides/topics/$topic'
+      preLoaderRoute: typeof LocaleGuidesTopicsTopicRouteImport
+      parentRoute: typeof LocaleGuidesRoute
+    }
   }
 }
 
@@ -896,10 +1031,14 @@ const ArticlesRouteWithChildren = ArticlesRoute._addFileChildren(
 
 interface GuidesRouteChildren {
   GuidesSlugRoute: typeof GuidesSlugRoute
+  GuidesPreviewRoute: typeof GuidesPreviewRoute
+  GuidesTopicsTopicRoute: typeof GuidesTopicsTopicRoute
 }
 
 const GuidesRouteChildren: GuidesRouteChildren = {
   GuidesSlugRoute: GuidesSlugRoute,
+  GuidesPreviewRoute: GuidesPreviewRoute,
+  GuidesTopicsTopicRoute: GuidesTopicsTopicRoute,
 }
 
 const GuidesRouteWithChildren =
@@ -940,6 +1079,18 @@ const LoadoutsRouteWithChildren = LoadoutsRoute._addFileChildren(
   LoadoutsRouteChildren,
 )
 
+interface SchematicsRouteChildren {
+  SchematicsSlugRoute: typeof SchematicsSlugRoute
+}
+
+const SchematicsRouteChildren: SchematicsRouteChildren = {
+  SchematicsSlugRoute: SchematicsSlugRoute,
+}
+
+const SchematicsRouteWithChildren = SchematicsRoute._addFileChildren(
+  SchematicsRouteChildren,
+)
+
 interface LocaleArticlesRouteChildren {
   LocaleArticlesSlugRoute: typeof LocaleArticlesSlugRoute
 }
@@ -954,10 +1105,12 @@ const LocaleArticlesRouteWithChildren = LocaleArticlesRoute._addFileChildren(
 
 interface LocaleGuidesRouteChildren {
   LocaleGuidesSlugRoute: typeof LocaleGuidesSlugRoute
+  LocaleGuidesTopicsTopicRoute: typeof LocaleGuidesTopicsTopicRoute
 }
 
 const LocaleGuidesRouteChildren: LocaleGuidesRouteChildren = {
   LocaleGuidesSlugRoute: LocaleGuidesSlugRoute,
+  LocaleGuidesTopicsTopicRoute: LocaleGuidesTopicsTopicRoute,
 }
 
 const LocaleGuidesRouteWithChildren = LocaleGuidesRoute._addFileChildren(
@@ -999,6 +1152,17 @@ const LocaleLoadoutsRouteChildren: LocaleLoadoutsRouteChildren = {
 const LocaleLoadoutsRouteWithChildren = LocaleLoadoutsRoute._addFileChildren(
   LocaleLoadoutsRouteChildren,
 )
+
+interface LocaleSchematicsRouteChildren {
+  LocaleSchematicsSlugRoute: typeof LocaleSchematicsSlugRoute
+}
+
+const LocaleSchematicsRouteChildren: LocaleSchematicsRouteChildren = {
+  LocaleSchematicsSlugRoute: LocaleSchematicsSlugRoute,
+}
+
+const LocaleSchematicsRouteWithChildren =
+  LocaleSchematicsRoute._addFileChildren(LocaleSchematicsRouteChildren)
 
 interface AdminArticlesRouteChildren {
   AdminArticlesContentIdRoute: typeof AdminArticlesContentIdRoute
@@ -1057,6 +1221,7 @@ const rootRouteChildren: RootRouteChildren = {
   InventoryRoute: InventoryRouteWithChildren,
   LoadoutsRoute: LoadoutsRouteWithChildren,
   MissionsGuideRoute: MissionsGuideRoute,
+  SchematicsRoute: SchematicsRouteWithChildren,
   VbucksMissionsRoute: VbucksMissionsRoute,
   LocaleAboutRoute: LocaleAboutRoute,
   LocaleArticlesRoute: LocaleArticlesRouteWithChildren,
@@ -1065,6 +1230,7 @@ const rootRouteChildren: RootRouteChildren = {
   LocaleInventoryRoute: LocaleInventoryRouteWithChildren,
   LocaleLoadoutsRoute: LocaleLoadoutsRouteWithChildren,
   LocaleMissionsGuideRoute: LocaleMissionsGuideRoute,
+  LocaleSchematicsRoute: LocaleSchematicsRouteWithChildren,
   LocaleVbucksMissionsRoute: LocaleVbucksMissionsRoute,
   AdminActivityRoute: AdminActivityRoute,
   AdminArticlesRoute: AdminArticlesRouteWithChildren,

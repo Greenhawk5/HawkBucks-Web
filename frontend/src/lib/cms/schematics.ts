@@ -25,6 +25,13 @@ export {
   type InventoryEntityType,
 } from "./content-types";
 
+export {
+  TRAP_PLACEMENTS,
+  isTrapPlacement,
+  parseTrapPlacementParam,
+  type TrapPlacement,
+} from "./taxonomy";
+
 /** Editorial weapon groupings. Minimal set for Phase 15 filters. */
 export const WEAPON_SUBTYPES = [
   "assault",

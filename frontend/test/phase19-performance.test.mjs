@@ -229,10 +229,7 @@ test("phase19: detail SSR parallelizes independent reads", async () => {
 });
 
 test("phase19: article cover is eager/high-priority, body images stay lazy", async () => {
-  for (const f of [
-    "../src/routes/articles.$slug.tsx",
-    "../src/routes/$locale.articles.$slug.tsx",
-  ]) {
+  for (const f of ["../src/routes/guides.$slug.tsx", "../src/routes/$locale.guides.$slug.tsx"]) {
     const source = await file(f);
     assert.match(source, /loading="eager"/, `${f} cover must not be lazy (LCP)`);
     assert.match(source, /fetchPriority="high"/, `${f} cover must be high priority`);

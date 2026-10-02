@@ -1,53 +1,27 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { InventoryPage } from "@/components/cms/InventoryPage";
-import { getPublicStrings } from "@/lib/cms/public-strings";
-import { canonicalUrlFor, hreflangAlternates, localizePath, ogLocaleFor } from "@/lib/locale-urls";
-import { resolveLocale } from "@/i18n/config";
+import { createFileRoute, redirect } from "@tanstack/react-router";
 
+/**
+ * Legacy hub: /inventory → canonical /schematics, permanently (308).
+ *
+ * This route is the PARENT of /inventory/$slug, so its beforeLoad runs for
+ * nested paths too and would otherwise swallow the slug (sending
+ * /inventory/siegebreaker to the hub instead of the detail page). Any
+ * remaining path segments are re-attached here, and query strings
+ * (filters/search/page) are preserved verbatim, so existing links,
+ * bookmarks, and inbound search results all keep working.
+ */
 export const Route = createFileRoute("/inventory")({
-  validateSearch: (s: Record<string, unknown>) => ({
-    type: typeof s["type"] === "string" ? s["type"] : undefined,
-    q: typeof s["q"] === "string" ? s["q"] : undefined,
-    sort: typeof s["sort"] === "string" ? s["sort"] : undefined,
-    page: typeof s["page"] === "string" || typeof s["page"] === "number" ? s["page"] : undefined,
-  }),
-  head: () => {
-    const lang = "en" as const;
-    const strings = getPublicStrings(lang);
-    const self = canonicalUrlFor(localizePath("/inventory", lang));
-    const ogImage = `${canonicalUrlFor("/").replace(/\/$/, "")}/og-image.png`;
-    return {
-      meta: [
-        { title: `${strings.inventoryTitle} | HawkBucks` },
-        { name: "description", content: strings.inventoryIntro },
-        { name: "robots", content: "index, follow" },
-        { property: "og:title", content: `${strings.inventoryTitle} | HawkBucks` },
-        { property: "og:description", content: strings.inventoryIntro },
-        { property: "og:type", content: "website" },
-        { property: "og:url", content: self },
-        { property: "og:image", content: ogImage },
-        { property: "og:image:width", content: "1200" },
-        { property: "og:image:height", content: "630" },
-        { property: "og:locale", content: ogLocaleFor(resolveLocale(lang)) },
-        { name: "twitter:card", content: "summary_large_image" },
-        { name: "twitter:title", content: `${strings.inventoryTitle} | HawkBucks` },
-        { name: "twitter:description", content: strings.inventoryIntro },
-        { name: "twitter:image", content: ogImage },
-      ],
-      links: [
-        { rel: "canonical", href: self },
-        ...hreflangAlternates("/inventory").map(({ hreflang, href }) => ({
-          rel: "alternate",
-          hrefLang: hreflang,
-          href,
-        })),
-      ],
-    };
+  beforeLoad: ({ location, search }) => {
+    const rest = location.pathname.replace(/^\/inventory/, "");
+    const params = new URLSearchParams();
+    for (const [k, v] of Object.entries((search ?? {}) as Record<string, unknown>)) {
+      if (v === undefined || v === null || v === "") continue;
+      params.set(k, String(v));
+    }
+    const qs = params.toString();
+    throw redirect({
+      href: `/schematics${rest}${qs === "" ? "" : `?${qs}`}`,
+      statusCode: 308,
+    });
   },
-  component: InventoryListing,
 });
-
-function InventoryListing() {
-  const search = Route.useSearch() as Record<string, unknown>;
-  return <InventoryPage locale="en" search={search} basePath="/inventory" />;
-}

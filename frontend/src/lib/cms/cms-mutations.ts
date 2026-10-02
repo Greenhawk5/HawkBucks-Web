@@ -65,6 +65,8 @@ export const CMS_MUTATION_INVENTORY: CmsMutationInventoryEntry[] = [
       "createAdminLoadout",
       "updateAdminLoadout",
       "setAdminLoadoutHeroes",
+      "setAdminLoadoutTeamPerk",
+      "setAdminLoadoutSchematics",
       "upsertAdminAbility",
     ],
     families: ["create", "update", "attach/detach", "relation changes"],

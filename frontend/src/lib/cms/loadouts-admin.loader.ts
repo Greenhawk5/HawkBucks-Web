@@ -45,6 +45,8 @@ export interface LoadoutAdminItem {
 }
 export interface LoadoutAdminDetail extends LoadoutAdminItem {
   coverAssetId: string | null;
+  teamPerkContentId: string | null;
+  teamPerkTitle: string | null;
   translations: Array<{
     locale: string;
     title: string;
@@ -153,6 +155,18 @@ export const getAdminLoadout = createServerFn({ method: "GET" })
         status: hc?.status ?? "unknown",
       });
     }
+    const teamPerkId = (record.team_perk_content_id as string | null) ?? null;
+    const teamPerkTitle =
+      teamPerkId !== null
+        ? ((
+            await db
+              .prepare(
+                "SELECT title FROM cms_content_translations WHERE content_id = ? AND locale = ?",
+              )
+              .bind(teamPerkId, c.default_locale)
+              .first<{ title: string }>()
+          )?.title ?? null)
+        : null;
     return {
       loadout: {
         contentId: data.contentId,
@@ -166,6 +180,8 @@ export const getAdminLoadout = createServerFn({ method: "GET" })
         locales: trs.map((x) => x.locale),
         heroCount: members.length,
         coverAssetId: record.cover_asset_id,
+        teamPerkContentId: teamPerkId,
+        teamPerkTitle,
         translations: trs.map((t) => ({
           locale: t.locale,
           title: t.title,
@@ -238,6 +254,22 @@ export const createAdminLoadout = createServerFn({ method: "POST" })
     }
     return { contentId: content.id };
   });
+export const setAdminLoadoutTeamPerk = createServerFn({ method: "POST" })
+  .validator((i: { contentId: string; teamPerkContentId?: string | null }) => ({
+    contentId: requireContentId(i.contentId),
+    teamPerkContentId: asOptionalStringOrNull(i.teamPerkContentId),
+  }))
+  .handler(async ({ data }) => {
+    const { db, session } = await requireLoadoutSession("cms.write", true);
+    const { updateLoadoutRecord } = await import("./heroes-loadouts.server");
+    await updateLoadoutRecord(
+      db,
+      data.contentId,
+      { teamPerkContentId: data.teamPerkContentId ?? null },
+      { id: session.user.id, username: session.user.username },
+    );
+    return { ok: true as const };
+  });
 export const updateAdminLoadout = createServerFn({ method: "POST" })
   .validator(
     (i: {
@@ -246,6 +278,7 @@ export const updateAdminLoadout = createServerFn({ method: "POST" })
       popularity?: number;
       sortOrder?: number;
       coverAssetId?: string | null;
+      teamPerkContentId?: string | null;
     }) =>
       stripUndefined({
         contentId: requireContentId(i.contentId),
@@ -253,6 +286,7 @@ export const updateAdminLoadout = createServerFn({ method: "POST" })
         popularity: asOptionalNumber(i.popularity),
         sortOrder: asOptionalNumber(i.sortOrder),
         coverAssetId: asOptionalStringOrNull(i.coverAssetId),
+        teamPerkContentId: asOptionalStringOrNull(i.teamPerkContentId),
       }),
   )
   .handler(async ({ data }) => {
@@ -291,6 +325,56 @@ export const setAdminLoadoutHeroes = createServerFn({ method: "POST" })
       id: session.user.id,
       username: session.user.username,
     });
+    return { ok: true as const };
+  });
+export const setAdminLoadoutSchematics = createServerFn({ method: "POST" })
+  .validator((i: { contentId: string; schematicContentIds: string[] }) => {
+    if (!Array.isArray(i.schematicContentIds)) throw new Error("Invalid schematicContentIds.");
+    for (const id of i.schematicContentIds) {
+      if (typeof id !== "string" || id.trim() === "") throw new Error("Invalid schematic id.");
+    }
+    if (i.schematicContentIds.length > 12) throw new Error("At most 12 schematics per loadout.");
+    return { contentId: requireContentId(i.contentId), schematicContentIds: i.schematicContentIds };
+  })
+  .handler(async ({ data }) => {
+    const { db, session } = await requireLoadoutSession("cms.write", true);
+    const { getContentById, recordAuditEvent } = await import("./db.server");
+    const { buildAuditEvent } = await import("./audit");
+    const loadout = await getContentById(db, data.contentId);
+    if (!loadout || loadout.entity_type !== "loadout") throw new Error("Loadout not found.");
+    const seen = new Set<string>();
+    for (const id of data.schematicContentIds) {
+      if (seen.has(id)) throw new Error("Duplicate schematic in loadout.");
+      seen.add(id);
+      const target = await getContentById(db, id);
+      if (!target || target.entity_type !== "schematic")
+        throw new Error("Schematic content not found.");
+    }
+    await db
+      .prepare("DELETE FROM loadout_schematics WHERE loadout_content_id = ?")
+      .bind(data.contentId)
+      .run();
+    const ts = new Date().toISOString();
+    let order = 0;
+    for (const id of data.schematicContentIds) {
+      await db
+        .prepare(
+          "INSERT INTO loadout_schematics (id, loadout_content_id, schematic_content_id, slot_order, created_at) VALUES (?, ?, ?, ?, ?)",
+        )
+        .bind(`ls_${crypto.randomUUID()}`, data.contentId, id, order, ts)
+        .run();
+      order += 1;
+    }
+    await recordAuditEvent(
+      db,
+      buildAuditEvent({
+        actor: { id: session.user.id, username: session.user.username },
+        action: "content.update",
+        entityType: "loadout",
+        entityId: data.contentId,
+        metadata: { op: "loadout.schematics", count: data.schematicContentIds.length },
+      }),
+    );
     return { ok: true as const };
   });
 export const upsertAdminAbility = createServerFn({ method: "POST" })

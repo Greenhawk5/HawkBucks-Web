@@ -36,8 +36,7 @@ export const INDEXABLE_BASE_PATHS = [
   "/missions-guide",
   "/heroes",
   "/loadouts",
-  "/inventory",
-  "/articles",
+  "/schematics",
   "/guides",
 ] as const;
 

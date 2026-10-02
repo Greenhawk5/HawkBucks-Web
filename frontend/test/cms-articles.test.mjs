@@ -162,12 +162,12 @@ test("articles: slugs stay unique per entity and locale", () => {
 });
 
 test("articles: internal links stay localized with canonical hreflang", () => {
-  assert.equal(articles.articleDetailPath("storm-guide"), "/articles/storm-guide");
+  assert.equal(articles.articleDetailPath("storm-guide"), "/guides/storm-guide");
   assert.equal(
-    articles.articleLocalizePath("/articles/storm-guide", "fa-IR"),
-    "/fa-IR/articles/storm-guide",
+    articles.articleLocalizePath("/guides/storm-guide", "fa-IR"),
+    "/fa-IR/guides/storm-guide",
   );
-  const alternates = localeUrls.hreflangAlternates("/articles");
+  const alternates = localeUrls.hreflangAlternates("/guides");
   assert.equal(alternates.length, 10);
   assert.ok(alternates.some((entry) => entry.hreflang === "x-default"));
 });
@@ -193,7 +193,7 @@ test("phase17: editorial clusters link to real public routes", async () => {
   const heroesRoute = await readFile(new URL("../src/routes/heroes.tsx", import.meta.url), "utf8");
   assert.match(heroesRoute, /createFileRoute/);
   const articlesRoute = await readFile(
-    new URL("../src/routes/articles.tsx", import.meta.url),
+    new URL("../src/routes/guides.tsx", import.meta.url),
     "utf8",
   );
   assert.match(articlesRoute, /createFileRoute/);
@@ -284,9 +284,9 @@ test("phase16-fix: body image urls resolve valid media, skip missing/deleted", a
 
 test("phase16-fix: public article routes supply the body image resolver", async () => {
   for (const file of [
-    "../src/routes/articles.$slug.tsx",
-    "../src/routes/$locale.articles.$slug.tsx",
-    "../src/routes/articles.preview.tsx",
+    "../src/routes/guides.$slug.tsx",
+    "../src/routes/$locale.guides.$slug.tsx",
+    "../src/routes/guides.preview.tsx",
   ]) {
     const source = await readFile(new URL(file, import.meta.url), "utf8");
     assert.match(source, /resolveImageUrl/, `${file} must resolve body image blocks`);
@@ -303,10 +303,18 @@ test("phase16-fix: public article routes supply the body image resolver", async 
 test("phase16-fix: vbucks cluster uses its tag mapping in both locales", async () => {
   assert.equal(clusters.CLUSTER_TAG_MAP["vbucks-missions"], "vbucks");
   assert.deepEqual(clusters.clusterTopicFor("vbucks-missions"), { tagSlug: "vbucks" });
-  for (const file of ["../src/routes/guides.$slug.tsx", "../src/routes/$locale.guides.$slug.tsx"]) {
+  for (const file of [
+    "../src/routes/guides.topics.$topic.tsx",
+    "../src/routes/$locale.guides.topics.$topic.tsx",
+  ]) {
     const source = await readFile(new URL(file, import.meta.url), "utf8");
     assert.match(source, /clusterTopicFor/, `${file} must resolve via clusterTopicFor`);
     assert.match(source, /listArticlesByTopic/, `${file} must query the topic loader`);
+    assert.doesNotMatch(
+      source,
+      /listPublicArticles/,
+      `${file} must never fall back to the unfiltered article index`,
+    );
     assert.doesNotMatch(
       source,
       /listPublicArticles/,
@@ -344,7 +352,7 @@ test("phase16-fix: localized guide routes emit full SEO parity", async () => {
     "robots",
     "resolveCmsSeo",
     "hreflang",
-    "entityHreflangFromComplete",
+    "entityHreflangAlternates",
   ]) {
     assert.ok(detail.includes(field), `localized guide detail must emit ${field}`);
   }
@@ -352,17 +360,9 @@ test("phase16-fix: localized guide routes emit full SEO parity", async () => {
     new URL("../src/routes/$locale.guides.tsx", import.meta.url),
     "utf8",
   );
-  for (const field of [
-    "og:title",
-    "og:description",
-    "og:url",
-    "og:locale",
-    "twitter:card",
-    "twitter:title",
-    "twitter:description",
-    "canonical",
-    "robots",
-  ]) {
-    assert.ok(index.includes(field), `localized guides index must emit ${field}`);
-  }
+  // OG/Twitter/canonical fields come from the shared buildHubHead helper.
+  assert.ok(
+    index.includes("buildHubHead"),
+    "localized guides index must build <head> via the shared hub metadata builder",
+  );
 });

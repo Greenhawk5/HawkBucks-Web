@@ -370,6 +370,7 @@ function WeaponForm(props: {
   run: (action: () => Promise<string>) => Promise<boolean>;
 }) {
   const [subtype, setSubtype] = useState(String(props.record["weapon_subtype"] ?? "other"));
+  const [rarity, setRarity] = useState(String(props.record["rarity"] ?? ""));
   const [popularity, setPopularity] = useState(String(props.record["popularity"] ?? 0));
   const [sortOrder, setSortOrder] = useState(String(props.record["sort_order"] ?? 0));
   const [icon, setIcon] = useState(String(props.record["icon_asset_id"] ?? ""));
@@ -388,6 +389,7 @@ function WeaponForm(props: {
                 data: {
                   contentId: props.contentId,
                   weaponSubtype: subtype,
+                  rarity: rarity === "" ? null : rarity,
                   popularity: Number(popularity),
                   sortOrder: Number(sortOrder),
                   iconAssetId: icon.trim() === "" ? null : icon.trim(),
@@ -419,6 +421,24 @@ function WeaponForm(props: {
               "explosive",
               "other",
             ].map((s) => ({ value: s, label: s }))}
+          />
+        </CmsField>
+        <CmsField label="Rarity" description="Editorial rarity (public filter + accent).">
+          <CmsSelect
+            id="inventory-weapon-rarity"
+            value={rarity}
+            disabled={props.disabled}
+            onChange={setRarity}
+            width="full"
+            options={[
+              { value: "", label: "Unclassified" },
+              { value: "common", label: "Common" },
+              { value: "uncommon", label: "Uncommon" },
+              { value: "rare", label: "Rare" },
+              { value: "epic", label: "Epic" },
+              { value: "legendary", label: "Legendary" },
+              { value: "mythic", label: "Mythic" },
+            ]}
           />
         </CmsField>
         <CmsField label="Icon asset id" description="R2 media id (media_…), optional.">
@@ -453,6 +473,16 @@ function WeaponForm(props: {
   );
 }
 
+const RARITY_OPTIONS = [
+  { value: "", label: "Unclassified" },
+  { value: "common", label: "Common" },
+  { value: "uncommon", label: "Uncommon" },
+  { value: "rare", label: "Rare" },
+  { value: "epic", label: "Epic" },
+  { value: "legendary", label: "Legendary" },
+  { value: "mythic", label: "Mythic" },
+];
+
 function TrapForm(props: {
   contentId: string;
   record: Record<string, string | number | null>;
@@ -461,6 +491,8 @@ function TrapForm(props: {
   run: (action: () => Promise<string>) => Promise<boolean>;
 }) {
   const [subtype, setSubtype] = useState(String(props.record["trap_subtype"] ?? "other"));
+  const [placement, setPlacement] = useState(String(props.record["trap_placement"] ?? ""));
+  const [rarity, setRarity] = useState(String(props.record["rarity"] ?? ""));
   const [popularity, setPopularity] = useState(String(props.record["popularity"] ?? 0));
   const [sortOrder, setSortOrder] = useState(String(props.record["sort_order"] ?? 0));
   const [icon, setIcon] = useState(String(props.record["icon_asset_id"] ?? ""));
@@ -479,6 +511,8 @@ function TrapForm(props: {
                 data: {
                   contentId: props.contentId,
                   trapSubtype: subtype,
+                  trapPlacement: placement === "" ? null : placement,
+                  rarity: rarity === "" ? null : rarity,
                   popularity: Number(popularity),
                   sortOrder: Number(sortOrder),
                   iconAssetId: icon.trim() === "" ? null : icon.trim(),
@@ -493,7 +527,28 @@ function TrapForm(props: {
       }
     >
       <div className="grid gap-4 sm:grid-cols-2">
-        <CmsField label="Subtype">
+        <CmsField
+          label="Placement (canonical)"
+          description="Floor / wall / ceiling. Drives public trap filters."
+        >
+          <CmsSelect
+            id="inventory-trap-placement"
+            value={placement}
+            disabled={props.disabled}
+            onChange={setPlacement}
+            width="full"
+            options={[
+              { value: "", label: "Unclassified" },
+              { value: "floor", label: "Floor" },
+              { value: "wall", label: "Wall" },
+              { value: "ceiling", label: "Ceiling" },
+            ]}
+          />
+        </CmsField>
+        <CmsField
+          label="Legacy role (compat)"
+          description="Old damage/healer/utility grouping. Preserved, not used by new filters."
+        >
           <CmsSelect
             id="inventory-trap-subtype"
             value={subtype}
@@ -504,6 +559,16 @@ function TrapForm(props: {
               value: s,
               label: s,
             }))}
+          />
+        </CmsField>
+        <CmsField label="Rarity" description="Editorial rarity (public filter + accent).">
+          <CmsSelect
+            id="inventory-trap-rarity"
+            value={rarity}
+            disabled={props.disabled}
+            onChange={setRarity}
+            width="full"
+            options={RARITY_OPTIONS}
           />
         </CmsField>
         <CmsField label="Icon asset id" description="R2 media id (media_…), optional.">

@@ -2,7 +2,7 @@ import { Link, useLocation } from "@tanstack/react-router";
 import {
   ArrowRight,
   BookOpen,
-  CheckCircle2,
+  Check,
   Coins,
   Compass,
   Layers,
@@ -15,10 +15,10 @@ import { useI18n, type TranslationKey } from "@/i18n";
 import { localizePath, splitLocalePath } from "@/lib/locale-urls";
 import { LAST_REVIEWED_ISO, EPIC_SUPPORT_URL } from "@/lib/stw-facts";
 import { GuideEligibility } from "@/components/hawkbucks/guide/GuideEligibility";
-import { GuideMissionFlow } from "@/components/hawkbucks/guide/GuideMissionFlow";
 import { GuideRotationCard } from "@/components/hawkbucks/guide/GuideRotationCard";
 import { GuideRewardCard } from "@/components/hawkbucks/guide/GuideRewardCard";
 import { GuideFaq } from "@/components/hawkbucks/guide/GuideFaq";
+import { cn } from "@/lib/utils";
 
 const FIND_STEPS: ReadonlyArray<TranslationKey> = [
   "guide.findStep1",
@@ -42,7 +42,7 @@ const OTHER_SOURCES: ReadonlyArray<{
 ];
 
 /**
- * The Missions Guide — the educational half of the Guide/Tracker pair.
+ * V-Bucks Mission Basics — the educational counterpart to the live tracker.
  *
  * Teaches the system (what a V-Bucks mission is, who can earn, how to find
  * one, what it pays, when it rotates) and hands the visitor to
@@ -92,11 +92,6 @@ export function GuidePage() {
         </div>
       </section>
 
-      {/* --- Quick answer: eligibility --------------------------------------- */}
-      <section id="guide-eligibility" className="mt-12 max-w-3xl scroll-mt-24">
-        <GuideEligibility />
-      </section>
-
       {/* --- What are V-Bucks missions ---------------------------------------- */}
       <section aria-labelledby="guide-what-heading" className="mt-12 max-w-3xl">
         <h2
@@ -110,11 +105,10 @@ export function GuidePage() {
         </p>
       </section>
 
-      {/* Breaks out of the prose column on desktop so the six flow cells each
-          hold their label on one line. */}
-      <div className="mt-6 max-w-3xl xl:max-w-none">
-        <GuideMissionFlow />
-      </div>
+      {/* --- Eligibility: who can earn --------------------------------------- */}
+      <section id="guide-eligibility" className="mt-10 max-w-3xl scroll-mt-24">
+        <GuideEligibility />
+      </section>
 
       {/* --- How to find one -------------------------------------------------- */}
       <section aria-labelledby="guide-find-heading" className="mt-12 max-w-3xl">
@@ -124,31 +118,65 @@ export function GuidePage() {
         >
           {t("guide.findTitle")}
         </h2>
-        <p className="mt-2 max-w-prose break-words text-sm text-muted-foreground">
+        <p className="mt-2 max-w-prose break-words text-sm leading-6 text-muted-foreground">
           {t("guide.findIntro")}
         </p>
-        <ol className="mt-5 grid gap-2 sm:grid-cols-2">
-          {FIND_STEPS.map((key, index) => (
-            <li
-              key={key}
-              className="glass-panel flex items-start gap-3 rounded-xl p-4 text-sm leading-6"
-            >
-              <span
-                aria-hidden="true"
-                className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-primary/15 font-display text-xs font-extrabold tabular-nums text-primary"
+        {/* One continuous sequence, not six equal-weight cards. Each step owns a
+            numbered marker on a shared rail, and the rail itself is what shows
+            1 → 6. It is drawn per step (this marker down to the next one) so it
+            stays unbroken at any text length, in any language, and every offset
+            is logical so it mirrors in RTL without extra rules. Semantic
+            <ol>/<li> keeps the order and meaning intact without CSS. */}
+        <ol className="mt-6">
+          {FIND_STEPS.map((key, index) => {
+            const isLast = index === FIND_STEPS.length - 1;
+            return (
+              <li
+                key={key}
+                className={cn(
+                  "relative grid grid-cols-[2rem_minmax(0,1fr)] items-start gap-x-4",
+                  isLast ? "pb-0" : "pb-6",
+                )}
               >
-                {index + 1}
-              </span>
-              <span className="min-w-0 break-words text-muted-foreground">{t(key)}</span>
-            </li>
-          ))}
+                {/* Rail segment: centre of this marker to centre of the next.
+                    The last one overshoots into the verification node below. */}
+                <span
+                  aria-hidden="true"
+                  className={cn(
+                    "absolute top-4 w-px start-[0.9375rem]",
+                    isLast ? "-bottom-10 bg-primary/35" : "-bottom-4 bg-primary/25",
+                  )}
+                />
+                <span
+                  aria-hidden="true"
+                  className="relative z-10 grid h-8 w-8 place-items-center rounded-full border border-primary/40 bg-background font-display text-[13px] font-extrabold tabular-nums text-primary ring-4 ring-background"
+                >
+                  {index + 1}
+                </span>
+                <p className="min-w-0 self-center break-words text-[15px] leading-7 text-foreground/90">
+                  {t(key)}
+                </p>
+              </li>
+            );
+          })}
         </ol>
 
-        <div className="mt-4 flex items-start gap-3 rounded-xl border border-primary/30 bg-primary/5 p-4">
-          <CheckCircle2 aria-hidden="true" className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
-          <div className="min-w-0">
-            <p className="break-words font-display text-sm font-bold">{t("guide.findNoteTitle")}</p>
-            <p className="mt-1 break-words text-[13px] leading-6 text-muted-foreground">
+        {/* Verification only: how to confirm the reward, not how to find the
+            mission. Deliberately separate so it does not restate the steps. It
+            hangs off the end of the same rail, so it reads as the last move of
+            the workflow rather than an unrelated note. */}
+        <div className="mt-6 grid grid-cols-[2rem_minmax(0,1fr)] items-start gap-x-4">
+          <span
+            aria-hidden="true"
+            className="grid h-8 w-8 place-items-center rounded-full bg-primary text-primary-foreground"
+          >
+            <Check className="h-4 w-4" />
+          </span>
+          <div className="rounded-xl border border-primary/30 bg-primary/5 p-4">
+            <h3 className="break-words font-display text-sm font-bold text-foreground">
+              {t("guide.findNoteTitle")}
+            </h3>
+            <p className="mt-1.5 break-words text-[13px] leading-6 text-muted-foreground">
               {t("guide.findNote")}
             </p>
           </div>

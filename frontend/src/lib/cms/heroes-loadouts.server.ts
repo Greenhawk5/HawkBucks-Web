@@ -5,6 +5,7 @@ import {
   LOADOUT_ENTITY_TYPE,
   isHeroClass,
   isLoadoutType,
+  isRarity,
   isValidAbilityKey,
   isValidPopularity,
   isValidSortOrder,
@@ -29,6 +30,7 @@ export interface HeroRecordRow extends D1Row {
   content_id: string;
   hero_class: string;
   category: string | null;
+  rarity: string | null;
   popularity: number;
   sort_order: number;
   portrait_asset_id: string | null;
@@ -60,6 +62,7 @@ export interface LoadoutRecordRow extends D1Row {
   popularity: number;
   sort_order: number;
   cover_asset_id: string | null;
+  team_perk_content_id: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -94,6 +97,7 @@ async function assertLoadoutContent(db: D1Database, contentId: string): Promise<
 export interface HeroInput {
   heroClass?: string;
   category?: string | null;
+  rarity?: string | null;
   popularity?: number;
   sortOrder?: number;
   portraitAssetId?: string | null;
@@ -102,6 +106,7 @@ export interface HeroInput {
 function validateHeroInput(i: HeroInput): {
   heroClass: string;
   category: string | null;
+  rarity: string | null;
   popularity: number;
   sortOrder: number;
 } {
@@ -109,11 +114,17 @@ function validateHeroInput(i: HeroInput): {
   const category = normalizeHeroCategory(i.category ?? null);
   if (i.category !== undefined && i.category !== null && i.category !== "" && category === null)
     throw new Error("Invalid category.");
+  let rarity: string | null = null;
+  if (i.rarity !== undefined && i.rarity !== null && i.rarity !== "") {
+    const r = String(i.rarity).trim().toLowerCase();
+    if (!isRarity(r)) throw new Error("Invalid rarity.");
+    rarity = r;
+  }
   const popularity = i.popularity ?? 0;
   const sortOrder = i.sortOrder ?? 0;
   if (!isValidPopularity(popularity)) throw new Error("Invalid popularity.");
   if (!isValidSortOrder(sortOrder)) throw new Error("Invalid sort_order.");
-  return { heroClass: i.heroClass, category, popularity, sortOrder };
+  return { heroClass: i.heroClass, category, rarity, popularity, sortOrder };
 }
 export async function createHeroRecord(
   db: D1Database,
@@ -128,12 +139,13 @@ export async function createHeroRecord(
   const ts = utcNow();
   await db
     .prepare(
-      "INSERT INTO hero_records (content_id, hero_class, category, popularity, sort_order, portrait_asset_id, banner_asset_id, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+      "INSERT INTO hero_records (content_id, hero_class, category, rarity, popularity, sort_order, portrait_asset_id, banner_asset_id, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
     )
     .bind(
       base.id,
       v.heroClass,
       v.category,
+      v.rarity,
       v.popularity,
       v.sortOrder,
       input.portraitAssetId ?? null,
@@ -174,6 +186,7 @@ export async function updateHeroRecord(
   const merged: HeroInput = {
     heroClass: input.heroClass ?? cur.hero_class,
     category: input.category !== undefined ? input.category : cur.category,
+    rarity: input.rarity !== undefined ? input.rarity : ((cur.rarity as string | null) ?? null),
     popularity: input.popularity ?? cur.popularity,
     sortOrder: input.sortOrder ?? cur.sort_order,
     portraitAssetId:
@@ -185,11 +198,12 @@ export async function updateHeroRecord(
   await assertMediaUsable(db, merged.bannerAssetId ?? null);
   await db
     .prepare(
-      "UPDATE hero_records SET hero_class = ?, category = ?, popularity = ?, sort_order = ?, portrait_asset_id = ?, banner_asset_id = ?, updated_at = ? WHERE content_id = ?",
+      "UPDATE hero_records SET hero_class = ?, category = ?, rarity = ?, popularity = ?, sort_order = ?, portrait_asset_id = ?, banner_asset_id = ?, updated_at = ? WHERE content_id = ?",
     )
     .bind(
       v.heroClass,
       v.category,
+      v.rarity,
       v.popularity,
       v.sortOrder,
       merged.portraitAssetId ?? null,
@@ -401,11 +415,13 @@ export interface LoadoutInput {
   popularity?: number;
   sortOrder?: number;
   coverAssetId?: string | null;
+  teamPerkContentId?: string | null;
 }
 function validateLoadoutInput(i: LoadoutInput): {
   loadoutType: string;
   popularity: number;
   sortOrder: number;
+  teamPerkContentId: string | null;
 } {
   const t = i.loadoutType ?? "custom";
   if (!isLoadoutType(t)) throw new Error("Invalid loadout_type.");
@@ -413,7 +429,19 @@ function validateLoadoutInput(i: LoadoutInput): {
   const sortOrder = i.sortOrder ?? 0;
   if (!isValidPopularity(popularity)) throw new Error("Invalid popularity.");
   if (!isValidSortOrder(sortOrder)) throw new Error("Invalid sort_order.");
-  return { loadoutType: t, popularity, sortOrder };
+  const teamPerk =
+    i.teamPerkContentId === undefined || i.teamPerkContentId === null || i.teamPerkContentId === ""
+      ? null
+      : String(i.teamPerkContentId);
+  return { loadoutType: t, popularity, sortOrder, teamPerkContentId: teamPerk };
+}
+async function assertTeamPerkUsable(
+  db: D1Database,
+  teamPerkContentId: string | null,
+): Promise<void> {
+  if (teamPerkContentId === null) return;
+  const c = await getContentById(db, teamPerkContentId);
+  if (!c || c.entity_type !== "perk") throw new Error("Team perk must reference a perk.");
 }
 export async function createLoadoutRecord(
   db: D1Database,
@@ -424,12 +452,22 @@ export async function createLoadoutRecord(
   if (base.entity_type !== LOADOUT_ENTITY_TYPE) throw new Error("Content is not a loadout.");
   const v = validateLoadoutInput(input);
   await assertMediaUsable(db, input.coverAssetId ?? null);
+  await assertTeamPerkUsable(db, v.teamPerkContentId);
   const ts = utcNow();
   await db
     .prepare(
-      "INSERT INTO loadout_records (content_id, loadout_type, popularity, sort_order, cover_asset_id, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
+      "INSERT INTO loadout_records (content_id, loadout_type, popularity, sort_order, cover_asset_id, team_perk_content_id, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
     )
-    .bind(base.id, v.loadoutType, v.popularity, v.sortOrder, input.coverAssetId ?? null, ts, ts)
+    .bind(
+      base.id,
+      v.loadoutType,
+      v.popularity,
+      v.sortOrder,
+      input.coverAssetId ?? null,
+      v.teamPerkContentId,
+      ts,
+      ts,
+    )
     .run();
   await recordAuditEvent(
     db,
@@ -465,18 +503,24 @@ export async function updateLoadoutRecord(
     popularity: input.popularity ?? cur.popularity,
     sortOrder: input.sortOrder ?? cur.sort_order,
     coverAssetId: input.coverAssetId !== undefined ? input.coverAssetId : cur.cover_asset_id,
+    teamPerkContentId:
+      input.teamPerkContentId !== undefined
+        ? input.teamPerkContentId
+        : ((cur.team_perk_content_id as string | null) ?? null),
   };
   const v = validateLoadoutInput(merged);
   await assertMediaUsable(db, merged.coverAssetId ?? null);
+  await assertTeamPerkUsable(db, v.teamPerkContentId);
   await db
     .prepare(
-      "UPDATE loadout_records SET loadout_type = ?, popularity = ?, sort_order = ?, cover_asset_id = ?, updated_at = ? WHERE content_id = ?",
+      "UPDATE loadout_records SET loadout_type = ?, popularity = ?, sort_order = ?, cover_asset_id = ?, team_perk_content_id = ?, updated_at = ? WHERE content_id = ?",
     )
     .bind(
       v.loadoutType,
       v.popularity,
       v.sortOrder,
       merged.coverAssetId ?? null,
+      v.teamPerkContentId,
       utcNow(),
       contentId,
     )
@@ -616,6 +660,11 @@ export interface PublishedLoadout {
     contentId: string;
     translation: import("./db.server").ContentTranslationRow | null;
   }>;
+  teamPerk: {
+    contentId: string;
+    perkKey: string;
+    name: string | null;
+  } | null;
   coverUrl: string | null;
 }
 export async function getPublishedHeroBySlug(
@@ -662,6 +711,7 @@ export async function listPublishedHeroes(
   input: {
     locale: string;
     heroClass?: string | undefined;
+    rarity?: string | undefined;
     limit?: number | undefined;
     offset?: number | undefined;
   },
@@ -680,6 +730,11 @@ export async function listPublishedHeroes(
     if (!isHeroClass(input.heroClass)) throw new Error("Invalid hero_class.");
     cl.push("h.hero_class = ?");
     vals.push(input.heroClass);
+  }
+  if (input.rarity !== undefined) {
+    if (!isRarity(input.rarity)) throw new Error("Invalid rarity.");
+    cl.push("h.rarity = ?");
+    vals.push(input.rarity);
   }
   const { results } = await db
     .prepare(
@@ -732,11 +787,41 @@ export async function getPublishedLoadoutBySlug(
         .bind(loadout.cover_asset_id)
         .first<{ delivery_url: string }>()
     : null;
+  // Team Perk: published perk only; drafts/archived/deleted resolve to null
+  // (never leak unpublished perk names through a published loadout).
+  let teamPerk: PublishedLoadout["teamPerk"] = null;
+  const teamPerkId = (loadout.team_perk_content_id as string | null) ?? null;
+  if (typeof teamPerkId === "string" && teamPerkId !== "") {
+    const pc = await getContentById(db, teamPerkId);
+    if (
+      pc &&
+      pc.entity_type === "perk" &&
+      isContentStatus(pc.status) &&
+      pc.status === "published"
+    ) {
+      const perkRow = await db
+        .prepare("SELECT perk_key FROM perk_records WHERE content_id = ?")
+        .bind(teamPerkId)
+        .first<{ perk_key: string }>();
+      const perkTr = await db
+        .prepare("SELECT title FROM cms_content_translations WHERE content_id = ? AND locale = ?")
+        .bind(teamPerkId, input.locale)
+        .first<{ title: string }>();
+      if (perkRow) {
+        teamPerk = {
+          contentId: teamPerkId,
+          perkKey: perkRow.perk_key,
+          name: perkTr?.title ?? null,
+        };
+      }
+    }
+  }
   return {
     content: base.content,
     translation: base.translation,
     loadout,
     heroes,
+    teamPerk,
     coverUrl: cover?.delivery_url ?? null,
   };
 }

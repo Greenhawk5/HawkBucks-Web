@@ -19,5 +19,5 @@
 /assets/*
   Cache-Control: public, max-age=31536000, immutable
 
-/articles/preview
+/guides/preview
   Cache-Control: private, no-store
