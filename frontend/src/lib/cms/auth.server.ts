@@ -412,12 +412,39 @@ export function isValidPasswordEnvelope(envelope: unknown): boolean {
 }
 
 /**
+ * Structured, secret-free login-stage diagnostics.
+ *
+ * The bootstrap + bot-gate paths fail CLOSED and SILENTLY by design: a
+ * misconfigured deployment (missing secret, malformed envelope, rejected
+ * Turnstile token) returns the SAME generic 401 as a wrong password and
+ * writes NOTHING to D1, so a total production lockout leaves zero evidence in
+ * the database or the response body.
+ *
+ * These lines record WHICH stage refused, using stage names and booleans
+ * ONLY — never a secret, token, password, hash, salt, or cookie. That makes a
+ * production lockout diagnosable from Workers Logs without exposing anything
+ * sensitive. Advisory only: it must never break an authentication flow.
+ */
+type AuthStageDetail = Record<string, boolean | number | string | null | readonly string[]>;
+
+function authStage(stage: string, detail: AuthStageDetail): void {
+  try {
+    console.log(JSON.stringify({ scope: "cms_auth", stage, ...detail }));
+  } catch {
+    // Diagnostics are best-effort; a logging failure never fails a login.
+  }
+}
+
+/**
  * One-time bootstrap: when cms_users is empty AND the deployment provides
  * CMS_ADMIN_USERNAME / CMS_ADMIN_PASSWORD_HASH env secrets, the first admin
  * is provisioned from them. The envelope is validated BEFORE the insert: a
  * malformed or Workers-incompatible hash fails closed (returns null) instead
  * of seeding an admin that can never log in. Otherwise login fails closed —
  * there is no default password, anywhere, ever.
+ *
+ * Every refusal is logged (stage + booleans, no secret values) because each
+ * one is otherwise indistinguishable from a wrong password.
  */
 export async function ensureBootstrapAdmin(
   db: D1Database,
@@ -434,10 +461,29 @@ export async function ensureBootstrapAdmin(
     typeof env.CMS_ADMIN_PASSWORD_HASH === "string" && env.CMS_ADMIN_PASSWORD_HASH !== ""
       ? env.CMS_ADMIN_PASSWORD_HASH
       : null;
-  if (!username || !passwordHash) return null;
+  if (!username || !passwordHash) {
+    // Refusal reason matters: without it, "missing secret" and "wrong password"
+    // are byte-identical to the caller AND leave no row in D1.
+    authStage("bootstrap", {
+      users_before: Number(count?.n ?? 0),
+      outcome: "refused_missing_secret",
+      username_present: username !== null,
+      password_hash_present: passwordHash !== null,
+    });
+    return null;
+  }
   // Fail closed on malformed or Workers-incompatible envelopes — seeding one
   // would provision an admin that can never log in.
-  if (!isValidPasswordEnvelope(passwordHash)) return null;
+  if (!isValidPasswordEnvelope(passwordHash)) {
+    authStage("bootstrap", {
+      users_before: Number(count?.n ?? 0),
+      outcome: "refused_invalid_envelope",
+      username_present: true,
+      password_hash_present: true,
+      envelope_valid: false,
+    });
+    return null;
+  }
   const timestamp = now.toISOString();
   const user: CmsSessionUser = {
     id: `cms_user_${crypto.randomUUID()}`,
@@ -452,6 +498,7 @@ export async function ensureBootstrapAdmin(
     )
     .bind(user.id, user.username, user.displayName, user.role, passwordHash, timestamp, timestamp)
     .run();
+  authStage("bootstrap", { users_before: 0, outcome: "created", envelope_valid: true });
   return user;
 }
 
@@ -472,8 +519,19 @@ export async function loginWithPassword(
   const valid =
     row !== null && row.active === 1 && (await verifyPassword(password, row.password_hash));
   if (!valid || !row || !isCmsRole(row.role)) {
+    // Booleans only — never the username, hash, or password. `user_found` is
+    // the signal that separates "bootstrap never ran / row missing" from
+    // "row exists but the password did not verify".
+    authStage("password", {
+      outcome: "rejected",
+      user_found: row !== null,
+      user_active: row?.active === 1,
+      role_valid: row ? isCmsRole(row.role) : false,
+      password_verified: valid,
+    });
     throw new CmsAuthError(401, "Invalid credentials.");
   }
+  authStage("password", { outcome: "verified", password_verified: true });
   const token = createSessionToken();
   // Wave 1: a fresh session starts with a 15-minute IDLE deadline (refreshed
   // by every authenticated request, capped by the 12h absolute lifetime —
@@ -731,23 +789,61 @@ export async function verifyTurnstileToken(input: {
       clearTimeout(timer);
     }
   } catch {
+    authStage("turnstile", { outcome: "network_error", http_status: null });
     return false;
   }
-  if (!res.ok) return false;
+  if (!res.ok) {
+    authStage("turnstile", { outcome: "http_error", http_status: res.status });
+    return false;
+  }
   let parsed: TurnstileVerifyResponse;
   try {
     parsed = (await res.json()) as TurnstileVerifyResponse;
   } catch {
+    authStage("turnstile", { outcome: "malformed_json", http_status: res.status });
     return false;
   }
-  if (parsed?.success !== true) return false;
+  // Cloudflare's own error-code names (e.g. invalid-input-response,
+  // timeout-or-duplicate, invalid-input-secret) are safe to record: they
+  // describe the failure CLASS, never the token or the secret. The single-use
+  // "timeout-or-duplicate" code is the fingerprint of a replayed/reused token,
+  // which no client-side change can fix.
+  const errorCodes = Array.isArray(parsed?.["error-codes"])
+    ? parsed["error-codes"].filter((code): code is string => typeof code === "string")
+    : [];
+  if (parsed?.success !== true) {
+    authStage("turnstile", {
+      outcome: "siteverify_rejected",
+      http_status: res.status,
+      success: false,
+      error_codes: errorCodes,
+      hostname: typeof parsed?.hostname === "string" ? parsed.hostname : null,
+      action: typeof parsed?.action === "string" ? parsed.action : null,
+      expected_hostname: input.expectedHostname ?? null,
+    });
+    return false;
+  }
   if (
     input.expectedHostname &&
     typeof parsed.hostname === "string" &&
     parsed.hostname !== input.expectedHostname
   ) {
+    authStage("turnstile", {
+      outcome: "hostname_mismatch",
+      http_status: res.status,
+      success: true,
+      hostname: parsed.hostname,
+      expected_hostname: input.expectedHostname,
+    });
     return false;
   }
+  authStage("turnstile", {
+    outcome: "verified",
+    http_status: res.status,
+    success: true,
+    hostname: typeof parsed.hostname === "string" ? parsed.hostname : null,
+    expected_hostname: input.expectedHostname ?? null,
+  });
   return true;
 }
 
@@ -765,6 +861,20 @@ export async function assertTurnstileForLogin(input: {
 }): Promise<void> {
   const enforced = isTurnstileEnforced(input.env);
   const half = isTurnstileHalfConfigured(input.env);
+  // Recording the resolved MODE is the single most useful production signal:
+  // "off" means the widget cannot be enforced, "half-configured" means exactly
+  // one key exists and every login fails closed. Booleans only — no key values.
+  authStage("turnstile_mode", {
+    enforced,
+    half_configured: half,
+    secret_present:
+      typeof input.env.CMS_TURNSTILE_SECRET === "string" &&
+      input.env.CMS_TURNSTILE_SECRET.trim() !== "",
+    site_key_present:
+      typeof input.env.CMS_TURNSTILE_SITE_KEY === "string" &&
+      input.env.CMS_TURNSTILE_SITE_KEY.trim() !== "",
+    token_present: typeof input.token === "string" && input.token.trim() !== "",
+  });
   if (!enforced && !half) return;
   const secret =
     typeof input.env.CMS_TURNSTILE_SECRET === "string" ? input.env.CMS_TURNSTILE_SECRET.trim() : "";
