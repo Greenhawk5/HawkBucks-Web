@@ -336,7 +336,7 @@ export const pt: TranslationDictionary = {
     description:
       "O HawkBucks é uma ferramenta da comunidade que rastreia automaticamente as missões de V-Bucks do Fortnite: Save the World e oferece um resumo diário rápido das recompensas disponíveis.",
     navigate: "Navegar",
-    projectLinks: "Links do projeto",
+    links: "Links",
     builtWith: "Feito com",
     githubProject: "Projeto no GitHub",
     telegramBot: "Bot do Telegram",

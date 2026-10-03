@@ -290,7 +290,10 @@ test("UTC countdown is HH:MM:SS and always targets the next 00:00 UTC", async ()
   assert.equal(fmt("2026-09-24T23:59:59Z"), "00:00:01");
   assert.equal(fmt("2026-09-24T12:34:56Z"), "11:25:04");
   // The target is always 00:00 UTC on a later day, never a local boundary.
-  assert.equal(time.nextUtcMidnight("2026-09-24T16:00:00Z").toISOString(), "2026-09-25T00:00:00.000Z");
+  assert.equal(
+    time.nextUtcMidnight("2026-09-24T16:00:00Z").toISOString(),
+    "2026-09-25T00:00:00.000Z",
+  );
 });
 
 test("UTC countdown rolls over correctly at 00:00:00 UTC", async () => {

@@ -1071,7 +1071,11 @@ test("db: re-uploading a tombstoned R2 asset revives it (unique index is still t
 
 test("db: media upsert keeps provider namespaces independent", async () => {
   const memory = createMemoryD1();
-  const shared = { providerAssetId: "shared-key", mimeType: "image/png", originalFilename: "x.png" };
+  const shared = {
+    providerAssetId: "shared-key",
+    mimeType: "image/png",
+    originalFilename: "x.png",
+  };
 
   await db.createMediaAsset(memory, {
     ...shared,

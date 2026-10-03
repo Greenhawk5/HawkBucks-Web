@@ -1,0 +1,3482 @@
+{
+  "_comment": "Trimmed fixture derived from the Fortnite world_info snapshot. Mirrors ONLY the theaters[].tiles[].zoneTheme fields that zone.test.cjs reads, so the end-to-end zone-resolution test runs against the real catalog in CI without committing the full multi-MB upstream dump.",
+  "theaters": [
+    {
+      "id": "",
+      "name": "",
+      "tiles": [
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TheSuburbs/BP_ZT_TheSuburbs.BP_ZT_TheSuburbs_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TheSuburbs/BP_ZT_TheSuburbs.BP_ZT_TheSuburbs_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TheGrasslands/BP_ZT_TheGrasslands.BP_ZT_TheGrasslands_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TheGrasslands/BP_ZT_TheGrasslands.BP_ZT_TheGrasslands_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TheSuburbs/BP_ZT_TheSuburbs.BP_ZT_TheSuburbs_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TheGrasslands/BP_ZT_TheGrasslands.BP_ZT_TheGrasslands_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TheSuburbs/BP_ZT_TheSuburbs.BP_ZT_TheSuburbs_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TheForest/BP_ZT_TheForest.BP_ZT_TheForest_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TheCity/BP_ZT_TheCity.BP_ZT_TheCity_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TheForest/BP_ZT_TheForest.BP_ZT_TheForest_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TheGrasslands/BP_ZT_TheGrasslands.BP_ZT_TheGrasslands_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TheIndustrialPark/BP_ZT_TheIndustrialPark.BP_ZT_TheIndustrialPark_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TheSuburbs/BP_ZT_TheSuburbs.BP_ZT_TheSuburbs_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TheIndustrialPark/BP_ZT_TheIndustrialPark.BP_ZT_TheIndustrialPark_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TheIndustrialPark/BP_ZT_TheIndustrialPark.BP_ZT_TheIndustrialPark_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Onboarding/BP_ZT_BuildOff.BP_ZT_BuildOff_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TheSuburbs/BP_ZT_TheSuburbs.BP_ZT_TheSuburbs_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TheCity/BP_ZT_TheCity.BP_ZT_TheCity_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TheGrasslands/BP_ZT_TheGrasslands.BP_ZT_TheGrasslands_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TheSuburbs/BP_ZT_TheSuburbs.BP_ZT_TheSuburbs_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TheSuburbs/BP_ZT_TheSuburbs.BP_ZT_TheSuburbs_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TheCity/BP_ZT_TheCity.BP_ZT_TheCity_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TheSuburbs/BP_ZT_TheSuburbs.BP_ZT_TheSuburbs_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TheGrasslands/BP_ZT_TheGrasslands.BP_ZT_TheGrasslands_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TheForest/BP_ZT_TheForest.BP_ZT_TheForest_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TheGrasslands/BP_ZT_TheGrasslands.BP_ZT_TheGrasslands_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TheForest/BP_ZT_TheForest.BP_ZT_TheForest_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TheForest/BP_ZT_TheForest.BP_ZT_TheForest_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TheForest/BP_ZT_TheForest.BP_ZT_TheForest_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Onboarding/BP_ZT_Onboarding_Grasslands_a.BP_ZT_Onboarding_Grasslands_a_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TheGrasslands/BP_ZT_TheGrasslands.BP_ZT_TheGrasslands_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TheGrasslands/BP_ZT_TheGrasslands.BP_ZT_TheGrasslands_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TheGrasslands/BP_ZT_TheGrasslands.BP_ZT_TheGrasslands_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TheSuburbs/BP_ZT_TheSuburbs.BP_ZT_TheSuburbs_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TheSuburbs/BP_ZT_TheSuburbs.BP_ZT_TheSuburbs_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TheForest/BP_ZT_TheForest.BP_ZT_TheForest_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/CriticalMission/BP_ZT_CriticalMission.BP_ZT_CriticalMission_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TheCity/BP_ZT_TheCity.BP_ZT_TheCity_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TheSuburbs/BP_ZT_TheSuburbs.BP_ZT_TheSuburbs_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TheSuburbs/BP_ZT_TheSuburbs.BP_ZT_TheSuburbs_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TheGrasslands/BP_ZT_TheGrasslands.BP_ZT_TheGrasslands_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TheCity/BP_ZT_TheCity.BP_ZT_TheCity_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TheGrasslands/BP_ZT_TheGrasslands.BP_ZT_TheGrasslands_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TheSuburbs/BP_ZT_TheSuburbs.BP_ZT_TheSuburbs_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TheIndustrialPark/BP_ZT_TheIndustrialPark.BP_ZT_TheIndustrialPark_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TheIndustrialPark/BP_ZT_TheIndustrialPark.BP_ZT_TheIndustrialPark_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TheGrasslands/BP_ZT_TheGrasslands.BP_ZT_TheGrasslands_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TheGrasslands/BP_ZT_TheGrasslands.BP_ZT_TheGrasslands_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TheIndustrialPark/BP_ZT_TheIndustrialPark.BP_ZT_TheIndustrialPark_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TheForest/BP_ZT_TheForest.BP_ZT_TheForest_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TheForest/BP_ZT_TheForest.BP_ZT_TheForest_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TheForest/BP_ZT_TheForest.BP_ZT_TheForest_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TheGrasslands/BP_ZT_TheGrasslands.BP_ZT_TheGrasslands_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TheForest/BP_ZT_TheForest.BP_ZT_TheForest_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TheSuburbs/BP_ZT_TheSuburbs.BP_ZT_TheSuburbs_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TheForest/BP_ZT_TheForest.BP_ZT_TheForest_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TheForest/BP_ZT_TheForest.BP_ZT_TheForest_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TheIndustrialPark/BP_ZT_TheIndustrialPark.BP_ZT_TheIndustrialPark_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TheGrasslands/BP_ZT_TheGrasslands.BP_ZT_TheGrasslands_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TheGrasslands/BP_ZT_TheGrasslands.BP_ZT_TheGrasslands_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TheGrasslands/BP_ZT_TheGrasslands.BP_ZT_TheGrasslands_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Onboarding/BP_ZT_Onboarding_Forest_a.BP_ZT_Onboarding_Forest_a_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TheGrasslands/BP_ZT_TheGrasslands.BP_ZT_TheGrasslands_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Outposts/BP_ZT_Homebase_06.BP_ZT_Homebase_06_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Outposts/BP_ZT_TheOutpost_PvE_01.BP_ZT_TheOutpost_PvE_01_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Onboarding/BP_ZT_Onboarding_Suburban_a.BP_ZT_Onboarding_Suburban_a_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TheCity/BP_ZT_TheCity.BP_ZT_TheCity_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TheCity/BP_ZT_TheCity.BP_ZT_TheCity_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TheForest/BP_ZT_TheForest.BP_ZT_TheForest_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TheGrasslands/BP_ZT_TheGrasslands.BP_ZT_TheGrasslands_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TheForest/BP_ZT_TheForest.BP_ZT_TheForest_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TheForest/BP_ZT_TheForest.BP_ZT_TheForest_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TheForest/BP_ZT_TheForest.BP_ZT_TheForest_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TheSuburbs/BP_ZT_TheSuburbs.BP_ZT_TheSuburbs_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TheSuburbs/BP_ZT_TheSuburbs.BP_ZT_TheSuburbs_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TheGrasslands/BP_ZT_TheGrasslands.BP_ZT_TheGrasslands_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TheForest/BP_ZT_TheForest.BP_ZT_TheForest_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TheGrasslands/BP_ZT_TheGrasslands.BP_ZT_TheGrasslands_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TheForest/BP_ZT_TheForest.BP_ZT_TheForest_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TheForest/BP_ZT_TheForest.BP_ZT_TheForest_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TheForest/BP_ZT_TheForest.BP_ZT_TheForest_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TheSuburbs/BP_ZT_TheSuburbs.BP_ZT_TheSuburbs_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TheSuburbs/BP_ZT_TheSuburbs.BP_ZT_TheSuburbs_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TheForest/BP_ZT_TheForest.BP_ZT_TheForest_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TheForest/BP_ZT_TheForest.BP_ZT_TheForest_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TheGrasslands/BP_ZT_TheGrasslands.BP_ZT_TheGrasslands_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TheForest/BP_ZT_TheForest.BP_ZT_TheForest_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Outposts/BP_ZT_Homebase_02.BP_ZT_Homebase_02_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Outposts/BP_ZT_Homebase_03.BP_ZT_Homebase_03_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TheForest/BP_ZT_TheForest.BP_ZT_TheForest_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Outposts/BP_ZT_Homebase_05.BP_ZT_Homebase_05_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Outposts/BP_ZT_Homebase_07.BP_ZT_Homebase_07_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TheSuburbs/BP_ZT_TheSuburbs.BP_ZT_TheSuburbs_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TheForest/BP_ZT_TheForest.BP_ZT_TheForest_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TheForest/BP_ZT_TheForest.BP_ZT_TheForest_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TheForest/BP_ZT_TheForest.BP_ZT_TheForest_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TheForest/BP_ZT_TheForest.BP_ZT_TheForest_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TheForest/BP_ZT_TheForest.BP_ZT_TheForest_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TheForest/BP_ZT_TheForest.BP_ZT_TheForest_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TheForest/BP_ZT_TheForest.BP_ZT_TheForest_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TheForest/BP_ZT_TheForest.BP_ZT_TheForest_C"
+        }
+      ]
+    },
+    {
+      "id": "",
+      "name": "",
+      "tiles": [
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Starlight/BP_ZT_Starlight_D1.BP_ZT_Starlight_D1_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Starlight/BP_ZT_Starlight_D1.BP_ZT_Starlight_D1_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Starlight/BP_ZT_Starlight_D1.BP_ZT_Starlight_D1_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Starlight/BP_ZT_Starlight_D1.BP_ZT_Starlight_D1_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Starlight/BP_ZT_Starlight_D1.BP_ZT_Starlight_D1_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Starlight/BP_ZT_Starlight_D1.BP_ZT_Starlight_D1_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Starlight/BP_ZT_Starlight_D1.BP_ZT_Starlight_D1_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Starlight/BP_ZT_Starlight_D1.BP_ZT_Starlight_D1_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Starlight/BP_ZT_Starlight_D1.BP_ZT_Starlight_D1_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Starlight/BP_ZT_Starlight_D1.BP_ZT_Starlight_D1_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Starlight/BP_ZT_Starlight_D2.BP_ZT_Starlight_D2_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Starlight/BP_ZT_Starlight_D2.BP_ZT_Starlight_D2_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Starlight/BP_ZT_Starlight_D2.BP_ZT_Starlight_D2_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Starlight/BP_ZT_Starlight_D2.BP_ZT_Starlight_D2_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Starlight/BP_ZT_Starlight_D2.BP_ZT_Starlight_D2_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Starlight/BP_ZT_Starlight_D2.BP_ZT_Starlight_D2_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Starlight/BP_ZT_Starlight_D2.BP_ZT_Starlight_D2_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Starlight/BP_ZT_Starlight_D2.BP_ZT_Starlight_D2_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Starlight/BP_ZT_Starlight_D2.BP_ZT_Starlight_D2_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Starlight/BP_ZT_Starlight_D2.BP_ZT_Starlight_D2_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Starlight/BP_ZT_Starlight_D3.BP_ZT_Starlight_D3_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Starlight/BP_ZT_Starlight_D3.BP_ZT_Starlight_D3_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Starlight/BP_ZT_Starlight_D3.BP_ZT_Starlight_D3_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Starlight/BP_ZT_Starlight_D3.BP_ZT_Starlight_D3_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Starlight/BP_ZT_Starlight_D3.BP_ZT_Starlight_D3_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Starlight/BP_ZT_Starlight_D3.BP_ZT_Starlight_D3_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Starlight/BP_ZT_Starlight_D3.BP_ZT_Starlight_D3_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Starlight/BP_ZT_Starlight_D3.BP_ZT_Starlight_D3_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Starlight/BP_ZT_Starlight_D3.BP_ZT_Starlight_D3_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Starlight/BP_ZT_Starlight_D3.BP_ZT_Starlight_D3_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Starlight/BP_ZT_Starlight_D4.BP_ZT_Starlight_D4_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Starlight/BP_ZT_Starlight_D4.BP_ZT_Starlight_D4_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Starlight/BP_ZT_Starlight_D4.BP_ZT_Starlight_D4_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Starlight/BP_ZT_Starlight_D4.BP_ZT_Starlight_D4_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Starlight/BP_ZT_Starlight_D4.BP_ZT_Starlight_D4_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Starlight/BP_ZT_Starlight_D4.BP_ZT_Starlight_D4_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Starlight/BP_ZT_Starlight_D4.BP_ZT_Starlight_D4_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Starlight/BP_ZT_Starlight_D4.BP_ZT_Starlight_D4_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Starlight/BP_ZT_Starlight_D4.BP_ZT_Starlight_D4_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Starlight/BP_ZT_Starlight_D4.BP_ZT_Starlight_D4_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_HF.BP_ZT_TRV_HF_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Starlight/BP_ZT_Starlight_D1.BP_ZT_Starlight_D1_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Starlight/BP_ZT_Starlight_D1.BP_ZT_Starlight_D1_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Starlight/BP_ZT_Starlight_D1.BP_ZT_Starlight_D1_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Starlight/BP_ZT_Starlight_D1.BP_ZT_Starlight_D1_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Starlight/BP_ZT_Starlight_D1.BP_ZT_Starlight_D1_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Starlight/BP_ZT_Starlight_D1.BP_ZT_Starlight_D1_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Starlight/BP_ZT_Starlight_D1.BP_ZT_Starlight_D1_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Starlight/BP_ZT_Starlight_D1.BP_ZT_Starlight_D1_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Starlight/BP_ZT_Starlight_D1.BP_ZT_Starlight_D1_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Starlight/BP_ZT_Starlight_D1.BP_ZT_Starlight_D1_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_HF.BP_ZT_TRV_HF_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Starlight/BP_ZT_Starlight_D4.BP_ZT_Starlight_D4_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Starlight/BP_ZT_Starlight_D4.BP_ZT_Starlight_D4_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Starlight/BP_ZT_Starlight_D4.BP_ZT_Starlight_D4_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Starlight/BP_ZT_Starlight_D4.BP_ZT_Starlight_D4_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Starlight/BP_ZT_Starlight_D4.BP_ZT_Starlight_D4_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Starlight/BP_ZT_Starlight_D4.BP_ZT_Starlight_D4_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Starlight/BP_ZT_Starlight_D4.BP_ZT_Starlight_D4_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Starlight/BP_ZT_Starlight_D4.BP_ZT_Starlight_D4_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Starlight/BP_ZT_Starlight_D4.BP_ZT_Starlight_D4_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_HF.BP_ZT_TRV_HF_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Starlight/BP_ZT_Starlight_D1.BP_ZT_Starlight_D1_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Starlight/BP_ZT_Starlight_D1.BP_ZT_Starlight_D1_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Starlight/BP_ZT_Starlight_D1.BP_ZT_Starlight_D1_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Starlight/BP_ZT_Starlight_D1.BP_ZT_Starlight_D1_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Starlight/BP_ZT_Starlight_D1.BP_ZT_Starlight_D1_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Starlight/BP_ZT_Starlight_D1.BP_ZT_Starlight_D1_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Starlight/BP_ZT_Starlight_D1.BP_ZT_Starlight_D1_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Starlight/BP_ZT_Starlight_D1.BP_ZT_Starlight_D1_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Starlight/BP_ZT_Starlight_D1.BP_ZT_Starlight_D1_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Starlight/BP_ZT_Starlight_D1.BP_ZT_Starlight_D1_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_HF.BP_ZT_TRV_HF_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Starlight/BP_ZT_Starlight_D2.BP_ZT_Starlight_D2_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Starlight/BP_ZT_Starlight_D2.BP_ZT_Starlight_D2_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Starlight/BP_ZT_Starlight_D2.BP_ZT_Starlight_D2_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Starlight/BP_ZT_Starlight_D2.BP_ZT_Starlight_D2_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Starlight/BP_ZT_Starlight_D2.BP_ZT_Starlight_D2_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Starlight/BP_ZT_Starlight_D2.BP_ZT_Starlight_D2_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Starlight/BP_ZT_Starlight_D2.BP_ZT_Starlight_D2_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Starlight/BP_ZT_Starlight_D2.BP_ZT_Starlight_D2_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Starlight/BP_ZT_Starlight_D2.BP_ZT_Starlight_D2_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Starlight/BP_ZT_Starlight_D2.BP_ZT_Starlight_D2_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_HF.BP_ZT_TRV_HF_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Starlight/BP_ZT_Starlight_D3.BP_ZT_Starlight_D3_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Starlight/BP_ZT_Starlight_D3.BP_ZT_Starlight_D3_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Starlight/BP_ZT_Starlight_D3.BP_ZT_Starlight_D3_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Starlight/BP_ZT_Starlight_D3.BP_ZT_Starlight_D3_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Starlight/BP_ZT_Starlight_D3.BP_ZT_Starlight_D3_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Starlight/BP_ZT_Starlight_D3.BP_ZT_Starlight_D3_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Starlight/BP_ZT_Starlight_D3.BP_ZT_Starlight_D3_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Starlight/BP_ZT_Starlight_D3.BP_ZT_Starlight_D3_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Starlight/BP_ZT_Starlight_D3.BP_ZT_Starlight_D3_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Starlight/BP_ZT_Starlight_D3.BP_ZT_Starlight_D3_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_HF.BP_ZT_TRV_HF_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_HF.BP_ZT_TRV_HF_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_HF.BP_ZT_TRV_HF_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_HF.BP_ZT_TRV_HF_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_HF.BP_ZT_TRV_HF_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_HF.BP_ZT_TRV_HF_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_HF.BP_ZT_TRV_HF_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_HF.BP_ZT_TRV_HF_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_HF.BP_ZT_TRV_HF_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_HF.BP_ZT_TRV_HF_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_HF.BP_ZT_TRV_HF_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_HF.BP_ZT_TRV_HF_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_HF.BP_ZT_TRV_HF_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_HF.BP_ZT_TRV_HF_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_HF.BP_ZT_TRV_HF_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_HF.BP_ZT_TRV_HF_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_HF.BP_ZT_TRV_HF_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_HF.BP_ZT_TRV_HF_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_HF.BP_ZT_TRV_HF_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_HF.BP_ZT_TRV_HF_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_HF.BP_ZT_TRV_HF_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_HF.BP_ZT_TRV_HF_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_HF.BP_ZT_TRV_HF_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_HF.BP_ZT_TRV_HF_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_HF.BP_ZT_TRV_HF_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_HF.BP_ZT_TRV_HF_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_HF.BP_ZT_TRV_HF_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_HF.BP_ZT_TRV_HF_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_HF.BP_ZT_TRV_HF_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_HF.BP_ZT_TRV_HF_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_HF.BP_ZT_TRV_HF_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_HF.BP_ZT_TRV_HF_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_HF.BP_ZT_TRV_HF_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_HF.BP_ZT_TRV_HF_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_HF.BP_ZT_TRV_HF_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_HF.BP_ZT_TRV_HF_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_HF.BP_ZT_TRV_HF_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_HF.BP_ZT_TRV_HF_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_HF.BP_ZT_TRV_HF_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_HF.BP_ZT_TRV_HF_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Starlight/BP_ZT_Starlight_D1.BP_ZT_Starlight_D1_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Starlight/BP_ZT_Starlight_D1.BP_ZT_Starlight_D1_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Starlight/BP_ZT_Starlight_D1.BP_ZT_Starlight_D1_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Starlight/BP_ZT_Starlight_D1.BP_ZT_Starlight_D1_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Starlight/BP_ZT_Starlight_D1.BP_ZT_Starlight_D1_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Starlight/BP_ZT_Starlight_D1.BP_ZT_Starlight_D1_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Starlight/BP_ZT_Starlight_D1.BP_ZT_Starlight_D1_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Starlight/BP_ZT_Starlight_D1.BP_ZT_Starlight_D1_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Starlight/BP_ZT_Starlight_D1.BP_ZT_Starlight_D1_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Starlight/BP_ZT_Starlight_D1.BP_ZT_Starlight_D1_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_HF.BP_ZT_TRV_HF_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Starlight/BP_ZT_Starlight_D5_Science.BP_ZT_Starlight_D5_Science_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Starlight/BP_ZT_Starlight_D5_Science.BP_ZT_Starlight_D5_Science_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Starlight/BP_ZT_Starlight_D5_Science.BP_ZT_Starlight_D5_Science_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Starlight/BP_ZT_Starlight_D5_Science.BP_ZT_Starlight_D5_Science_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Starlight/BP_ZT_Starlight_D5_Science.BP_ZT_Starlight_D5_Science_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Starlight/BP_ZT_Starlight_D5_Science.BP_ZT_Starlight_D5_Science_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Starlight/BP_ZT_Starlight_D5_Science.BP_ZT_Starlight_D5_Science_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Starlight/BP_ZT_Starlight_D5_Science.BP_ZT_Starlight_D5_Science_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Starlight/BP_ZT_Starlight_D5_Science.BP_ZT_Starlight_D5_Science_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Starlight/BP_ZT_Starlight_D5_Science.BP_ZT_Starlight_D5_Science_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_HF.BP_ZT_TRV_HF_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_HF.BP_ZT_TRV_HF_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Starlight/BP_ZT_Starlight_D4.BP_ZT_Starlight_D4_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_HF.BP_ZT_TRV_HF_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_HF.BP_ZT_TRV_HF_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_HF.BP_ZT_TRV_HF_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_HF.BP_ZT_TRV_HF_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_HF.BP_ZT_TRV_HF_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/CriticalMission/BP_ZT_CriticalMission.BP_ZT_CriticalMission_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_HF.BP_ZT_TRV_HF_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/CriticalMission/BP_ZT_CriticalMission.BP_ZT_CriticalMission_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_HF.BP_ZT_TRV_HF_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_HF.BP_ZT_TRV_HF_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/CriticalMission/BP_ZT_CriticalMission.BP_ZT_CriticalMission_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_HF.BP_ZT_TRV_HF_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_HF.BP_ZT_TRV_HF_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/CriticalMission/BP_ZT_CriticalMission.BP_ZT_CriticalMission_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_HF.BP_ZT_TRV_HF_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_HF.BP_ZT_TRV_HF_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_HF.BP_ZT_TRV_HF_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_HF.BP_ZT_TRV_HF_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_HF.BP_ZT_TRV_HF_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_HF.BP_ZT_TRV_HF_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_HF.BP_ZT_TRV_HF_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_HF.BP_ZT_TRV_HF_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_HF.BP_ZT_TRV_HF_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_HF.BP_ZT_TRV_HF_C"
+        }
+      ]
+    },
+    {
+      "id": "",
+      "name": "",
+      "tiles": [
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/TestZoneThemes/BP_ZT_PerfMem.BP_ZT_PerfMem_C"
+        }
+      ]
+    },
+    {
+      "id": "",
+      "name": "",
+      "tiles": [
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Onboarding/ZT_OnboardingFort/BP_ZT_Onboarding_Fort.BP_ZT_Onboarding_Fort_C"
+        }
+      ]
+    },
+    {
+      "id": "",
+      "name": "",
+      "tiles": [
+        {
+          "zoneTheme": "/STW_HestiaBeauty/World/Zone/BP_ZT_HestiaBeauty.BP_ZT_HestiaBeauty_C"
+        }
+      ]
+    },
+    {
+      "id": "",
+      "name": "",
+      "tiles": [
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/AD/BP_ZT_AD_TheIndustrialPark.BP_ZT_AD_TheIndustrialPark_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/AD/BP_ZT_AD_TheIndustrialPark.BP_ZT_AD_TheIndustrialPark_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/AD/BP_ZT_AD_Lakeside.BP_ZT_AD_Lakeside_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TheSuburbs/BP_ZT_TheSuburbs.BP_ZT_TheSuburbs_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/AD/BP_ZT_AD_Lakeside.BP_ZT_AD_Lakeside_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TheSuburbs/BP_ZT_TheSuburbs.BP_ZT_TheSuburbs_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/AD/BP_ZT_AD_TheCity.BP_ZT_AD_TheCity_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/AD/BP_ZT_AD_TheSuburbs.BP_ZT_AD_TheSuburbs_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/AD/BP_ZT_AD_TheIndustrialPark.BP_ZT_AD_TheIndustrialPark_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TheGrasslands/BP_ZT_TheGrasslands.BP_ZT_TheGrasslands_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/AD/BP_ZT_AD_Lakeside.BP_ZT_AD_Lakeside_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/AD/BP_ZT_AD_Lakeside.BP_ZT_AD_Lakeside_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/AD/BP_ZT_AD_Lakeside.BP_ZT_AD_Lakeside_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/AD/BP_ZT_AD_TheIndustrialPark.BP_ZT_AD_TheIndustrialPark_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/AD/BP_ZT_AD_TheSuburbs.BP_ZT_AD_TheSuburbs_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/AD/BP_ZT_AD_TheSuburbs.BP_ZT_AD_TheSuburbs_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/AD/BP_ZT_AD_Lakeside.BP_ZT_AD_Lakeside_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Outposts/BP_ZT_TheOutpost_PvE_02.BP_ZT_TheOutpost_PvE_02_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Landmarks/ZT_PlankHarbor/BP_ZT_PlankHarbor.BP_ZT_PlankHarbor_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TheForest/BP_ZT_TheForest.BP_ZT_TheForest_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TheGrasslands/BP_ZT_TheGrasslands.BP_ZT_TheGrasslands_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/AD/BP_ZT_AD2_TheGrasslands.BP_ZT_AD2_TheGrasslands_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TheForest/BP_ZT_TheForest.BP_ZT_TheForest_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/AD/BP_ZT_AD_Lakeside.BP_ZT_AD_Lakeside_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/AD/BP_ZT_AD_TheCity.BP_ZT_AD_TheCity_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/AD/BP_ZT_AD_TheSuburbs.BP_ZT_AD_TheSuburbs_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/AD/BP_ZT_AD2_TheGrasslands.BP_ZT_AD2_TheGrasslands_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TheIndustrialPark/BP_ZT_TheIndustrialPark.BP_ZT_TheIndustrialPark_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TheIndustrialPark/BP_ZT_TheIndustrialPark.BP_ZT_TheIndustrialPark_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TheIndustrialPark/BP_ZT_TheIndustrialPark.BP_ZT_TheIndustrialPark_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TheCity/BP_ZT_TheCity.BP_ZT_TheCity_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TheIndustrialPark/BP_ZT_TheIndustrialPark.BP_ZT_TheIndustrialPark_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/AD/BP_ZT_AD_TheSuburbs.BP_ZT_AD_TheSuburbs_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TheForest/BP_ZT_TheForest.BP_ZT_TheForest_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/AD/BP_ZT_AD2_TheGrasslands.BP_ZT_AD2_TheGrasslands_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/AD/BP_ZT_AD_TheCity.BP_ZT_AD_TheCity_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TheGrasslands/BP_ZT_TheGrasslands.BP_ZT_TheGrasslands_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Onboarding/BP_ZT_VindermansLab.BP_ZT_VindermansLab_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/AD/BP_ZT_AD_TheSuburbs.BP_ZT_AD_TheSuburbs_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TheForest/BP_ZT_TheForest.BP_ZT_TheForest_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TheCity/BP_ZT_TheCity.BP_ZT_TheCity_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/AD/BP_ZT_AD2_TheGrasslands.BP_ZT_AD2_TheGrasslands_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/AD/BP_ZT_AD_TheIndustrialPark.BP_ZT_AD_TheIndustrialPark_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/AD/BP_ZT_AD2_TheGrasslands.BP_ZT_AD2_TheGrasslands_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TheGrasslands/BP_ZT_TheGrasslands.BP_ZT_TheGrasslands_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/AD/BP_ZT_AD_TheIndustrialPark.BP_ZT_AD_TheIndustrialPark_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/AD/BP_ZT_AD_Lakeside.BP_ZT_AD_Lakeside_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/AD/BP_ZT_AD_TheSuburbs.BP_ZT_AD_TheSuburbs_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/AD/BP_ZT_AD_TheSuburbs.BP_ZT_AD_TheSuburbs_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/AD/BP_ZT_AD_TheSuburbs.BP_ZT_AD_TheSuburbs_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/AD/BP_ZT_AD_TheSuburbs.BP_ZT_AD_TheSuburbs_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/AD/BP_ZT_AD_TheIndustrialPark.BP_ZT_AD_TheIndustrialPark_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/AD/BP_ZT_AD_Lakeside.BP_ZT_AD_Lakeside_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/AD/BP_ZT_AD_TheCity.BP_ZT_AD_TheCity_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/AD/BP_ZT_AD2_TheGrasslands.BP_ZT_AD2_TheGrasslands_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/AD/BP_ZT_AD_TheSuburbs.BP_ZT_AD_TheSuburbs_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/AD/BP_ZT_AD_TheIndustrialPark.BP_ZT_AD_TheIndustrialPark_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/AD/BP_ZT_AD_TheIndustrialPark.BP_ZT_AD_TheIndustrialPark_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/AD/BP_ZT_AD_TheSuburbs.BP_ZT_AD_TheSuburbs_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/AD/BP_ZT_AD_Lakeside.BP_ZT_AD_Lakeside_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/AD/BP_ZT_AD_Lakeside.BP_ZT_AD_Lakeside_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/AD/BP_ZT_AD_TheCity.BP_ZT_AD_TheCity_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/AD/BP_ZT_AD_TheCity.BP_ZT_AD_TheCity_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/AD/BP_ZT_AD_TheIndustrialPark.BP_ZT_AD_TheIndustrialPark_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TheForest/BP_ZT_TheForest.BP_ZT_TheForest_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/AD/BP_ZT_AD_Lakeside.BP_ZT_AD_Lakeside_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/AD/BP_ZT_AD_TheIndustrialPark.BP_ZT_AD_TheIndustrialPark_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TheForest/BP_ZT_TheForest.BP_ZT_TheForest_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TheGrasslands/BP_ZT_TheGrasslands.BP_ZT_TheGrasslands_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TheGrasslands/BP_ZT_TheGrasslands.BP_ZT_TheGrasslands_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TheForest/BP_ZT_TheForest.BP_ZT_TheForest_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/AD/BP_ZT_AD_TheIndustrialPark.BP_ZT_AD_TheIndustrialPark_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/AD/BP_ZT_AD2_TheGrasslands.BP_ZT_AD2_TheGrasslands_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TheForest/BP_ZT_TheForest.BP_ZT_TheForest_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TheForest/BP_ZT_TheForest.BP_ZT_TheForest_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TheForest/BP_ZT_TheForest.BP_ZT_TheForest_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/AD/BP_ZT_AD2_TheGrasslands.BP_ZT_AD2_TheGrasslands_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TheGrasslands/BP_ZT_TheGrasslands.BP_ZT_TheGrasslands_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TheForest/BP_ZT_TheForest.BP_ZT_TheForest_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TheGrasslands/BP_ZT_TheGrasslands.BP_ZT_TheGrasslands_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/AD/BP_ZT_AD_Lakeside.BP_ZT_AD_Lakeside_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TheSuburbs/BP_ZT_TheSuburbs.BP_ZT_TheSuburbs_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TheSuburbs/BP_ZT_TheSuburbs.BP_ZT_TheSuburbs_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TheGrasslands/BP_ZT_TheGrasslands.BP_ZT_TheGrasslands_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TheCity/BP_ZT_TheCity.BP_ZT_TheCity_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TheCity/BP_ZT_TheCity.BP_ZT_TheCity_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TheGrasslands/BP_ZT_TheGrasslands.BP_ZT_TheGrasslands_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TheSuburbs/BP_ZT_TheSuburbs.BP_ZT_TheSuburbs_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TheSuburbs/BP_ZT_TheSuburbs.BP_ZT_TheSuburbs_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TheGrasslands/BP_ZT_TheGrasslands.BP_ZT_TheGrasslands_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TheGrasslands/BP_ZT_TheGrasslands.BP_ZT_TheGrasslands_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TheSuburbs/BP_ZT_TheSuburbs.BP_ZT_TheSuburbs_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TheSuburbs/BP_ZT_TheSuburbs.BP_ZT_TheSuburbs_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TheGrasslands/BP_ZT_TheGrasslands.BP_ZT_TheGrasslands_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TheSuburbs/BP_ZT_TheSuburbs.BP_ZT_TheSuburbs_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TheCity/BP_ZT_TheCity.BP_ZT_TheCity_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TheCity/BP_ZT_TheCity.BP_ZT_TheCity_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TheCity/BP_ZT_TheCity.BP_ZT_TheCity_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/AD/BP_ZT_AD_TheIndustrialPark.BP_ZT_AD_TheIndustrialPark_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/AD/BP_ZT_AD_TheIndustrialPark.BP_ZT_AD_TheIndustrialPark_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/AD/BP_ZT_AD_TheIndustrialPark.BP_ZT_AD_TheIndustrialPark_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/AD/BP_ZT_AD_Lakeside.BP_ZT_AD_Lakeside_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/AD/BP_ZT_AD_Lakeside.BP_ZT_AD_Lakeside_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/AD/BP_ZT_AD_Lakeside.BP_ZT_AD_Lakeside_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/AD/BP_ZT_AD_TheIndustrialPark.BP_ZT_AD_TheIndustrialPark_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TheForest/BP_ZT_TheForest.BP_ZT_TheForest_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/AD/BP_ZT_AD_TheSuburbs.BP_ZT_AD_TheSuburbs_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TheGrasslands/BP_ZT_TheGrasslands.BP_ZT_TheGrasslands_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/AD/BP_ZT_AD_TheSuburbs.BP_ZT_AD_TheSuburbs_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/AD/BP_ZT_AD_TheSuburbs.BP_ZT_AD_TheSuburbs_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TheGrasslands/BP_ZT_TheGrasslands.BP_ZT_TheGrasslands_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TheGrasslands/BP_ZT_TheGrasslands.BP_ZT_TheGrasslands_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/AD/BP_ZT_AD_TheIndustrialPark.BP_ZT_AD_TheIndustrialPark_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/AD/BP_ZT_AD_TheIndustrialPark.BP_ZT_AD_TheIndustrialPark_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TheGrasslands/BP_ZT_TheGrasslands.BP_ZT_TheGrasslands_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TheGrasslands/BP_ZT_TheGrasslands.BP_ZT_TheGrasslands_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/AD/BP_ZT_AD_TheIndustrialPark.BP_ZT_AD_TheIndustrialPark_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TheForest/BP_ZT_TheForest.BP_ZT_TheForest_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TheForest/BP_ZT_TheForest.BP_ZT_TheForest_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/AD/BP_ZT_AD_TheSuburbs.BP_ZT_AD_TheSuburbs_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TheSuburbs/BP_ZT_TheSuburbs.BP_ZT_TheSuburbs_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TheForest/BP_ZT_TheForest.BP_ZT_TheForest_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TheForest/BP_ZT_TheForest.BP_ZT_TheForest_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TheSuburbs/BP_ZT_TheSuburbs.BP_ZT_TheSuburbs_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/AD/BP_ZT_AD_TheSuburbs.BP_ZT_AD_TheSuburbs_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TheGrasslands/BP_ZT_TheGrasslands.BP_ZT_TheGrasslands_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/AD/BP_ZT_AD_TheSuburbs.BP_ZT_AD_TheSuburbs_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/AD/BP_ZT_AD_TheCity.BP_ZT_AD_TheCity_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/AD/BP_ZT_AD_TheCity.BP_ZT_AD_TheCity_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/AD/BP_ZT_AD_TheCity.BP_ZT_AD_TheCity_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/AD/BP_ZT_AD_TheCity.BP_ZT_AD_TheCity_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/AD/BP_ZT_AD_TheCity.BP_ZT_AD_TheCity_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/AD/BP_ZT_AD_Lakeside.BP_ZT_AD_Lakeside_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TheSuburbs/BP_ZT_TheSuburbs.BP_ZT_TheSuburbs_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/AD/BP_ZT_AD_Lakeside.BP_ZT_AD_Lakeside_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/AD/BP_ZT_AD_Lakeside.BP_ZT_AD_Lakeside_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/AD/BP_ZT_AD_TheCity.BP_ZT_AD_TheCity_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/AD/BP_ZT_AD_TheCity.BP_ZT_AD_TheCity_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/AD/BP_ZT_AD_Lakeside.BP_ZT_AD_Lakeside_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/AD/BP_ZT_AD_TheCity.BP_ZT_AD_TheCity_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/AD/BP_ZT_AD2_TheGrasslands.BP_ZT_AD2_TheGrasslands_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/AD/BP_ZT_AD_TheIndustrialPark.BP_ZT_AD_TheIndustrialPark_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/AD/BP_ZT_AD_TheIndustrialPark.BP_ZT_AD_TheIndustrialPark_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/AD/BP_ZT_AD2_TheGrasslands.BP_ZT_AD2_TheGrasslands_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TheGrasslands/BP_ZT_TheGrasslands.BP_ZT_TheGrasslands_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TheSuburbs/BP_ZT_TheSuburbs.BP_ZT_TheSuburbs_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/AD/BP_ZT_AD2_TheGrasslands.BP_ZT_AD2_TheGrasslands_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TheIndustrialPark/BP_ZT_TheIndustrialPark.BP_ZT_TheIndustrialPark_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TheForest/BP_ZT_TheForest.BP_ZT_TheForest_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TheSuburbs/BP_ZT_TheSuburbs.BP_ZT_TheSuburbs_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TheIndustrialPark/BP_ZT_TheIndustrialPark.BP_ZT_TheIndustrialPark_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TheGrasslands/BP_ZT_TheGrasslands.BP_ZT_TheGrasslands_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TheGrasslands/BP_ZT_TheGrasslands.BP_ZT_TheGrasslands_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TheGrasslands/BP_ZT_TheGrasslands.BP_ZT_TheGrasslands_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TheGrasslands/BP_ZT_TheGrasslands.BP_ZT_TheGrasslands_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TheGrasslands/BP_ZT_TheGrasslands.BP_ZT_TheGrasslands_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TheGrasslands/BP_ZT_TheGrasslands.BP_ZT_TheGrasslands_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TheForest/BP_ZT_TheForest.BP_ZT_TheForest_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TheCity/BP_ZT_TheCity.BP_ZT_TheCity_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TheIndustrialPark/BP_ZT_TheIndustrialPark.BP_ZT_TheIndustrialPark_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TheCity/BP_ZT_TheCity.BP_ZT_TheCity_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/AD/BP_ZT_AD2_TheGrasslands.BP_ZT_AD2_TheGrasslands_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/AD/BP_ZT_AD_TheSuburbs.BP_ZT_AD_TheSuburbs_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/AD/BP_ZT_AD_Lakeside.BP_ZT_AD_Lakeside_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/AD/BP_ZT_AD_TheSuburbs.BP_ZT_AD_TheSuburbs_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/AD/BP_ZT_AD_TheSuburbs.BP_ZT_AD_TheSuburbs_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/AD/BP_ZT_AD_TheCity.BP_ZT_AD_TheCity_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/CriticalMission/BP_ZT_CriticalMission.BP_ZT_CriticalMission_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/AD/BP_ZT_AD_Lakeside.BP_ZT_AD_Lakeside_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TheForest/BP_ZT_TheForest.BP_ZT_TheForest_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TheForest/BP_ZT_TheForest.BP_ZT_TheForest_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TheForest/BP_ZT_TheForest.BP_ZT_TheForest_C"
+        }
+      ]
+    },
+    {
+      "id": "",
+      "name": "",
+      "tiles": [
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_GhostTown/BP_ZT_GhostTown_A.BP_ZT_GhostTown_A_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_Route99/BP_ZT_Route99_Bunker_2.BP_ZT_Route99_Bunker_2_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TheCity/BP_ZT_TheCity.BP_ZT_TheCity_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TheIndustrialPark/BP_ZT_TheIndustrialPark.BP_ZT_TheIndustrialPark_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/AD/BP_ZT_AD_Lakeside.BP_ZT_AD_Lakeside_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TheSuburbs/BP_ZT_TheSuburbs.BP_ZT_TheSuburbs_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/AD/BP_ZT_AD2_TheGrasslands.BP_ZT_AD2_TheGrasslands_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/AD/BP_ZT_AD2_TheGrasslands.BP_ZT_AD2_TheGrasslands_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TheForest/BP_ZT_TheForest.BP_ZT_TheForest_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TheIndustrialPark/BP_ZT_TheIndustrialPark.BP_ZT_TheIndustrialPark_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_Arid/BP_ZT_Desert_Bunker.BP_ZT_Desert_Bunker_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TheIndustrialPark/BP_ZT_TheIndustrialPark.BP_ZT_TheIndustrialPark_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_GhostTown/BP_ZT_GhostTown_A.BP_ZT_GhostTown_A_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_Route99/BP_ZT_Route99_Bunker_1.BP_ZT_Route99_Bunker_1_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_GhostTown/BP_ZT_GhostTown_A.BP_ZT_GhostTown_A_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TP/BP_TZ_TP_Water.BP_TZ_TP_Water_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TP/BP_ZT_TP_Island01.BP_ZT_TP_Island01_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TP/BP_TZ_TP_Water.BP_TZ_TP_Water_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TheForest/BP_ZT_TheForest.BP_ZT_TheForest_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_Arid/BP_ZT_Desert_Bunker.BP_ZT_Desert_Bunker_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_Route99/BP_ZT_Route99_Bunker_2.BP_ZT_Route99_Bunker_2_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TheDesert/BP_ZT_TheDesert.BP_ZT_TheDesert_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/AD/BP_ZT_AD2_TheGrasslands.BP_ZT_AD2_TheGrasslands_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TheDesert/BP_ZT_TheDesert.BP_ZT_TheDesert_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TheDesert/BP_ZT_TheDesert.BP_ZT_TheDesert_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TheDesert/BP_ZT_TheDesert.BP_ZT_TheDesert_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_Route99/BP_ZT_Route99_Bunker_2.BP_ZT_Route99_Bunker_2_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TheSuburbs/BP_ZT_TheSuburbs.BP_ZT_TheSuburbs_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TheGrasslands/BP_ZT_TheGrasslands.BP_ZT_TheGrasslands_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TP/BP_ZT_TP_Island01.BP_ZT_TP_Island01_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TheForest/BP_ZT_TheForest.BP_ZT_TheForest_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/AD/BP_ZT_AD_Lakeside.BP_ZT_AD_Lakeside_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/AD/BP_ZT_AD2_TheGrasslands.BP_ZT_AD2_TheGrasslands_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_GhostTown/BP_ZT_GhostTown_A.BP_ZT_GhostTown_A_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_Arid/BP_ZT_Desert_Bunker.BP_ZT_Desert_Bunker_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TP/BP_TZ_TP_Water.BP_TZ_TP_Water_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_Route99/BP_ZT_Route99_Bunker_1.BP_ZT_Route99_Bunker_1_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TP/BP_ZT_TP_Island01.BP_ZT_TP_Island01_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/AD/BP_ZT_AD_TheIndustrialPark.BP_ZT_AD_TheIndustrialPark_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TheIndustrialPark/BP_ZT_TheIndustrialPark.BP_ZT_TheIndustrialPark_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TheIndustrialPark/BP_ZT_TheIndustrialPark_Arid.BP_ZT_TheIndustrialPark_Arid_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/AD/BP_ZT_AD_TheIndustrialPark.BP_ZT_AD_TheIndustrialPark_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/AD/BP_ZT_AD_TheSuburbs.BP_ZT_AD_TheSuburbs_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/AD/BP_ZT_AD_TheSuburbs.BP_ZT_AD_TheSuburbs_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_GhostTown/BP_ZT_GhostTown_A.BP_ZT_GhostTown_A_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_Arid/BP_ZT_Desert.BP_ZT_Desert_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_Arid/BP_ZT_Desert.BP_ZT_Desert_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TheIndustrialPark/BP_ZT_TheIndustrialPark.BP_ZT_TheIndustrialPark_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TheForest/BP_ZT_TheForest.BP_ZT_TheForest_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TheSuburbs/BP_ZT_TheSuburbs.BP_ZT_TheSuburbs_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TheSuburbs/BP_ZT_TheSuburbs_Arid.BP_ZT_TheSuburbs_Arid_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TP/BP_TZ_TP_Water.BP_TZ_TP_Water_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_Arid/BP_ZT_Desert_Bunker.BP_ZT_Desert_Bunker_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TheCity/BP_ZT_TheCity.BP_ZT_TheCity_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TheSuburbs/BP_ZT_TheSuburbs.BP_ZT_TheSuburbs_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TheCity/BP_ZT_TheCity.BP_ZT_TheCity_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TP/BP_ZT_TP_Island01.BP_ZT_TP_Island01_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TheForest/BP_ZT_TheForest.BP_ZT_TheForest_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TheSuburbs/BP_ZT_TheSuburbs.BP_ZT_TheSuburbs_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TheCity/BP_ZT_TheCity_Arid.BP_ZT_TheCity_Arid_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/AD/BP_ZT_AD_TheIndustrialPark.BP_ZT_AD_TheIndustrialPark_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TheGrasslands/BP_ZT_TheGrasslands.BP_ZT_TheGrasslands_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TheSuburbs/BP_ZT_TheSuburbs.BP_ZT_TheSuburbs_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TheCity/BP_ZT_TheCity.BP_ZT_TheCity_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TP/BP_TZ_TP_Water.BP_TZ_TP_Water_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TP/BP_ZT_TP_Island01.BP_ZT_TP_Island01_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TheGrasslands/BP_ZT_TheGrasslands.BP_ZT_TheGrasslands_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/AD/BP_ZT_AD2_TheGrasslands.BP_ZT_AD2_TheGrasslands_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/AD/BP_ZT_AD2_TheGrasslands.BP_ZT_AD2_TheGrasslands_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/AD/BP_ZT_AD_Lakeside.BP_ZT_AD_Lakeside_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_GhostTown/BP_ZT_GhostTown_A.BP_ZT_GhostTown_A_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TheCity/BP_ZT_TheCity_Arid.BP_ZT_TheCity_Arid_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/AD/BP_ZT_AD_Lakeside.BP_ZT_AD_Lakeside_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TheForest/BP_ZT_TheForest.BP_ZT_TheForest_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/AD/BP_ZT_AD_Lakeside.BP_ZT_AD_Lakeside_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/AD/BP_ZT_AD_TheSuburbs.BP_ZT_AD_TheSuburbs_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/AD/BP_ZT_AD2_TheGrasslands.BP_ZT_AD2_TheGrasslands_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TheIndustrialPark/BP_ZT_TheIndustrialPark.BP_ZT_TheIndustrialPark_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TheCity/BP_ZT_TheCity.BP_ZT_TheCity_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_GhostTown/BP_ZT_GhostTown_B.BP_ZT_GhostTown_B_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TheIndustrialPark/BP_ZT_TheIndustrialPark_Arid.BP_ZT_TheIndustrialPark_Arid_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TheForest/BP_ZT_TheForest.BP_ZT_TheForest_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TheForest/BP_ZT_TheForest.BP_ZT_TheForest_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/AD/BP_ZT_AD_TheSuburbs.BP_ZT_AD_TheSuburbs_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/AD/BP_ZT_AD_TheIndustrialPark.BP_ZT_AD_TheIndustrialPark_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_GhostTown/BP_ZT_GhostTown_A.BP_ZT_GhostTown_A_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/AD/BP_ZT_AD_TheIndustrialPark.BP_ZT_AD_TheIndustrialPark_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TheIndustrialPark/BP_ZT_TheIndustrialPark_Arid.BP_ZT_TheIndustrialPark_Arid_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_Route99/BP_ZT_Route99_Bunker_1.BP_ZT_Route99_Bunker_1_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TheSuburbs/BP_ZT_TheSuburbs.BP_ZT_TheSuburbs_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TheGrasslands/BP_ZT_TheGrasslands.BP_ZT_TheGrasslands_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TheSuburbs/BP_ZT_TheSuburbs.BP_ZT_TheSuburbs_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TheDesert/BP_ZT_TheDesert.BP_ZT_TheDesert_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TheDesert/BP_ZT_TheDesert.BP_ZT_TheDesert_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_Arid/BP_ZT_Desert_Bunker.BP_ZT_Desert_Bunker_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_GhostTown/BP_ZT_GhostTown_A.BP_ZT_GhostTown_A_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TheIndustrialPark/BP_ZT_TheIndustrialPark.BP_ZT_TheIndustrialPark_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/AD/BP_ZT_AD2_TheGrasslands.BP_ZT_AD2_TheGrasslands_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TheGrasslands/BP_ZT_TheGrasslands.BP_ZT_TheGrasslands_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TheGrasslands/BP_ZT_TheGrasslands.BP_ZT_TheGrasslands_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TheGrasslands/BP_ZT_TheGrasslands.BP_ZT_TheGrasslands_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TheSuburbs/BP_ZT_TheSuburbs.BP_ZT_TheSuburbs_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TheCity/BP_ZT_TheCity.BP_ZT_TheCity_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TheCity/BP_ZT_TheCity.BP_ZT_TheCity_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_Arid/BP_ZT_Desert_Bunker.BP_ZT_Desert_Bunker_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_GhostTown/BP_ZT_GhostTown_A.BP_ZT_GhostTown_A_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TheIndustrialPark/BP_ZT_TheIndustrialPark.BP_ZT_TheIndustrialPark_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TheForest/BP_ZT_TheForest.BP_ZT_TheForest_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TheIndustrialPark/BP_ZT_TheIndustrialPark.BP_ZT_TheIndustrialPark_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TheSuburbs/BP_ZT_TheSuburbs.BP_ZT_TheSuburbs_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TheDesert/BP_ZT_TheDesert.BP_ZT_TheDesert_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_GhostTown/BP_ZT_GhostTown_B.BP_ZT_GhostTown_B_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TheDesert/BP_ZT_TheDesert.BP_ZT_TheDesert_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TheDesert/BP_ZT_TheDesert.BP_ZT_TheDesert_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TheForest/BP_ZT_TheForest.BP_ZT_TheForest_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/AD/BP_ZT_AD2_TheGrasslands.BP_ZT_AD2_TheGrasslands_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_Arid/BP_ZT_Desert_Bunker.BP_ZT_Desert_Bunker_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/AD/BP_ZT_AD_TheSuburbs.BP_ZT_AD_TheSuburbs_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_GhostTown/BP_ZT_GhostTown_A.BP_ZT_GhostTown_A_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_GhostTown/BP_ZT_GhostTown_B.BP_ZT_GhostTown_B_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_Route99/BP_ZT_Route99_Bunker_1.BP_ZT_Route99_Bunker_1_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_Route99/BP_ZT_Route99_Bunker_1.BP_ZT_Route99_Bunker_1_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_DUDEBRO/BP_ZT_DUDEBRO_HARD.BP_ZT_DUDEBRO_HARD_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TheCity/BP_ZT_TheCity.BP_ZT_TheCity_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TheSuburbs/BP_ZT_TheSuburbs.BP_ZT_TheSuburbs_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TheSuburbs/BP_ZT_TheSuburbs.BP_ZT_TheSuburbs_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/AD/BP_ZT_AD2_TheGrasslands.BP_ZT_AD2_TheGrasslands_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_GhostTown/BP_ZT_GhostTown_B.BP_ZT_GhostTown_B_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_Arid/BP_ZT_Desert_Bunker.BP_ZT_Desert_Bunker_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/CriticalMission/BP_ZT_CriticalMission.BP_ZT_CriticalMission_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Outposts/BP_ZT_TheOutpost_PvE_04.BP_ZT_TheOutpost_PvE_04_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/AD/BP_ZT_AD2_TheGrasslands.BP_ZT_AD2_TheGrasslands_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/AD/BP_ZT_AD2_TheGrasslands.BP_ZT_AD2_TheGrasslands_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TheIndustrialPark/BP_ZT_TheIndustrialPark.BP_ZT_TheIndustrialPark_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TheIndustrialPark/BP_ZT_TheIndustrialPark_Arid.BP_ZT_TheIndustrialPark_Arid_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/AD/BP_ZT_AD_TheIndustrialPark.BP_ZT_AD_TheIndustrialPark_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TheIndustrialPark/BP_ZT_TheIndustrialPark_Arid.BP_ZT_TheIndustrialPark_Arid_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_Arid/BP_ZT_Desert.BP_ZT_Desert_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/AD/BP_ZT_AD_TheIndustrialPark.BP_ZT_AD_TheIndustrialPark_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/AD/BP_ZT_AD_Lakeside.BP_ZT_AD_Lakeside_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TheDesert/BP_ZT_TheDesert.BP_ZT_TheDesert_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/AD/BP_ZT_AD2_TheGrasslands.BP_ZT_AD2_TheGrasslands_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TheIndustrialPark/BP_ZT_TheIndustrialPark.BP_ZT_TheIndustrialPark_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TheCity/BP_ZT_TheCity.BP_ZT_TheCity_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TheForest/BP_ZT_TheForest.BP_ZT_TheForest_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TheForest/BP_ZT_TheForest.BP_ZT_TheForest_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TheIndustrialPark/BP_ZT_TheIndustrialPark.BP_ZT_TheIndustrialPark_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TheForest/BP_ZT_TheForest.BP_ZT_TheForest_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TheSuburbs/BP_ZT_TheSuburbs.BP_ZT_TheSuburbs_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TP/BP_TZ_TP_Water.BP_TZ_TP_Water_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TP/BP_TZ_TP_Water.BP_TZ_TP_Water_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TheIndustrialPark/BP_ZT_TheIndustrialPark.BP_ZT_TheIndustrialPark_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TP/BP_ZT_TP_Island01.BP_ZT_TP_Island01_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TheIndustrialPark/BP_ZT_TheIndustrialPark.BP_ZT_TheIndustrialPark_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TheGrasslands/BP_ZT_TheGrasslands.BP_ZT_TheGrasslands_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TheGrasslands/BP_ZT_TheGrasslands.BP_ZT_TheGrasslands_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TheForest/BP_ZT_TheForest.BP_ZT_TheForest_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TheSuburbs/BP_ZT_TheSuburbs.BP_ZT_TheSuburbs_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/AD/BP_ZT_AD2_TheGrasslands.BP_ZT_AD2_TheGrasslands_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/AD/BP_ZT_AD2_TheGrasslands.BP_ZT_AD2_TheGrasslands_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TP/BP_ZT_TP_Island01.BP_ZT_TP_Island01_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TheSuburbs/BP_ZT_TheSuburbs.BP_ZT_TheSuburbs_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TP/BP_TZ_TP_Water.BP_TZ_TP_Water_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TP/BP_TZ_TP_Water.BP_TZ_TP_Water_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/AD/BP_ZT_AD_Lakeside.BP_ZT_AD_Lakeside_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TP/BP_TZ_TP_Water.BP_TZ_TP_Water_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TP/BP_ZT_TP_Island01.BP_ZT_TP_Island01_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/AD/BP_ZT_AD_TheSuburbs.BP_ZT_AD_TheSuburbs_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/AD/BP_ZT_AD_TheSuburbs.BP_ZT_AD_TheSuburbs_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TheSuburbs/BP_ZT_TheSuburbs.BP_ZT_TheSuburbs_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_Arid/BP_ZT_Desert.BP_ZT_Desert_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_Arid/BP_ZT_Desert.BP_ZT_Desert_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/AD/BP_ZT_AD_Lakeside.BP_ZT_AD_Lakeside_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_GhostTown/BP_ZT_GhostTown_B.BP_ZT_GhostTown_B_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TheDesert/BP_ZT_TheDesert.BP_ZT_TheDesert_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TheDesert/BP_ZT_TheDesert.BP_ZT_TheDesert_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TheDesert/BP_ZT_TheDesert.BP_ZT_TheDesert_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TP/BP_TZ_TP_Water.BP_TZ_TP_Water_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TP/BP_TZ_TP_Water.BP_TZ_TP_Water_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/AD/BP_ZT_AD_TheSuburbs.BP_ZT_AD_TheSuburbs_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TheCity/BP_ZT_TheCity.BP_ZT_TheCity_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TheDesert/BP_ZT_TheDesert.BP_ZT_TheDesert_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TheSuburbs/BP_ZT_TheSuburbs.BP_ZT_TheSuburbs_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/AD/BP_ZT_AD_Lakeside.BP_ZT_AD_Lakeside_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TheSuburbs/BP_ZT_TheSuburbs.BP_ZT_TheSuburbs_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_Route99/BP_ZT_Route99_Bunker_1.BP_ZT_Route99_Bunker_1_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_Route99/BP_ZT_Route99_Bunker_2.BP_ZT_Route99_Bunker_2_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TheDesert/BP_ZT_TheDesert.BP_ZT_TheDesert_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TheDesert/BP_ZT_TheDesert.BP_ZT_TheDesert_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TP/BP_ZT_TP_Island01.BP_ZT_TP_Island01_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TP/BP_TZ_TP_Water.BP_TZ_TP_Water_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TheSuburbs/BP_ZT_TheSuburbs.BP_ZT_TheSuburbs_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TheCity/BP_ZT_TheCity.BP_ZT_TheCity_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TP/BP_TZ_TP_Water.BP_TZ_TP_Water_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TP/BP_TZ_TP_Water.BP_TZ_TP_Water_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TP/BP_TZ_TP_Water.BP_TZ_TP_Water_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TP/BP_TZ_TP_Water.BP_TZ_TP_Water_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TP/BP_TZ_TP_Water.BP_TZ_TP_Water_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TP/BP_TZ_TP_Water.BP_TZ_TP_Water_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TP/BP_TZ_TP_Water.BP_TZ_TP_Water_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TP/BP_TZ_TP_Water.BP_TZ_TP_Water_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TP/BP_TZ_TP_Water.BP_TZ_TP_Water_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TP/BP_ZT_TP_Island01.BP_ZT_TP_Island01_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/AD/BP_ZT_AD2_TheGrasslands.BP_ZT_AD2_TheGrasslands_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TP/BP_TZ_TP_Water.BP_TZ_TP_Water_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TP/BP_TZ_TP_Water.BP_TZ_TP_Water_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TP/BP_TZ_TP_Water.BP_TZ_TP_Water_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_Arid/BP_ZT_Desert.BP_ZT_Desert_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TP/BP_ZT_TP_Island01.BP_ZT_TP_Island01_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TP/BP_TZ_TP_Water.BP_TZ_TP_Water_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TP/BP_TZ_TP_Water.BP_TZ_TP_Water_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TP/BP_TZ_TP_Water.BP_TZ_TP_Water_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TP/BP_TZ_TP_Water.BP_TZ_TP_Water_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TP/BP_TZ_TP_Water.BP_TZ_TP_Water_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TP/BP_TZ_TP_Water.BP_TZ_TP_Water_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TP/BP_TZ_TP_Water.BP_TZ_TP_Water_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/AD/BP_ZT_AD2_TheGrasslands.BP_ZT_AD2_TheGrasslands_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/AD/BP_ZT_AD2_TheGrasslands.BP_ZT_AD2_TheGrasslands_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/AD/BP_ZT_AD_Lakeside.BP_ZT_AD_Lakeside_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/AD/BP_ZT_AD2_TheGrasslands.BP_ZT_AD2_TheGrasslands_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TheDesert/BP_ZT_TheDesert.BP_ZT_TheDesert_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/AD/BP_ZT_AD2_TheGrasslands.BP_ZT_AD2_TheGrasslands_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TP/BP_TZ_TP_Water.BP_TZ_TP_Water_C"
+        }
+      ]
+    },
+    {
+      "id": "",
+      "name": "",
+      "tiles": [
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_SW.BP_ZT_TRV_SW_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_HF_Intro.BP_ZT_TRV_HF_Intro_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_HauntedHotel.BP_ZT_TRV_HauntedHotel_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_SW.BP_ZT_TRV_SW_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_HF_CastleB.BP_ZT_TRV_HF_CastleB_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_SW.BP_ZT_TRV_SW_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_SW.BP_ZT_TRV_SW_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_HF_Castle.BP_ZT_TRV_HF_Castle_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Landmarks/Brainstorm2022/BP_ZT_TRV_HauntedHotel_HuskEscape.BP_ZT_TRV_HauntedHotel_HuskEscape_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_HF_Castle.BP_ZT_TRV_HF_Castle_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_HF.BP_ZT_TRV_HF_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_HF_CastleB.BP_ZT_TRV_HF_CastleB_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_HF.BP_ZT_TRV_HF_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_HF.BP_ZT_TRV_HF_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_HF_CastleB.BP_ZT_TRV_HF_CastleB_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_HF_CastleB.BP_ZT_TRV_HF_CastleB_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_HF_CastleB.BP_ZT_TRV_HF_CastleB_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_HF_Castle.BP_ZT_TRV_HF_Castle_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_HF_Castle.BP_ZT_TRV_HF_Castle_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_SW.BP_ZT_TRV_SW_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_SW.BP_ZT_TRV_SW_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_HauntedHotel_Replay.BP_ZT_TRV_HauntedHotel_Replay_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_HF_Castle.BP_ZT_TRV_HF_Castle_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_HauntedHotel_Aged.BP_ZT_TRV_HauntedHotel_Aged_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_HF_Intro.BP_ZT_TRV_HF_Intro_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_HF_Castle.BP_ZT_TRV_HF_Castle_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_HF_Castle.BP_ZT_TRV_HF_Castle_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_SW.BP_ZT_TRV_SW_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_SW.BP_ZT_TRV_SW_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_SW.BP_ZT_TRV_SW_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_HF_CastleB.BP_ZT_TRV_HF_CastleB_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_HF_CastleB.BP_ZT_TRV_HF_CastleB_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_SW.BP_ZT_TRV_SW_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_HF_Castle.BP_ZT_TRV_HF_Castle_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_HF.BP_ZT_TRV_HF_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_HF.BP_ZT_TRV_HF_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_HF.BP_ZT_TRV_HF_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_HF_Castle.BP_ZT_TRV_HF_Castle_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Landmarks/Brainstorm2022/BP_ZT_TRV_HauntedHotel_HuskEscape.BP_ZT_TRV_HauntedHotel_HuskEscape_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_SW.BP_ZT_TRV_SW_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/CriticalMission/BP_ZT_CriticalMission.BP_ZT_CriticalMission_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_SlasherCamp.BP_ZT_TRV_SlasherCamp_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_SW.BP_ZT_TRV_SW_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_HauntedHotel_Replay.BP_ZT_TRV_HauntedHotel_Replay_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_SW.BP_ZT_TRV_SW_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_HF_Castle.BP_ZT_TRV_HF_Castle_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_SW.BP_ZT_TRV_SW_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_HF_Castle.BP_ZT_TRV_HF_Castle_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_HF.BP_ZT_TRV_HF_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_SW.BP_ZT_TRV_SW_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Landmarks/Brainstorm2022/BP_ZT_TRV_HauntedHotel_HuskEscape.BP_ZT_TRV_HauntedHotel_HuskEscape_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_HauntedHotel_Replay.BP_ZT_TRV_HauntedHotel_Replay_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_HF.BP_ZT_TRV_HF_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_HF.BP_ZT_TRV_HF_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_HF_Castle.BP_ZT_TRV_HF_Castle_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_HF.BP_ZT_TRV_HF_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_HF.BP_ZT_TRV_HF_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_HF.BP_ZT_TRV_HF_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_HauntedHotel.BP_ZT_TRV_HauntedHotel_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_HF_CastleB.BP_ZT_TRV_HF_CastleB_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_SlasherCamp.BP_ZT_TRV_SlasherCamp_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_HauntedHotel.BP_ZT_TRV_HauntedHotel_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_HF.BP_ZT_TRV_HF_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Landmarks/Brainstorm2022/BP_ZT_TRV_HauntedHotel_HuskEscape.BP_ZT_TRV_HauntedHotel_HuskEscape_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_HF.BP_ZT_TRV_HF_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_HF_Castle.BP_ZT_TRV_HF_Castle_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_SW.BP_ZT_TRV_SW_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_SW.BP_ZT_TRV_SW_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_HF_CastleB.BP_ZT_TRV_HF_CastleB_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_HF_Castle.BP_ZT_TRV_HF_Castle_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_HauntedHotel.BP_ZT_TRV_HauntedHotel_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_HauntedHotel_Replay.BP_ZT_TRV_HauntedHotel_Replay_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_HauntedHotel_Replay.BP_ZT_TRV_HauntedHotel_Replay_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_SW.BP_ZT_TRV_SW_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_SW.BP_ZT_TRV_SW_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_HF_Castle.BP_ZT_TRV_HF_Castle_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_SW.BP_ZT_TRV_SW_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_HF_CastleB.BP_ZT_TRV_HF_CastleB_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_SW.BP_ZT_TRV_SW_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_SW.BP_ZT_TRV_SW_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_HF.BP_ZT_TRV_HF_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_SW.BP_ZT_TRV_SW_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_HF.BP_ZT_TRV_HF_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_HF.BP_ZT_TRV_HF_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_HF.BP_ZT_TRV_HF_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_HF_Castle.BP_ZT_TRV_HF_Castle_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_HF.BP_ZT_TRV_HF_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_HF.BP_ZT_TRV_HF_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_HF_Castle.BP_ZT_TRV_HF_Castle_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_HF_CastleB.BP_ZT_TRV_HF_CastleB_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_SW.BP_ZT_TRV_SW_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_HF.BP_ZT_TRV_HF_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_HF_Castle.BP_ZT_TRV_HF_Castle_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_SW.BP_ZT_TRV_SW_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_HF_Castle.BP_ZT_TRV_HF_Castle_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_SW.BP_ZT_TRV_SW_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_SW.BP_ZT_TRV_SW_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_HF.BP_ZT_TRV_HF_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_SW.BP_ZT_TRV_SW_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_HauntedHotel_Aged.BP_ZT_TRV_HauntedHotel_Aged_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_HF.BP_ZT_TRV_HF_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_HF_Castle.BP_ZT_TRV_HF_Castle_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_HauntedHotel.BP_ZT_TRV_HauntedHotel_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_HF.BP_ZT_TRV_HF_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_SW.BP_ZT_TRV_SW_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_HF_Castle.BP_ZT_TRV_HF_Castle_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_SW.BP_ZT_TRV_SW_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_SW.BP_ZT_TRV_SW_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_HauntedHotel_Replay.BP_ZT_TRV_HauntedHotel_Replay_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_SW.BP_ZT_TRV_SW_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_HF.BP_ZT_TRV_HF_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_HF.BP_ZT_TRV_HF_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_SW.BP_ZT_TRV_SW_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_SW.BP_ZT_TRV_SW_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_HF_CastleB.BP_ZT_TRV_HF_CastleB_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_SW.BP_ZT_TRV_SW_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_SW.BP_ZT_TRV_SW_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_SW.BP_ZT_TRV_SW_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_HauntedHotel_Replay.BP_ZT_TRV_HauntedHotel_Replay_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_HF_Intro.BP_ZT_TRV_HF_Intro_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_HF_CastleB.BP_ZT_TRV_HF_CastleB_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_HF_Castle.BP_ZT_TRV_HF_Castle_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_HF_Castle.BP_ZT_TRV_HF_Castle_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_SW.BP_ZT_TRV_SW_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Landmarks/Brainstorm2022/BP_ZT_TRV_HauntedHotel_HuskEscape.BP_ZT_TRV_HauntedHotel_HuskEscape_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_SW.BP_ZT_TRV_SW_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_HF.BP_ZT_TRV_HF_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_HF_CastleB.BP_ZT_TRV_HF_CastleB_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_HF_Intro.BP_ZT_TRV_HF_Intro_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_SW.BP_ZT_TRV_SW_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_HF_CastleB.BP_ZT_TRV_HF_CastleB_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_HF.BP_ZT_TRV_HF_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_HF.BP_ZT_TRV_HF_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/CriticalMission/BP_ZT_CriticalMission.BP_ZT_CriticalMission_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_HF.BP_ZT_TRV_HF_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_HF_CastleB.BP_ZT_TRV_HF_CastleB_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_HF.BP_ZT_TRV_HF_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_HF.BP_ZT_TRV_HF_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_SlasherCamp.BP_ZT_TRV_SlasherCamp_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_HauntedHotel.BP_ZT_TRV_HauntedHotel_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_SlasherCamp.BP_ZT_TRV_SlasherCamp_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Landmarks/Brainstorm2022/BP_ZT_TRV_HauntedHotel_HuskEscape.BP_ZT_TRV_HauntedHotel_HuskEscape_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_HF_Castle.BP_ZT_TRV_HF_Castle_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_SlasherCamp.BP_ZT_TRV_SlasherCamp_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_HF_CastleB.BP_ZT_TRV_HF_CastleB_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_HauntedHotel.BP_ZT_TRV_HauntedHotel_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_HauntedHotel_Replay.BP_ZT_TRV_HauntedHotel_Replay_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_HF_Castle.BP_ZT_TRV_HF_Castle_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_HF_CastleB.BP_ZT_TRV_HF_CastleB_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_SW.BP_ZT_TRV_SW_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_HF_Castle.BP_ZT_TRV_HF_Castle_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_HF_CastleB.BP_ZT_TRV_HF_CastleB_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/CriticalMission/BP_ZT_CriticalMission.BP_ZT_CriticalMission_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_HF_Castle.BP_ZT_TRV_HF_Castle_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_SW.BP_ZT_TRV_SW_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_HF.BP_ZT_TRV_HF_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_HF.BP_ZT_TRV_HF_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_HF_Castle.BP_ZT_TRV_HF_Castle_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_SW.BP_ZT_TRV_SW_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_SlasherCamp.BP_ZT_TRV_SlasherCamp_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_HF.BP_ZT_TRV_HF_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Landmarks/Brainstorm2022/BP_ZT_TRV_HauntedHotel_HuskEscape.BP_ZT_TRV_HauntedHotel_HuskEscape_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_HauntedHotel_Aged.BP_ZT_TRV_HauntedHotel_Aged_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_HF_Intro.BP_ZT_TRV_HF_Intro_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_SlasherCamp.BP_ZT_TRV_SlasherCamp_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Landmarks/Brainstorm2022/BP_ZT_TRV_HauntedHotel_HuskEscape.BP_ZT_TRV_HauntedHotel_HuskEscape_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_HF.BP_ZT_TRV_HF_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_HF.BP_ZT_TRV_HF_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_SW.BP_ZT_TRV_SW_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_HF_Castle.BP_ZT_TRV_HF_Castle_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_HF_CastleB.BP_ZT_TRV_HF_CastleB_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_HF_Castle.BP_ZT_TRV_HF_Castle_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_SW.BP_ZT_TRV_SW_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_HauntedHotel_Replay.BP_ZT_TRV_HauntedHotel_Replay_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_HF.BP_ZT_TRV_HF_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_HF_Castle.BP_ZT_TRV_HF_Castle_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_HauntedHotel_Replay.BP_ZT_TRV_HauntedHotel_Replay_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_HF_Intro.BP_ZT_TRV_HF_Intro_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_SlasherCamp.BP_ZT_TRV_SlasherCamp_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_HauntedHotel_Aged.BP_ZT_TRV_HauntedHotel_Aged_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_HF_Castle.BP_ZT_TRV_HF_Castle_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_HauntedHotel_Replay.BP_ZT_TRV_HauntedHotel_Replay_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_HF_Intro.BP_ZT_TRV_HF_Intro_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_HF_Intro.BP_ZT_TRV_HF_Intro_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_SlasherCamp.BP_ZT_TRV_SlasherCamp_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_HF_Castle.BP_ZT_TRV_HF_Castle_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_HauntedHotel_Aged.BP_ZT_TRV_HauntedHotel_Aged_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_HauntedHotel.BP_ZT_TRV_HauntedHotel_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_HF_Castle.BP_ZT_TRV_HF_Castle_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Landmarks/Brainstorm2022/BP_ZT_TRV_HauntedHotel_HuskEscape.BP_ZT_TRV_HauntedHotel_HuskEscape_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_HF_Castle.BP_ZT_TRV_HF_Castle_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_HauntedHotel.BP_ZT_TRV_HauntedHotel_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_HF.BP_ZT_TRV_HF_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_HF.BP_ZT_TRV_HF_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_HF.BP_ZT_TRV_HF_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_HF_CastleB.BP_ZT_TRV_HF_CastleB_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Landmarks/Brainstorm2022/BP_ZT_TRV_HauntedHotel_HuskEscape.BP_ZT_TRV_HauntedHotel_HuskEscape_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_HF_Intro.BP_ZT_TRV_HF_Intro_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_HauntedHotel_Replay.BP_ZT_TRV_HauntedHotel_Replay_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_HF_Castle.BP_ZT_TRV_HF_Castle_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_HF.BP_ZT_TRV_HF_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_SlasherCamp.BP_ZT_TRV_SlasherCamp_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_HF.BP_ZT_TRV_HF_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Landmarks/Brainstorm2022/BP_ZT_TRV_HauntedHotel_HuskEscape.BP_ZT_TRV_HauntedHotel_HuskEscape_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_HF.BP_ZT_TRV_HF_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_HF.BP_ZT_TRV_HF_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_HauntedHotel_Aged.BP_ZT_TRV_HauntedHotel_Aged_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_HauntedHotel.BP_ZT_TRV_HauntedHotel_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_HF_Castle.BP_ZT_TRV_HF_Castle_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_HF_Castle.BP_ZT_TRV_HF_Castle_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_SlasherCamp.BP_ZT_TRV_SlasherCamp_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Landmarks/Brainstorm2022/BP_ZT_TRV_HauntedHotel_HuskEscape.BP_ZT_TRV_HauntedHotel_HuskEscape_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_SlasherCamp.BP_ZT_TRV_SlasherCamp_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_HauntedHotel_Aged.BP_ZT_TRV_HauntedHotel_Aged_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_HauntedHotel.BP_ZT_TRV_HauntedHotel_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_HauntedHotel_Aged.BP_ZT_TRV_HauntedHotel_Aged_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_HF_Intro.BP_ZT_TRV_HF_Intro_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_HauntedHotel_Aged.BP_ZT_TRV_HauntedHotel_Aged_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_HF_Intro.BP_ZT_TRV_HF_Intro_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_HF_Castle.BP_ZT_TRV_HF_Castle_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_HauntedHotel_Aged.BP_ZT_TRV_HauntedHotel_Aged_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_HauntedHotel_Aged.BP_ZT_TRV_HauntedHotel_Aged_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_HF.BP_ZT_TRV_HF_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_HF.BP_ZT_TRV_HF_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_HF.BP_ZT_TRV_HF_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_HF.BP_ZT_TRV_HF_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_HF.BP_ZT_TRV_HF_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_HF.BP_ZT_TRV_HF_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_HF.BP_ZT_TRV_HF_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_HF.BP_ZT_TRV_HF_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_HF.BP_ZT_TRV_HF_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_HF.BP_ZT_TRV_HF_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_HF.BP_ZT_TRV_HF_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_HF.BP_ZT_TRV_HF_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_HF.BP_ZT_TRV_HF_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_HF.BP_ZT_TRV_HF_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_HF.BP_ZT_TRV_HF_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_HF.BP_ZT_TRV_HF_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/CriticalMission/BP_ZT_CriticalMission.BP_ZT_CriticalMission_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_HF.BP_ZT_TRV_HF_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_HF.BP_ZT_TRV_HF_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_HF.BP_ZT_TRV_HF_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_HF.BP_ZT_TRV_HF_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_HF.BP_ZT_TRV_HF_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_HF.BP_ZT_TRV_HF_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_HF.BP_ZT_TRV_HF_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_HF.BP_ZT_TRV_HF_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_HF.BP_ZT_TRV_HF_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_HF.BP_ZT_TRV_HF_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_HF.BP_ZT_TRV_HF_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_HF.BP_ZT_TRV_HF_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_HF.BP_ZT_TRV_HF_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_HF.BP_ZT_TRV_HF_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_HF.BP_ZT_TRV_HF_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_HF.BP_ZT_TRV_HF_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_HF.BP_ZT_TRV_HF_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_HF.BP_ZT_TRV_HF_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_HF.BP_ZT_TRV_HF_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Spooky/BP_ZT_TRV_HF.BP_ZT_TRV_HF_C"
+        }
+      ]
+    },
+    {
+      "id": "",
+      "name": "",
+      "tiles": [
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_Arid/BP_ZT_Desert.BP_ZT_Desert_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_Arid/BP_ZT_Desert.BP_ZT_Desert_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_Arid/BP_ZT_Desert.BP_ZT_Desert_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_Arid/BP_ZT_Desert.BP_ZT_Desert_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_Route99/BP_ZT_Route99_Bunker_2.BP_ZT_Route99_Bunker_2_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_Arid/BP_ZT_Desert_Bunker.BP_ZT_Desert_Bunker_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_Route99/BP_ZT_Route99_Bunker_2.BP_ZT_Route99_Bunker_2_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_Route99/BP_ZT_Route99_Bunker_1.BP_ZT_Route99_Bunker_1_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_Arid/BP_ZT_Desert_Bunker.BP_ZT_Desert_Bunker_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_Arid/BP_ZT_Desert_Bunker.BP_ZT_Desert_Bunker_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TheIndustrialPark/BP_ZT_TheIndustrialPark_Arid.BP_ZT_TheIndustrialPark_Arid_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_Arid/BP_ZT_Desert_Bunker.BP_ZT_Desert_Bunker_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_Route99/BP_ZT_Route99_Bunker_1.BP_ZT_Route99_Bunker_1_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_Route99/BP_ZT_Route99_2.BP_ZT_Route99_2_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_Arid/BP_ZT_Desert.BP_ZT_Desert_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TheCity/BP_ZT_TheCity_Arid.BP_ZT_TheCity_Arid_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_Arid/BP_ZT_Desert_Bunker.BP_ZT_Desert_Bunker_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_GhostTown/BP_ZT_GhostTown_A.BP_ZT_GhostTown_A_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_Arid/BP_ZT_Desert_Bunker.BP_ZT_Desert_Bunker_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_GhostTown/BP_ZT_GhostTown_B.BP_ZT_GhostTown_B_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_Route99/BP_ZT_Route99_Bunker_1.BP_ZT_Route99_Bunker_1_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_Arid/BP_ZT_Desert_Bunker.BP_ZT_Desert_Bunker_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_Arid/BP_ZT_Desert.BP_ZT_Desert_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_Arid/BP_ZT_Desert.BP_ZT_Desert_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_GhostTown/BP_ZT_GhostTown_HighNoon.BP_ZT_GhostTown_HighNoon_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_Arid/BP_ZT_Desert.BP_ZT_Desert_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_Arid/BP_ZT_Desert.BP_ZT_Desert_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/AD/BP_ZT_AD_TheSuburbs.BP_ZT_AD_TheSuburbs_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_Arid/BP_ZT_Desert.BP_ZT_Desert_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_Arid/BP_ZT_Desert.BP_ZT_Desert_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_Arid/BP_ZT_Desert.BP_ZT_Desert_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_Arid/BP_ZT_Desert.BP_ZT_Desert_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_Route99/BP_ZT_Route99_2.BP_ZT_Route99_2_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/AD/BP_ZT_AD_Lakeside.BP_ZT_AD_Lakeside_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_Arid/BP_ZT_Desert.BP_ZT_Desert_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_Route99/BP_ZT_Route99_Bunker_1.BP_ZT_Route99_Bunker_1_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_GhostTown/BP_ZT_GhostTown_B.BP_ZT_GhostTown_B_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_Arid/BP_ZT_Desert.BP_ZT_Desert_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/AD/BP_ZT_AD_Lakeside.BP_ZT_AD_Lakeside_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_Arid/BP_ZT_Desert.BP_ZT_Desert_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_Arid/BP_ZT_Desert.BP_ZT_Desert_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/AD/BP_ZT_AD2_TheGrasslands.BP_ZT_AD2_TheGrasslands_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TheIndustrialPark/BP_ZT_TheIndustrialPark_Arid.BP_ZT_TheIndustrialPark_Arid_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_Arid/BP_ZT_Desert.BP_ZT_Desert_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_Arid/BP_ZT_Desert.BP_ZT_Desert_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_Route99/BP_ZT_Route99_1.BP_ZT_Route99_1_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_GhostTown/BP_ZT_GhostTown_A.BP_ZT_GhostTown_A_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_Arid/BP_ZT_Desert.BP_ZT_Desert_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/AD/BP_ZT_AD2_TheGrasslands.BP_ZT_AD2_TheGrasslands_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_Arid/BP_ZT_Desert.BP_ZT_Desert_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_Arid/BP_ZT_Desert.BP_ZT_Desert_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_Arid/BP_ZT_Desert.BP_ZT_Desert_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_Arid/BP_ZT_Desert.BP_ZT_Desert_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_Arid/BP_ZT_Desert.BP_ZT_Desert_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_Arid/BP_ZT_Desert.BP_ZT_Desert_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_Arid/BP_ZT_Desert.BP_ZT_Desert_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_Route99/BP_ZT_Route99_2.BP_ZT_Route99_2_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_Route99/BP_ZT_Route99_Landmark.BP_ZT_Route99_Landmark_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_Arid/BP_ZT_Desert.BP_ZT_Desert_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TheIndustrialPark/BP_ZT_TheIndustrialPark_Arid.BP_ZT_TheIndustrialPark_Arid_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/AD/BP_ZT_AD_TheCity.BP_ZT_AD_TheCity_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/AD/BP_ZT_AD_TheIndustrialPark.BP_ZT_AD_TheIndustrialPark_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/AD/BP_ZT_AD2_TheGrasslands.BP_ZT_AD2_TheGrasslands_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TheCity/BP_ZT_TheCity_Arid.BP_ZT_TheCity_Arid_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_Arid/BP_ZT_Desert.BP_ZT_Desert_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_Arid/BP_ZT_Desert.BP_ZT_Desert_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_GhostTown/BP_ZT_GhostTown_A.BP_ZT_GhostTown_A_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_Route99/BP_ZT_Route99_Bunker_2.BP_ZT_Route99_Bunker_2_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_Route99/BP_ZT_Route99_Bunker_2.BP_ZT_Route99_Bunker_2_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TheCity/BP_ZT_TheCity_Arid.BP_ZT_TheCity_Arid_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_Arid/BP_ZT_Desert.BP_ZT_Desert_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_Arid/BP_ZT_Desert.BP_ZT_Desert_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_Route99/BP_ZT_Route99_Bunker_1.BP_ZT_Route99_Bunker_1_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TheIndustrialPark/BP_ZT_TheIndustrialPark_Arid.BP_ZT_TheIndustrialPark_Arid_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/AD/BP_ZT_AD_TheIndustrialPark.BP_ZT_AD_TheIndustrialPark_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TheSuburbs/BP_ZT_TheSuburbs_Arid.BP_ZT_TheSuburbs_Arid_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/AD/BP_ZT_AD_TheSuburbs.BP_ZT_AD_TheSuburbs_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/AD/BP_ZT_AD_TheCity.BP_ZT_AD_TheCity_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/AD/BP_ZT_AD_TheSuburbs.BP_ZT_AD_TheSuburbs_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_Arid/BP_ZT_Desert.BP_ZT_Desert_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_Arid/BP_ZT_Desert.BP_ZT_Desert_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_Arid/BP_ZT_Desert.BP_ZT_Desert_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/AD/BP_ZT_AD_Lakeside.BP_ZT_AD_Lakeside_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TheSuburbs/BP_ZT_TheSuburbs_Arid.BP_ZT_TheSuburbs_Arid_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TheCity/BP_ZT_TheCity_Arid.BP_ZT_TheCity_Arid_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TheIndustrialPark/BP_ZT_TheIndustrialPark_Arid.BP_ZT_TheIndustrialPark_Arid_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_Arid/BP_ZT_Desert.BP_ZT_Desert_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Outposts/BP_ZT_TheOutpost_PvE_03.BP_ZT_TheOutpost_PvE_03_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_Route99/BP_ZT_Route99_1.BP_ZT_Route99_1_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_Arid/BP_ZT_Desert_Monument.BP_ZT_Desert_Monument_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_Arid/BP_ZT_Desert.BP_ZT_Desert_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_Arid/BP_ZT_Desert.BP_ZT_Desert_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_Arid/BP_ZT_Desert.BP_ZT_Desert_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_GhostTown/BP_ZT_GhostTown_B.BP_ZT_GhostTown_B_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_Arid/BP_ZT_Desert.BP_ZT_Desert_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_GhostTown/BP_ZT_GhostTown_A.BP_ZT_GhostTown_A_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_Route99/BP_ZT_Route99_Bunker_1.BP_ZT_Route99_Bunker_1_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_GhostTown/BP_ZT_GhostTown_A.BP_ZT_GhostTown_A_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_Arid/BP_ZT_Desert_Bunker.BP_ZT_Desert_Bunker_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_Route99/BP_ZT_Route99_Bunker_2.BP_ZT_Route99_Bunker_2_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_Arid/BP_ZT_Desert.BP_ZT_Desert_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_Arid/BP_ZT_Desert.BP_ZT_Desert_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_Arid/BP_ZT_Desert.BP_ZT_Desert_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_Arid/BP_ZT_Desert.BP_ZT_Desert_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_Arid/BP_ZT_Desert.BP_ZT_Desert_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_Arid/BP_ZT_Desert.BP_ZT_Desert_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_Arid/BP_ZT_Desert.BP_ZT_Desert_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_Arid/BP_ZT_Desert.BP_ZT_Desert_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_Arid/BP_ZT_Desert.BP_ZT_Desert_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_Arid/BP_ZT_Desert.BP_ZT_Desert_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_Arid/BP_ZT_Desert.BP_ZT_Desert_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_GhostTown/BP_ZT_GhostTown_A.BP_ZT_GhostTown_A_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_Arid/BP_ZT_Desert_DeployProbe.BP_ZT_Desert_DeployProbe_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_Arid/BP_ZT_Desert.BP_ZT_Desert_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/Landmarks/ZT_StabilizeTheRift/BP_ZT_StabilizeTheRift.BP_ZT_StabilizeTheRift_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_Route99/BP_ZT_Route99_Bunker_1.BP_ZT_Route99_Bunker_1_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_Arid/BP_ZT_Desert.BP_ZT_Desert_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TheGrasslands/BP_ZT_TheGrasslands_Mansion.BP_ZT_TheGrasslands_Mansion_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TheSuburbs/BP_ZT_TheSuburbs_Arid.BP_ZT_TheSuburbs_Arid_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TheIndustrialPark/BP_ZT_TheIndustrialPark_Arid.BP_ZT_TheIndustrialPark_Arid_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_Route99/BP_ZT_Route99_Bunker_1.BP_ZT_Route99_Bunker_1_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_Arid/BP_ZT_Desert.BP_ZT_Desert_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_Arid/BP_ZT_Desert.BP_ZT_Desert_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_Route99/BP_ZT_Route99_Bunker_2.BP_ZT_Route99_Bunker_2_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TheCity/BP_ZT_TheCity_Arid.BP_ZT_TheCity_Arid_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_Arid/BP_ZT_Desert_Bunker.BP_ZT_Desert_Bunker_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_Arid/BP_ZT_Desert.BP_ZT_Desert_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_Arid/BP_ZT_Desert.BP_ZT_Desert_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_Arid/BP_ZT_Desert.BP_ZT_Desert_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_Arid/BP_ZT_Desert.BP_ZT_Desert_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_Arid/BP_ZT_Desert.BP_ZT_Desert_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/AD/BP_ZT_AD_TheCity.BP_ZT_AD_TheCity_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_DUDEBRO/BP_ZT_DUDEBRO.BP_ZT_DUDEBRO_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_Arid/BP_ZT_Desert.BP_ZT_Desert_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_Arid/BP_ZT_Desert.BP_ZT_Desert_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_Arid/BP_ZT_Desert.BP_ZT_Desert_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_Arid/BP_ZT_Desert.BP_ZT_Desert_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_Arid/BP_ZT_Desert.BP_ZT_Desert_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_Arid/BP_ZT_Desert.BP_ZT_Desert_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_Arid/BP_ZT_Desert.BP_ZT_Desert_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_TheIndustrialPark/BP_ZT_TheIndustrialPark_Arid.BP_ZT_TheIndustrialPark_Arid_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/AD/BP_ZT_AD2_TheGrasslands.BP_ZT_AD2_TheGrasslands_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_Arid/BP_ZT_Desert.BP_ZT_Desert_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_Arid/BP_ZT_Desert.BP_ZT_Desert_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_Arid/BP_ZT_Desert.BP_ZT_Desert_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_Arid/BP_ZT_Desert.BP_ZT_Desert_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_Arid/BP_ZT_Desert.BP_ZT_Desert_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_Arid/BP_ZT_Desert.BP_ZT_Desert_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_Arid/BP_ZT_Desert.BP_ZT_Desert_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_Arid/BP_ZT_Desert.BP_ZT_Desert_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_Arid/BP_ZT_Desert.BP_ZT_Desert_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_Arid/BP_ZT_Desert.BP_ZT_Desert_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_GhostTown/BP_ZT_GhostTown_A.BP_ZT_GhostTown_A_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_Arid/BP_ZT_Desert.BP_ZT_Desert_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_Arid/BP_ZT_Desert.BP_ZT_Desert_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/AD/BP_ZT_AD_TheIndustrialPark.BP_ZT_AD_TheIndustrialPark_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/CriticalMission/BP_ZT_CriticalMission.BP_ZT_CriticalMission_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_Arid/BP_ZT_Desert.BP_ZT_Desert_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_Arid/BP_ZT_Desert.BP_ZT_Desert_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_Arid/BP_ZT_Desert.BP_ZT_Desert_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_Arid/BP_ZT_Desert.BP_ZT_Desert_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_Arid/BP_ZT_Desert.BP_ZT_Desert_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_Arid/BP_ZT_Desert.BP_ZT_Desert_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/AD/BP_ZT_AD_TheSuburbs.BP_ZT_AD_TheSuburbs_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/AD/BP_ZT_AD2_TheGrasslands.BP_ZT_AD2_TheGrasslands_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_Arid/BP_ZT_Desert.BP_ZT_Desert_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_Arid/BP_ZT_Desert.BP_ZT_Desert_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_GhostTown/BP_ZT_GhostTown_A.BP_ZT_GhostTown_A_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_Route99/BP_ZT_Route99_Bunker_2.BP_ZT_Route99_Bunker_2_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_Route99/BP_ZT_Route99_Bunker_1.BP_ZT_Route99_Bunker_1_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_Route99/BP_ZT_Route99_Bunker_1.BP_ZT_Route99_Bunker_1_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_GhostTown/BP_ZT_GhostTown_A.BP_ZT_GhostTown_A_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_GhostTown/BP_ZT_GhostTown_B.BP_ZT_GhostTown_B_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_GhostTown/BP_ZT_GhostTown_A.BP_ZT_GhostTown_A_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_Arid/BP_ZT_Desert.BP_ZT_Desert_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_Arid/BP_ZT_Desert.BP_ZT_Desert_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/AD/BP_ZT_AD_TheCity.BP_ZT_AD_TheCity_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_Arid/BP_ZT_Desert.BP_ZT_Desert_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/AD/BP_ZT_AD_Lakeside.BP_ZT_AD_Lakeside_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/AD/BP_ZT_AD_Lakeside.BP_ZT_AD_Lakeside_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/AD/BP_ZT_AD_TheSuburbs.BP_ZT_AD_TheSuburbs_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/AD/BP_ZT_AD2_TheGrasslands.BP_ZT_AD2_TheGrasslands_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/AD/BP_ZT_AD_Lakeside.BP_ZT_AD_Lakeside_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/AD/BP_ZT_AD_Lakeside.BP_ZT_AD_Lakeside_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/AD/BP_ZT_AD_Lakeside.BP_ZT_AD_Lakeside_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/AD/BP_ZT_AD_Lakeside.BP_ZT_AD_Lakeside_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/AD/BP_ZT_AD_Lakeside.BP_ZT_AD_Lakeside_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/AD/BP_ZT_AD2_TheGrasslands.BP_ZT_AD2_TheGrasslands_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/AD/BP_ZT_AD_TheSuburbs.BP_ZT_AD_TheSuburbs_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/AD/BP_ZT_AD_TheSuburbs.BP_ZT_AD_TheSuburbs_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/AD/BP_ZT_AD_TheSuburbs.BP_ZT_AD_TheSuburbs_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/AD/BP_ZT_AD_Lakeside.BP_ZT_AD_Lakeside_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/AD/BP_ZT_AD_TheIndustrialPark.BP_ZT_AD_TheIndustrialPark_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/AD/BP_ZT_AD_Lakeside.BP_ZT_AD_Lakeside_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/AD/BP_ZT_AD_TheIndustrialPark.BP_ZT_AD_TheIndustrialPark_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/AD/BP_ZT_AD_TheCity.BP_ZT_AD_TheCity_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/AD/BP_ZT_AD_Lakeside.BP_ZT_AD_Lakeside_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_Arid/BP_ZT_Desert.BP_ZT_Desert_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_Arid/BP_ZT_Desert.BP_ZT_Desert_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_Arid/BP_ZT_Desert.BP_ZT_Desert_C"
+        },
+        {
+          "zoneTheme": "/STW_Zones/World/ZoneThemes/ZT_Arid/BP_ZT_Desert.BP_ZT_Desert_C"
+        }
+      ]
+    }
+  ]
+}

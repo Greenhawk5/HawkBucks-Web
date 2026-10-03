@@ -34,10 +34,7 @@ import test from "node:test";
 //
 // Both known layouts are probed so the suite works before AND after a toolchain
 // change, and the skip message names every path it looked for.
-const WORKER_ENTRY_CANDIDATES = [
-  "../.output/server/index.mjs",
-  "../dist/_worker.js/index.js",
-];
+const WORKER_ENTRY_CANDIDATES = ["../.output/server/index.mjs", "../dist/_worker.js/index.js"];
 const WORKER_ENTRY = WORKER_ENTRY_CANDIDATES.map((p) => new URL(p, import.meta.url)).find((url) =>
   existsSync(url),
 );

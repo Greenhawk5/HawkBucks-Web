@@ -1,4 +1,4 @@
-import { useEffect, useId, useRef } from "react";
+import { useEffect, useRef } from "react";
 
 /**
  * Wave 1 — Cloudflare Turnstile widget wrapper for the CMS login page.
@@ -78,7 +78,6 @@ export function CmsTurnstile(props: {
   const widgetIdRef = useRef<string | null>(null);
   const onTokenRef = useRef(props.onToken);
   onTokenRef.current = props.onToken;
-  const describedById = useId();
 
   useEffect(() => {
     if (props.siteKey === null) {
@@ -116,12 +115,14 @@ export function CmsTurnstile(props: {
 
   if (props.siteKey === null) return null;
   return (
-    <div>
-      <div ref={containerRef} aria-describedby={describedById} />
-      <p id={describedById} className="mt-1.5 text-xs opacity-60">
-        Bot check by Cloudflare Turnstile. If it doesn&apos;t load, sign-in still submits — the
-        server decides.
-      </p>
+    // Centered within the login form's content column. The Turnstile widget
+    // renders its own fixed-width iframe (~300px) into the inner ref, which is
+    // narrower than the form, so without this wrapper it hugs the left edge.
+    // Flex `justify-center` is deliberate: no negative margins, no magic pixel
+    // offsets, no width overrides, and the widget is never distorted. On
+    // viewports too narrow for the widget the form simply scrolls as before.
+    <div className="flex justify-center">
+      <div ref={containerRef} />
     </div>
   );
 }

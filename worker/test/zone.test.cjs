@@ -1,6 +1,31 @@
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
+const path = require("node:path");
 const test = require("node:test");
+
+// End-to-end zone resolution runs against a REAL catalog of Fortnite zoneTheme
+// paths. The full upstream `world_info.json` is a multi-MB scratch download that
+// `.gitignore` excludes (`/fix-helpers`), so it exists on developer machines but
+// never in CI — which is why this used to fail with ENOENT on GitHub Actions
+// while passing locally. `test/fixtures/world_info.zones.json` is the committed
+// equivalent: the same theaters[].tiles[].zoneTheme shape, trimmed to only the
+// fields this test reads.
+//
+// Resolution order prefers the full local snapshot when it IS present (so local
+// runs keep testing against the freshest upstream data) and otherwise falls back
+// to the committed fixture. `path.resolve(__dirname, ...)` anchors everything to
+// this file's own directory, so the result never depends on the caller's cwd —
+// `npm test` from `worker/`, `node --test worker/test/zone.test.cjs` from the
+// repo root, and CI's `working-directory: worker` all behave identically.
+const WORLD_INFO_CANDIDATES = [
+  path.resolve(__dirname, "..", "..", "fix-helpers", "world_info.json"),
+  path.resolve(__dirname, "fixtures", "world_info.zones.json"),
+];
+const worldInfoPath = WORLD_INFO_CANDIDATES.find((candidate) => fs.existsSync(candidate));
+assert.ok(
+  worldInfoPath,
+  `world_info fixture not found. Looked in:\n${WORLD_INFO_CANDIDATES.join("\n")}`,
+);
 
 // Extracts the real production zone-resolution code from worker/index.js so
 // the tests exercise the exact code path used by the live worker.
@@ -91,9 +116,7 @@ test("genuinely unknown themes remain unknown", () => {
 });
 
 test("end-to-end: every zoneTheme in the real world info snapshot resolves", () => {
-  const worldInfo = JSON.parse(
-    fs.readFileSync(`${__dirname}/../../fix-helpers/world_info.json`, "utf8"),
-  );
+  const worldInfo = JSON.parse(fs.readFileSync(worldInfoPath, "utf8"));
 
   const themes = new Set();
   for (const theater of worldInfo.theaters || []) {

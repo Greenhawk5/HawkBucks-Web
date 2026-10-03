@@ -320,7 +320,7 @@ export const zh: TranslationDictionary = {
     description:
       "HawkBucks 是一款社区驱动工具，可自动追踪 Fortnite: Save the World V-Bucks 任务，并提供可用奖励的快速每日概览。",
     navigate: "导航",
-    projectLinks: "项目链接",
+    links: "链接",
     builtWith: "构建技术",
     githubProject: "GitHub 项目",
     telegramBot: "Telegram 机器人",

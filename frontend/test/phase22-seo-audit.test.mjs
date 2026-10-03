@@ -50,36 +50,56 @@ test("DEFECT 1: article breadcrumb names the canonical hub, never a redirect", (
   // The final crumb is the article's own canonical detail URL.
   assert.equal(items[2].item, `${site.SITE_URL}/guides/storm-guide`);
   // positions stay 1-based and contiguous.
-  assert.deepEqual(items.map((i) => i.position), [1, 2, 3]);
+  assert.deepEqual(
+    items.map((i) => i.position),
+    [1, 2, 3],
+  );
 });
 
 test("DEFECT 1: every entity breadcrumb targets its own canonical hub", () => {
   const cases = [
     {
       ld: publicContent.buildArticleJsonLd({
-        headline: "A", description: "d", url: `${site.SITE_URL}/guides/a`,
-        image: null, dateModified: "2026-01-01", siteUrl: `${site.SITE_URL}/`,
+        headline: "A",
+        description: "d",
+        url: `${site.SITE_URL}/guides/a`,
+        image: null,
+        dateModified: "2026-01-01",
+        siteUrl: `${site.SITE_URL}/`,
       }),
       expectedParent: `${site.SITE_URL}/guides`,
     },
     {
       ld: publicContent.buildHeroJsonLd({
-        name: "H", description: "d", url: `${site.SITE_URL}/heroes/h`, image: null,
-        heroClass: "assault", breadcrumbBase: `${site.SITE_URL}/`,
+        name: "H",
+        description: "d",
+        url: `${site.SITE_URL}/heroes/h`,
+        image: null,
+        heroClass: "assault",
+        breadcrumbBase: `${site.SITE_URL}/`,
       }),
       expectedParent: `${site.SITE_URL}/heroes`,
     },
     {
       ld: publicContent.buildLoadoutJsonLd({
-        name: "L", description: "d", url: `${site.SITE_URL}/loadouts/l`, image: null,
-        heroNames: [], breadcrumbBase: `${site.SITE_URL}/`,
+        name: "L",
+        description: "d",
+        url: `${site.SITE_URL}/loadouts/l`,
+        image: null,
+        heroNames: [],
+        breadcrumbBase: `${site.SITE_URL}/`,
       }),
       expectedParent: `${site.SITE_URL}/loadouts`,
     },
     {
       ld: publicContent.buildSchematicJsonLd({
-        name: "S", description: "d", url: `${site.SITE_URL}/schematics/s`, image: null,
-        kind: "weapon", perkNames: [], breadcrumbBase: `${site.SITE_URL}/`,
+        name: "S",
+        description: "d",
+        url: `${site.SITE_URL}/schematics/s`,
+        image: null,
+        kind: "weapon",
+        perkNames: [],
+        breadcrumbBase: `${site.SITE_URL}/`,
       }),
       expectedParent: `${site.SITE_URL}/schematics`,
     },
@@ -133,7 +153,11 @@ test("sitemap: production document is production-hostname HTTPS only", async () 
     assert.equal(loc.includes("?"), false, "query strings must never be emitted");
   }
   assert.equal(new Set(locs).size, locs.length, "sitemap must not emit duplicate URLs");
-  assert.equal(locs.some((l) => l.includes("/en/")), false, "en never takes a prefix");
+  assert.equal(
+    locs.some((l) => l.includes("/en/")),
+    false,
+    "en never takes a prefix",
+  );
 });
 
 test("sitemap: excludes non-indexable and redirect-source surfaces", async () => {
@@ -216,7 +240,10 @@ test("missions guide FAQ is single-sourced with the visible page", async () => {
   const guideFaq = await import("../src/lib/guide-faq.ts");
   assert.equal(guideFaq.GUIDE_FAQ_KEYS.length, 10);
   const grouped = guideFaq.GUIDE_FAQ_GROUPS.flatMap((g) => g.items);
-  assert.deepEqual([...grouped].sort((a, b) => a - b), [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]);
+  assert.deepEqual(
+    [...grouped].sort((a, b) => a - b),
+    [0, 1, 2, 3, 4, 5, 6, 7, 8, 9],
+  );
   const faq = guideFaq.buildGuideFaqJsonLd("en", (k) => k, {});
   assert.equal(faq.mainEntity.length, guideFaq.GUIDE_FAQ_KEYS.length);
 });

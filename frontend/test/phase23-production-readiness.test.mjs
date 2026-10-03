@@ -208,10 +208,7 @@ test("Phase 20 intact: SSR security headers are still applied by the Worker entr
     "max-age=63072000; includeSubDomains; preload",
   );
   assert.equal(headers.SECURITY_HEADERS["X-Content-Type-Options"], "nosniff");
-  assert.equal(
-    headers.SECURITY_HEADERS["Referrer-Policy"],
-    "strict-origin-when-cross-origin",
-  );
+  assert.equal(headers.SECURITY_HEADERS["Referrer-Policy"], "strict-origin-when-cross-origin");
   assert.equal(
     headers.SECURITY_HEADERS["Permissions-Policy"],
     "camera=(), microphone=(), geolocation=(), payment=()",

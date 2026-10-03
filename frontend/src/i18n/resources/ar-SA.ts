@@ -328,7 +328,7 @@ export const arSA: TranslationDictionary = {
     description:
       "HawkBucks أداة مجتمعية تتتبع تلقائيًا مهام V-Bucks في Fortnite: Save the World وتوفر نظرة يومية سريعة على المكافآت المتاحة.",
     navigate: "التنقل",
-    projectLinks: "روابط المشروع",
+    links: "روابط",
     builtWith: "مبني باستخدام",
     githubProject: "مشروع GitHub",
     telegramBot: "بوت Telegram",
