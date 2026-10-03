@@ -331,7 +331,7 @@ export const faIR: TranslationDictionary = {
     description:
       "HawkBucks ابزاری اجتماعی است که به‌طور خودکار مأموریت‌های V-Bucks Fortnite: Save the World را ردیابی می‌کند و نمای روزانه سریعی از پاداش‌های موجود ارائه می‌دهد.",
     navigate: "ناوبری",
-    connect: "ارتباط",
+    projectLinks: "پیوندهای پروژه",
     builtWith: "ساخته‌شده با",
     githubProject: "پروژه GitHub",
     telegramBot: "ربات تلگرام",

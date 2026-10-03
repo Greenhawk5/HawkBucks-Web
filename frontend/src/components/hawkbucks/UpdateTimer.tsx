@@ -58,6 +58,15 @@ export function UpdateTimer({ lastUpdated }: { lastUpdated: string }) {
   );
 }
 
+/**
+ * "00:00 UTC → <local>" line for the given UTC-midnight boundary.
+ *
+ * `timeZone` is undefined during SSR and the first client render (see
+ * useUserTimeZone), so it is resolved to an EXPLICIT "UTC" here. Omitting it
+ * would let resolveTimeZone() fall back to the RUNTIME's zone — the Workers
+ * edge renders UTC while the browser renders the reader's zone — producing
+ * different text on the server and the client and failing hydration.
+ */
 function formatUtcMidnightWithLocalEquivalentForBoundary(
   next: Date,
   timeZone: string | undefined,
@@ -65,9 +74,9 @@ function formatUtcMidnightWithLocalEquivalentForBoundary(
 ): string {
   const utcBoundary = new Date(next);
   utcBoundary.setUTCHours(0, 0, 0, 0);
-  const pair = formatUtcMidnightWithLocalEquivalent(
-    utcBoundary.toISOString().slice(0, 10),
-    timeZone ? { timeZone, locale } : { locale },
-  );
+  const pair = formatUtcMidnightWithLocalEquivalent(utcBoundary.toISOString().slice(0, 10), {
+    timeZone: timeZone ?? "UTC",
+    locale,
+  });
   return `${pair.utc} → ${pair.local}`;
 }

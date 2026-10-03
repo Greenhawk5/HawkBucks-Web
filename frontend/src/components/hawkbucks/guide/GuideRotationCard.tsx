@@ -43,14 +43,15 @@ export function GuideRotationCard() {
   // browser describe the SAME rotation day; a client-only `new Date()` could
   // otherwise straddle a UTC midnight and disagree with the rendered numbers.
   //
-  // `timeZone` is undefined during SSR, and this project sets
-  // `exactOptionalPropertyTypes`, so the key is omitted rather than set to
-  // undefined — which also keeps the call honest: no timezone is asserted
-  // until the browser has actually reported one.
-  const boundary = formatDailyRotationBoundary(
-    data?.lastUpdated,
-    timeZone ? { timeZone, locale } : { locale },
-  );
+  // `timeZone` is undefined during SSR and the first client render, so it is
+  // resolved to an EXPLICIT "UTC" here: omitting it would let resolveTimeZone()
+  // fall back to the RUNTIME's zone (UTC on the Workers edge, the reader's zone
+  // in the browser), rendering different text on the server and the client and
+  // failing hydration. The browser zone replaces it after hydration.
+  const boundary = formatDailyRotationBoundary(data?.lastUpdated, {
+    timeZone: timeZone ?? "UTC",
+    locale,
+  });
   // Live UTC countdown to the next 00:00 UTC boundary. UTC-only by construction
   // (see formatUtcMidnightCountdown) and SSR-safe: it renders the stable
   // fallback until the first client tick.

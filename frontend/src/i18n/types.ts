@@ -320,7 +320,7 @@ export interface TranslationDictionary {
   footer: {
     description: string;
     navigate: string;
-    connect: string;
+    projectLinks: string;
     builtWith: string;
     githubProject: string;
     telegramBot: string;

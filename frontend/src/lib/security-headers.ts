@@ -155,6 +155,8 @@ export const CSP_EVIDENCE: Readonly<Record<string, string>> = Object.freeze({
     "'self' + https://media.hawkbucks.com = the production R2 delivery origin (wrangler.json var R2_PUBLIC_BASE_URL, mirrored by the R2_PUBLIC_BASE_URL constant in src/lib/cms/r2.server.ts); all CMS hero/loadout/schematic/article images resolve through resolveCompatDeliveryUrl() to this host. ImageKit is deliberately NOT added: imagekitEndpoint is not configured in wrangler.json or .dev.vars, and resolveCompatDeliveryUrl returns null for bare-fileId ImageKit rows without it, so the frontend cannot actually load from an ImageKit origin. D1 rows holding an absolute https delivery_url still render exactly as before — only the allow-list is not widened for a host the app never constructs (tracked as a Phase 24 note). data: is REQUIRED by the CMS Media Library: src/routes/admin/media.tsx reads a picked file with FileReader.readAsDataURL() and renders that data: URL as the preview <img src>. blob: covers the same Media Library's in-browser object-URL previews. Scoped to img-src only.",
   "font-src":
     "'self' = any same-origin font asset. data: covers an inline/embedded font payload. https://fonts.gstatic.com is REQUIRED (Phase 24): the root route head (src/routes/__root.tsx) links the Google Fonts stylesheet from fonts.googleapis.com and preconnects to fonts.gstatic.com with crossorigin='anonymous', but that stylesheet only declares @font-face rules — the actual Sora/Inter .woff2 binaries it references are served from fonts.gstatic.com. A font fetch is authorized by font-src and NOT by the response's CORS headers, so omitting this origin blocks every webfont download. Verified in real Chromium against the production bundle BEFORE this fix: every Sora and Inter face reported status 'error' in document.fonts, document.fonts.check('700 48px Sora') returned false, and the console logged \"Refused to load the font 'https://fonts.gstatic.com/...' because it violates ... font-src 'self' data:\" on every route — the entire site silently rendered in fallback system fonts. The origin is scoped to font-src alone and grants no script, style or connection privilege.",
+  "frame-src":
+    "'self' = any same-origin frame. https://challenges.cloudflare.com is REQUIRED: the Turnstile widget does not paint into the document — api.js creates a cross-origin <iframe src='https://challenges.cloudflare.com/...'> to run the challenge, and a frame's source is governed by frame-src. Without an explicit frame-src the request falls back to default-src 'self' and is blocked, so the widget renders nothing and never issues a token, which makes a correctly-configured, fail-closed CMS login impossible. Cloudflare's Turnstile CSP reference documents script-src AND frame-src for exactly this reason. Scoped to frame-src alone: it grants no script, style or connection privilege.",
   "connect-src":
     "ALL application traffic is same-origin: TanStack server functions post to /_serverFn/* on this origin, the client router fetches only its own chunks, and R2 media is loaded as <img> (governed by img-src, not connect-src). Media is never fetched via XHR/fetch, so media.hawkbucks.com is NOT needed here. challenges.cloudflare.com is NOT needed: Turnstile's requests originate inside its own sandboxed iframe, which carries Cloudflare's own policy. No WebSocket, EventSource, or cross-origin fetch exists anywhere in the codebase (verified by search), so there is nothing else to allow.",
   "media-src":
@@ -184,6 +186,12 @@ export function buildContentSecurityPolicy(nonce: string): string {
     `style-src 'self' 'unsafe-inline' ${CSP_STYLE_ORIGIN_GOOGLE_FONTS}`,
     `img-src 'self' data: blob: ${CSP_MEDIA_ORIGIN_R2}`,
     `font-src 'self' data: ${CSP_FONT_ORIGIN_GOOGLE_FONTS}`,
+    // Turnstile's challenge runs inside an iframe that api.js creates at runtime
+    // on challenges.cloudflare.com. Without an explicit frame-src the policy
+    // falls back to default-src 'self', which blocks that frame: the widget
+    // never renders and can never issue a token. Cloudflare's CSP reference
+    // documents script-src AND frame-src for Turnstile.
+    `frame-src 'self' ${CSP_SCRIPT_ORIGIN_TURNSTILE}`,
     "connect-src 'self'",
     "media-src 'self'",
   ].join("; ");

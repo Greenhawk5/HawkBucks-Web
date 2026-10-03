@@ -334,7 +334,7 @@ export const es: TranslationDictionary = {
     description:
       "HawkBucks es una herramienta comunitaria que rastrea automáticamente las misiones de V-Bucks de Fortnite: Save the World y ofrece un resumen diario rápido de las recompensas disponibles.",
     navigate: "Navegar",
-    connect: "Conectar",
+    projectLinks: "Enlaces del proyecto",
     builtWith: "Hecho con",
     githubProject: "Proyecto en GitHub",
     telegramBot: "Bot de Telegram",

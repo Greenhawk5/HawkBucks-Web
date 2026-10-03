@@ -28,10 +28,15 @@ export function VbucksMissionsPage() {
   const timeZone = useUserTimeZone();
   const boundaryUtc = new Date(next);
   boundaryUtc.setUTCHours(0, 0, 0, 0);
-  const resetPair = formatUtcMidnightWithLocalEquivalent(
-    boundaryUtc.toISOString().slice(0, 10),
-    timeZone ? { timeZone, locale } : { locale },
-  );
+  // `timeZone` is undefined during SSR and the first client render, so it is
+  // resolved to an EXPLICIT "UTC" here: omitting it would let resolveTimeZone()
+  // fall back to the RUNTIME's zone (UTC on the Workers edge, the reader's zone
+  // in the browser), rendering different text on the server and the client and
+  // failing hydration. The browser zone replaces it after hydration.
+  const resetPair = formatUtcMidnightWithLocalEquivalent(boundaryUtc.toISOString().slice(0, 10), {
+    timeZone: timeZone ?? "UTC",
+    locale,
+  });
 
   return (
     <div className="px-4 pb-16 pt-8 sm:px-6 sm:pt-10">

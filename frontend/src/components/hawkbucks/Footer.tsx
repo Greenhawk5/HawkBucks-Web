@@ -108,7 +108,7 @@ export function Footer() {
           </div>
 
           <div>
-            <ColTitle>{t("footer.connect")}</ColTitle>
+            <ColTitle>{t("footer.projectLinks")}</ColTitle>
             <ul className="mt-4 flex flex-wrap gap-2.5">
               {connect.map((c) => (
                 <li key={c.labelKey + c.href}>
