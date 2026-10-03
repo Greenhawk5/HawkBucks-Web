@@ -11,10 +11,25 @@
  */
 
 import { SITE_URL } from "@/lib/site";
+import { INDEXABLE_BASE_PATHS } from "@/lib/locale-urls";
 import { SUPPORTED_LANGUAGES } from "@/lib/preferences";
 import type { D1Database } from "./db.server";
 
-const HUBS = ["/", "/heroes", "/schematics", "/loadouts", "/guides"] as const;
+/**
+ * PHASE 22 — sourced from INDEXABLE_BASE_PATHS instead of a hand-copied list.
+ *
+ * The previous local `HUBS` const had drifted: it omitted `/about`,
+ * `/vbucks-missions` and `/missions-guide`, so all 27 of their localized
+ * variants were missing from the generated sitemap. INDEXABLE_BASE_PATHS is
+ * the documented single source of truth for the indexable surface, so the
+ * sitemap now derives from it and cannot silently fall behind the routes
+ * again.
+ *
+ * Redirect sources (`/inventory`, `/articles`) are intentionally NOT listed
+ * here: they are 308s, not documents. CMS entity detail URLs are appended
+ * below from published rows only.
+ */
+const HUBS: readonly string[] = INDEXABLE_BASE_PATHS;
 
 function localize(base: string, locale: string): string {
   return locale === "en" ? base : base === "/" ? `/${locale}` : `/${locale}${base}`;

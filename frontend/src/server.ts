@@ -2,6 +2,15 @@ import "./lib/error-capture";
 
 import { consumeLastCapturedError } from "./lib/error-capture";
 import { renderErrorPage } from "./lib/error-page";
+import { applySecurityHeaders, applyContentSecurityPolicy } from "./lib/security-headers";
+import { generateCspNonce, runWithCspNonce } from "./lib/csp-nonce";
+// Installs the request-scoped AsyncLocalStorage that `src/router.tsx` reads the
+// nonce from. Called explicitly (not a bare side-effect import) so the bundler
+// cannot tree-shake the module away — see installRequestScopedCspNonceStore.
+// This must NOT be imported by router.tsx, which is also bundled for browsers.
+import { installRequestScopedCspNonceStore } from "./lib/csp-nonce.server";
+
+installRequestScopedCspNonceStore();
 
 // ---------------------------------------------------------------------------
 // Phase 9 — WWW → apex redirect
@@ -24,6 +33,32 @@ export const WWW_HOST = `www.${APEX_HOST}`;
 // hawkbucks.com / www / localhost are provably unaffected. No loop is
 // possible because hawkbucks.com is never redirected back to pages.dev.
 export const PAGES_DEV_HOST = "hawkbucks.pages.dev";
+
+/**
+ * Phase 22 — hub list for the D1-less sitemap fallback.
+ *
+ * Previously a second hand-copied literal that had drifted out of sync with
+ * both the real route surface and `sitemap.server.ts` (missing `/about`,
+ * `/vbucks-missions`, `/missions-guide`). Kept as a static array because
+ * `src/server.ts` is the Worker entrypoint and must stay import-light; the
+ * phase22 regression test asserts it equals `INDEXABLE_BASE_PATHS`, so the
+ * two can never diverge again.
+ *
+ * These are the BARE (default-language) hub paths only. The fallback document
+ * is intentionally minimal — no alternates, no lastmod — because it only ever
+ * renders when D1 is unreachable, and public/sitemap.xml is the document
+ * Cloudflare Pages actually serves for /sitemap.xml.
+ */
+export const SITEMAP_FALLBACK_HUBS: readonly string[] = [
+  "/",
+  "/about",
+  "/vbucks-missions",
+  "/missions-guide",
+  "/heroes",
+  "/loadouts",
+  "/schematics",
+  "/guides",
+];
 
 function redirectResponse(requestUrl: URL, targetHost: string, status: number): Response {
   const target = new URL(requestUrl.href);
@@ -94,7 +129,7 @@ function isH3SwallowedErrorBody(body: string): boolean {
  * public/sitemap.xml remains as the deploy-time fallback underneath.
  */
 async function serveDynamicSitemap(request: Request, env: unknown): Promise<Response> {
-  const fallback = (hubs: string[]): Response => {
+  const fallback = (hubs: readonly string[]): Response => {
     const urls = hubs.map((h) => `  <url><loc>https://hawkbucks.com${h}</loc></url>`).join("\n");
     return new Response(
       `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls}\n</urlset>`,
@@ -129,7 +164,7 @@ async function serveDynamicSitemap(request: Request, env: unknown): Promise<Resp
         }
       | undefined;
     if (!db || typeof db.prepare !== "function") {
-      return fallback(["/", "/heroes", "/schematics", "/loadouts", "/guides"]);
+      return fallback(SITEMAP_FALLBACK_HUBS);
     }
     const { buildSitemapXml } = await import("./lib/cms/sitemap.server");
     const xml = await buildSitemapXml(db as unknown as import("./lib/cms/db.server").D1Database);
@@ -141,12 +176,28 @@ async function serveDynamicSitemap(request: Request, env: unknown): Promise<Resp
       },
     });
   } catch {
-    return fallback(["/", "/heroes", "/schematics", "/loadouts", "/guides"]);
+    return fallback(SITEMAP_FALLBACK_HUBS);
   }
 }
 
 export default {
   async fetch(request: Request, env: unknown, ctx: unknown) {
+    // Phase 23 — one cryptographically random CSP nonce per HTTP response,
+    // generated up front so EVERY exit path below (redirects, sitemap, SSR,
+    // server functions and the 500 page) carries a policy that matches the
+    // markup. `runWithCspNonce` scopes it to this request's async context so
+    // `src/router.tsx`'s `getRouter()` — which TanStack calls lazily while
+    // rendering — reads exactly this value and stamps it onto every inline
+    // script React and the router emit. Concurrent requests on the same isolate
+    // never observe each other's nonce.
+    const cspNonce = generateCspNonce();
+    // `harden` is the single funnel every response passes through. CSP is
+    // applied AFTER the security headers so it is always present, and it is
+    // applied to the FINAL response object so streamed SSR (whose headers are
+    // committed before the body finishes) still carries it.
+    const harden = (response: Response) =>
+      applyContentSecurityPolicy(applySecurityHeaders(response), cspNonce);
+
     // Phase 9: redirect the www host to the canonical apex domain before any
     // SSR or server-function work runs. Most static-asset requests are served
     // from the edge asset store before this handler is invoked; any request
@@ -154,13 +205,13 @@ export default {
     // canonical HTML.
     const requestUrl = new URL(request.url);
     if (requestUrl.host === WWW_HOST) {
-      return wwwRedirectResponse(requestUrl);
+      return harden(wwwRedirectResponse(requestUrl));
     }
 
     // Phase 10: the legacy Pages hostname 301s to the canonical apex before
     // any SSR runs, so pages.dev can never serve canonical HTML either.
     if (requestUrl.host === PAGES_DEV_HOST) {
-      return pagesDevRedirectResponse(requestUrl);
+      return harden(pagesDevRedirectResponse(requestUrl));
     }
 
     // No binding registration here: the Nitro cloudflare-pages runtime already
@@ -169,18 +220,24 @@ export default {
     // AsyncLocalStorage, so the server-only transport resolves the binding
     // from the current request (see src/services/missions.server.ts).
     if (requestUrl.pathname === "/sitemap.xml") {
-      return serveDynamicSitemap(request, env);
+      return harden(await serveDynamicSitemap(request, env));
     }
     try {
       const handler = await getServerEntry();
-      const response = await handler.fetch(request, env, ctx);
-      return await normalizeCatastrophicSsrResponse(response);
+      // The router entry is invoked INSIDE the nonce scope so `getRouter()` can
+      // read it. Server-function RPC responses are non-HTML and carry no inline
+      // scripts, but they still receive the same policy — harmless and simpler
+      // than special-casing the content type.
+      const response = await runWithCspNonce(cspNonce, () => handler.fetch(request, env, ctx));
+      return harden(await normalizeCatastrophicSsrResponse(response));
     } catch (error) {
       console.error(error);
-      return new Response(renderErrorPage(), {
-        status: 500,
-        headers: { "content-type": "text/html; charset=utf-8" },
-      });
+      return harden(
+        new Response(renderErrorPage(), {
+          status: 500,
+          headers: { "content-type": "text/html; charset=utf-8" },
+        }),
+      );
     }
   },
 };

@@ -7,8 +7,7 @@ import { createServerFn } from "@tanstack/react-start";
  *
  * The handler imports the server-only transport dynamically, so
  * preferences.server.ts can never enter the client bundle — the same pattern
- * as services/missions.loader.ts and lib/sidebar-state.ts (which this
- * supersedes; see that module's deprecation note).
+ * as services/missions.loader.ts.
  */
 export const loadServerPreferences = createServerFn({ method: "GET" }).handler(async () => {
   const { fetchServerPreferencesServer } = await import("./preferences.server");

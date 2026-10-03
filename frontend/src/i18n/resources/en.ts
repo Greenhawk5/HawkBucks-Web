@@ -195,11 +195,14 @@ export const en: TranslationDictionary = {
   },
   guide: {
     eyebrow: "V-Bucks Mission Basics",
-    title: "V-Bucks Mission Basics",
+    title: "V-Bucks Missions in Fortnite: Save the World",
     intro:
       "HawkBucks explains what V-Bucks missions are, where to find them, and how to verify their rewards in Fortnite: Save the World.",
     openTracker: "View Today's V-Bucks Missions",
     trackerCtaSecondary: "How Save the World V-Bucks Work",
+    breadcrumbLabel: "Breadcrumb",
+    heroTrust:
+      "HawkBucks explains the system here. The live tracker is where today's mission data belongs.",
     eligibilityTitle: "Can I earn V-Bucks from Save the World?",
     eligibilityDesc:
       "Save the World is free to play for everyone since April 16, 2026 — but earning V-Bucks inside it stayed a Founder benefit. Pick whichever matches your account:",
@@ -216,6 +219,8 @@ export const en: TranslationDictionary = {
     whatTitle: "What are V-Bucks missions?",
     whatBody:
       "A V-Bucks mission is a Fortnite: Save the World mission whose active alert reward includes V-Bucks. Not every mission offers them: V-Bucks are a bonus attached to specific mission alerts, not a standard payout on every node. The reward belongs to one alert at a time, and completing that mission successfully claims it.",
+    whatCaveat:
+      "A mission icon, a mission type, or a zone on its own does not prove that a mission rewards V-Bucks. The active Alert Rewards for that mission are the source of truth.",
     findTitle: "How to find a V-Bucks mission",
     findIntro: "Everything happens on the World Map. Once you are there:",
     findStep1: "Open Fortnite and enter Save the World.",
@@ -232,11 +237,17 @@ export const en: TranslationDictionary = {
       "Mini-Boss Mission Alerts are a special type of world-map mission alert. V-Bucks can appear as their alert reward, which is why they come up so often in V-Bucks mission tracking — but the alert type alone does not guarantee V-Bucks.",
     miniBossCaveat:
       "A Mini-Boss mission is not automatically a V-Bucks mission. Open the mission and check its active Alert Rewards to confirm.",
-    rewardEyebrow: "Current standard reward",
+    miniBossTypeLabel: "Alert type",
+    miniBossRewardLabel: "V-Bucks reward",
+    rewardEyebrow: "Example of a current reward",
     rewardTitle: "How many V-Bucks does a mission give?",
     rewardAmountLabel: "V-Bucks",
+    rewardObservedLabel: "Observed today",
+    rewardNotRuleLabel: "Not a fixed rule",
     rewardBody:
-      "Current standard V-Bucks Mission Alerts reward {reward} V-Bucks. The tracker reads each mission's live reward, so the number you see there is always today's real value.",
+      "V-Bucks Mission Alerts currently reward {reward} V-Bucks. That is today's observed value, not a fixed rule — Epic can change it, and not every alert pays the same. HawkBucks reads each mission's live reward, so the tracker always shows the real current number.",
+    rewardCaveat:
+      "Check the mission's own Alert Rewards before you commit. A mission you cannot claim will not pay out.",
     rotationTitle: "Today's rotation",
     rotationDesc:
       "Mission Alerts rotate on a daily schedule, so the available set changes after each reset.",
@@ -247,7 +258,10 @@ export const en: TranslationDictionary = {
     rotationPending: "Checking the current rotation…",
     rotationUnavailable:
       "Live mission data is temporarily unavailable. The tracker has the latest state.",
-    rotationNext: "Next rotation",
+    rotationDaily: "Daily rotation",
+    rotationUtc: "UTC",
+    rotationLocal: "Your local time",
+    rotationLocalDate: "Local date",
     rotationCta: "View Today's V-Bucks Missions",
     otherTitle: "V-Bucks missions are one route, not the only one",
     otherIntro:
@@ -300,13 +314,13 @@ export const en: TranslationDictionary = {
       "Open Save the World, open the World Map, select a mission node, and read its Alert Rewards panel. If V-Bucks are listed, it is a V-Bucks mission.",
     faqQ6: "How often do V-Bucks missions change?",
     faqA6:
-      "Mission Alerts rotate on a daily schedule. The available set changes after each reset, so check the current rotation rather than an old screenshot.",
+      "Mission Alerts rotate as part of the daily Save the World reset, so the set of available V-Bucks missions changes. Rather than quote a fixed cadence, check the tracker's current rotation and next-update countdown — it reflects the live feed.",
     faqQ7: "How many V-Bucks does a V-Bucks mission give?",
     faqA7:
-      "Current standard V-Bucks Mission Alerts reward {reward} V-Bucks. The HawkBucks tracker shows each mission's live reward.",
+      "V-Bucks Mission Alerts currently reward {reward} V-Bucks. Treat that as today's observed value rather than a permanent rule — the reward comes from the mission's active alert and can change.",
     faqQ8: "Can I complete multiple V-Bucks missions in one day?",
     faqA8:
-      "Yes — when the map has several eligible mission nodes, you can complete each one. A single mission node does not repeatedly pay the same alert reward.",
+      "Yes — when several eligible mission nodes are on the map, each one is a separate mission and pays its own alert reward. A single mission node does not repeatedly pay the same alert reward.",
     faqQ9: "Do I need to be a Founder to earn Save the World V-Bucks?",
     faqA9:
       "Yes. Only Founders earn V-Bucks from Save the World. Anyone can play Save the World, but the V-Bucks benefit is Founder-only.",
@@ -318,6 +332,8 @@ export const en: TranslationDictionary = {
     relatedTrackerDesc: "See today's V-Bucks mission alerts and their details.",
     relatedAboutTitle: "About HawkBucks",
     relatedAboutDesc: "How the tracker pipeline and community tool work.",
+    relatedGuidesTitle: "Save the World Guides",
+    relatedGuidesDesc: "Builds, comparisons, and practical tips beyond the mission basics.",
   },
   footer: {
     description:
@@ -392,12 +408,12 @@ export const en: TranslationDictionary = {
     missionsOgTitle: "Fortnite V-Bucks Missions Today | HawkBucks",
     missionsOgDescription:
       "Check today's Save the World V-Bucks missions with the HawkBucks tracker.",
-    guideTitle: "V-Bucks Mission Basics for Save the World | HawkBucks",
+    guideTitle: "V-Bucks Missions in Save the World | HawkBucks",
     guideDescription:
-      "Learn what Save the World V-Bucks missions are, how to find them, and how to verify their rewards.",
-    guideOgTitle: "V-Bucks Mission Basics for Save the World | HawkBucks",
+      "Learn how V-Bucks missions work in Fortnite: Save the World, how to find and verify mission rewards, and where to check today's live V-Bucks missions.",
+    guideOgTitle: "V-Bucks Missions in Save the World | HawkBucks",
     guideOgDescription:
-      "What V-Bucks missions are, where to find them, and how to verify their rewards.",
+      "How V-Bucks missions work in Save the World, how to verify a mission's real reward, and where to check today's live missions.",
     aboutTitle: "About HawkBucks — Save the World Community Tool",
     aboutDescription:
       "Learn what HawkBucks is, how its mission tracker and Save the World knowledge platform work, and how Heroes, Schematics, Loadouts, and Guides fit together.",

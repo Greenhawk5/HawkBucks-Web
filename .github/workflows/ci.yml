@@ -41,6 +41,12 @@ jobs:
       - name: Lint
         run: npm run lint --if-present
 
+      - name: Test
+        run: npm run test:server --if-present
+
+      - name: Type check
+        run: npx tsc --noEmit
+
       - name: Build
         run: npm run build
 
@@ -69,6 +75,9 @@ jobs:
           else
             npm install
           fi
+
+      - name: Test
+        run: npm test
 
       - name: Wrangler dry run
         run: npx wrangler deploy --dry-run

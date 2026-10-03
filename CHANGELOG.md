@@ -2,6 +2,41 @@
 
 All notable HawkBucks changes are documented here. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [2.0.0-rc.1] - 2026-10-03
+
+First **Release Candidate** for v2.0.0 — the HawkBucks content-platform and public-experience overhaul, together with the Phase 20–24 production-hardening and release-candidate QA work. This is a **pre-release**: v1.2.0 remains the latest stable release, and the stable v2.0.0 has not been released yet.
+
+### Added
+
+- CMS content platform backed by Cloudflare D1 and R2, with a D1-direct admin (authentication, sessions, and audit log) and published content served to the public app from the same validated snapshot.
+- CMS-managed content types: heroes, loadouts, schematics, and editorial articles/guides with structured block documents.
+- Public content routes — `/heroes`, `/loadouts`, `/schematics`, and `/guides` — alongside the existing `/vbucks-missions` live mission tracker and the evergreen `/missions-guide` V-Bucks Mission Basics guide. Legacy `/inventory` and `/articles` URLs remain permanent redirects to `/schematics` and `/guides`.
+- Localized public routes (`/<locale>/...`) with a language switcher, right-to-left (RTL) support, and `hreflang` alternates.
+- User preferences and local-time handling (client timezone and reminder state).
+- Web Push notifications with a reminder toggle and a same-origin service worker (`/sw.js`).
+- First-visit welcome/onboarding experience.
+- Dynamic, D1-backed `/sitemap.xml` (with a static fallback) sourced from the single indexable-path list, plus canonical and `hreflang` metadata on every route.
+- Content Security Policy delivered with a per-request nonce threaded through the SSR stream, so inline hydration scripts run under a strict `script-src` with no `'unsafe-inline'` or `'unsafe-eval'`.
+
+### Changed
+
+- Application versioning moved to the v2.0.0 line across the package manifests, citation metadata, and the footer.
+- SEO overhaul: breadcrumb structured data now names the canonical `/guides` hub instead of the legacy `/articles` redirect, and the sitemap's hub list and the indexable-path source of truth are unified so they can no longer drift.
+- Performance: article detail reads resolve in a single D1 round trip, listings paginate in SQL, and above-the-fold cover images load eagerly while body images stay lazy.
+
+### Fixed
+
+- Production Pages configuration now binds the D1 database the CMS code actually reads, so admin login, content CRUD, and the dynamic sitemap no longer fail closed with "CMS database binding is not available".
+- Deterministic-key R2 uploads now UPSERT instead of failing on re-upload.
+
+### Security
+
+- Response security headers applied to every SSR response: HSTS, `X-Content-Type-Options`, `Referrer-Policy`, `Permissions-Policy`, `X-Frame-Options`, plus the Content Security Policy described above.
+- CMS upload hardening: magic-byte verification for claimed image types and R2 key-traversal rejection.
+- Same-origin (CSRF) enforcement at every CMS state-changing mutation boundary, with preview HTML/data responses marked `private, no-store`.
+- Login throttling (per-account and per-IP), Cloudflare Turnstile bot protection on CMS sign-in, hardened session cookie flags, and audit-log redaction.
+- SEO/editorial input safety: dangerous-URL rejection and raw-HTML rejection in article documents.
+
 ## [1.2.0] - 2026-09-18
 
 SEO, accessibility, and metadata overhaul.

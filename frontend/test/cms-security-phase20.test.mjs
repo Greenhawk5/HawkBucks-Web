@@ -15,6 +15,7 @@ const r2 = await import("../src/lib/cms/r2.server.ts");
 const audit = await import("../src/lib/cms/audit.ts");
 const seo = await import("../src/lib/cms/seo.ts");
 const articles = await import("../src/lib/cms/articles.ts");
+const securityHeaders = await import("../src/lib/security-headers.ts");
 
 const PNG_BYTES = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0x00]);
 const JPEG_BYTES = new Uint8Array([0xff, 0xd8, 0xff, 0xe0, 0x00, 0x10]);
@@ -191,10 +192,134 @@ test("security: article blocks reject unsupported raw-html block type", () => {
 
 // --- _headers ------------------------------------------------------------------
 
-test("security: public/_headers ships HSTS, nosniff, CSP with frame-ancestors", async () => {
+// The `_headers` file only ever applied to Cloudflare's static asset store, and
+// Phase 23 moved the CSP off it entirely (a static file cannot carry a
+// per-request nonce). The SSR policy now lives in src/lib/security-headers.ts
+// and is asserted there and end-to-end in test/csp-phase23.test.mjs. This test
+// keeps the static-asset header contract intact and confirms the SSR policy is
+// NOT duplicated into a file that cannot work.
+test("security: _headers ships HSTS + nosniff, and defers CSP to the Worker", async () => {
   const headers = await readFile(new URL("../public/_headers", import.meta.url), "utf8");
   assert.match(headers, /Strict-Transport-Security/);
   assert.match(headers, /X-Content-Type-Options: nosniff/);
-  assert.match(headers, /frame-ancestors 'none'/);
-  assert.match(headers, /media\.hawkbucks\.com/);
+  // The enforcing policy is emitted by the Worker with a per-request nonce; a
+  // static header could only ever be the broken nonce-less variant.
+  assert.doesNotMatch(headers, /^\s*Content-Security-Policy:/m);
+  // The R2 delivery origin is a Worker-side concern and is asserted with the
+  // rest of the policy in test/csp-phase23.test.mjs — not from this file.
+});
+
+// Phase 20 regression: `_headers` applies ONLY to Cloudflare's static asset
+// store. This deployment ships dist/_worker.js, so every SSR HTML document and
+// every /_serverFn response bypasses that file — which is exactly why the
+// headers are applied in src/server.ts instead. If `_headers` is ever promoted
+// as the HTML-document defence, this guard fails loudly.
+test("security: _headers documents that it does not cover SSR responses", async () => {
+  const headers = await readFile(new URL("../public/_headers", import.meta.url), "utf8");
+  assert.match(headers, /STATIC ASSETS ONLY/);
+  assert.match(headers, /bypass/i);
+  assert.match(headers, /src\/server\.ts/);
+});
+
+// The shipped CSP is applied to SSR by the Worker (src/server.ts), NOT by this
+// file — `_headers` only reaches Cloudflare's static asset store. Phase 23
+// resolved the Phase 20 blocker (a per-request nonce is now threaded through
+// `createRouter({ ssr: { nonce } })`), so the policy moved off this file
+// entirely. This test asserts the hazard stays DOCUMENTED so nobody pastes a
+// nonce-less policy back onto SSR responses.
+test("security: the _headers file explains the CSP now lives on the SSR path", async () => {
+  const headers = await readFile(new URL("../public/_headers", import.meta.url), "utf8");
+  assert.match(headers, /DO NOT paste the SSR CSP into this file/);
+  assert.match(headers, /nonce/);
+  // No live CSP line may remain here: a static file cannot carry a per-request
+  // nonce, and `script-src 'self'` is exactly what broke hydration.
+  assert.doesNotMatch(headers, /^\s*Content-Security-Policy:/m);
+});
+
+// --- SSR security headers (src/lib/security-headers.ts) -------------------------
+
+test("security: SSR responses carry HSTS, nosniff and referrer policy", () => {
+  const response = securityHeaders.applySecurityHeaders(
+    new Response("<!doctype html>", { status: 200, headers: { "content-type": "text/html" } }),
+  );
+  assert.match(
+    response.headers.get("strict-transport-security") ?? "",
+    /^max-age=63072000; includeSubDomains; preload$/,
+  );
+  assert.equal(response.headers.get("x-content-type-options"), "nosniff");
+  assert.equal(response.headers.get("referrer-policy"), "strict-origin-when-cross-origin");
+});
+
+test("security: SSR responses are protected against clickjacking", () => {
+  const response = securityHeaders.applySecurityHeaders(new Response("ok", { status: 200 }));
+  assert.equal(response.headers.get("x-frame-options"), "DENY");
+});
+
+test("security: SSR permissions policy denies unused powerful features", () => {
+  const response = securityHeaders.applySecurityHeaders(new Response("ok", { status: 200 }));
+  assert.equal(
+    response.headers.get("permissions-policy"),
+    "camera=(), microphone=(), geolocation=(), payment=()",
+  );
+});
+
+test("security: applySecurityHeaders preserves status, body and existing headers", async () => {
+  const response = securityHeaders.applySecurityHeaders(
+    new Response("body-text", {
+      status: 404,
+      statusText: "Not Found",
+      headers: { "content-type": "text/plain" },
+    }),
+  );
+  assert.equal(response.status, 404);
+  assert.equal(response.statusText, "Not Found");
+  assert.equal(response.headers.get("content-type"), "text/plain");
+  assert.equal(await response.text(), "body-text");
+});
+
+// The preview route owns its own Cache-Control; hardening must never clobber
+// a header a handler deliberately set.
+test("security: hardening never overwrites a header the handler already set", () => {
+  const response = securityHeaders.applySecurityHeaders(
+    new Response("draft", {
+      status: 200,
+      headers: { "cache-control": "private, no-store", "referrer-policy": "no-referrer" },
+    }),
+  );
+  assert.equal(response.headers.get("cache-control"), "private, no-store");
+  assert.equal(response.headers.get("referrer-policy"), "no-referrer");
+});
+
+// Phase 20 deferred CSP entirely; Phase 23 shipped it with a per-request nonce.
+// This test now asserts the policy IS present on the hardened response and that
+// it does NOT contain the two directives that would weaken it. The full policy
+// contract (nonce↔markup matching, origins, Turnstile, RTL routes) is covered
+// end-to-end against the production bundle in test/csp-phase23.test.mjs.
+test("security: hardened SSR responses carry a nonce-based CSP", () => {
+  const nonce = "dGhlU2FtcGxlTm9uY2VGb3JUZXN0cw==";
+  const response = securityHeaders.applyContentSecurityPolicy(
+    securityHeaders.applySecurityHeaders(new Response("ok", { status: 200 })),
+    nonce,
+  );
+  const policy = response.headers.get("content-security-policy") ?? "";
+  assert.match(policy, new RegExp(`'nonce-${nonce}'`));
+  assert.match(policy, /script-src 'self' 'nonce-/);
+  assert.doesNotMatch(policy, /'unsafe-eval'/);
+  // 'unsafe-inline' is scoped to style-src only (sonner + Radix inject <style>).
+  const scriptSrc = /script-src ([^;]*)/.exec(policy)?.[1] ?? "";
+  assert.doesNotMatch(scriptSrc, /'unsafe-inline'/);
+  assert.match(policy, /style-src [^;]*'unsafe-inline'/);
+});
+
+// Redirects and error pages leave the same Worker funnel, so they must be
+// covered too (a redirect leaking headers is harmless, but a 500 page missing
+// nosniff is not).
+test("security: redirect responses also receive the hardening headers", () => {
+  const response = securityHeaders.applySecurityHeaders(
+    new Response(null, { status: 308, headers: { location: "https://hawkbucks.com/" } }),
+  );
+  assert.equal(response.status, 308);
+  assert.equal(response.headers.get("location"), "https://hawkbucks.com/");
+  assert.equal(response.headers.get("x-content-type-options"), "nosniff");
+  assert.equal(response.headers.get("x-frame-options"), "DENY");
 });

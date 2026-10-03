@@ -355,6 +355,13 @@ export function buildLoadoutJsonLd(input: {
  * Phase 16 — Article structured data. Generated ONLY from validated,
  * published article rows (headline/description are head-safe plain text,
  * image is a compat-resolved https URL or omitted). Never emits raw HTML.
+ *
+ * PHASE 22 — breadcrumb corrected to the canonical hub. The parent crumb used
+ * to be `Articles` -> `/articles`, which is wrong twice over: `/articles` is a
+ * legacy 308 redirect source (it 308s to `/guides`), so the structured data
+ * told search engines to follow a permanent redirect, AND the visible trail on
+ * the page renders `Guides` -> `/guides`. Schema must mirror what a reader can
+ * actually see, so the parent is now the canonical hub the article lives under.
  */
 export function buildArticleJsonLd(input: {
   headline: string;
@@ -369,7 +376,7 @@ export function buildArticleJsonLd(input: {
     "@type": "BreadcrumbList",
     itemListElement: [
       { "@type": "ListItem", position: 1, name: "Home", item: input.siteUrl },
-      { "@type": "ListItem", position: 2, name: "Articles", item: `${input.siteUrl}articles` },
+      { "@type": "ListItem", position: 2, name: "Guides", item: `${input.siteUrl}guides` },
       { "@type": "ListItem", position: 3, name: input.headline, item: input.url },
     ],
   };

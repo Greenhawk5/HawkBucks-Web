@@ -96,7 +96,10 @@ test("the duplicated reward-path flow is gone and the find steps stay", async ()
   // step details literally reused guide.whatBody / guide.findStep*. It is
   // removed; the reward path is explained once, in the definition.
   await assert.rejects(
-    readFile(new URL("../src/components/hawkbucks/guide/GuideMissionFlow.tsx", import.meta.url), "utf8"),
+    readFile(
+      new URL("../src/components/hawkbucks/guide/GuideMissionFlow.tsx", import.meta.url),
+      "utf8",
+    ),
     /ENOENT/,
     "GuideMissionFlow must no longer exist",
   );
@@ -104,7 +107,11 @@ test("the duplicated reward-path flow is gone and the find steps stay", async ()
   const page = await file("../src/components/pages/Guide.tsx");
   assert.doesNotMatch(page, /GuideMissionFlow/);
   for (let i = 1; i <= 6; i++) {
-    assert.doesNotMatch(page, new RegExp(`guide\\.flowStep${i}`), `flow step ${i} still referenced`);
+    assert.doesNotMatch(
+      page,
+      new RegExp(`guide\\.flowStep${i}`),
+      `flow step ${i} still referenced`,
+    );
   }
 
   const { RESOURCES } = await import("../src/i18n/resources/index.ts");
@@ -135,10 +142,7 @@ test("finding section is action-oriented and does not restate the definition", a
       `${lang} whatBody re-explains how to find a mission`,
     );
     // The verification note must not repeat the workflow opening.
-    assert.ok(
-      !/world map/i.test(g.findNote),
-      `${lang} findNote repeats the World Map workflow`,
-    );
+    assert.ok(!/world map/i.test(g.findNote), `${lang} findNote repeats the World Map workflow`);
     // Steps must read as actions.
     for (let i = 1; i <= 6; i++) {
       assert.ok(g[`findStep${i}`].length > 0, `${lang} findStep${i} is empty`);
@@ -155,10 +159,26 @@ test("guide interactive components are accessible and reuse shared data", async 
   assert.match(eligibility, /guide\.eligibilityNo/);
 
   const rotation = await file("../src/components/hawkbucks/guide/GuideRotationCard.tsx");
-  // Reuses the tracker's query + countdown; never a new feed.
+  // Reuses the tracker's query; never a new feed.
   assert.match(rotation, /missionsQueryOptions/);
-  assert.match(rotation, /useRefreshCountdown/);
   assert.doesNotMatch(rotation, /fetch\(/);
+  // The UTC side is a LIVE countdown to the next 00:00 UTC boundary, ticked once
+  // per second. It must be UTC-based (never the reader's local clock) and must
+  // not fall back to the 30-minute data-refresh countdown.
+  assert.match(rotation, /useUtcMidnightCountdown/);
+  assert.match(rotation, /utcCountdown/);
+  assert.match(rotation, /formatDailyRotationBoundary/);
+  assert.match(rotation, /useUserTimeZone/);
+  // Must not CALL the 30-minute data-refresh countdown hook (the module path is
+  // still shared, so match the invocation, not the import).
+  assert.doesNotMatch(rotation, /\buseRefreshCountdown\s*\(/);
+  assert.doesNotMatch(rotation, /refreshIn/);
+  // The reader's local equivalent is still rendered and still derived from the
+  // browser timezone.
+  assert.match(rotation, /boundary\.localTime/);
+  // Timezone conversion is delegated to the shared local-time module, never
+  // reimplemented (no ad-hoc toLocaleTimeString / Date math in the component).
+  assert.doesNotMatch(rotation, /toLocaleTimeString|getTimezoneOffset/);
   // Degrades gracefully instead of blanks — useQuery, not useSuspenseQuery.
   assert.match(rotation, /import \{[^}]*\buseQuery\b[^}]*\} from "@tanstack\/react-query"/);
   assert.doesNotMatch(rotation, /import \{[^}]*\buseSuspenseQuery\b/);
@@ -257,7 +277,10 @@ test("guide i18n resources are complete with protected terminology", async () =>
     "rotationEmpty",
     "rotationPending",
     "rotationUnavailable",
-    "rotationNext",
+    "rotationDaily",
+    "rotationUtc",
+    "rotationLocal",
+    "rotationLocalDate",
     "rotationCta",
     "otherTitle",
     "otherIntro",
@@ -446,4 +469,174 @@ test("obsolete pre-2026 eligibility claims are gone from the guide", async () =>
   assert.ok(!/must purchase Save the World/i.test(body));
   assert.ok(/free to play/i.test(body), "guide must state Save the World is free to play");
   assert.ok(/June 29, 2020/.test(body), "guide must state the Founder cutoff date");
+});
+
+// --- SEO/UX redesign: breadcrumb, answer-first hero, factual safety ----------
+
+test("guide page renders the breadcrumb, answer-first hero, and definition caveat", async () => {
+  const page = await file("../src/components/pages/Guide.tsx");
+  // Visible hierarchy rail, rendered above the hero.
+  assert.match(page, /<GuideBreadcrumb \/>/);
+  // Answer-first: the hero states the definition before any long copy.
+  assert.match(page, /t\("guide\.intro"\)/);
+  // Explicit evergreen-vs-live split (the page's core promise).
+  assert.match(page, /t\("guide\.heroTrust"\)/);
+  // The "an icon alone does not prove a reward" clarification.
+  assert.match(page, /t\("guide\.whatCaveat"\)/);
+  // The secondary CTA anchors to the definition, not past it.
+  assert.match(page, /href="#guide-what"/);
+  // Internal links: tracker (primary CTA), About, and Guides all present.
+  assert.match(page, /localizePath\("\/vbucks-missions", locale\)/);
+  assert.match(page, /localizePath\("\/about", locale\)/);
+  assert.match(page, /localizePath\("\/guides", locale\)/);
+  assert.match(page, /t\("guide\.relatedGuidesTitle"\)/);
+});
+
+test("guide breadcrumb component mirrors the visible hierarchy accessibly", async () => {
+  const crumb = await file("../src/components/hawkbucks/guide/GuideBreadcrumb.tsx");
+  // A labelled nav + ordered list, with the current page marked, not linked.
+  assert.match(crumb, /<nav aria-label=\{t\("guide\.breadcrumbLabel"\)\}/);
+  assert.match(crumb, /<ol/);
+  assert.match(crumb, /aria-current="page"/);
+  // Home link stays locale-aware.
+  assert.match(crumb, /localizePath\("\/", locale\)/);
+  // The tracker must never be rendered as an ancestor of this page — only Home
+  // is linked. (Comments may still name the route to explain why.)
+  const rendered = crumb.slice(crumb.indexOf("return ("));
+  assert.doesNotMatch(rendered, /vbucks-missions/);
+  assert.match(rendered, /<Link/);
+});
+
+test("both guide routes emit a BreadcrumbList that matches the visible trail", async () => {
+  const { buildGuideBreadcrumbJsonLd, guideBreadcrumbHomeUrl } =
+    await import("../src/lib/guide-faq.ts");
+  const { translate } = await import("../src/i18n/core.ts");
+
+  for (const lang of ["en", "es", "fa-IR"]) {
+    const schema = buildGuideBreadcrumbJsonLd(lang, translate, guideBreadcrumbHomeUrl(lang));
+    assert.equal(schema["@type"], "BreadcrumbList");
+    assert.equal(schema.itemListElement.length, 2);
+    const [home, current] = schema.itemListElement;
+    // Contiguous 1-based positions.
+    assert.equal(home.position, 1);
+    assert.equal(current.position, 2);
+    // The root is this locale's Home URL.
+    assert.equal(home.item, guideBreadcrumbHomeUrl(lang));
+    assert.equal(home.name, translate("navigation.home", lang));
+    // The current page is the last crumb and carries no `item` URL, matching
+    // the visible (non-link) current crumb.
+    assert.equal(current.name, translate("guide.title", lang));
+    assert.equal(current.item, undefined);
+    // Labels are localized, not English fallback.
+    if (lang !== "en") assert.notEqual(current.name, translate("guide.title", "en"));
+  }
+
+  // Both route files must actually emit it.
+  for (const routeFile of [
+    "../src/routes/missions-guide.tsx",
+    "../src/routes/$locale/missions-guide.tsx",
+  ]) {
+    const source = await file(routeFile);
+    assert.ok(
+      source.includes("buildGuideBreadcrumbJsonLd"),
+      `${routeFile} must emit the BreadcrumbList`,
+    );
+    assert.ok(source.includes("guideBreadcrumbHomeUrl"));
+  }
+});
+
+test("guide SEO metadata targets the topic without keyword stuffing", async () => {
+  const { RESOURCES } = await import("../src/i18n/resources/index.ts");
+  for (const [lang, dict] of Object.entries(RESOURCES)) {
+    const seo = dict.seo;
+    const title = seo.guideTitle;
+    const description = seo.guideDescription;
+    // Descriptive and within Google's display budget.
+    assert.ok(title.length > 0 && title.length <= 70, `${lang} title length ${title.length}`);
+    assert.ok(
+      description.length > 0 && description.length <= 175,
+      `${lang} description length ${description.length}`,
+    );
+    // Branded and topic-clear in every language.
+    assert.ok(title.includes("HawkBucks"), `${lang} title must be branded`);
+    assert.ok(title.includes("V-Bucks"), `${lang} title must name the topic`);
+    assert.ok(
+      title.includes("Save the World"),
+      `${lang} title must name the game without being localized`,
+    );
+    // No variant stuffing (the brief's spelling families stay out of the copy).
+    for (const bad of ["Vbucks", "VBucks", "V-Buck ", "v bucks", "V bucks"]) {
+      assert.ok(!title.includes(bad), `${lang} title contains variant "${bad}"`);
+    }
+    // og:title mirrors the search title so the promise is consistent.
+    assert.equal(seo.guideOgTitle, title);
+  }
+});
+
+test("the guide never states a reward amount as a permanent rule", async () => {
+  const { RESOURCES } = await import("../src/i18n/resources/index.ts");
+  const { STANDARD_VBUCKS_REWARD } = await import("../src/lib/stw-facts.ts");
+  const { translate } = await import("../src/i18n/core.ts");
+  const reward = String(STANDARD_VBUCKS_REWARD);
+
+  for (const [code, dict] of Object.entries(RESOURCES)) {
+    const g = dict.guide;
+    // Every surface that shows the number frames it as a current observation.
+    assert.match(
+      g.rewardEyebrow,
+      /example|Ejemplo|Exemple|Beispiel|Exemplo|Пример|示例|مثال|نمونه/i,
+      `${code} rewardEyebrow must label the figure as an example`,
+    );
+    // The stored string carries the placeholder; the rendered string carries the
+    // number. Both must resolve, so no locale can silently drop the figure.
+    assert.ok(g.rewardBody.includes("{reward}"), `${code} rewardBody must interpolate {reward}`);
+    const renderedBody = translate("guide.rewardBody", code, { reward: STANDARD_VBUCKS_REWARD });
+    assert.ok(
+      renderedBody.includes(reward),
+      `${code} rendered rewardBody must state the observed value ${reward}`,
+    );
+    assert.ok(!renderedBody.includes("{reward}"), `${code} left {reward} uninterpolated`);
+    // The body must disclaim permanence rather than assert a rule.
+    assert.match(
+      `${renderedBody} ${g.faqA7}`,
+      /not a (fixed|permanent) rule|regla fija|r[eè]gle fixe|feste Regel|regra fixa|n[aã]o [eé] uma regra fixa|правил|永久规则|قاعده‌ای دائمی|قاعدة دائمة|قاعده دائمة/i,
+      `${code} must qualify the observed reward as non-permanent`,
+    );
+    // A dedicated caveat tells the reader to verify before committing.
+    assert.ok(g.rewardCaveat.length > 0, `${code} rewardCaveat must exist`);
+    // No invented precision: never promise a fixed payout for every alert.
+    for (const invented of ["every mission", "always rewards", "guaranteed"]) {
+      assert.ok(
+        !new RegExp(invented, "i").test(`${renderedBody} ${g.faqA7}`),
+        `${code} states the unsupported claim "${invented}"`,
+      );
+    }
+  }
+});
+
+test("guide answers the primary search intents with visible, server-rendered copy", async () => {
+  const { RESOURCES } = await import("../src/i18n/resources/index.ts");
+  const g = RESOURCES.en.guide;
+  const page = await file("../src/components/pages/Guide.tsx");
+  // The three primary intents each have a real, visible section.
+  assert.match(page, /t\("guide\.whatTitle"\)/, "definition intent");
+  assert.match(page, /<GuideEligibility \/>/, "eligibility intent");
+  assert.match(page, /FIND_STEPS/, "how-to-find intent");
+  // Mini-Boss clarification and the live-data bridge.
+  assert.match(page, /t\("guide\.miniBossTitle"\)/);
+  assert.match(page, /t\("guide\.bridgeCta"\)/);
+  // Secondary intents are answered in the FAQ source of truth.
+  for (const key of [
+    "faqQ2", // is Save the World free to play now
+    "faqQ3", // what are V-Bucks missions
+    "faqQ4", // what are Mini-Boss Mission Alerts
+    "faqQ6", // how often do they change
+    "faqQ7", // how many V-Bucks
+    "faqQ10", // other ways to earn V-Bucks
+  ]) {
+    assert.ok(g[key].length > 0, `${key} must be a real question`);
+  }
+  // The definition must state the Mission Alert mechanism explicitly.
+  assert.match(g.whatBody, /Mission Alert/i);
+  assert.match(g.whatBody, /Fortnite: Save the World/);
 });

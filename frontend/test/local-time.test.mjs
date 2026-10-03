@@ -203,3 +203,124 @@ test("time module touches no browser-only APIs at module scope", async () => {
   );
   assert.match(source, /typeof Intl === "undefined"/);
 });
+
+// --- Daily rotation boundary --------------------------------------------------
+
+test("daily rotation is a fixed 00:00 UTC boundary, not a countdown", async () => {
+  const REF = "2026-09-24T13:45:00Z"; // any mid-day instant on the rotation day
+  // The UTC side is the same wall-clock time regardless of the reference
+  // instant or the reader's timezone - that is the point of a fixed boundary.
+  for (const timeZone of ["UTC", "America/New_York", "Europe/Berlin", "Asia/Tokyo"]) {
+    assert.equal(time.formatDailyRotationBoundary(REF, { timeZone }).utcTime, "00:00");
+  }
+  // It is NOT a countdown to the 30-minute data-refresh slot: a countdown
+  // would differ per reference instant within the same day, but every instant
+  // on a UTC day maps to one fixed boundary time.
+  const a = time.formatDailyRotationBoundary("2026-09-24T00:00:00Z", { timeZone: "UTC" });
+  const b = time.formatDailyRotationBoundary("2026-09-24T23:59:00Z", { timeZone: "UTC" });
+  assert.equal(a.utcTime, b.utcTime);
+  assert.equal(a.localTime, b.localTime);
+});
+
+test("local equivalent is derived from the reader's timezone, never hardcoded", async () => {
+  const REF = "2026-09-24T12:00:00Z"; // 24 Sep 2026 is a northern-hemisphere DST date
+  const at = (tz) => time.formatDailyRotationBoundary(REF, { timeZone: tz });
+  // 00:00 UTC expressed on each local clock.
+  assert.equal(at("UTC").localTime, "00:00");
+  assert.equal(at("America/New_York").localTime, "20:00"); // UTC-4 (EDT)
+  assert.equal(at("Europe/Berlin").localTime, "02:00"); // UTC+2 (CEST)
+  assert.equal(at("Asia/Tokyo").localTime, "09:00"); // UTC+9, no DST
+  // Half-hour and 45-minute offsets must not truncate or round.
+  assert.equal(at("Asia/Kolkata").localTime, "05:30"); // UTC+5:30
+  assert.equal(at("Asia/Kathmandu").localTime, "05:45"); // UTC+5:45
+  // Every zone reports a real, distinct local time - nothing is pinned to UTC.
+  const distinct = new Set(
+    ["UTC", "America/New_York", "Europe/Berlin", "Asia/Tokyo", "Asia/Kolkata"].map(
+      (tz) => at(tz).localTime,
+    ),
+  );
+  assert.ok(distinct.size >= 4, `local times collapsed: ${[...distinct].join(", ")}`);
+});
+
+test("the local calendar day is handled when it differs from the UTC day", async () => {
+  const REF = "2026-09-24T12:00:00Z";
+  const at = (tz) => time.formatDailyRotationBoundary(REF, { timeZone: tz });
+  // Behind UTC: 00:00 UTC on the 24th is still the 23rd locally.
+  const behind = at("America/New_York");
+  assert.equal(behind.localDateDiffers, true);
+  assert.ok(behind.localDate.includes("23"), behind.localDate);
+  // Ahead of UTC: still the 24th, because 09:00 local has not rolled over.
+  assert.equal(at("Asia/Tokyo").localDateDiffers, false);
+  // The UTC side is the authority and never shifts.
+  assert.equal(behind.utcTime, "00:00");
+  assert.equal(behind.utcDate, "24 Sep 2026");
+  // A timezone far enough AHEAD of UTC still lands on the same local day
+  // (00:00 UTC is at most 14:00 local at UTC+14), so the flag stays false.
+  assert.equal(at("Pacific/Auckland").localDateDiffers, false);
+  // The furthest-west zone available (UTC-12) lands on the previous day.
+  assert.equal(at("Etc/GMT+12").localDateDiffers, true);
+});
+
+test("rotation boundary is safe for missing or invalid references", async () => {
+  for (const bad of [undefined, null, "", "not-a-date"]) {
+    const b = time.formatDailyRotationBoundary(bad, { timeZone: "UTC" });
+    assert.equal(b.utcTime, "00:00");
+    assert.match(b.localTime, /^([01]\d|2[0-3]):[0-5]\d$/);
+  }
+  // An invalid explicit zone degrades to a valid one instead of throwing.
+  assert.doesNotThrow(() =>
+    time.formatDailyRotationBoundary("2026-09-24T12:00:00Z", { timeZone: "Not/AZone" }),
+  );
+});
+
+// --- UTC countdown to the next daily rotation ---------------------------------
+
+test("UTC countdown is HH:MM:SS and always targets the next 00:00 UTC", async () => {
+  const fmt = time.formatUtcMidnightCountdown;
+  // Fixed width and field count, so the string never reflows while ticking.
+  for (const ref of [
+    "2026-09-24T16:00:00Z", // 8h left
+    "2026-09-24T23:59:59Z", // 1s left
+    "2026-09-24T00:00:00Z", // rollover
+  ]) {
+    assert.match(fmt(ref), /^\d{2}:\d{2}:\d{2}$/, `bad format for ${ref}`);
+  }
+  // Counts down to midnight UTC from the stated example.
+  assert.equal(fmt("2026-09-24T16:00:00Z"), "08:00:00");
+  assert.equal(fmt("2026-09-24T23:59:59Z"), "00:00:01");
+  assert.equal(fmt("2026-09-24T12:34:56Z"), "11:25:04");
+  // The target is always 00:00 UTC on a later day, never a local boundary.
+  assert.equal(time.nextUtcMidnight("2026-09-24T16:00:00Z").toISOString(), "2026-09-25T00:00:00.000Z");
+});
+
+test("UTC countdown rolls over correctly at 00:00:00 UTC", async () => {
+  const fmt = time.formatUtcMidnightCountdown;
+  // Exactly at midnight it must roll forward to the FOLLOWING day's boundary,
+  // showing a full day rather than clamping to 00:00:00 (which would stall).
+  assert.equal(fmt("2026-09-24T00:00:00.000Z"), "24:00:00");
+  assert.equal(fmt("2026-09-24T00:00:01.000Z"), "23:59:59");
+  // The final second: 999ms remain, and flooring whole seconds shows 00:00:00
+  // just before the boundary - never a negative or stalled value.
+  assert.equal(fmt("2026-09-24T23:59:59.000Z"), "00:00:01");
+  assert.equal(fmt("2026-09-24T23:59:59.999Z"), "00:00:00");
+  assert.equal(fmt("2026-09-25T00:00:00.000Z"), "24:00:00");
+  // Monotonically decreasing within a day, and never negative.
+  const seq = ["2026-09-24T10:00:00Z", "2026-09-24T10:00:01Z", "2026-09-24T10:00:02Z"].map(fmt);
+  assert.equal(seq[0] > seq[1], true);
+  assert.equal(seq[1] > seq[2], true);
+  for (const v of seq) assert.ok(!v.startsWith("-"), v);
+});
+
+test("UTC countdown ignores the reader's timezone", async () => {
+  // The value is a countdown to a UTC boundary, so it must be identical no
+  // matter which timezone the client is in. It takes no timezone option at all.
+  const ref = "2026-09-24T16:00:00Z";
+  const base = time.formatUtcMidnightCountdown(ref);
+  assert.equal(base, "08:00:00");
+  // Same instant expressed with an offset still yields the same UTC countdown.
+  assert.equal(time.formatUtcMidnightCountdown("2026-09-24T12:00:00-04:00"), base);
+  assert.equal(time.formatUtcMidnightCountdown("2026-09-25T01:00:00+09:00"), base);
+  // SSR renders the stable fallback rather than guessing a value.
+  assert.equal(time.formatUtcMidnightCountdown(undefined), time.FALLBACK_UTC_COUNTDOWN);
+  assert.equal(time.formatUtcMidnightCountdown("not-a-date"), time.FALLBACK_UTC_COUNTDOWN);
+});

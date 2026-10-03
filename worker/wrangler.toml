@@ -24,8 +24,8 @@ migrations_dir = "migrations"
 # The bucket `hawkbucks-media` already exists with public delivery at
 # https://media.hawkbucks.com. This binding lets the Worker read/write
 # objects server-side; browsers NEVER get direct write access — all uploads
-# go through Worker code paths. Do NOT deploy until the dashboard actions in
-# docs/r2-media-migration.md are complete.
+# go through Worker code paths. Do NOT deploy until the dashboard actions for
+# the R2 media migration are complete.
 [[r2_buckets]]
 binding = "MEDIA_BUCKET"
 bucket_name = "hawkbucks-media"

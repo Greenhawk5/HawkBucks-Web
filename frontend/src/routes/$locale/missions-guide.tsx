@@ -4,7 +4,12 @@ import { I18nProvider } from "@/i18n/context";
 import { resolveLocale } from "@/i18n/config";
 import { translate } from "@/i18n/core";
 import { jsonLdScript } from "@/lib/seo";
-import { buildGuideFaqJsonLd, buildGuideWebPageJsonLd } from "@/lib/guide-faq";
+import {
+  buildGuideBreadcrumbJsonLd,
+  buildGuideFaqJsonLd,
+  buildGuideWebPageJsonLd,
+  guideBreadcrumbHomeUrl,
+} from "@/lib/guide-faq";
 import { STANDARD_VBUCKS_REWARD } from "@/lib/stw-facts";
 import {
   canonicalUrlFor,
@@ -80,6 +85,9 @@ export const Route = createFileRoute("/$locale/missions-guide")({
             inLanguage: lang,
           }),
         ),
+        // Localized variant: the trail root is this locale's Home, and every
+        // crumb label resolves from the same dictionary the page renders.
+        jsonLdScript(buildGuideBreadcrumbJsonLd(lang, translate, guideBreadcrumbHomeUrl(lang))),
         jsonLdScript(buildGuideFaqJsonLd(lang, translate, faqParams)),
       ],
     };

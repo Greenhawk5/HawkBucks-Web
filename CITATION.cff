@@ -6,7 +6,7 @@ authors:
   - family-names: "GreenHawk"
     given-names: "GreenHawk"
 repository-code: "https://github.com/Greenhawk5/HawkBucks-Web"
-url: "https://hawkbucks.pages.dev"
+url: "https://hawkbucks.com"
 abstract: "A community web application for tracking Fortnite Save The World missions that reward V-Bucks."
 keywords:
   - Fortnite
@@ -17,5 +17,5 @@ keywords:
   - React
   - TypeScript
 license: "GreenHawk Non-Commercial License v1.0"
-version: 1.2.0
-date-released: 2026-09-18
+version: 2.0.0-rc.1
+date-released: 2026-10-03

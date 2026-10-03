@@ -191,6 +191,11 @@ export const ru: TranslationDictionary = {
       "Простое руководство о том, как работают миссии за V-Bucks в Fortnite: Save the World: кто может получать V-Bucks, как узнать миссию за V-Bucks на карте мира, сколько она приносит и где смотреть сегодняшние миссии. HawkBucks сообщает информацию о миссиях; он никогда не выдаёт V-Bucks.",
     openTracker: "Миссии за V-Bucks на сегодня",
     trackerCtaSecondary: "Как работают V-Bucks в Save the World",
+    breadcrumbLabel: "Хлебные крошки",
+    heroTrust:
+      "HawkBucks объясняет здесь саму систему. Живой трекер — это место, где должны быть данные о миссиях на сегодня.",
+    whatCaveat:
+      "Значок миссии, тип миссии или зона сами по себе не доказывают, что миссия награждает V-Bucks. Источник истины — активные награды оповещения этой миссии.",
     eligibilityTitle: "Могу ли я получать V-Bucks в Save the World?",
     eligibilityDesc:
       "Save the World бесплатен для всех с 16 апреля 2026 года, но заработок V-Bucks внутри игры остался привилегией Founder. Выберите вариант, соответствующий вашему аккаунту:",
@@ -223,11 +228,17 @@ export const ru: TranslationDictionary = {
       "Оповещения о миссиях Mini-Boss — особый тип оповещений о миссиях на карте мира. V-Bucks могут быть их наградой оповещения, поэтому о них так часто говорят в трекинге миссий за V-Bucks, — но сам тип оповещения V-Bucks не гарантирует.",
     miniBossCaveat:
       "Миссия Mini-Boss — не обязательно миссия за V-Bucks. Откройте миссию и проверьте её активные награды оповещения.",
-    rewardEyebrow: "Текущая стандартная награда",
+    miniBossTypeLabel: "Тип оповещения",
+    miniBossRewardLabel: "Награда V-Bucks",
+    rewardObservedLabel: "Наблюдается сегодня",
+    rewardNotRuleLabel: "Не постоянное правило",
+    rewardEyebrow: "Пример текущей награды",
     rewardTitle: "Сколько V-Bucks даёт миссия?",
     rewardAmountLabel: "V-Bucks",
     rewardBody:
-      "Текущие стандартные оповещения о миссиях за V-Bucks приносят {reward} V-Bucks. Трекер считывает живую награду каждой миссии, поэтому показанное число — всегда реальное значение на сегодня.",
+      "Оповещения о миссиях за V-Bucks сейчас приносят {reward} V-Bucks. Это наблюдаемое сегодня значение, а не постоянное правило: Epic может его изменить, и не каждое оповещение платит одинаково. HawkBucks считывает живую награду каждой миссии, поэтому трекер всегда показывает реальное текущее число.",
+    rewardCaveat:
+      "Перед началом проверьте активные награды оповещения миссии. Миссия, которую вы не сможете выполнить, ничего не заплатит.",
     rotationTitle: "Ротация на сегодня",
     rotationDesc:
       "Оповещения о миссиях обновляются ежедневно, поэтому доступный набор меняется после каждого сброса.",
@@ -238,7 +249,10 @@ export const ru: TranslationDictionary = {
     rotationPending: "Проверяем текущую ротацию…",
     rotationUnavailable:
       "Данные о миссиях временно недоступны. В трекере — последнее известное состояние.",
-    rotationNext: "Следующая ротация",
+    rotationDaily: "Ежедневная ротация",
+    rotationUtc: "UTC",
+    rotationLocal: "Ваше местное время",
+    rotationLocalDate: "Местная дата",
     rotationCta: "Миссии за V-Bucks на сегодня",
     otherTitle: "Миссии за V-Bucks — один путь, а не единственный",
     otherIntro:
@@ -294,7 +308,7 @@ export const ru: TranslationDictionary = {
       "Оповещения о миссиях обновляются ежедневно. Доступный набор меняется после каждого сброса, поэтому смотрите текущую ротацию, а не старый скриншот.",
     faqQ7: "Сколько V-Bucks даёт миссия за V-Bucks?",
     faqA7:
-      "Текущие стандартные оповещения о миссиях за V-Bucks приносят {reward} V-Bucks. Трекер HawkBucks показывает живую награду каждой миссии.",
+      "Оповещения о миссиях за V-Bucks сейчас приносят {reward} V-Bucks. Считайте это наблюдаемым сегодня значением, а не постоянным правилом: награда приходит из активного оповещения миссии и может измениться.",
     faqQ8: "Можно ли пройти несколько миссий за V-Bucks за день?",
     faqA8:
       "Да: когда на карте есть несколько подходящих узлов миссий, можно пройти каждый. Один и тот же узел не выплачивает ту же награду оповещения повторно.",
@@ -309,6 +323,8 @@ export const ru: TranslationDictionary = {
     relatedTrackerDesc: "Сегодняшние оповещения о миссиях за V-Bucks и их детали.",
     relatedAboutTitle: "О HawkBucks",
     relatedAboutDesc: "Как работают трекер и инструмент сообщества.",
+    relatedGuidesTitle: "Гайды по Save the World",
+    relatedGuidesDesc: "Сборки, сравнения и практические советы помимо основ миссий.",
   },
 
   footer: {
@@ -381,12 +397,12 @@ export const ru: TranslationDictionary = {
       "Сегодняшние миссии за V-Bucks в Fortnite: Save the World с HawkBucks: доступные оповещения, детали и время последнего обновления.",
     missionsOgTitle: "Миссии за V-Bucks в Fortnite сегодня | HawkBucks",
     missionsOgDescription: "Сегодняшние миссии за V-Bucks в Save the World с трекером HawkBucks.",
-    guideTitle: "О миссиях с V-Bucks в Save the World | HawkBucks",
+    guideTitle: "Миссии за V-Bucks в Save the World | HawkBucks",
     guideDescription:
-      "Узнайте, как работают миссии за V-Bucks в Save the World, кто может их получать, как найти оповещения о миссиях и где смотреть сегодняшние.",
-    guideOgTitle: "О миссиях с V-Bucks в Save the World | HawkBucks",
+      "Узнайте, как работают миссии за V-Bucks в Fortnite: Save the World, как найти и проверить награду за миссию и где посмотреть миссии за V-Bucks на сегодня.",
+    guideOgTitle: "Миссии за V-Bucks в Save the World | HawkBucks",
     guideOgDescription:
-      "Как работают миссии за V-Bucks, кто может их получать и где смотреть сегодняшние.",
+      "Как работают миссии за V-Bucks в Save the World, как проверить реальную награду за миссию и где посмотреть сегодняшние миссии.",
     aboutTitle: "About HawkBucks — инструмент сообщества для Save the World",
     aboutDescription:
       "Узнайте, что такое HawkBucks, как работают его трекер миссий и платформа знаний о Save the World и как связаны герои, схемы, снаряжение и гайды.",

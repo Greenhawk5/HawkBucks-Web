@@ -1,7 +1,12 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { GuidePage } from "@/components/pages/Guide";
 import { jsonLdScript } from "@/lib/seo";
-import { buildGuideFaqJsonLd, buildGuideWebPageJsonLd } from "@/lib/guide-faq";
+import {
+  buildGuideBreadcrumbJsonLd,
+  buildGuideFaqJsonLd,
+  buildGuideWebPageJsonLd,
+  guideBreadcrumbHomeUrl,
+} from "@/lib/guide-faq";
 import { STANDARD_VBUCKS_REWARD } from "@/lib/stw-facts";
 import { translate } from "@/i18n/core";
 import { resolveLocale } from "@/i18n/config";
@@ -63,6 +68,8 @@ export const Route = createFileRoute("/missions-guide")({
             inLanguage: lang,
           }),
         ),
+        // Mirrors the visible GuideBreadcrumb trail exactly (Home -> Basics).
+        jsonLdScript(buildGuideBreadcrumbJsonLd(lang, translate, guideBreadcrumbHomeUrl(lang))),
         jsonLdScript(buildGuideFaqJsonLd(lang, translate, faqParams)),
       ],
     };

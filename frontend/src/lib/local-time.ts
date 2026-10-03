@@ -223,6 +223,111 @@ export function formatUtcMidnightWithLocalEquivalent(
   };
 }
 
+export interface DailyRotationBoundary {
+  /**
+   * The authoritative rotation time on the UTC clock. Always "00:00" — it is a
+   * fixed daily boundary, never a computed or remaining time.
+   */
+  utcTime: string;
+  /** The same boundary on the user's clock, e.g. "08:00". */
+  localTime: string;
+  /** Local calendar date of the boundary, e.g. "24 Sep 2026". */
+  localDate: string;
+  /** UTC calendar date of the boundary, e.g. "24 Sep 2026". */
+  utcDate: string;
+  /**
+   * True when the boundary falls on a different local calendar day than its UTC
+   * day — which happens for every timezone whose offset is not a whole number
+   * of hours, and either side of the UTC date line.
+   */
+  localDateDiffers: boolean;
+  /** Effective IANA timezone used for the local side. */
+  timeZone: string;
+}
+
+/**
+ * The daily Mission Alert rotation boundary: 00:00 UTC, plus that same instant
+ * expressed on the reader's own clock.
+ *
+ * This is deliberately NOT a countdown. The rotation happens at a fixed
+ * wall-clock time every day, so the UTC side never changes and must never be
+ * derived from the 30-minute data-refresh interval — a reader asking "when does
+ * it rotate?" wants the time of day, not time remaining.
+ *
+ * The date boundary is handled explicitly: a reader whose timezone is ahead of
+ * UTC sees the boundary on a later local calendar day (and behind UTC, on an
+ * earlier one), so `localDateDiffers` lets the UI say so rather than letting
+ * the two dates silently contradict each other.
+ *
+ * `reference` selects which rotation day is described. Callers should pass a
+ * stable server-provided timestamp (or omit it for "now"); the offset is always
+ * resolved from the browser timezone, never hardcoded.
+ */
+export function formatDailyRotationBoundary(
+  reference?: Date | string | number | null,
+  options?: FormatTimeOptions,
+): DailyRotationBoundary {
+  const timeZone = resolveTimeZone(options?.timeZone);
+  const instant = toInstant(reference) ?? new Date();
+  // The UTC calendar day of the reference decides which rotation is described.
+  // Derive it from the instant itself so the local side can never shift which
+  // day is being talked about.
+  const boundary = utcMidnightInstant(instant.toISOString().slice(0, 10)) ?? instant;
+  const localTime = formatLocalTime(boundary, { ...options, timeZone });
+  const localDate = formatLocalDate(boundary, { ...options, timeZone });
+  const utcDate = formatLocalDate(boundary, { ...options, timeZone: "UTC" });
+  return {
+    utcTime: "00:00",
+    localTime,
+    localDate,
+    utcDate,
+    localDateDiffers: localDate !== utcDate,
+    timeZone,
+  };
+}
+
+/**
+ * The next 00:00 UTC boundary strictly after `from`.
+ *
+ * Pure UTC calendar arithmetic on the instant itself: the local calendar is
+ * never consulted, so a reader's timezone can never shift which rotation is
+ * being counted down to. At exactly 00:00:00.000 this rolls forward a full day
+ * (24:00:00 remaining), which is the correct rollover into the next rotation.
+ */
+export function nextUtcMidnight(from: Date | string | number | null | undefined): Date | undefined {
+  const instant = toInstant(from);
+  if (!instant) return undefined;
+  const next = new Date(instant.getTime());
+  // setUTCHours(24) normalises to 00:00 UTC on the following day.
+  next.setUTCHours(24, 0, 0, 0);
+  return next;
+}
+
+/** Placeholder before the first client tick, mirroring the countdown fallback. */
+export const FALLBACK_UTC_COUNTDOWN = "--:--:--";
+
+/**
+ * Time remaining until the next 00:00 UTC boundary as "HH:MM:SS".
+ *
+ * Always UTC — the value is a countdown to a UTC boundary, so it must never be
+ * derived from the reader's timezone. Hours are zero-padded to two digits and
+ * the field count is fixed at three, so the string width never changes while it
+ * ticks. Returns the fallback for missing input (SSR renders the stable
+ * placeholder, so hydration cannot mismatch).
+ */
+export function formatUtcMidnightCountdown(now: Date | string | number | null | undefined): string {
+  const instant = toInstant(now);
+  if (!instant) return FALLBACK_UTC_COUNTDOWN;
+  const target = nextUtcMidnight(instant);
+  if (!target) return FALLBACK_UTC_COUNTDOWN;
+  const whole = Math.max(0, Math.floor((target.getTime() - instant.getTime()) / 1000));
+  const hours = Math.floor(whole / 3600);
+  const minutes = Math.floor((whole % 3600) / 60);
+  const seconds = whole % 60;
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${pad(hours)}:${pad(minutes)}:${pad(seconds)}`;
+}
+
 /**
  * Absolute duration between two instants as "MM:SS" (durations ≥ 1h render
  * "H:MM:SS"). Pure epoch-millisecond arithmetic — local calendar fields are

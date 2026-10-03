@@ -6,7 +6,7 @@
  * server functions that call into this module; no privileged DB handle ever
  * crosses into a client bundle.
  *
- * Data-plane decision (see docs/cms-foundation.md): frontend server functions
+ * Data-plane decision: frontend server functions
  * resolve the SAME D1 database the backend Worker owns (shared database_id)
  * via the request-scoped Cloudflare env — the identical mechanism as
  * services/missions.server.ts (getRequest().runtime.cloudflare.env). The
@@ -184,56 +184,90 @@ export interface MediaAssetRow extends D1Row {
 
 const MEDIA_LIST_STATUSES: readonly string[] = ["ready", "processing", "failed", "deleted"];
 
+/**
+ * Phase 23 — deterministic-key uploads UPSERT instead of failing.
+ *
+ * R2 object keys are deterministic (`buildR2Key`: folder + sanitized stem +
+ * MIME-derived extension), so re-uploading the same filename into the same
+ * folder derives the SAME key. Migration 0006 declares
+ * `UNIQUE (provider, provider_asset_id)`, so a plain INSERT would raise a
+ * constraint error AFTER `bucket.put` had already overwritten the bytes —
+ * leaving R2 holding new bytes while D1 kept the old metadata (alt text,
+ * caption, size), and surfacing an error to the editor for an operation that
+ * actually succeeded.
+ *
+ * The upsert keeps the EXISTING row id (so `hero_records.portrait_asset_id`,
+ * `article_media.asset_id`, and every other FK keep resolving) and refreshes
+ * the descriptive columns. `created_at` is deliberately preserved. `status` is
+ * reset to `excluded.status` ('ready') so re-uploading a previously tombstoned
+ * asset revives it rather than leaving a 'deleted' row pointing at live bytes.
+ *
+ * The same path also covers the tombstone-then-reupload case: `deleteMediaAsset`
+ * only tombstones, it never deletes the row, so the unique index is still taken.
+ */
 export async function createMediaAsset(
   db: D1Database,
   input: CreateMediaAssetInput,
 ): Promise<MediaAssetRow> {
   const timestamp = utcNow();
-  const row: MediaAssetRow = {
-    id: newId("media"),
-    provider: input.provider,
-    provider_asset_id: input.providerAssetId,
-    delivery_url: input.deliveryUrl,
-    original_filename: input.originalFilename,
-    mime_type: input.mimeType,
-    byte_size: input.byteSize ?? null,
-    width: input.width ?? null,
-    height: input.height ?? null,
-    alt_text: input.altText ?? "",
-    title: input.title ?? null,
-    caption: input.caption ?? null,
-    status: "ready",
-    created_by: input.createdBy ?? null,
-    created_at: timestamp,
-    updated_at: timestamp,
-  };
+  const id = newId("media");
   await db
     .prepare(
       `INSERT INTO media_assets
         (id, provider, provider_asset_id, delivery_url, original_filename, mime_type,
          byte_size, width, height, alt_text, title, caption, status, created_by, created_at, updated_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+       ON CONFLICT(provider, provider_asset_id) DO UPDATE SET
+         delivery_url = excluded.delivery_url,
+         original_filename = excluded.original_filename,
+         mime_type = excluded.mime_type,
+         byte_size = excluded.byte_size,
+         width = excluded.width,
+         height = excluded.height,
+         alt_text = excluded.alt_text,
+         title = excluded.title,
+         caption = excluded.caption,
+         status = excluded.status,
+         created_by = excluded.created_by,
+         updated_at = excluded.updated_at`,
     )
     .bind(
-      row.id,
-      row.provider,
-      row.provider_asset_id,
-      row.delivery_url,
-      row.original_filename,
-      row.mime_type,
-      row.byte_size,
-      row.width,
-      row.height,
-      row.alt_text,
-      row.title,
-      row.caption,
-      row.status,
-      row.created_by,
-      row.created_at,
-      row.updated_at,
+      id,
+      input.provider,
+      input.providerAssetId,
+      input.deliveryUrl,
+      input.originalFilename,
+      input.mimeType,
+      input.byteSize ?? null,
+      input.width ?? null,
+      input.height ?? null,
+      input.altText ?? "",
+      input.title ?? null,
+      input.caption ?? null,
+      "ready",
+      input.createdBy ?? null,
+      timestamp,
+      timestamp,
     )
     .run();
-  return row;
+  // Read back so the caller receives the PERSISTED row: on the upsert path the
+  // stored id is the pre-existing one, not the `id` generated above.
+  const stored = await getMediaAssetByProviderAsset(db, input.provider, input.providerAssetId);
+  if (!stored) {
+    throw new Error("Media asset row could not be persisted.");
+  }
+  return stored;
+}
+
+export async function getMediaAssetByProviderAsset(
+  db: D1Database,
+  provider: string,
+  providerAssetId: string,
+): Promise<MediaAssetRow | null> {
+  return db
+    .prepare("SELECT * FROM media_assets WHERE provider = ? AND provider_asset_id = ?")
+    .bind(provider, providerAssetId)
+    .first<MediaAssetRow>();
 }
 
 export async function getMediaAssetById(db: D1Database, id: string): Promise<MediaAssetRow | null> {

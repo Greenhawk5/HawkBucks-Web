@@ -191,6 +191,11 @@ export const faIR: TranslationDictionary = {
       "راهنمایی به زبان ساده درباره نحوه کار مأموریت‌های V-Bucks در Fortnite: Save the World: چه کسی می‌تواند V-Bucks کسب کند، چگونه یک مأموریت V-Bucks را روی نقشه جهان تشخیص دهید، پاداش آن چقدر است و مأموریت‌های امروز را کجا ببینید. HawkBucks اطلاعات مأموریت را گزارش می‌کند؛ هرگز V-Bucks اعطا نمی‌کند.",
     openTracker: "مشاهده مأموریت‌های V-Bucks امروز",
     trackerCtaSecondary: "V-Bucks در Save the World چگونه کار می‌کند",
+    breadcrumbLabel: "مسیر صفحه‌بندی",
+    heroTrust:
+      "HawkBucks این‌جا سازوکار را توضیح می‌دهد. داده زنده مأموریت‌های امروز جای درستشان در ردیاب زنده است.",
+    whatCaveat:
+      "نماد مأموریت، نوع مأموریت یا منطقه به‌تنهایی ثابت نمی‌کند که مأموریتی V-Bucks می‌دهد. مرجع حقیقت، پاداش‌های فعال هشدار همان مأموریت است.",
     eligibilityTitle: "آیا می‌توانم از Save the World درآمد V-Bucks داشته باشم؟",
     eligibilityDesc:
       "بازی Save the World از ۱۶ آوریل ۲۰۲۶ برای همه رایگان است، اما کسب V-Bucks در آن همچنان مزیت Founder باقی مانده است. گزینه‌ای را انتخاب کنید که با حساب شما مطابقت دارد:",
@@ -224,11 +229,17 @@ export const faIR: TranslationDictionary = {
       "هشدارهای مأموریت Mini-Boss نوع ویژه‌ای از هشدارهای مأموریت نقشه جهان‌اند. V-Bucks می‌تواند پاداش هشدار آن‌ها باشد و به همین دلیل در ردیابی مأموریت‌های V-Bucks زیاد از آن‌ها نام برده می‌شود — اما نوع هشدار به‌تنهایی V-Bucks را تضمین نمی‌کند.",
     miniBossCaveat:
       "مأموریت Mini-Boss لزوماً مأموریت V-Bucks نیست. مأموریت را باز کنید و پاداش‌های فعال هشدار را بررسی کنید.",
-    rewardEyebrow: "پاداش استاندارد فعلی",
+    miniBossTypeLabel: "نوع هشدار",
+    miniBossRewardLabel: "پاداش V-Bucks",
+    rewardObservedLabel: "مقدار مشاهده‌شده امروز",
+    rewardNotRuleLabel: "قاعده ثابت نیست",
+    rewardEyebrow: "نمونه‌ای از پاداش کنونی",
     rewardTitle: "هر مأموریت چقدر V-Bucks می‌دهد؟",
     rewardAmountLabel: "V-Bucks",
     rewardBody:
-      "هشدارهای استاندارد فعلی مأموریت V-Bucks پاداش {reward} V-Bucks می‌دهند. ردیاب پاداش زنده هر مأموریت را می‌خواند، پس عددی که می‌بینید همیشه مقدار واقعی امروز است.",
+      "هشدارهای مأموریت V-Bucks در حال حاضر {reward} V-Bucks می‌دهند. این مقدارِ مشاهده‌شدهٔ امروز است، نه یک قاعدهٔ ثابت: Epic می‌تواند آن را تغییر دهد و هر هشدار هم مبلغ یکسانی نمی‌دهد. HawkBucks پاداش زندهٔ هر مأموریت را می‌خواند، پس ردیاب همیشه عدد واقعی کنونی را نشان می‌دهد.",
+    rewardCaveat:
+      "پیش از شروع، پاداش‌های فعال هشدار مأموریت را بررسی کنید. مأموریتی که نتوانید تمام کنید، چیزی پرداخت نمی‌کند.",
     rotationTitle: "چرخه امروز",
     rotationDesc:
       "هشدارهای مأموریت روزانه می‌چرخند، پس مجموعه موجود پس از هر بازنشانی تغییر می‌کند.",
@@ -238,7 +249,10 @@ export const faIR: TranslationDictionary = {
     rotationEmpty: "در حال حاضر هیچ مأموریت V-Bucks شناسایی نشده است",
     rotationPending: "در حال بررسی چرخه فعلی…",
     rotationUnavailable: "داده زنده مأموریت موقتاً در دسترس نیست. ردیاب آخرین وضعیت را دارد.",
-    rotationNext: "چرخه بعدی",
+    rotationDaily: "چرخش روزانه",
+    rotationUtc: "UTC",
+    rotationLocal: "زمان محلی شما",
+    rotationLocalDate: "تاریخ محلی",
     rotationCta: "مشاهده مأموریت‌های V-Bucks امروز",
     otherTitle: "مأموریت‌های V-Bucks یک مسیرند، نه تنها مسیر",
     otherIntro:
@@ -294,7 +308,7 @@ export const faIR: TranslationDictionary = {
       "هشدارهای مأموریت روزانه می‌چرخند. مجموعه موجود پس از هر بازنشانی تغییر می‌کند، پس به‌جای تصویر قدیمی، چرخه فعلی را بررسی کنید.",
     faqQ7: "هر مأموریت V-Bucks چقدر V-Bucks می‌دهد؟",
     faqA7:
-      "هشدارهای استاندارد فعلی مأموریت V-Bucks پاداش {reward} V-Bucks می‌دهند. ردیاب HawkBucks پاداش زنده هر مأموریت را نشان می‌دهد.",
+      "هشدارهای مأموریت V-Bucks در حال حاضر {reward} V-Bucks می‌دهند. آن را مقدار مشاهده‌شدهٔ امروز بدانید، نه قاعده‌ای دائمی: پاداش از هشدار فعال همان مأموریت می‌آید و می‌تواند تغییر کند.",
     faqQ8: "آیا می‌توانم در یک روز چند مأموریت V-Bucks تکمیل کنم؟",
     faqA8:
       "بله: وقتی نقشه چند گره واجد شرایط مأموریت دارد، می‌توانید هر کدام را تکمیل کنید. یک گره مأموریت واحد همان پاداش هشدار را به‌صورت تکراری پرداخت نمی‌کند.",
@@ -309,6 +323,8 @@ export const faIR: TranslationDictionary = {
     relatedTrackerDesc: "هشدارهای مأموریت V-Bucks امروز و جزئیاتشان را ببینید.",
     relatedAboutTitle: "درباره HawkBucks",
     relatedAboutDesc: "خط لوله ردیاب و ابزار اجتماعی چگونه کار می‌کند.",
+    relatedGuidesTitle: "راهنماهای Save the World",
+    relatedGuidesDesc: "ساخت‌ها، مقایسه‌ها و نکته‌های کاربردی فراتر از مبانی مأموریت‌ها.",
   },
 
   footer: {
@@ -384,12 +400,12 @@ export const faIR: TranslationDictionary = {
     missionsOgTitle: "مأموریت‌های V-Bucks امروز Fortnite | HawkBucks",
     missionsOgDescription:
       "مأموریت‌های V-Bucks امروز Save the World را با ردیاب HawkBucks بررسی کنید.",
-    guideTitle: "آشنایی با مأموریت‌های V-Bucks در Save the World | HawkBucks",
+    guideTitle: "مأموریت‌های V-Bucks در Save the World | HawkBucks",
     guideDescription:
-      "بیاموزید مأموریت‌های V-Bucks در Save the World چگونه کار می‌کنند، چه کسی می‌تواند آن‌ها را کسب کند، چگونه هشدارهای مأموریت را پیدا کنید و مأموریت‌های امروز را کجا ببینید.",
-    guideOgTitle: "آشنایی با مأموریت‌های V-Bucks در Save the World | HawkBucks",
+      "بیاموزید مأموریت‌های V-Bucks در Fortnite: Save the World چگونه کار می‌کنند، چگونه پاداش مأموریت را بیابید و بررسی کنید، و مأموریت‌های زندهٔ V-Bucks امروز را کجا ببینید.",
+    guideOgTitle: "مأموریت‌های V-Bucks در Save the World | HawkBucks",
     guideOgDescription:
-      "مأموریت‌های V-Bucks چگونه کار می‌کنند، چه کسی آن‌ها را کسب می‌کند و امروز را کجا ببینید.",
+      "مأموریت‌های V-Bucks در Save the World چگونه کار می‌کنند، پاداش واقعی یک مأموریت را چگونه بررسی کنید و مأموریت‌های امروز را کجا ببینید.",
     aboutTitle: "About HawkBucks — ابزار جامعه‌ای برای Save the World",
     aboutDescription:
       "بیاموزید HawkBucks چیست، ردیاب مأموریت‌ها و بستر دانشی Save the World چگونه کار می‌کنند و قهرمانان، طرح‌ها، لوداوت‌ها و راهنماها چگونه به هم مربوط‌اند.",

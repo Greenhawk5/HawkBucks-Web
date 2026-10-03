@@ -199,9 +199,12 @@ export interface TranslationDictionary {
     eligibilityNo: string;
     eligibilityFounderNote: string;
     eligibilityF2pNote: string;
+    breadcrumbLabel: string;
+    heroTrust: string;
     // What are V-Bucks missions
     whatTitle: string;
     whatBody: string;
+    whatCaveat: string;
     // How to find one
     findTitle: string;
     findIntro: string;
@@ -217,11 +220,20 @@ export interface TranslationDictionary {
     miniBossTitle: string;
     miniBossBody: string;
     miniBossCaveat: string;
+    /** Left term of the "alert type ≠ reward" typographic device. */
+    miniBossTypeLabel: string;
+    /** Right term of that device — the thing the alert type does NOT imply. */
+    miniBossRewardLabel: string;
     // Reward
     rewardEyebrow: string;
     rewardTitle: string;
     rewardAmountLabel: string;
+    /** Status chip: the figure is what the app observed today. */
+    rewardObservedLabel: string;
+    /** Status chip: the figure is not a standing Epic rule. */
+    rewardNotRuleLabel: string;
     rewardBody: string;
+    rewardCaveat: string;
     // Rotation
     rotationTitle: string;
     rotationDesc: string;
@@ -231,7 +243,14 @@ export interface TranslationDictionary {
     rotationEmpty: string;
     rotationPending: string;
     rotationUnavailable: string;
-    rotationNext: string;
+    /** The rotation is a fixed daily boundary, not a countdown. */
+    rotationDaily: string;
+    /** Timezone label for the authoritative side of the boundary. */
+    rotationUtc: string;
+    /** The reader's own equivalent of the UTC boundary. */
+    rotationLocal: string;
+    /** Shown only when the local calendar day differs from the UTC day. */
+    rotationLocalDate: string;
     rotationCta: string;
     // Other sources
     otherTitle: string;
@@ -295,6 +314,8 @@ export interface TranslationDictionary {
     relatedTrackerDesc: string;
     relatedAboutTitle: string;
     relatedAboutDesc: string;
+    relatedGuidesTitle: string;
+    relatedGuidesDesc: string;
   };
   footer: {
     description: string;

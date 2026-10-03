@@ -198,6 +198,11 @@ export const fr: TranslationDictionary = {
       "Un guide en langage simple sur le fonctionnement des missions V-Bucks de Fortnite : Save the World : qui peut gagner des V-Bucks, comment repérer une mission V-Bucks sur la carte du monde, ce qu'elle rapporte et où voir les missions du jour. HawkBucks rapporte les informations de mission ; il n'attribue jamais de V-Bucks.",
     openTracker: "Voir les missions V-Bucks du jour",
     trackerCtaSecondary: "Comment fonctionnent les V-Bucks de Save the World",
+    breadcrumbLabel: "Fil d'Ariane",
+    heroTrust:
+      "HawkBucks explique le système ici. Le suivi en direct est l'endroit où appartiennent les données de mission du jour.",
+    whatCaveat:
+      "Une icône de mission, un type de mission ou une zone ne prouve pas à elle seule qu'une mission récompense des V-Bucks. Les récompenses d'alerte actives de cette mission font foi.",
     eligibilityTitle: "Puis-je gagner des V-Bucks avec Save the World ?",
     eligibilityDesc:
       "Save the World est gratuit pour tout le monde depuis le 16 avril 2026, mais gagner des V-Bucks dans le jeu reste un avantage Founder. Choisissez l'option qui correspond à votre compte :",
@@ -231,11 +236,17 @@ export const fr: TranslationDictionary = {
       "Les alertes de mission Mini-Boss sont un type particulier d'alerte de mission sur la carte du monde. Des V-Bucks peuvent y figurer en récompense d'alerte, ce qui explique qu'on en parle si souvent dans le suivi des missions V-Bucks ; mais le type d'alerte seul ne garantit pas de V-Bucks.",
     miniBossCaveat:
       "Une mission Mini-Boss n'est pas automatiquement une mission V-Bucks. Ouvrez la mission et vérifiez ses récompenses d'alerte actives pour confirmer.",
-    rewardEyebrow: "Récompense standard actuelle",
+    miniBossTypeLabel: "Type d'alerte",
+    miniBossRewardLabel: "Récompense V-Bucks",
+    rewardObservedLabel: "Observé aujourd'hui",
+    rewardNotRuleLabel: "Pas une règle fixe",
+    rewardEyebrow: "Exemple de récompense actuelle",
     rewardTitle: "Combien de V-Bucks rapporte une mission ?",
     rewardAmountLabel: "V-Bucks",
     rewardBody:
-      "Les alertes de mission V-Bucks standard actuelles rapportent {reward} V-Bucks. Le suivi lit la récompense en direct de chaque mission : le nombre affiché est donc toujours la vraie valeur du jour.",
+      "Les alertes de mission V-Bucks rapportent actuellement {reward} V-Bucks. C'est la valeur observée aujourd'hui, pas une règle fixe : Epic peut la modifier et toutes les alertes ne paient pas pareil. HawkBucks lit la récompense en direct de chaque mission : le suivi affiche toujours le vrai nombre actuel.",
+    rewardCaveat:
+      "Vérifiez les récompenses d'alerte de la mission avant de vous engager. Une mission que vous ne pouvez pas réussir ne paie rien.",
     rotationTitle: "Rotation du jour",
     rotationDesc:
       "Les alertes de mission tournent selon un cycle quotidien : l'ensemble disponible change après chaque réinitialisation.",
@@ -246,7 +257,10 @@ export const fr: TranslationDictionary = {
     rotationPending: "Vérification de la rotation actuelle…",
     rotationUnavailable:
       "Les données de mission en direct sont temporairement indisponibles. Le suivi affiche le dernier état connu.",
-    rotationNext: "Prochaine rotation",
+    rotationDaily: "Rotation quotidienne",
+    rotationUtc: "UTC",
+    rotationLocal: "Votre heure locale",
+    rotationLocalDate: "Date locale",
     rotationCta: "Voir les missions V-Bucks du jour",
     otherTitle: "Les missions V-Bucks sont une voie, pas la seule",
     otherIntro:
@@ -304,7 +318,7 @@ export const fr: TranslationDictionary = {
       "Les alertes de mission tournent quotidiennement. L'ensemble disponible change après chaque réinitialisation : consultez la rotation actuelle plutôt qu'une vieille capture d'écran.",
     faqQ7: "Combien de V-Bucks rapporte une mission V-Bucks ?",
     faqA7:
-      "Les alertes de mission V-Bucks standard actuelles rapportent {reward} V-Bucks. Le suivi HawkBucks affiche la récompense en direct de chaque mission.",
+      "Les alertes de mission V-Bucks rapportent actuellement {reward} V-Bucks. Considérez cela comme la valeur observée aujourd'hui et non comme une règle permanente : la récompense vient de l'alerte active de la mission et peut changer.",
     faqQ8: "Puis-je terminer plusieurs missions V-Bucks en un jour ?",
     faqA8:
       "Oui : quand la carte comporte plusieurs nœuds de mission éligibles, vous pouvez terminer chacun d'eux. Un même nœud de mission ne verse pas deux fois la même récompense d'alerte.",
@@ -319,6 +333,8 @@ export const fr: TranslationDictionary = {
     relatedTrackerDesc: "Voir les alertes de mission V-Bucks du jour et leurs détails.",
     relatedAboutTitle: "À propos de HawkBucks",
     relatedAboutDesc: "Comment fonctionnent le suivi et l'outil communautaire.",
+    relatedGuidesTitle: "Guides Save the World",
+    relatedGuidesDesc: "Builds, comparaisons et conseils pratiques au-delà des bases.",
   },
 
   footer: {
@@ -399,12 +415,12 @@ export const fr: TranslationDictionary = {
     missionsOgTitle: "Missions V-Bucks Fortnite du jour | HawkBucks",
     missionsOgDescription:
       "Les missions V-Bucks du jour de Save the World avec le suivi HawkBucks.",
-    guideTitle: "Comprendre les missions V-Bucks | HawkBucks",
+    guideTitle: "Missions V-Bucks dans Save the World | HawkBucks",
     guideDescription:
-      "Découvrez le fonctionnement des missions V-Bucks de Save the World, qui peut en gagner, comment trouver les alertes de mission et où voir celles du jour.",
-    guideOgTitle: "Comprendre les missions V-Bucks | HawkBucks",
+      "Découvrez comment fonctionnent les missions V-Bucks dans Fortnite: Save the World, comment vérifier leurs récompenses et où voir les missions du jour.",
+    guideOgTitle: "Missions V-Bucks dans Save the World | HawkBucks",
     guideOgDescription:
-      "Comment fonctionnent les missions V-Bucks, qui peut en gagner et où voir celles du jour.",
+      "Comment fonctionnent les missions V-Bucks dans Save the World, comment vérifier la récompense réelle d'une mission et où voir les missions du jour.",
     aboutTitle: "About HawkBucks : outil communautaire pour Save the World",
     aboutDescription:
       "Découvrez ce qu'est HawkBucks, comment fonctionnent son suivi de mission et sa plateforme de connaissances Save the World, et comment Héros, Schémas, Équipements et Guides s'articulent.",

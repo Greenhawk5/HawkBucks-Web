@@ -11,6 +11,14 @@
       "service": "hawkbucks-web"
     }
   ],
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "hawkbucks-data",
+      "database_id": "ef9831f2-2d9c-4c11-a49e-c1935ae5edb7",
+      "migrations_dir": "../worker/migrations"
+    }
+  ],
   "r2_buckets": [
     {
       "binding": "MEDIA_BUCKET",

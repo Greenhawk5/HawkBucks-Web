@@ -1,6 +1,8 @@
 import type { LanguageCode } from "@/lib/preferences";
 import type { TranslationKey } from "@/i18n/types";
 import { BRAND_NAME, SITE_URL } from "@/lib/site";
+import { buildBreadcrumbJsonLd, type BreadcrumbEntry } from "@/lib/breadcrumbs";
+import { canonicalUrlFor } from "@/lib/locale-urls";
 
 /**
  * Guide FAQ single source of truth.
@@ -76,6 +78,30 @@ export function buildGuideFaqJsonLd(
 }
 
 /**
+ * BreadcrumbList JSON-LD for the Guide.
+ *
+ * The visible trail on the page and this schema are built from ONE ordered
+ * list, so the markup can never claim a hierarchy the reader cannot see.
+ * The tracker (`/vbucks-missions`) is deliberately NOT an ancestor here: it
+ * is a sibling destination in the navigation, and the page links to it as a
+ * call to action rather than presenting it as a parent section.
+ *
+ * Labels come from the same localized dictionary as the visible crumbs, so a
+ * localized route emits a localized trail.
+ */
+export function buildGuideBreadcrumbJsonLd(
+  lang: LanguageCode,
+  translate: (key: TranslationKey, language: LanguageCode) => string,
+  homeUrl: string,
+): ReturnType<typeof buildBreadcrumbJsonLd> {
+  const entries: BreadcrumbEntry[] = [
+    { name: translate("navigation.home", lang), item: homeUrl },
+    { name: translate("guide.title", lang) },
+  ];
+  return buildBreadcrumbJsonLd(entries);
+}
+
+/**
  * WebPage JSON-LD for the Guide, describing only what the page visibly is:
  * an educational page published by HawkBucks at its canonical URL. No
  * ratings, reviews, or prices are emitted — none are shown on the page.
@@ -101,4 +127,12 @@ export function buildGuideWebPageJsonLd(options: {
     },
     publisher: { "@type": "Organization", name: BRAND_NAME, url: SITE_URL },
   };
+}
+
+/**
+ * Canonical Home URL for a language, used as the breadcrumb root. English
+ * keeps the bare apex path; every other language its locale-prefixed form.
+ */
+export function guideBreadcrumbHomeUrl(lang: LanguageCode): string {
+  return canonicalUrlFor(lang === "en" ? "/" : `/${lang}`);
 }

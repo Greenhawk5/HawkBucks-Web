@@ -20,6 +20,9 @@ dist-ssr
 .wrangler/
 .dev.vars
 
+# ESLint generated report artifacts
+eslint_out.json
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

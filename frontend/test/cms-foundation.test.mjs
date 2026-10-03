@@ -148,6 +148,18 @@ function createMemoryD1() {
         return;
       }
     }
+    // Media upsert (Phase 23): ON CONFLICT(provider, provider_asset_id).
+    // Mirrors real D1: the unique index is the conflict arbiter, the EXISTING
+    // row id and created_at survive, and every other column is refreshed.
+    if (table === "media_assets") {
+      const existing = tables[table].find(
+        (r) => r.provider === row.provider && r.provider_asset_id === row.provider_asset_id,
+      );
+      if (existing) {
+        Object.assign(existing, row, { id: existing.id, created_at: existing.created_at });
+        return;
+      }
+    }
     tables[table].push(row);
   }
 
@@ -180,6 +192,12 @@ function createMemoryD1() {
     }
     if (/FROM media_assets WHERE id/.test(sql)) {
       return tables.media_assets.filter((r) => r.id === params[0]);
+    }
+    // Phase 23 — upsert read-back by the (provider, provider_asset_id) unique key.
+    if (/FROM media_assets WHERE provider = \? AND provider_asset_id/.test(sql)) {
+      return tables.media_assets.filter(
+        (r) => r.provider === params[0] && r.provider_asset_id === params[1],
+      );
     }
     if (/FROM media_assets/.test(sql)) {
       let rows = [...tables.media_assets];
@@ -979,6 +997,96 @@ test("db: media metadata lives in D1; binaries never enter the database", async 
   assert.equal((await db.listMediaAssets(memory, { provider: "r2" })).length, 1);
   await db.tombstoneMediaAsset(memory, row.id);
   assert.equal((await db.getMediaAssetById(memory, row.id)).status, "deleted");
+});
+
+// --- Phase 23: deterministic R2 keys must UPSERT, not collide ----------------
+//
+// R2 object keys are deterministic (folder + sanitized stem + MIME-derived
+// extension), so re-uploading the same filename derives the same key.
+// Migration 0006 declares UNIQUE (provider, provider_asset_id), so the previous
+// plain INSERT raised a constraint error AFTER bucket.put had already replaced
+// the bytes — R2 held new content while D1 kept the old metadata, and the
+// editor saw an error for an upload that actually succeeded.
+
+test("db: re-uploading the same R2 key upserts instead of failing on the unique index", async () => {
+  const memory = createMemoryD1();
+  const base = {
+    provider: "r2",
+    providerAssetId: "heroes/kyle.webp",
+    originalFilename: "kyle.png",
+    mimeType: "image/png",
+  };
+
+  const first = await db.createMediaAsset(memory, {
+    ...base,
+    deliveryUrl: "https://media.hawkbucks.com/heroes/kyle.webp",
+    byteSize: 100,
+    altText: "original alt",
+    createdBy: "u1",
+  });
+
+  // Same (provider, provider_asset_id): must NOT throw, must NOT duplicate.
+  const second = await db.createMediaAsset(memory, {
+    ...base,
+    deliveryUrl: "https://media.hawkbucks.com/heroes/kyle.webp",
+    byteSize: 250,
+    altText: "corrected alt",
+    createdBy: "u2",
+  });
+
+  const all = await db.listMediaAssets(memory, { provider: "r2" });
+  assert.equal(all.length, 1, "re-upload must not create a second media_assets row");
+
+  // The pre-existing row id must survive so every foreign key still resolves.
+  assert.equal(second.id, first.id);
+  // Descriptive metadata is refreshed to the newly uploaded asset.
+  assert.equal(second.byte_size, 250);
+  assert.equal(second.alt_text, "corrected alt");
+  assert.equal(second.created_by, "u2");
+  // created_at is immutable provenance and must not be rewritten.
+  assert.equal(second.created_at, first.created_at);
+});
+
+test("db: re-uploading a tombstoned R2 asset revives it (unique index is still taken)", async () => {
+  const memory = createMemoryD1();
+  const input = {
+    provider: "r2",
+    providerAssetId: "og/hero.png",
+    deliveryUrl: "https://media.hawkbucks.com/og/hero.png",
+    originalFilename: "hero.png",
+    mimeType: "image/png",
+  };
+
+  const created = await db.createMediaAsset(memory, input);
+  await db.tombstoneMediaAsset(memory, created.id);
+  assert.equal((await db.getMediaAssetById(memory, created.id)).status, "deleted");
+
+  // deleteMediaAsset only tombstones; the row (and the unique key) survives, so
+  // a re-upload must update that row rather than fail or resurrect a duplicate.
+  const revived = await db.createMediaAsset(memory, input);
+  assert.equal(revived.id, created.id);
+  assert.equal(revived.status, "ready");
+  assert.equal((await db.listMediaAssets(memory, { provider: "r2" })).length, 1);
+});
+
+test("db: media upsert keeps provider namespaces independent", async () => {
+  const memory = createMemoryD1();
+  const shared = { providerAssetId: "shared-key", mimeType: "image/png", originalFilename: "x.png" };
+
+  await db.createMediaAsset(memory, {
+    ...shared,
+    provider: "r2",
+    deliveryUrl: "https://media.hawkbucks.com/shared-key",
+  });
+  await db.createMediaAsset(memory, {
+    ...shared,
+    provider: "imagekit",
+    deliveryUrl: "https://ik.imagekit.io/demo/shared-key",
+  });
+
+  // Same provider_asset_id under DIFFERENT providers is not a conflict.
+  assert.equal((await db.listMediaAssets(memory, { provider: "r2" })).length, 1);
+  assert.equal((await db.listMediaAssets(memory, { provider: "imagekit" })).length, 1);
 });
 
 // --- Preview ----------------------------------------------------------------

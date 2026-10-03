@@ -559,7 +559,6 @@ HawkBucks-Web/
 ├── CONTRIBUTING.md
 ├── LICENSE
 ├── NOTICE.md
-├── REPOSITORY_HARDENING.md
 ├── SECURITY.md
 ├── SUPPORT.md
 └── README.md
@@ -571,18 +570,12 @@ HawkBucks-Web/
 
 # 🌐 API
 
-The frontend communicates with the Cloudflare Worker through three public endpoints:
+The frontend reaches the Cloudflare Worker through the `HAWKBUCKS_API` Service Binding; the browser never calls the Worker directly. In production the Worker's public `workers.dev` endpoint is disabled (`workers_dev = false`). The Worker exposes these endpoints:
 
 ```text
 GET /api/missions
 GET /api/history
 GET /api/quote
-```
-
-The production Worker base URL is:
-
-```text
-https://hawkbucks-web.greenhawk5.workers.dev
 ```
 
 ### `/api/missions`
@@ -640,7 +633,6 @@ HawkBucks also includes a set of repository-level files designed to make the pro
 | `CHANGELOG.md` | Human-readable history of project releases and notable changes. |
 | `CITATION.cff` | Standard metadata for citing HawkBucks in other projects or publications. |
 | `NOTICE.md` | Project trademark, affiliation and third-party software notices. |
-| `REPOSITORY_HARDENING.md` | Security checklist for GitHub, secrets, Cloudflare and releases. |
 | `.gitignore` | Prevents local secrets, credentials, build artifacts and environment files from being committed. |
 | `.gitattributes` | Keeps repository text normalization and binary assets consistent. |
 | `.github/CODEOWNERS` | Defines the default repository code owner. |
@@ -667,8 +659,6 @@ HawkBucks therefore follows a few basic repository rules:
 - Security vulnerabilities should be reported privately rather than through a public GitHub Issue.
 
 For the complete policy, see [`SECURITY.md`](SECURITY.md).
-
-For the repository hardening checklist, see [`REPOSITORY_HARDENING.md`](REPOSITORY_HARDENING.md).
 
 ---
 
@@ -911,7 +901,17 @@ Production Epic credentials must be configured through Cloudflare Worker Secrets
 
 HawkBucks has evolved beyond a simple mission viewer.
 
-**Current stable release: v1.2.0** — see [`CHANGELOG.md`](CHANGELOG.md) for the release contents and the [Releases page](https://github.com/Greenhawk5/HawkBucks-Web/releases) for published tags.
+**Latest stable release: v1.2.0** — see [`CHANGELOG.md`](CHANGELOG.md) for the release contents and the [Releases page](https://github.com/Greenhawk5/HawkBucks-Web/releases) for published tags.
+
+### Release candidate
+
+**v2.0.0-rc.1 — the first Release Candidate for v2.0.0 (pre-release).** This is not a stable release, and the stable v2.0.0 has not been released yet. It covers the v2 content-platform and public-experience overhaul together with the Phase 20–24 production-hardening and release-candidate QA work:
+
+- CMS content platform on Cloudflare D1 + R2 (heroes, loadouts, schematics, guides) with a D1-backed admin and audit log.
+- Public content routes (`/heroes`, `/loadouts`, `/schematics`, `/guides`) alongside the `/vbucks-missions` tracker and `/missions-guide`.
+- Localized public routes, RTL support, preferences/local time, and Web Push reminders.
+- SEO overhaul: canonical/`hreflang` metadata, a dynamic D1-backed sitemap, and corrected breadcrumb structured data.
+- Production hardening: security headers, per-request-nonce CSP, CMS upload/CSRF/login-throttling/Turnstile protections, and the production D1/R2/Worker bindings.
 
 ### Current
 

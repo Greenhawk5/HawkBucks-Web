@@ -1,17 +1,45 @@
-# Phase 20 — Cloudflare Pages security headers.
+# Phase 20/23 — Cloudflare Pages headers (STATIC ASSETS ONLY).
 #
-# Served verbatim by Cloudflare Pages from frontend/public/_headers.
-# Deliberately conservative: no inline-script allowances beyond what the
-# TanStack Start SSR bundle already needs (scripts are same-origin files,
-# never inline), media/Pages/SSR behavior unchanged.
-
+# SCOPE: this deployment ships `dist/_worker.js`, so Cloudflare Pages serves
+# dynamic routes (every SSR HTML document, every /_serverFn RPC response, the
+# sitemap) from the Worker. Cloudflare applies `_headers` rules ONLY to
+# responses from the static asset store — Worker-generated responses bypass
+# this file completely. Verified on the live deployment: GET /about returned
+# NO CSP and NO HSTS despite this file existing.
+#
+# That is why the SSR security headers AND the CSP live in
+# src/lib/security-headers.ts and are applied in `src/server.ts`, which every
+# Worker response funnels through. Do NOT rely on this file to protect HTML
+# documents.
+#
+# CSP — Phase 23 UPDATE (the Phase 20 "DO NOT ENABLE" block is RESOLVED):
+# The original blocker was that TanStack Start's SSR stream emits inline
+# <script> tags for hydration with no `nonce`, so `script-src 'self'` broke
+# hydration. TanStack Router exposes a supported per-request option for exactly
+# this — `createRouter({ ssr: { nonce } })` — which is threaded into React's
+# renderToReadableStream, the $_TSR bootstrap, the $tsr-stream-barrier tag,
+# <Scripts> and <HeadContent> (including the <meta property="csp-nonce"> the
+# client re-reads during hydration).
+#
+# src/server.ts now generates one crypto-random nonce per HTTP response, runs
+# the request inside an AsyncLocalStorage scope so src/router.tsx's getRouter()
+# reads it, and writes the SAME value into the Content-Security-Policy header.
+# The enforcing policy therefore needs NO 'unsafe-inline' in script-src and no
+# 'unsafe-eval' at all. 'unsafe-inline' appears ONLY in style-src, because
+# `sonner` and Radix's react-remove-scroll-bar inject <style> elements at
+# runtime with no nonce hook — see src/lib/security-headers.ts (CSP_EVIDENCE).
+#
+# DO NOT paste the SSR CSP into this file. A static file cannot carry a
+# per-request nonce, and the `script-src 'self'` variant that would fit here is
+# exactly the policy that broke hydration. The Worker-emitted policy is the one
+# that protects documents.
 /*
   Strict-Transport-Security: max-age=63072000; includeSubDomains; preload
   X-Content-Type-Options: nosniff
   Referrer-Policy: strict-origin-when-cross-origin
   Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=()
   Cross-Origin-Opener-Policy: same-origin
-  Content-Security-Policy: default-src 'self'; script-src 'self' https://challenges.cloudflare.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://media.hawkbucks.com https:; font-src 'self' data:; connect-src 'self' https://media.hawkbucks.com https://challenges.cloudflare.com; frame-src https://challenges.cloudflare.com; media-src 'self' https://media.hawkbucks.com; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; form-action 'self'; upgrade-insecure-requests
+  X-Frame-Options: DENY
 
 /sw.js
   Cache-Control: no-cache

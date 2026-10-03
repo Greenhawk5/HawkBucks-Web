@@ -194,6 +194,11 @@ export const de: TranslationDictionary = {
       "Eine verständliche Anleitung dazu, wie Fortnite: Save the World V-Bucks-Missionen funktionieren — wer V-Bucks verdienen kann, wie man eine V-Bucks-Mission auf der Weltkarte erkennt, was sie zahlt und wo man die heutigen Missionen sieht. HawkBucks meldet Missionsinformationen; es vergibt niemals V-Bucks.",
     openTracker: "Heutige V-Bucks-Missionen ansehen",
     trackerCtaSecondary: "So funktionieren Save the World V-Bucks",
+    breadcrumbLabel: "Brotkrümelnavigation",
+    heroTrust:
+      "HawkBucks erklärt hier das System. Der Live-Tracker ist der Ort für die Missionsdaten von heute.",
+    whatCaveat:
+      "Ein Missionssymbol, ein Missionstyp oder eine Zone allein beweist nicht, dass eine Mission V-Bucks belohnt. Die aktiven Missionsmeldungs-Belohnungen dieser Mission sind die Wahrheit.",
     eligibilityTitle: "Kann ich mit Save the World V-Bucks verdienen?",
     eligibilityDesc:
       "Save the World ist seit dem 16. April 2026 für alle kostenlos — V-Bucks darin zu verdienen, blieb jedoch ein Founder-Vorteil. Wähle die Option, die zu deinem Konto passt:",
@@ -227,11 +232,17 @@ export const de: TranslationDictionary = {
       "Mini-Boss-Missionsmeldungen sind eine besondere Art von Weltkarten-Missionsmeldungen. V-Bucks können als ihre Meldungsbelohnung erscheinen — deshalb tauchen sie im V-Bucks-Missions-Tracking so oft auf. Der Meldungstyp allein garantiert jedoch keine V-Bucks.",
     miniBossCaveat:
       "Eine Mini-Boss-Mission ist nicht automatisch eine V-Bucks-Mission. Öffne die Mission und prüfe ihre aktiven Meldungsbelohnungen zur Bestätigung.",
-    rewardEyebrow: "Aktuelle Standardbelohnung",
+    miniBossTypeLabel: "Alerttyp",
+    miniBossRewardLabel: "V-Bucks-Belohnung",
+    rewardObservedLabel: "Heute beobachtet",
+    rewardNotRuleLabel: "Keine feste Regel",
+    rewardEyebrow: "Beispiel für eine aktuelle Belohnung",
     rewardTitle: "Wie viele V-Bucks gibt eine Mission?",
     rewardAmountLabel: "V-Bucks",
     rewardBody:
-      "Aktuelle Standard-V-Bucks-Missionsmeldungen bringen {reward} V-Bucks. Der Tracker liest die Live-Belohnung jeder Mission — die angezeigte Zahl ist also immer der echte heutige Wert.",
+      "V-Bucks-Missionsmeldungen bringen derzeit {reward} V-Bucks. Das ist der heute beobachtete Wert, keine feste Regel: Epic kann ihn ändern und nicht jede Meldung zahlt gleich viel. HawkBucks liest die Live-Belohnung jeder Mission — der Tracker zeigt daher immer die echte aktuelle Zahl.",
+    rewardCaveat:
+      "Prüfe vor dem Start die Missionsmeldungs-Belohnungen. Eine Mission, die du nicht abschließen kannst, zahlt auch nichts.",
     rotationTitle: "Heutige Rotation",
     rotationDesc:
       "Missionsmeldungen rotieren täglich, daher ändert sich das verfügbare Set nach jedem Reset.",
@@ -242,7 +253,10 @@ export const de: TranslationDictionary = {
     rotationPending: "Aktuelle Rotation wird geprüft…",
     rotationUnavailable:
       "Live-Missionsdaten sind vorübergehend nicht verfügbar. Der Tracker hat den neuesten Stand.",
-    rotationNext: "Nächste Rotation",
+    rotationDaily: "Tägliche Rotation",
+    rotationUtc: "UTC",
+    rotationLocal: "Deine Ortszeit",
+    rotationLocalDate: "Lokales Datum",
     rotationCta: "Heutige V-Bucks-Missionen ansehen",
     otherTitle: "V-Bucks-Missionen sind ein Weg, nicht der einzige",
     otherIntro:
@@ -299,7 +313,7 @@ export const de: TranslationDictionary = {
       "Missionsmeldungen rotieren täglich. Das verfügbare Set ändert sich nach jedem Reset — verlass dich also auf die aktuelle Rotation statt auf einen alten Screenshot.",
     faqQ7: "Wie viele V-Bucks gibt eine V-Bucks-Mission?",
     faqA7:
-      "Aktuelle Standard-V-Bucks-Missionsmeldungen bringen {reward} V-Bucks. Der HawkBucks-Tracker zeigt die Live-Belohnung jeder Mission.",
+      "V-Bucks-Missionsmeldungen bringen derzeit {reward} V-Bucks. Behandle das als den heute beobachteten Wert und nicht als feste Regel: die Belohnung stammt aus der aktiven Missionsmeldung und kann sich ändern.",
     faqQ8: "Kann ich mehrere V-Bucks-Missionen an einem Tag abschließen?",
     faqA8:
       "Ja: Wenn die Karte mehrere passende Missionsknoten hat, kannst du jeden abschließen. Ein einzelner Missionsknoten zahlt dieselbe Meldungsbelohnung nicht wiederholt.",
@@ -314,6 +328,8 @@ export const de: TranslationDictionary = {
     relatedTrackerDesc: "Die heutigen V-Bucks-Missionsmeldungen und ihre Details ansehen.",
     relatedAboutTitle: "Über HawkBucks",
     relatedAboutDesc: "So funktionieren Tracker-Pipeline und Community-Tool.",
+    relatedGuidesTitle: "Save-the-World-Guides",
+    relatedGuidesDesc: "Builds, Vergleiche und praktische Tipps über die Grundlagen hinaus.",
   },
 
   footer: {
@@ -393,12 +409,12 @@ export const de: TranslationDictionary = {
     missionsOgTitle: "Fortnite V-Bucks-Missionen heute | HawkBucks",
     missionsOgDescription:
       "Die heutigen Save the World V-Bucks-Missionen mit dem HawkBucks-Tracker.",
-    guideTitle: "V-Bucks-Missionen erklärt | HawkBucks",
+    guideTitle: "V-Bucks-Missionen in Save the World | HawkBucks",
     guideDescription:
-      "Erfahre, wie V-Bucks-Missionen in Save the World funktionieren, wer sie verdienen kann, wie du Missionsmeldungen findest und wo du die heutigen siehst.",
-    guideOgTitle: "V-Bucks-Missionen erklärt | HawkBucks",
+      "Erfahre, wie V-Bucks-Missionen in Fortnite: Save the World funktionieren, wie du Missionsbelohnungen findest und verifizierst und wo du die heutigen Live-Missionen siehst.",
+    guideOgTitle: "V-Bucks-Missionen in Save the World | HawkBucks",
     guideOgDescription:
-      "Wie V-Bucks-Missionen funktionieren, wer sie verdient und wo du die heutigen findest.",
+      "Wie V-Bucks-Missionen in Save the World funktionieren, wie du die echte Belohnung einer Mission verifizierst und wo du die heutigen Missionen findest.",
     aboutTitle: "About HawkBucks – Community-Werkzeug für Save the World",
     aboutDescription:
       "Erfahre, was HawkBucks ist, wie der Missions-Tracker und die Save-the-World-Wissensplattform funktionieren und wie Helden, Schemata, Ausrüstungen und Guides zusammenhängen.",

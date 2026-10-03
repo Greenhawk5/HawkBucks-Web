@@ -971,11 +971,19 @@ async function handleQuote(env) {
   }
 }
 
+// Phase 23 — failure isolation.
+//
+// `getCachedMissionData` dereferences `env.HAWKBUCKS_CACHE` unguarded. If the
+// KV binding is missing from the Worker config, that throws a TypeError; a KV
+// outage throws too. Both used to escape as an UNHANDLED rejection from
+// `fetch`, which Workers reports as a generic 1101/500 — not the documented
+// `503 {status:'unavailable'}` contract the frontend parses. Sibling handlers
+// (`handleHistory`, `handleQuote`) already guard their bindings and wrap in
+// try/catch; /api/missions is the one the whole site depends on and the one
+// with no such guard. Same shape, same reason.
 async function handleMissions(env) {
-  const cached = await getCachedMissionData(env);
-
-  if (!cached) {
-    return json(
+  const unavailable = () =>
+    json(
       {
         success: false,
         status: 'unavailable',
@@ -986,9 +994,27 @@ async function handleMissions(env) {
       },
       503
     );
+
+  if (!env.HAWKBUCKS_CACHE) {
+    console.error('Mission request failed: HAWKBUCKS_CACHE binding is missing');
+    return unavailable();
   }
 
-  return json(cached, 200);
+  try {
+    const cached = await getCachedMissionData(env);
+
+    if (!cached) {
+      return unavailable();
+    }
+
+    return json(cached, 200);
+  } catch (error) {
+    console.error(
+      'Mission request failed:',
+      error instanceof Error ? error.message : 'unknown error'
+    );
+    return unavailable();
+  }
 }
 
 export default {
@@ -1048,11 +1074,31 @@ export default {
       request.method === 'GET' &&
       url.pathname === '/api/health'
     ) {
+      // Phase 23 — the health endpoint is the ONLY readiness signal the repo
+      // can expose for a deployment smoke test (the Worker is internal-only,
+      // so it is reached through the Service Binding, never from a browser).
+      // It used to return `status: 'ok'` unconditionally, which reported a
+      // healthy deployment even with every binding missing — a green check
+      // that proved nothing.
+      //
+      // `status` keeps its original 'ok' value ONLY when the mission-serving
+      // dependency (KV) is present, so existing consumers are unchanged in the
+      // healthy case. `degraded` is reported with HTTP 200 so an existing
+      // smoke test that only asserts reachability does not start failing; the
+      // new `checks` object is what a real deployment verification reads.
+      const checks = {
+        kv: Boolean(env.HAWKBUCKS_CACHE),
+        db: Boolean(env.DB),
+        push: Boolean(env.VAPID_PUBLIC_KEY && env.VAPID_PRIVATE_JWK)
+      };
+      const healthy = checks.kv;
+
       return json(
         {
-          status: 'ok',
+          status: healthy ? 'ok' : 'degraded',
           service: 'HawkBucks Worker',
-          timestamp: new Date().toISOString()
+          timestamp: new Date().toISOString(),
+          checks
         },
         200
       );

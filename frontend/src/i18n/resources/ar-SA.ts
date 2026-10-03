@@ -190,6 +190,10 @@ export const arSA: TranslationDictionary = {
       "دليل بلغة بسيطة عن كيفية عمل مهام V-Bucks في Fortnite: Save the World: من يمكنه كسب V-Bucks، وكيف تميّز مهمة V-Bucks على خريطة العالم، وماذا تدفع، وأين تتحقق من مهام اليوم. يبلّغ HawkBucks عن معلومات المهام؛ وهو لا يمنح V-Bucks أبدًا.",
     openTracker: "عرض مهام V-Bucks اليوم",
     trackerCtaSecondary: "كيف تعمل V-Bucks في Save the World",
+    breadcrumbLabel: "مسار التنقل",
+    heroTrust: "يشرح HawkBucks النظام هنا. أما بيانات مهام اليوم الحية فهي مكان المتتبع المباشر.",
+    whatCaveat:
+      "أيقونة المهمة أو نوع المهمة أو المنطقة وحدها لا تثبت أن المهمة تمنح V-Bucks. المصدر الحقيقي هو مكافآت التنبيه النشطة لتلك المهمة.",
     eligibilityTitle: "هل يمكنني كسب V-Bucks من Save the World؟",
     eligibilityDesc:
       "أصبحت Save the World مجانية للجميع منذ 16 أبريل 2026، لكن كسب V-Bucks داخلها ظل ميزة خاصة بالمؤسسين (Founder). اختر ما يناسب حسابك:",
@@ -222,11 +226,17 @@ export const arSA: TranslationDictionary = {
       "تنبيهات مهام Mini-Boss هي نوع خاص من تنبيهات مهام خريطة العالم. يمكن أن تظهر V-Bucks كمكافأة التنبيه فيها، ولهذا تُذكر كثيرًا في تتبع مهام V-Bucks — لكن نوع التنبيه وحده لا يضمن V-Bucks.",
     miniBossCaveat:
       "مهمة Mini-Boss ليست بالضرورة مهمة V-Bucks. افتح المهمة وتحقق من مكافآت التنبيه النشطة للتأكيد.",
-    rewardEyebrow: "المكافأة القياسية الحالية",
+    miniBossTypeLabel: "نوع التنبيه",
+    miniBossRewardLabel: "مكافأة V-Bucks",
+    rewardObservedLabel: "قيمة مرصودة اليوم",
+    rewardNotRuleLabel: "ليست قاعدة ثابتة",
+    rewardEyebrow: "مثال لمكافأة حالية",
     rewardTitle: "كم V-Bucks تمنح المهمة؟",
     rewardAmountLabel: "V-Bucks",
     rewardBody:
-      "تمنح تنبيهات مهام V-Bucks القياسية الحالية {reward} V-Bucks. يقرأ المتتبع المكافأة المباشرة لكل مهمة، فالرقم الذي تراه هو دائمًا القيمة الحقيقية لليوم.",
+      "تمنح تنبيهات مهام V-Bucks حاليًا {reward} V-Bucks. هذه هي القيمة المرصودة اليوم وليست قاعدة ثابتة: قد يغيّرها Epic، ولا يمنح كل تنبيه المبلغ نفسه. يقرأ HawkBucks المكافأة المباشرة لكل مهمة، لذا يعرض المتتبع 항상 الرقم الحقيقي الحالي.",
+    rewardCaveat:
+      "تحقق من مكافآت التنبيه النشطة للمهمة قبل الالتزام بها. المهمة التي لا تستطيع إكمالها لن تدفع شيئًا.",
     rotationTitle: "تناوب اليوم",
     rotationDesc:
       "تتناوب تنبيهات المهام وفق جدول يومي، فتتغير المجموعة المتاحة بعد كل إعادة تعيين.",
@@ -236,7 +246,10 @@ export const arSA: TranslationDictionary = {
     rotationEmpty: "لم يتم رصد أي مهام V-Bucks حاليًا",
     rotationPending: "جارٍ التحقق من التناوب الحالي…",
     rotationUnavailable: "بيانات المهام المباشرة غير متاحة مؤقتًا. لدى المتتبع أحدث حالة معروفة.",
-    rotationNext: "التناوب التالي",
+    rotationDaily: "تناوب يومي",
+    rotationUtc: "UTC",
+    rotationLocal: "وقتك المحلي",
+    rotationLocalDate: "التاريخ المحلي",
     rotationCta: "عرض مهام V-Bucks اليوم",
     otherTitle: "مهام V-Bucks طريق واحد، وليست الوحيد",
     otherIntro:
@@ -292,7 +305,7 @@ export const arSA: TranslationDictionary = {
       "تتناوب تنبيهات المهام يوميًا. وتتغير المجموعة المتاحة بعد كل إعادة تعيين، فراجع التناوب الحالي بدل لقطة شاشة قديمة.",
     faqQ7: "كم V-Bucks تمنح مهمة V-Bucks؟",
     faqA7:
-      "تمنح تنبيهات مهام V-Bucks القياسية الحالية {reward} V-Bucks. ويعرض متتبع HawkBucks المكافأة المباشرة لكل مهمة.",
+      "تمنح تنبيهات مهام V-Bucks حاليًا {reward} V-Bucks. تعامل مع ذلك كقيمة مرصودة اليوم لا كقاعدة دائمة: المكافأة تأتي من التنبيه النشط للمهمة وقد تتغير.",
     faqQ8: "هل يمكنني إكمال عدة مهام V-Bucks في يوم واحد؟",
     faqA8:
       "نعم: عندما تحتوي الخريطة على عدة عقد مهام مؤهلة، يمكنك إكمال كل منها. لكن عقدة المهمة الواحدة لا تدفع نفس مكافأة التنبيه بشكل متكرر.",
@@ -307,6 +320,8 @@ export const arSA: TranslationDictionary = {
     relatedTrackerDesc: "شاهد تنبيهات مهام V-Bucks اليوم وتفاصيلها.",
     relatedAboutTitle: "عن HawkBucks",
     relatedAboutDesc: "كيف يعمل المتتبع وأداة المجتمع.",
+    relatedGuidesTitle: "أدلة Save the World",
+    relatedGuidesDesc: "إعدادات ومقارنات ونصائح عملية تتجاوز أساسيات المهام.",
   },
 
   footer: {
@@ -379,11 +394,12 @@ export const arSA: TranslationDictionary = {
       "تحقق من مهام V-Bucks اليوم في Fortnite: Save the World مع HawkBucks. شاهد التنبيهات المتاحة والتفاصيل ووقت آخر تحديث.",
     missionsOgTitle: "مهام V-Bucks في Fortnite اليوم | HawkBucks",
     missionsOgDescription: "مهام V-Bucks اليوم في Save the World مع متتبع HawkBucks.",
-    guideTitle: "نبذة عن مهام V-Bucks في Save the World | HawkBucks",
+    guideTitle: "مهام V-Bucks في Save the World | HawkBucks",
     guideDescription:
-      "تعرّف على كيفية عمل مهام V-Bucks في Save the World، ومن يمكنه كسبها، وكيفية العثور على تنبيهات المهام، وأين تتحقق من مهام اليوم.",
-    guideOgTitle: "نبذة عن مهام V-Bucks في Save the World | HawkBucks",
-    guideOgDescription: "كيفية عمل مهام V-Bucks، ومن يمكنه كسبها، وأين تتحقق من مهام اليوم.",
+      "تعرّف على كيفية عمل مهام V-Bucks في Fortnite: Save the World، وكيف تجد مكافآت المهمة وتتحقق منها، وأين تجد مهام V-Bucks الحية لليوم.",
+    guideOgTitle: "مهام V-Bucks في Save the World | HawkBucks",
+    guideOgDescription:
+      "كيف تعمل مهام V-Bucks في Save the World، وكيف تتحقق من المكافأة الحقيقية للمهمة، وأين ترى مهام اليوم.",
     aboutTitle: "About HawkBucks — أداة مجتمع Save the World",
     aboutDescription:
       "تعرّف على ما هو HawkBucks، وكيف يعمل متتبع المهمات ومنصة معرفة Save the World، وكيف ترتبط الأبطال والمخططات والتجهيزات والأدلة ببعضها.",

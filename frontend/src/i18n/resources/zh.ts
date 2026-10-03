@@ -186,6 +186,10 @@ export const zh: TranslationDictionary = {
       "用通俗语言讲解 Fortnite: Save the World V-Bucks 任务的运作方式：谁可以赚取 V-Bucks、如何在世界地图上识别 V-Bucks 任务、奖励是多少，以及在哪里查看今日任务。HawkBucks 只报告任务信息，绝不发放 V-Bucks。",
     openTracker: "查看今日 V-Bucks 任务",
     trackerCtaSecondary: "Save the World V-Bucks 如何运作",
+    breadcrumbLabel: "面包屑导航",
+    heroTrust: "HawkBucks 在此讲解整个系统。今天的任务数据应前往实时追踪器查看。",
+    whatCaveat:
+      "仅凭任务图标、任务类型或所在区域，无法证明该任务奖励 V-Bucks。该任务当前生效的警报奖励才是准确依据。",
     eligibilityTitle: "我能在 Save the World 中赚取 V-Bucks 吗？",
     eligibilityDesc:
       "自 2026 年 4 月 16 日起，Save the World 对所有人免费开放，但在其中赚取 V-Bucks 仍是 Founder 专属权益。请选择符合你账号情况的一项：",
@@ -217,11 +221,16 @@ export const zh: TranslationDictionary = {
     miniBossBody:
       "Mini-Boss 任务警报是世界地图上一种特殊的任务警报。V-Bucks 可能作为其警报奖励出现，这也是它在 V-Bucks 任务追踪中经常被提到的原因，但仅凭警报类型并不能保证有 V-Bucks。",
     miniBossCaveat: "Mini-Boss 任务不一定就是 V-Bucks 任务。请打开任务并确认其当前警报奖励。",
-    rewardEyebrow: "当前标准奖励",
+    miniBossTypeLabel: "警报类型",
+    miniBossRewardLabel: "V-Bucks 奖励",
+    rewardObservedLabel: "今日观测值",
+    rewardNotRuleLabel: "非固定规则",
+    rewardEyebrow: "当前奖励示例",
     rewardTitle: "一个任务给多少 V-Bucks？",
     rewardAmountLabel: "V-Bucks",
     rewardBody:
-      "当前标准 V-Bucks 任务警报奖励为 {reward} V-Bucks。追踪器读取每个任务的实时奖励，因此你看到的数字始终是今天的真实数值。",
+      "V-Bucks 任务警报目前奖励 {reward} V-Bucks。这是今天观察到的数值，并非固定规则：Epic 可能调整，且并非每个警报奖励相同。HawkBucks 会读取每个任务的实时奖励，因此追踪器始终显示真实的当前数值。",
+    rewardCaveat: "开始前请先查看该任务当前生效的警报奖励。无法完成的任务不会发放奖励。",
     rotationTitle: "今日轮换",
     rotationDesc: "任务警报按每日计划轮换，每次重置后可用任务集合都会变化。",
     rotationActive: "实时",
@@ -230,7 +239,10 @@ export const zh: TranslationDictionary = {
     rotationEmpty: "目前未检测到 V-Bucks 任务",
     rotationPending: "正在检查当前轮换…",
     rotationUnavailable: "实时任务数据暂时不可用，追踪器保留了最新状态。",
-    rotationNext: "下次轮换",
+    rotationDaily: "每日轮换",
+    rotationUtc: "UTC",
+    rotationLocal: "你的本地时间",
+    rotationLocalDate: "本地日期",
     rotationCta: "查看今日 V-Bucks 任务",
     otherTitle: "V-Bucks 任务只是一条途径，而非唯一途径",
     otherIntro:
@@ -285,7 +297,7 @@ export const zh: TranslationDictionary = {
     faqA6: "任务警报按每日计划轮换，每次重置后可用集合都会变化，因此请查看当前轮换，而不是旧截图。",
     faqQ7: "一个 V-Bucks 任务给多少 V-Bucks？",
     faqA7:
-      "当前标准 V-Bucks 任务警报奖励为 {reward} V-Bucks。HawkBucks 追踪器会显示每个任务的实时奖励。",
+      "V-Bucks 任务警报目前奖励 {reward} V-Bucks。请把它视为今天观察到的数值，而非永久规则：奖励来自该任务当前生效的警报，可能随时调整。",
     faqQ8: "一天可以完成多个 V-Bucks 任务吗？",
     faqA8:
       "可以：当地图上有多个符合条件的任务节点时，每个都可以完成。但同一个任务节点不会重复支付同一警报奖励。",
@@ -300,6 +312,8 @@ export const zh: TranslationDictionary = {
     relatedTrackerDesc: "查看今日 V-Bucks 任务警报及其详情。",
     relatedAboutTitle: "关于 HawkBucks",
     relatedAboutDesc: "追踪流程与社区工具的工作原理。",
+    relatedGuidesTitle: "Save the World 指南",
+    relatedGuidesDesc: "配装、对比与实用技巧，助你了解任务基础之外的内容。",
   },
 
   footer: {
@@ -369,11 +383,12 @@ export const zh: TranslationDictionary = {
       "使用 HawkBucks 查看今日 Fortnite: Save the World V-Bucks 任务，包括可用任务提醒、详情和最近刷新时间。",
     missionsOgTitle: "今日 Fortnite V-Bucks 任务 | HawkBucks",
     missionsOgDescription: "使用 HawkBucks 追踪器查看今日 Save the World V-Bucks 任务。",
-    guideTitle: "Save the World V-Bucks 任务说明 | HawkBucks",
+    guideTitle: "Save the World V-Bucks 任务详解 | HawkBucks",
     guideDescription:
-      "了解 Save the World V-Bucks 任务如何运作、谁可以赚取 V-Bucks、如何找到任务警报，以及在哪里查看今天的任务。",
-    guideOgTitle: "Save the World V-Bucks 任务说明 | HawkBucks",
-    guideOgDescription: "了解 V-Bucks 任务如何运作、谁能赚取，以及在哪里查看今天的任务。",
+      "了解 Save the World 中的 V-Bucks 任务如何运作、如何查找并核实任务奖励，以及在哪里查看今天的实时 V-Bucks 任务。",
+    guideOgTitle: "Save the World V-Bucks 任务详解 | HawkBucks",
+    guideOgDescription:
+      "V-Bucks 任务在 Save the World 中如何运作、如何核实任务的真实奖励，以及在哪里查看今天的任务。",
     aboutTitle: "About HawkBucks — Save the World 社区工具",
     aboutDescription:
       "了解 HawkBucks 是什么、它的任务追踪器与 Save the World 知识平台如何运作，以及英雄、蓝图、装备搭配与指南如何相互关联。",
