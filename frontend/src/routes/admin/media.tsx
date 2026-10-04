@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
+import { RefreshCw, Search, Upload } from "lucide-react";
 
 import { getAdminSession, listAdminMedia } from "@/lib/cms/admin.loader";
 import { deleteAdminMedia, uploadAdminMedia } from "@/lib/cms/media-admin.loader";
@@ -10,30 +11,24 @@ import {
   CmsSignInRequired,
 } from "@/components/cms/cc/CmsAuth";
 import {
-  CmsDialog,
+  CmsConfirmDialog,
   CmsEmpty,
-  CmsField,
   CmsNotice,
   CmsPageHeader,
   CmsSectionTitle,
   cmsToast,
 } from "@/components/cms/cc/CmsPrimitives";
 import { CmsSelect } from "@/components/cms/cc/CmsSelect";
+import { CmsMediaAssetCard } from "@/components/cms/media/CmsMediaAssetCard";
+import { CmsMediaAssetDialog } from "@/components/cms/media/CmsMediaAssetDialog";
+import { CmsMediaUploadDialog } from "@/components/cms/media/CmsMediaUploadDialog";
+import {
+  MEDIA_FOLDERS,
+  MEDIA_STATUSES,
+  type MediaAsset,
+} from "@/components/cms/media/media-format";
 
 type MediaItem = Awaited<ReturnType<typeof listAdminMedia>>["items"][number];
-
-const FOLDERS = [
-  "heroes",
-  "loadouts",
-  "weapons",
-  "traps",
-  "perks",
-  "schematics",
-  "abilities",
-  "articles",
-  "og",
-  "misc",
-] as const;
 
 export const Route = createFileRoute("/admin/media")({
   loader: async () => {
@@ -86,25 +81,36 @@ function MediaBody(props: { items: MediaItem[]; canWrite: boolean }) {
   const [folderFilter, setFolderFilter] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
   const [error, setError] = useState<string | null>(null);
-  const [notice, setNotice] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
   const [uploadOpen, setUploadOpen] = useState(false);
-  const [preview, setPreview] = useState<MediaItem | null>(null);
-  const [deleteTarget, setDeleteTarget] = useState<MediaItem | null>(null);
+  const [preview, setPreview] = useState<MediaAsset | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<MediaAsset | null>(null);
 
-  const q = search.trim().toLowerCase();
-  const visible = props.items.filter(
-    (i) =>
-      (q === "" ||
-        i.originalFilename.toLowerCase().includes(q) ||
-        i.altText.toLowerCase().includes(q) ||
-        i.id.toLowerCase().includes(q)) &&
-      (folderFilter === "" || i.deliveryUrl.includes(`/${folderFilter}/`)) &&
-      (statusFilter === "" || i.status === statusFilter),
-  );
+  // Filtering is pure derivation of the loader payload, so memoize it:
+  // the grid re-renders on every keystroke otherwise.
+  const visible = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    return props.items.filter(
+      (i) =>
+        (q === "" ||
+          i.originalFilename.toLowerCase().includes(q) ||
+          i.altText.toLowerCase().includes(q) ||
+          i.id.toLowerCase().includes(q)) &&
+        (folderFilter === "" || i.deliveryUrl.includes(`/${folderFilter}/`)) &&
+        (statusFilter === "" || i.status === statusFilter),
+    );
+  }, [props.items, search, folderFilter, statusFilter]);
+
+  const hasFilters = search.trim() !== "" || folderFilter !== "" || statusFilter !== "";
+
+  function clearFilters() {
+    setSearch("");
+    setFolderFilter("");
+    setStatusFilter("");
+  }
 
   async function handleDelete() {
-    if (!deleteTarget) return;
+    if (deleteTarget === null) return;
     setPending(true);
     setError(null);
     try {
@@ -132,60 +138,27 @@ function MediaBody(props: { items: MediaItem[]; canWrite: boolean }) {
               className="cc-btn cc-btn-primary cc-btn-sm"
               onClick={() => setUploadOpen(true)}
             >
-              ⇪ Upload image
+              <Upload aria-hidden="true" className="h-3.5 w-3.5" />
+              Upload image
             </button>
           ) : undefined
         }
       />
       {error ? <CmsNotice kind="error">{error}</CmsNotice> : null}
-      {notice ? <CmsNotice kind="success">{notice}</CmsNotice> : null}
 
-      <div className="flex flex-wrap items-center gap-2">
-        <label className="min-w-52 flex-1 sm:max-w-xs">
-          <span className="sr-only">Search media</span>
-          <input
-            className="cc-input"
-            type="search"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search filename, alt text, id…"
-          />
-        </label>
-        <label className="flex items-center gap-2 text-sm" htmlFor="media-folder-filter">
-          <span className="text-xs opacity-70">Folder</span>
-          <CmsSelect
-            id="media-folder-filter"
-            value={folderFilter}
-            onChange={setFolderFilter}
-            options={[{ value: "", label: "All" }, ...FOLDERS.map((f) => ({ value: f, label: f }))]}
-          />
-        </label>
-        <label className="flex items-center gap-2 text-sm" htmlFor="media-status-filter">
-          <span className="text-xs opacity-70">Status</span>
-          <CmsSelect
-            id="media-status-filter"
-            value={statusFilter}
-            onChange={setStatusFilter}
-            options={[
-              { value: "", label: "All" },
-              { value: "ready", label: "ready" },
-              { value: "processing", label: "processing" },
-              { value: "failed", label: "failed" },
-              { value: "deleted", label: "deleted" },
-            ]}
-          />
-        </label>
-        <button
-          type="button"
-          className="cc-btn cc-btn-ghost cc-btn-sm"
-          onClick={() => window.location.reload()}
-        >
-          Refresh
-        </button>
-      </div>
-      <p className="text-xs opacity-60" role="status">
-        Showing {visible.length} of {props.items.length}.
-      </p>
+      <MediaToolbar
+        search={search}
+        onSearch={setSearch}
+        folder={folderFilter}
+        onFolder={setFolderFilter}
+        status={statusFilter}
+        onStatus={setStatusFilter}
+        onRefresh={() => window.location.reload()}
+        onClear={clearFilters}
+        canClear={hasFilters}
+        visibleCount={visible.length}
+        totalCount={props.items.length}
+      />
 
       <div>
         <CmsSectionTitle>Assets</CmsSectionTitle>
@@ -205,80 +178,43 @@ function MediaBody(props: { items: MediaItem[]; canWrite: boolean }) {
                     className="cc-btn cc-btn-primary cc-btn-sm"
                     onClick={() => setUploadOpen(true)}
                   >
-                    ⇪ Upload image
+                    <Upload aria-hidden="true" className="h-3.5 w-3.5" />
+                    Upload image
+                  </button>
+                ) : hasFilters ? (
+                  <button
+                    type="button"
+                    className="cc-btn cc-btn-outline cc-btn-sm"
+                    onClick={clearFilters}
+                  >
+                    Clear filters
                   </button>
                 ) : undefined
               }
             />
           </div>
         ) : (
-          <ul className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-4">
+          <ul className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 2xl:grid-cols-5">
             {visible.map((item) => (
-              <li key={item.id} className="cc-panel min-w-0 overflow-hidden" style={{ padding: 0 }}>
-                <button
-                  type="button"
-                  className="block w-full outline-none focus-visible:ring-2 focus-visible:ring-[var(--cc-accent)]"
-                  onClick={() => setPreview(item)}
-                  title={`Preview ${item.originalFilename}`}
-                >
-                  <img
-                    src={item.deliveryUrl}
-                    alt=""
-                    loading="lazy"
-                    className="aspect-square w-full bg-black/20 object-cover"
-                    onError={(e) => {
-                      (e.target as HTMLImageElement).style.display = "none";
-                    }}
-                  />
-                </button>
-                <div className="space-y-1 px-3 py-2.5">
-                  <p className="truncate text-sm font-medium" title={item.originalFilename}>
-                    {item.originalFilename}
-                  </p>
-                  <p className="truncate font-mono text-[11px] opacity-60" title={item.id}>
-                    {item.provider} · {item.mimeType} · {item.status}
-                  </p>
-                  <p className="truncate text-xs opacity-60" title={item.altText || undefined}>
-                    {item.altText || "no alt text"}
-                  </p>
-                  <div className="flex flex-wrap gap-1.5 pt-1">
-                    <button
-                      type="button"
-                      className="cc-btn cc-btn-ghost cc-btn-sm"
-                      onClick={() =>
-                        void navigator.clipboard?.writeText(item.deliveryUrl).then(
-                          () => cmsToast("success", "Delivery URL copied."),
-                          () => cmsToast("error", "Copy failed."),
-                        )
-                      }
-                    >
-                      Copy URL
-                    </button>
-                    {props.canWrite ? (
-                      <button
-                        type="button"
-                        className="cc-btn cc-btn-ghost cc-btn-sm text-[var(--cc-danger)]"
-                        onClick={() => setDeleteTarget(item)}
-                      >
-                        Delete
-                      </button>
-                    ) : null}
-                  </div>
-                </div>
-              </li>
+              <CmsMediaAssetCard
+                key={item.id}
+                asset={item}
+                canWrite={props.canWrite}
+                onOpen={setPreview}
+                onDelete={setDeleteTarget}
+              />
             ))}
           </ul>
         )}
       </div>
 
-      <UploadDialog
+      <CmsMediaUploadDialog
         open={uploadOpen}
         pending={pending}
         onClose={() => setUploadOpen(false)}
         onUpload={async (file, altText, folder) => {
           setPending(true);
           setError(null);
-          setNotice(null);
           try {
             if (!file.type.startsWith("image/"))
               throw new Error("Only image uploads are accepted.");
@@ -292,7 +228,6 @@ function MediaBody(props: { items: MediaItem[]; canWrite: boolean }) {
                 folder,
               },
             });
-            setNotice(`Uploaded ${file.name}.`);
             cmsToast("success", `Uploaded ${file.name}.`);
             void result;
             window.location.reload();
@@ -304,175 +239,102 @@ function MediaBody(props: { items: MediaItem[]; canWrite: boolean }) {
         }}
       />
 
-      <CmsDialog
-        open={preview !== null}
-        onClose={() => setPreview(null)}
-        title={preview?.originalFilename ?? "Preview"}
-        wide
-      >
-        {preview ? (
-          <div className="space-y-3">
-            <img
-              src={preview.deliveryUrl}
-              alt={preview.altText || "Media preview"}
-              className="max-h-96 w-full rounded-lg border object-contain cc-hairline"
-            />
-            <dl className="space-y-1.5 text-[13px]">
-              <div className="flex flex-wrap justify-between gap-2">
-                <dt className="opacity-60">Asset id</dt>
-                <dd className="font-mono">{preview.id}</dd>
-              </div>
-              <div className="flex flex-wrap justify-between gap-2">
-                <dt className="opacity-60">Provider</dt>
-                <dd className="font-mono">{preview.provider}</dd>
-              </div>
-              <div className="flex flex-wrap justify-between gap-2">
-                <dt className="opacity-60">MIME</dt>
-                <dd className="font-mono">{preview.mimeType}</dd>
-              </div>
-              <div className="flex flex-wrap justify-between gap-2">
-                <dt className="opacity-60">Status</dt>
-                <dd className="font-mono">{preview.status}</dd>
-              </div>
-              <div className="flex flex-wrap justify-between gap-2">
-                <dt className="opacity-60">Alt text</dt>
-                <dd className="max-w-60">{preview.altText || "—"}</dd>
-              </div>
-              <div className="flex flex-wrap justify-between gap-2">
-                <dt className="opacity-60">URL</dt>
-                <dd className="max-w-60 break-all font-mono text-xs">{preview.deliveryUrl}</dd>
-              </div>
-            </dl>
-            <div className="flex flex-wrap gap-2">
-              <button
-                type="button"
-                className="cc-btn cc-btn-outline cc-btn-sm"
-                onClick={() =>
-                  void navigator.clipboard?.writeText(preview.deliveryUrl).then(
-                    () => cmsToast("success", "Delivery URL copied."),
-                    () => cmsToast("error", "Copy failed."),
-                  )
-                }
-              >
-                Copy URL
-              </button>
-              <button
-                type="button"
-                className="cc-btn cc-btn-ghost cc-btn-sm"
-                onClick={() => setPreview(null)}
-              >
-                Close
-              </button>
-            </div>
-          </div>
-        ) : null}
-      </CmsDialog>
+      <CmsMediaAssetDialog asset={preview} onClose={() => setPreview(null)} />
 
-      <CmsDialog
+      <CmsConfirmDialog
         open={deleteTarget !== null}
         onClose={() => setDeleteTarget(null)}
-        title="Delete asset"
-      >
-        <p className="text-sm leading-relaxed opacity-80">
-          Delete {deleteTarget?.originalFilename}? Assets still referenced by content are protected
-          and cannot be deleted. Unreferenced deletions tombstone the row (never hard-delete) and
-          remove bytes from R2 when applicable.
-        </p>
-        <div className="mt-5 flex justify-end gap-2">
-          <button
-            type="button"
-            className="cc-btn cc-btn-ghost cc-btn-sm"
-            onClick={() => setDeleteTarget(null)}
-          >
-            Cancel
-          </button>
-          <button
-            type="button"
-            className="cc-btn cc-btn-danger-outline cc-btn-sm"
-            disabled={pending}
-            onClick={handleDelete}
-          >
-            {pending ? "Deleting…" : "Delete"}
-          </button>
-        </div>
-      </CmsDialog>
+        onConfirm={handleDelete}
+        title={`Delete ${deleteTarget?.originalFilename}?`}
+        body="Assets still referenced by content are protected and cannot be deleted. Unreferenced deletions tombstone the row (never hard-delete) and remove bytes from R2 when applicable."
+        confirmLabel="Delete"
+        pending={pending}
+      />
     </div>
   );
 }
 
-function UploadDialog(props: {
-  open: boolean;
-  pending: boolean;
-  onClose: () => void;
-  onUpload: (file: File, altText: string, folder: string) => Promise<void>;
+/**
+ * Search / filter / refresh row. Grouped into one bordered panel so the
+ * controls read as a single toolbar rather than loose floating inputs, and
+ * the result count sits with them instead of on a line of its own.
+ */
+function MediaToolbar(props: {
+  search: string;
+  onSearch: (value: string) => void;
+  folder: string;
+  onFolder: (value: string) => void;
+  status: string;
+  onStatus: (value: string) => void;
+  onRefresh: () => void;
+  onClear: () => void;
+  canClear: boolean;
+  visibleCount: number;
+  totalCount: number;
 }) {
-  const [file, setFile] = useState<File | null>(null);
-  const [altText, setAltText] = useState("");
-  const [folder, setFolder] = useState("misc");
-  const [localError, setLocalError] = useState<string | null>(null);
   return (
-    <CmsDialog open={props.open} onClose={props.onClose} title="Upload image">
-      <div className="space-y-4">
-        <CmsField
-          label="Folder"
-          description="Deterministic R2 key folder. Re-uploading the same name replaces the object."
-        >
-          <CmsSelect
-            id="upload-media-folder"
-            value={folder}
-            onChange={setFolder}
-            width="full"
-            options={FOLDERS.map((f) => ({ value: f, label: f }))}
-          />
-        </CmsField>
-        <CmsField label="Alt text" description="Describes the image for screen readers.">
-          <input
-            className="cc-input"
-            value={altText}
-            onChange={(e) => setAltText(e.target.value)}
-            placeholder="Describe the image"
-          />
-        </CmsField>
-        <CmsField
-          label="File"
-          description="jpeg, png, webp, avif, gif — max 10 MB, magic bytes verified server-side."
-        >
-          <input
-            type="file"
-            className="cc-input"
-            accept="image/jpeg,image/png,image/webp,image/avif,image/gif"
-            disabled={props.pending}
-            onChange={(e) => {
-              setFile(e.target.files?.[0] ?? null);
-              setLocalError(null);
-            }}
-          />
-        </CmsField>
-        {localError ? (
-          <p className="text-sm text-[var(--cc-danger)]" role="alert">
-            {localError}
-          </p>
+    <div className="cc-panel flex flex-wrap items-center gap-2 px-3 py-2.5">
+      <label className="relative min-w-48 flex-1 sm:max-w-xs">
+        <span className="sr-only">Search media</span>
+        <Search
+          aria-hidden="true"
+          className="pointer-events-none absolute start-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 opacity-50"
+        />
+        <input
+          className="cc-input ps-8"
+          type="search"
+          value={props.search}
+          onChange={(e) => props.onSearch(e.target.value)}
+          placeholder="Search filename, alt text, id…"
+        />
+      </label>
+
+      <label className="flex items-center gap-2 text-sm" htmlFor="media-folder-filter">
+        <span className="text-xs opacity-70">Folder</span>
+        <CmsSelect
+          id="media-folder-filter"
+          value={props.folder}
+          onChange={props.onFolder}
+          options={[
+            { value: "", label: "All" },
+            ...MEDIA_FOLDERS.map((f) => ({ value: f, label: f })),
+          ]}
+        />
+      </label>
+
+      <label className="flex items-center gap-2 text-sm" htmlFor="media-status-filter">
+        <span className="text-xs opacity-70">Status</span>
+        <CmsSelect
+          id="media-status-filter"
+          value={props.status}
+          onChange={props.onStatus}
+          options={[
+            { value: "", label: "All" },
+            ...MEDIA_STATUSES.map((s) => ({ value: s, label: s })),
+          ]}
+        />
+      </label>
+
+      <div className="ms-auto flex items-center gap-2">
+        {props.canClear ? (
+          <button type="button" className="cc-btn cc-btn-ghost cc-btn-sm" onClick={props.onClear}>
+            Clear
+          </button>
         ) : null}
-        <div className="flex justify-end gap-2">
-          <button type="button" className="cc-btn cc-btn-ghost cc-btn-sm" onClick={props.onClose}>
-            Cancel
-          </button>
-          <button
-            type="button"
-            className="cc-btn cc-btn-primary cc-btn-sm"
-            disabled={props.pending || !file}
-            onClick={() => {
-              if (!file) {
-                setLocalError("Choose a file first.");
-                return;
-              }
-              void props.onUpload(file, altText, folder);
-            }}
-          >
-            {props.pending ? "Uploading…" : "Upload"}
-          </button>
-        </div>
+        <button
+          type="button"
+          className="cc-btn cc-btn-ghost cc-btn-sm"
+          onClick={props.onRefresh}
+          aria-label="Refresh asset list"
+        >
+          <RefreshCw aria-hidden="true" className="h-3.5 w-3.5" />
+          Refresh
+        </button>
       </div>
-    </CmsDialog>
+
+      <p className="basis-full text-xs opacity-60" role="status">
+        Showing {props.visibleCount} of {props.totalCount}.
+      </p>
+    </div>
   );
 }

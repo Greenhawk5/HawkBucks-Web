@@ -331,6 +331,61 @@ select.cc-input {
 }
 
 /* ------------------------------------------------------------------ */
+/* Icon-only button — inline affordances beside a value                */
+/* A copy button must sit directly next to the value it copies, so it */
+/* is square and borderless rather than a full .cc-btn. Geometry is    */
+/* fixed (not content-driven) so rows of these stay optically aligned */
+/* next to text of any length. The 28px box still clears the 24px      */
+/* minimum target comfortably and matches .cc-btn-sm height.           */
+/* All properties are logical/RTL-safe.                               */
+/* ------------------------------------------------------------------ */
+
+.cc-icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  inline-size: 1.75rem;
+  block-size: 1.75rem;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: 0.375rem;
+  background-color: transparent;
+  color: var(--cc-mist);
+  cursor: pointer;
+  outline: none;
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease,
+    color 0.15s ease;
+}
+
+.cc-icon-btn:hover:not(:disabled) {
+  background-color: var(--cc-panel-2);
+  border-color: var(--cc-edge-2);
+  color: var(--cc-frost);
+}
+
+.cc-icon-btn:focus-visible {
+  border-color: var(--cc-accent);
+  box-shadow: 0 0 0 2px oklch(0.82 0.23 145 / 35%);
+  color: var(--cc-accent);
+}
+
+.cc-icon-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Transient success state after a copy resolves. The accent tint plus
+   the swapped Check glyph means the state is never color-only. */
+.cc-icon-btn[data-copied="true"] {
+  color: var(--cc-accent);
+  border-color: var(--cc-edge);
+  background-color: oklch(0.82 0.23 145 / 12%);
+}
+
+/* ------------------------------------------------------------------ */
 /* Dashboard Quick actions — shared button + icon geometry              */
 /* One layout for every action: left-aligned label column, fixed 18px  */
 /* icon box, single gap token. No per-button offsets; RTL-safe via     */

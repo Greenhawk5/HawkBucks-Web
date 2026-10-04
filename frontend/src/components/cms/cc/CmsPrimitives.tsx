@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Link } from "@tanstack/react-router";
+import { Check, Copy } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 
@@ -495,12 +496,27 @@ export function CmsStatusTabs(props: {
 /* Dialog (confirm + generic)                                            */
 /* ------------------------------------------------------------------ */
 
+/**
+ * Dialog widths. `sm` is the default confirmation surface, `md` is the
+ * current `wide` value, and `lg` is a media/detail surface that only
+ * widens at the `lg` breakpoint so it never pushes a two-column layout
+ * onto a phone. Every value is a max-width, so the panel stays fluid
+ * and full-bleed on small screens.
+ */
+const DIALOG_WIDTHS = {
+  sm: "sm:max-w-lg",
+  md: "sm:max-w-2xl",
+  lg: "sm:max-w-2xl lg:max-w-4xl",
+} as const;
+
 export function CmsDialog(props: {
   open: boolean;
   onClose: () => void;
   title: string;
   children: ReactNode;
+  /** @deprecated Pass `size` instead. Kept so existing call sites are unchanged. */
   wide?: boolean;
+  size?: keyof typeof DIALOG_WIDTHS;
 }) {
   const ref = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -513,6 +529,7 @@ export function CmsDialog(props: {
     return () => window.removeEventListener("keydown", onKey);
   }, [props.open, props.onClose]);
   if (!props.open) return null;
+  const size = props.size ?? (props.wide ? "md" : "sm");
   return (
     <div className="fixed inset-0 z-[90] flex items-end justify-center p-0 sm:items-center sm:p-4">
       <div
@@ -527,7 +544,7 @@ export function CmsDialog(props: {
         aria-label={props.title}
         className={cn(
           "cc-panel-elevated relative max-h-[92dvh] w-full overflow-y-auto shadow-2xl",
-          props.wide ? "sm:max-w-2xl" : "sm:max-w-lg",
+          DIALOG_WIDTHS[size],
         )}
         style={{ borderRadius: "1rem" }}
       >
@@ -574,6 +591,68 @@ export function CmsConfirmDialog(props: {
         </button>
       </div>
     </CmsDialog>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/* Inline copy affordance — sits beside the value it copies             */
+/* Local to the value on purpose: copying an asset id must never be a  */
+/* page-wide "Copy URL" button, because the action has to be reachable  */
+/* at the point the user is reading the id.                             */
+/*                                                                     */
+/* Success is communicated three ways so it is never color-only: the    */
+/* glyph swaps Copy -> Check, `data-copied` tints the box, and the      */
+/* accessible name changes to "… copied". The polite live region in the  */
+/* CMS toast host announces it too.                                     */
+/* ------------------------------------------------------------------ */
+
+const COPIED_RESET_MS = 1800;
+
+export function CmsCopyButton(props: {
+  /** Exact text placed on the clipboard. Never a derived/shortened form. */
+  value: string;
+  /** Describes the VALUE, not the button: "Copy asset ID", not "Copy". */
+  label: string;
+  className?: string;
+}) {
+  const [copied, setCopied] = useState(false);
+  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Never leave a timer running past unmount (the dialog closes right
+  // after a copy in the common case).
+  useEffect(
+    () => () => {
+      if (timer.current !== null) clearTimeout(timer.current);
+    },
+    [],
+  );
+
+  async function handleCopy() {
+    try {
+      await navigator.clipboard.writeText(props.value);
+      setCopied(true);
+      if (timer.current !== null) clearTimeout(timer.current);
+      timer.current = setTimeout(() => setCopied(false), COPIED_RESET_MS);
+    } catch {
+      cmsToast("error", "Copy failed. Your browser blocked clipboard access.");
+    }
+  }
+
+  return (
+    <button
+      type="button"
+      className={cn("cc-icon-btn", props.className)}
+      data-copied={copied ? "true" : undefined}
+      aria-label={copied ? `${props.label} — copied` : props.label}
+      title={copied ? "Copied" : props.label}
+      onClick={() => void handleCopy()}
+    >
+      {copied ? (
+        <Check aria-hidden="true" className="h-3.5 w-3.5" />
+      ) : (
+        <Copy aria-hidden="true" className="h-3.5 w-3.5" />
+      )}
+    </button>
   );
 }
 
