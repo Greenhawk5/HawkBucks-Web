@@ -11,7 +11,7 @@
  *   * session row id stored — NEVER raw session tokens or hashes.
  *
  * Pure helpers (parseDeviceLabel, hashClientIp, readCoarseGeo) are unit
- * tested; recordAuthEvent is best-effort (never breaks login/logout when D1
+ * tested; recordAuthTelemetry is best-effort (never breaks login/logout when D1
  * is missing the new table — e.g. a deployment that has not run migration
  * 0011 yet — it logs and returns).
  */
@@ -38,6 +38,41 @@ export interface AuthTelemetryInput {
   /** Raw User-Agent — parsed to a short label, never stored. */
   userAgent?: string | null | undefined;
   at?: string | undefined;
+}
+
+/**
+ * Single entry point every auth boundary records through.
+ *
+ * WHY THIS EXISTS (the login/logout telemetry bug): the boundaries used to call
+ * `void import("./auth-telemetry.server").then((m) => m.recordAuthTelemetry(...))`.
+ * That is fire-and-forget, and it is WRONG on Cloudflare Workers/Pages: the
+ * server-function handler returns immediately, the response is sent, and the
+ * runtime is then free to freeze or tear down the isolate. The dynamic `import()`
+ * and the D1 INSERT that follow it are not part of the handler's awaited
+ * promise chain, so they are routinely cancelled before they ever reach D1.
+ * The net effect was that `cms_auth_events` stayed empty, which is exactly what
+ * Activity & Security reported ("Successful logins: 0", "Failed logins: 0",
+ * "No login events in range") while authentication was demonstrably happening.
+ *
+ * This helper AWAITS both the module load and the insert, so the row is durable
+ * before the handler returns. It stays best-effort exactly as before — it never
+ * throws — so telemetry still cannot fail a login, and the generic 401/403
+ * surface (no oracle distinguishing Turnstile / password / account state) is
+ * untouched.
+ *
+ * Call it with `await`.
+ */
+export async function recordAuthEvent(db: D1Database, input: AuthTelemetryInput): Promise<void> {
+  try {
+    // Same module: call the writer directly rather than re-importing it. The
+    // dynamic import that STILL matters lives at the call sites in
+    // admin.loader.ts / auth.server.ts, which must not statically pull a
+    // server-only module into the client bundle.
+    await recordAuthTelemetry(db, input);
+  } catch {
+    // Telemetry is advisory — an authentication outcome must never be changed
+    // by a failed audit write (missing table, D1 hiccup, no request context).
+  }
 }
 
 export type DeviceKind = "desktop" | "mobile" | "tablet" | "unknown";

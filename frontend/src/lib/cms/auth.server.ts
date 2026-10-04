@@ -313,31 +313,31 @@ export async function resolveSessionUser(
     // Wave 2 — expiry telemetry (best-effort; distinguishes absolute expiry
     // here vs idle expiry below by kind only in the audit row metadata path —
     // kind stays session_expired for both, outcome is informational).
-    void import("./auth-telemetry.server").then(({ recordAuthTelemetry }) =>
-      recordAuthTelemetry(db, {
-        kind: "session_expired",
-        outcome: "success",
-        username: row.username,
-        actorId: row.user_id,
-        sessionId: row.session_id,
-        at: now.toISOString(),
-      }),
-    );
+    // Awaited: this runs INSIDE a session resolution that is about to return
+    // null, so an un-awaited write would never reach D1.
+    const { recordAuthEvent } = await import("./auth-telemetry.server");
+    await recordAuthEvent(db, {
+      kind: "session_expired",
+      outcome: "success",
+      username: row.username,
+      actorId: row.user_id,
+      sessionId: row.session_id,
+      at: now.toISOString(),
+    });
     return null;
   }
   // Idle deadline second: unparseable expires_at fails closed.
   if (isExpired(row.expires_at, now)) {
     // Wave 2 — idle-timeout expiry telemetry (best-effort, same contract).
-    void import("./auth-telemetry.server").then(({ recordAuthTelemetry }) =>
-      recordAuthTelemetry(db, {
-        kind: "session_expired",
-        outcome: "success",
-        username: row.username,
-        actorId: row.user_id,
-        sessionId: row.session_id,
-        at: now.toISOString(),
-      }),
-    );
+    const { recordAuthEvent } = await import("./auth-telemetry.server");
+    await recordAuthEvent(db, {
+      kind: "session_expired",
+      outcome: "success",
+      username: row.username,
+      actorId: row.user_id,
+      sessionId: row.session_id,
+      at: now.toISOString(),
+    });
     return null;
   }
   const idleMs = CMS_SESSION_IDLE_TIMEOUT_SECONDS * 1000;

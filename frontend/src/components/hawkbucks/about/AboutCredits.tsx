@@ -22,6 +22,11 @@ const ICON_CLASS =
  * through the router or any locale/URL helper — they leave the site, so no
  * locale prefix, relative resolution or transformation can apply to them.
  *
+ * ORDER — the array order IS the visual order (GitHub, Telegram, LinkedIn,
+ * Portfolio). The `<ul>` is a plain wrapping flex row with no `order-*` utility,
+ * so reordering is done here at the single source of truth and never with a
+ * CSS-only hack that would drift from the data.
+ *
  * ICON COLOR — the four icons must read as ONE set. Two are external SVG assets
  * whose `fill="#ffffff"` is baked into the file, so CSS cannot recolor them; the
  * two Lucide icons paint with `currentColor`. Left alone the Lucide pair inherits
@@ -39,12 +44,12 @@ export function AboutCredits() {
   const links: { label: string; href: string; icon?: string; Icon?: LucideIcon }[] = [
     { label: "GitHub", href: "https://github.com/Greenhawk5", icon: ASSETS.github },
     { label: "Telegram", href: "https://t.me/Greenhawk5", icon: ASSETS.telegram },
-    { label: t("about.creditsPortfolio"), href: "https://alifaniani.ir" },
     {
       label: "LinkedIn",
       href: "https://www.linkedin.com/in/ali-faniani",
       Icon: Linkedin,
     },
+    { label: t("about.creditsPortfolio"), href: "https://alifaniani.ir" },
   ];
 
   return (

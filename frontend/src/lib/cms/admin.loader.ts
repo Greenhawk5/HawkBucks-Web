@@ -140,14 +140,18 @@ export const adminLogin = createServerFn({ method: "POST" })
       noteLoginSuccess(username);
       // Wave 2 — auth telemetry (best-effort, privacy-scrubbed at write;
       // never blocks authentication). Outcome only — no secrets, no raw IP.
-      void import("./auth-telemetry.server").then(({ recordAuthTelemetry }) =>
-        recordAuthTelemetry(db, {
-          kind: "login",
-          outcome: "success",
-          username,
-          actorId: session.user.id,
-        }),
-      );
+      // AWAITED: recordAuthEvent resolves the module load AND the INSERT before
+      // this handler returns, so the row is durable in D1. The previous
+      // `void import(...).then(...)` fire-and-forget let the runtime tear the
+      // isolate down mid-write, which is why Activity & Security always read
+      // 0 logins. It never throws, so the login result is unchanged.
+      const { recordAuthEvent } = await import("./auth-telemetry.server");
+      await recordAuthEvent(db, {
+        kind: "login",
+        outcome: "success",
+        username,
+        actorId: session.user.id,
+      });
       return { authenticated: true, user: session.user, expiresAt: session.expiresAt };
     } catch (error) {
       noteLoginFailure(username);
@@ -158,9 +162,11 @@ export const adminLogin = createServerFn({ method: "POST" })
       if (error instanceof CmsAuthError) {
         const status = error.status;
         if (status === 401 || status === 403) {
-          void import("./auth-telemetry.server").then(({ recordAuthTelemetry }) =>
-            recordAuthTelemetry(db, { kind: "login", outcome: "failure", username }),
-          );
+          // Awaited for the same durability reason as the success path — the
+          // throw below re-throws immediately, so an un-awaited write would be
+          // discarded along with the response.
+          const { recordAuthEvent } = await import("./auth-telemetry.server");
+          await recordAuthEvent(db, { kind: "login", outcome: "failure", username });
         }
       }
       throw error;
@@ -179,14 +185,14 @@ export const adminLogout = createServerFn({ method: "POST" }).handler(
     await performRequestLogout(db);
     // Wave 2 — logout telemetry (best-effort; anonymous logout still records
     // the event with a null actor so session-end volume stays honest).
-    void import("./auth-telemetry.server").then(({ recordAuthTelemetry }) =>
-      recordAuthTelemetry(db, {
-        kind: "logout",
-        outcome: "success",
-        username: before?.user.username ?? null,
-        actorId: before?.user.id ?? null,
-      }),
-    );
+    // Awaited so the row is durable before the handler returns.
+    const { recordAuthEvent } = await import("./auth-telemetry.server");
+    await recordAuthEvent(db, {
+      kind: "logout",
+      outcome: "success",
+      username: before?.user.username ?? null,
+      actorId: before?.user.id ?? null,
+    });
     return { ok: true };
   },
 );

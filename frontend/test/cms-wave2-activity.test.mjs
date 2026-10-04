@@ -151,13 +151,62 @@ test("wave2: telemetry never throws (missing table degrades silently)", async ()
 
 test("wave2: login + logout boundaries record auth telemetry", async () => {
   const adminLoader = await file("../src/lib/cms/admin.loader.ts");
-  assert.match(adminLoader, /recordAuthTelemetry/);
+  assert.match(adminLoader, /recordAuthEvent/);
   assert.match(adminLoader, /kind: "login"/);
   assert.match(adminLoader, /outcome: "success"/);
   assert.match(adminLoader, /outcome: "failure"/);
   assert.match(adminLoader, /kind: "logout"/);
   // Generic failure surface preserved — no oracle distinguishes causes.
   assert.match(adminLoader, /Invalid credentials/);
+});
+
+// Regression guard for the login/logout telemetry bug: Activity & Security
+// reported 0 successful logins, 0 failed logins and "No login events in range"
+// even though authentication was happening. The events were generated but
+// thrown away: the boundaries recorded them with a detached
+// `void import(...).then(...)`, which is outside the handler's awaited promise
+// chain, so on Cloudflare the isolate was free to freeze/tear down once the
+// response was sent and the INSERT never reached D1.
+//
+// Every auth-event write MUST therefore be awaited. This is a source contract
+// (the bug was a runtime/lifecycle bug on a platform no unit test can emulate),
+// and it is the exact line that regressed.
+test("wave2: auth telemetry writes are AWAITED, never fire-and-forget", async () => {
+  for (const f of ["../src/lib/cms/admin.loader.ts", "../src/lib/cms/auth.server.ts"]) {
+    const source = await file(f);
+    // No detached write may survive anywhere in an auth boundary.
+    assert.doesNotMatch(
+      source,
+      /void\s+import\([^)]*auth-telemetry/,
+      `${f} must not record auth telemetry via a detached import — the write is discarded when the response is sent`,
+    );
+    // Every recordAuthEvent call must be awaited.
+    for (const call of source.matchAll(/(await\s+)?recordAuthEvent\(/g)) {
+      assert.ok(
+        call[1],
+        `${f}: recordAuthEvent( must be awaited — an un-awaited auth-event write never reaches D1`,
+      );
+    }
+    // And it must resolve the module itself through `await import`, so the
+    // dynamic module load is part of the handler's promise chain too.
+    assert.match(
+      source,
+      /await import\("\.\/auth-telemetry\.server"\)/,
+      `${f} must await the server-only telemetry module load`,
+    );
+  }
+});
+
+test("wave2: the telemetry entry point never throws (advisory, not load-bearing)", async () => {
+  // Telemetry must not be able to fail a login/logout, even if D1 or the table
+  // is unavailable — so the single writer swallows everything.
+  const db = {
+    prepare() {
+      throw new Error("no such table: cms_auth_events");
+    },
+  };
+  await telemetry.recordAuthEvent(db, { kind: "login", outcome: "success" });
+  await telemetry.recordAuthEvent(db, { kind: "logout", outcome: "success" });
 });
 
 test("wave2: session expiry records session_expired telemetry", async () => {
