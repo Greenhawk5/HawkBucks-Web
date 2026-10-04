@@ -21,13 +21,25 @@ import {
  * Asset detail modal.
  *
  * Interaction contract (deliberate, do not collapse these):
- *  - Clicking the URL TEXT opens the real delivery URL in a new tab.
- *  - Clicking the COPY ICON beside it copies that same URL.
+ *  - Clicking the URL TEXT opens the real delivery URL in a new tab
+ *    (`target="_blank"` + `rel="noopener noreferrer"`).
+ *  - Clicking the COPY ICON beside it copies that same URL verbatim.
  *  - The row itself is inert — it is not a copy target, so a user aiming
- *    at the link never gets a silent clipboard write instead of a tab.
+ *    at the link never gets a silent clipboard write instead of a tab,
+ *    and a user aiming at the icon never navigates.
+ *
+ * Both icons go through the one shared `CmsCopyButton`, so clipboard
+ * success/failure behaves identically here and on the grid card. The
+ * button carries its own `aria-label`/`title` and stops propagation, so
+ * pressing it can never trigger the card's preview handler underneath.
  *
  * Copy actions live beside the values they copy. There is intentionally
  * no large "Copy URL" button in the footer; closing is the header ✕.
+ *
+ * Values are copied EXACTLY as stored — `asset.id` for the identity row,
+ * `asset.deliveryUrl` for the URL row. Nothing is trimmed, shortened or
+ * re-derived, because the id is what content rows store and the URL is
+ * what gets pasted into embeds.
  */
 export function CmsMediaAssetDialog(props: { asset: MediaAsset | null; onClose: () => void }) {
   const asset = props.asset;
@@ -88,6 +100,7 @@ export function CmsMediaAssetDialog(props: { asset: MediaAsset | null; onClose: 
 
             <MetadataGroup title="Public URL">
               <ValueRow label="Delivery URL">
+                {/* OPEN action — new tab, same page keeps the modal. */}
                 <a
                   href={asset.deliveryUrl}
                   target="_blank"
@@ -101,6 +114,7 @@ export function CmsMediaAssetDialog(props: { asset: MediaAsset | null; onClose: 
                     className="mt-0.5 h-3 w-3 shrink-0 opacity-70 rtl:scale-x-[-1]"
                   />
                 </a>
+                {/* COPY action — clipboard only, never navigates. */}
                 <CmsCopyButton
                   value={asset.deliveryUrl}
                   label={`Copy delivery URL for ${asset.originalFilename}`}
@@ -113,6 +127,7 @@ export function CmsMediaAssetDialog(props: { asset: MediaAsset | null; onClose: 
                 <span className="min-w-0 flex-1 break-all font-mono text-xs leading-relaxed">
                   {asset.id}
                 </span>
+                {/* Plain text: no link, no copy handler on the value itself. */}
                 <CmsCopyButton
                   value={asset.id}
                   label={`Copy asset ID for ${asset.originalFilename}`}

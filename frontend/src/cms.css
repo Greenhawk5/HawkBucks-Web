@@ -139,6 +139,88 @@ select.cc-input {
 }
 
 /* ------------------------------------------------------------------ */
+/* Search field — a text input with a leading icon                     */
+/*                                                                     */
+/* WHY THIS IS A PRIMITIVE AND NOT `ps-8` + `absolute`                  */
+/* The obvious composition is `<label class="relative">` + absolutely */
+/* positioned icon + `cc-input ps-8`. That does not work here, and the */
+/* reason is worth preserving:                                        */
+/*                                                                     */
+/*   Tailwind v4 emits every utility inside `@layer utilities`         */
+/*   (confirmed in the built styles-DjxAwyA8.css), while cms.css is a */
+/*   SEPARATE, UNLAYERED <link> (src/routes/__root.tsx). In the CSS    */
+/*   cascade, unlayered author rules outrank ALL layered rules no       */
+/*   matter the specificity or the link order. So `.cc-input`'s        */
+/*   `padding: .5rem .75rem` silently beat `.ps-8`'s                  */
+/*   `padding-inline-start: 2rem`, the text started at 12px, and the   */
+/*   icon offset by 12px sat on top of it. Bumping `ps-*` upward       */
+/*   would just move the collision somewhere else.                      */
+/*                                                                     */
+/* So the box, the icon and the input padding are defined TOGETHER     */
+/* here, as one unlayered rule set that cannot lose the cascade. The   */
+/* icon is an in-flow flex item separated by `gap` rather than an      */
+/* abspos overlay, which makes overlap structurally impossible, puts    */
+/* the caret after the gap for free, and holds at every width and in   */
+/* RTL (flex `gap` and `padding-inline` both mirror).                  */
+/*                                                                     */
+/* Sizing mirrors the previous `min-w-48 flex-1 sm:max-w-xs` utilities */
+/* so the toolbar's flex-wrap behaviour is unchanged.                  */
+/* ------------------------------------------------------------------ */
+
+.cc-search-field {
+  position: relative; /* containing block for the label's sr-only span */
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex: 1 1 0%;
+  min-inline-size: 12rem; /* was min-w-48 */
+  max-inline-size: 24rem; /* was sm:max-w-xs */
+  border: 1px solid var(--cc-edge-2);
+  border-radius: 0.5rem;
+  background-color: oklch(0.15 0.02 160);
+  padding-inline: 0.75rem;
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+.cc-search-field:focus-within {
+  border-color: var(--cc-accent);
+  box-shadow: 0 0 0 2px oklch(0.82 0.23 145 / 35%);
+}
+
+.cc-search-field-icon {
+  flex-shrink: 0;
+  inline-size: 0.875rem;
+  block-size: 0.875rem;
+  color: var(--cc-mist);
+  opacity: 0.75;
+  pointer-events: none;
+}
+
+/* The input owns no border/background of its own — the wrapper is the
+   box — so its inline padding is 0 and the caret begins exactly one
+   `gap` after the icon. */
+.cc-search-field-input {
+  flex: 1 1 auto;
+  min-inline-size: 0;
+  inline-size: 100%;
+  border: 0;
+  border-radius: 0;
+  background-color: transparent;
+  color: var(--cc-frost);
+  padding-block: 0.5rem;
+  padding-inline: 0;
+  font-size: 0.875rem;
+  outline: none;
+}
+
+.cc-search-field-input::placeholder {
+  color: var(--cc-mist);
+  opacity: 0.6;
+}
+
+/* ------------------------------------------------------------------ */
 /* Control Center select (Radix trigger + menu, HawkBucks surface)      */
 /* Uses logical properties throughout so RTL locales mirror correctly.  */
 /* ------------------------------------------------------------------ */

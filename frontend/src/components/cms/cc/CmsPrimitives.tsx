@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Link } from "@tanstack/react-router";
 import { Check, Copy } from "lucide-react";
 
+import { writeClipboardText } from "@/lib/clipboard";
 import { cn } from "@/lib/utils";
 
 /* ------------------------------------------------------------------ */
@@ -600,10 +601,21 @@ export function CmsConfirmDialog(props: {
 /* page-wide "Copy URL" button, because the action has to be reachable  */
 /* at the point the user is reading the id.                             */
 /*                                                                     */
-/* Success is communicated three ways so it is never color-only: the    */
-/* glyph swaps Copy -> Check, `data-copied` tints the box, and the      */
-/* accessible name changes to "… copied". The polite live region in the  */
-/* CMS toast host announces it too.                                     */
+/* This is the ONE copy control in the Control Center. Every caller     */
+/* supplies the exact string to copy, so the clipboard mechanics, the   */
+/* success treatment and the failure wording can never drift apart      */
+/* between the card and the detail dialog.                              */
+/*                                                                     */
+/* Success is communicated two ways so it is never color-only: the       */
+/* glyph swaps Copy -> Check AND `data-copied` tints the box. The       */
+/* button is also the live region for its own state — its accessible    */
+/* name changes to "… — copied" while a screen reader is focused on it, */
+/* so it re-announces without stealing focus.                            */
+/*                                                                     */
+/* `onClick` stops propagation deliberately: this button is frequently   */
+/* a SIBLING of an interactive card (never a child, to keep the DOM     */
+/* valid), but stopping here guarantees that pressing Copy can never     */
+/* bubble into an ancestor's open/preview handler.                      */
 /* ------------------------------------------------------------------ */
 
 const COPIED_RESET_MS = 1800;
@@ -628,14 +640,15 @@ export function CmsCopyButton(props: {
   );
 
   async function handleCopy() {
-    try {
-      await navigator.clipboard.writeText(props.value);
-      setCopied(true);
-      if (timer.current !== null) clearTimeout(timer.current);
-      timer.current = setTimeout(() => setCopied(false), COPIED_RESET_MS);
-    } catch {
+    // Never let a clipboard rejection escape as an unhandled rejection.
+    const ok = await writeClipboardText(props.value);
+    if (!ok) {
       cmsToast("error", "Copy failed. Your browser blocked clipboard access.");
+      return;
     }
+    setCopied(true);
+    if (timer.current !== null) clearTimeout(timer.current);
+    timer.current = setTimeout(() => setCopied(false), COPIED_RESET_MS);
   }
 
   return (
@@ -645,7 +658,11 @@ export function CmsCopyButton(props: {
       data-copied={copied ? "true" : undefined}
       aria-label={copied ? `${props.label} — copied` : props.label}
       title={copied ? "Copied" : props.label}
-      onClick={() => void handleCopy()}
+      onClick={(e) => {
+        // Keep an enclosing card/link/preview handler from also firing.
+        e.stopPropagation();
+        void handleCopy();
+      }}
     >
       {copied ? (
         <Check aria-hidden="true" className="h-3.5 w-3.5" />

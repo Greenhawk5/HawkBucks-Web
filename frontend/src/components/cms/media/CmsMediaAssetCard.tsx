@@ -67,10 +67,11 @@ export function CmsMediaAssetCard(props: {
           </p>
 
           <div className="mt-auto flex items-center justify-between gap-1 pt-1">
-            <CmsCopyButton
-              value={asset.deliveryUrl}
-              label={`Copy delivery URL for ${asset.originalFilename}`}
-            />
+            {/* Copies THIS card's asset id — the identifier a content row
+                stores — not the filename and not the delivery URL. The id is
+                read from the card's own `asset`, so it can never drift onto a
+                neighbouring card. */}
+            <CmsCopyButton value={asset.id} label={`Copy asset ID for ${asset.originalFilename}`} />
             {props.canWrite ? (
               <button
                 type="button"

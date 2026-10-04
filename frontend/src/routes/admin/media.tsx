@@ -274,14 +274,16 @@ function MediaToolbar(props: {
 }) {
   return (
     <div className="cc-panel flex flex-wrap items-center gap-2 px-3 py-2.5">
-      <label className="relative min-w-48 flex-1 sm:max-w-xs">
+      {/* `.cc-search-field` owns the border, the icon's flex box and the
+          input's inline padding together — see the cms.css comment. The
+          previous `cc-input ps-8` + absolutely positioned icon lost the
+          cascade to `.cc-input`'s own `padding`, which is what put the
+          placeholder underneath the icon. */}
+      <label className="cc-search-field">
         <span className="sr-only">Search media</span>
-        <Search
-          aria-hidden="true"
-          className="pointer-events-none absolute start-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 opacity-50"
-        />
+        <Search aria-hidden="true" className="cc-search-field-icon" />
         <input
-          className="cc-input ps-8"
+          className="cc-search-field-input"
           type="search"
           value={props.search}
           onChange={(e) => props.onSearch(e.target.value)}
