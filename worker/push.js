@@ -40,19 +40,29 @@ export function isSupportedPushLanguage(value) {
   );
 }
 
-// Generic, non-sensitive copy. Frontend i18n dictionaries
-// (`notifications.pushTitle/pushBody`) are the authoring source of truth;
-// this table is the server delivery copy (no mission names/counts/user data).
+// WebBox daily-mission notification copy. The delivered copy lives HERE,
+// not in the frontend dictionaries: the browser never authors a push
+// payload, so `notifications.pushTitle/pushBody` (frontend/src/i18n/*) are
+// kept in sync as the authoring reference and as documentation of intent.
+// Conventions this table must keep:
+//   * title leads with the literal term "V-Bucks" in every locale (brand
+//     term, never translated) and states that missions are available.
+//   * body is a short second line that invites the user to look — it must
+//     never imply a delivery interval or a guarantee ("daily", "every
+//     morning"), because the cron polls every 30 minutes while each device
+//     is notified at most once per UTC day.
+//   * no mission names, counts, totals, or other per-day data: the copy is
+//     identical for every subscriber on a given day.
 export const PUSH_STRINGS = {
-  en: { title: 'HawkBucks', body: 'Daily V-Bucks missions are ready to check.' },
-  es: { title: 'HawkBucks', body: 'Las misiones diarias de V-Bucks están listas para revisar.' },
-  fr: { title: 'HawkBucks', body: 'Les missions V-Bucks du jour sont prêtes à consulter.' },
-  ru: { title: 'HawkBucks', body: 'Ежедневные миссии V-Bucks готовы к просмотру.' },
-  de: { title: 'HawkBucks', body: 'Die täglichen V-Bucks-Missionen sind bereit.' },
-  pt: { title: 'HawkBucks', body: 'As missões diárias de V-Bucks estão prontas para conferir.' },
-  zh: { title: 'HawkBucks', body: '每日 V-Bucks 任务已准备好查看。' },
-  'ar-SA': { title: 'HawkBucks', body: 'مهام V-Bucks اليومية جاهزة للاطلاع.' },
-  'fa-IR': { title: 'HawkBucks', body: 'مأموریت‌های روزانه V-Bucks آماده بررسی است.' }
+  en: { title: 'V-Bucks missions are available!', body: 'Check them out.' },
+  es: { title: '¡Las misiones de V-Bucks están disponibles!', body: 'Échales un vistazo.' },
+  fr: { title: 'Les missions V-Bucks sont disponibles !', body: 'Jetez-y un œil.' },
+  ru: { title: 'Миссии V-Bucks доступны!', body: 'Загляните и посмотрите.' },
+  de: { title: 'V-Bucks-Missionen sind verfügbar!', body: 'Schau sie dir an.' },
+  pt: { title: 'Missões de V-Bucks disponíveis!', body: 'Dê uma olhada.' },
+  zh: { title: 'V-Bucks 任务已上线！', body: '快来看看吧。' },
+  'ar-SA': { title: 'مهام V-Bucks متاحة!', body: 'تفضل باطلاع عليها.' },
+  'fa-IR': { title: 'مأموریت‌های V-Bucks در دسترس است!', body: 'نگاهی بیندازید.' }
 };
 
 export function pushStringsFor(language) {

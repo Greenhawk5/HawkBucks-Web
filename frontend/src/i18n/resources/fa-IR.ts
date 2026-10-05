@@ -375,8 +375,9 @@ export const faIR: TranslationDictionary = {
     close: "بستن خوشامدگویی",
   },
   notifications: {
-    pushTitle: "HawkBucks",
-    pushBody: "ماموریت‌های روزانه V-Bucks آماده بررسی است.",
+    pushTitle:
+      "\u0645\u0623\u0645\u0648\u0631\u06cc\u062a\u200c\u0647\u0627\u06cc V-Bucks \u062f\u0631 \u062f\u0633\u062a\u0631\u0633 \u0627\u0633\u062a!",
+    pushBody: "\u0646\u06af\u0627\u0647\u06cc \u0628\u06cc\u0646\u062f\u0627\u0632\u06cc\u062f.",
     enabled: "اعلان‌ها روشن است. HawkBucks بررسی ماموریت‌های روزانه را یادآوری می‌کند.",
     disabled: "اعلان‌ها خاموش است.",
     blocked: "اعلان‌های مرورگر مسدود است. می‌توانید از تنظیمات موقعیت دوباره فعال کنید.",

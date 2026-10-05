@@ -1,7 +1,14 @@
 // Phase 8 — Web Push service worker. Scope: root (/sw.js). No offline
 // caching, no PWA precache — push + notificationclick only.
 self.addEventListener("push", (event) => {
-  const fallback = { title: "HawkBucks", body: "Daily missions are ready.", url: "/" };
+  // Last-resort copy for a malformed/absent payload. Mirrors the English
+  // WebBox notification body in worker/push.js PUSH_STRINGS.en, so a
+  // broken payload never renders something less useful than a valid one.
+  const fallback = {
+    title: "V-Bucks missions are available!",
+    body: "Check them out.",
+    url: "/",
+  };
   let data = { ...fallback };
   try {
     const incoming = event.data ? event.data.json() : null;

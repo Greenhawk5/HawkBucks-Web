@@ -435,12 +435,102 @@ test("payload is generic, localized, and CTA preserves locale", () => {
     new TextDecoder().decode(push.buildPushPayload({ language: "en" }, "2026-09-24")),
   );
   assert.equal(en.url, "/");
-  assert.equal(en.title, "HawkBucks");
+  assert.equal(en.title, "V-Bucks missions are available!");
+  assert.equal(en.body, "Check them out.");
   for (const lang of ["en", "es", "fr", "ru", "de", "pt", "zh", "ar-SA", "fa-IR"]) {
     const s = push.pushStringsFor(lang);
-    assert.ok(s.title.includes("HawkBucks"));
-    assert.ok(s.body.includes("V-Bucks"));
+    assert.ok(s.title.includes("V-Bucks"), `${lang} title must keep the V-Bucks term`);
+    assert.ok(s.body.trim().length > 0, `${lang} body must be non-empty`);
   }
+});
+
+// REQUIREMENT 2 — the WebBox daily copy. The title announces availability and
+// the body is a short invitation. Retired wording must never come back, in
+// either the server table or the Service Worker fallback.
+test("WebBox daily notification copy announces availability in every locale", () => {
+  const locales = ["en", "es", "fr", "ru", "de", "pt", "zh", "ar-SA", "fa-IR"];
+  for (const lang of locales) {
+    const { title, body } = push.pushStringsFor(lang);
+    // The brand term stays untranslated and leads the title.
+    assert.ok(title.includes("V-Bucks"), `${lang} title must keep the V-Bucks term`);
+    assert.ok(title.trim().length > 0, `${lang} title must be non-empty`);
+    assert.ok(body.trim().length > 0, `${lang} body must be non-empty`);
+    // Both halves must survive the sw.js truncation limits (title 120, body 200).
+    assert.ok(title.length <= 120, `${lang} title is ${title.length} chars — too long`);
+    assert.ok(body.length <= 200, `${lang} body is ${body.length} chars — too long`);
+    // A notification is two short lines, not a paragraph.
+    assert.ok(body.length <= 60, `${lang} body is ${body.length} chars — not concise`);
+  }
+
+  // Retired wording must not reappear anywhere.
+  const banned = [
+    "Daily missions are ready",
+    "Daily V-Bucks missions are ready",
+    "ready to check",
+    "daily",
+    "every 30",
+    "every morning",
+    "guaranteed",
+  ];
+  for (const lang of locales) {
+    const { title, body } = push.pushStringsFor(lang);
+    for (const phrase of banned) {
+      for (const [field, value] of [
+        ["title", title],
+        ["body", body],
+      ]) {
+        assert.ok(
+          !value.toLowerCase().includes(phrase.toLowerCase()),
+          `${lang}.${field} must not contain "${phrase}"`,
+        );
+      }
+    }
+  }
+
+  // Exact English copy as specified.
+  assert.deepEqual(push.pushStringsFor("en"), {
+    title: "V-Bucks missions are available!",
+    body: "Check them out.",
+  });
+});
+
+test("the service worker fallback carries the same product copy", async () => {
+  const sw = await readFile(new URL("../public/sw.js", import.meta.url), "utf8");
+  assert.doesNotMatch(
+    sw,
+    /Daily missions are ready/,
+    "the last-resort fallback must not resurrect the retired copy",
+  );
+  assert.match(sw, /V-Bucks/);
+  // The fallback must mirror the English server copy so a malformed payload
+  // never renders something less useful than a well-formed one.
+  const en = push.pushStringsFor("en");
+  assert.ok(sw.includes(en.body), "sw.js fallback body must match PUSH_STRINGS.en");
+  assert.ok(sw.includes(en.title), "sw.js fallback title must match PUSH_STRINGS.en");
+});
+
+test("WebBox and test payloads are shape-compatible for showNotification()", () => {
+  // The verified-in-production test push and the automated WebBox push must
+  // reach showNotification() through the same sw.js code path.
+  const decode = (bytes) => JSON.parse(new TextDecoder().decode(bytes));
+  const webbox = decode(push.buildPushPayload({ language: "en" }, "2026-09-24"));
+  const test = decode(push.buildTestPushPayload({ language: "en" }));
+  // Fields sw.js actually reads.
+  for (const key of ["title", "body", "url"]) {
+    assert.equal(typeof webbox[key], "string", `WebBox payload needs ${key}`);
+    assert.ok(webbox[key].length > 0, `WebBox payload ${key} must be non-empty`);
+    assert.equal(typeof test[key], "string", `test payload needs ${key}`);
+  }
+  // Relative, same-origin click target (sw.js requires a leading "/").
+  assert.match(webbox.url, /^\/[a-z-]*\/?$/);
+  assert.equal(webbox.date, "2026-09-24");
+  // sw.js hardcodes icon/badge — neither payload may override or omit them.
+  assert.ok(!("icon" in webbox) && !("icon" in test));
+  assert.ok(!("badge" in webbox) && !("badge" in test));
+  // The daily payload must not be mistaken for a test push (it drives the
+  // verified manual path only).
+  assert.notEqual(webbox.test, true);
+  assert.equal(test.test, true);
 });
 
 test("service worker handles push, click, and falls back safely", async () => {
@@ -557,8 +647,14 @@ test("all nine locales ship notification keys with preserved terms", async () =>
       assert.ok(n[key].trim().length > 0, `${locale}.notifications.${key} empty`);
       assert.equal(translate(`notifications.${key}`, locale), n[key]);
     }
-    assert.ok(n.pushBody.includes("V-Bucks"), `${locale} pushBody must keep V-Bucks`);
-    assert.equal(n.pushTitle, "HawkBucks");
+    // These keys are the maintained copy reference for the WebBox daily
+    // notification. worker/push.js PUSH_STRINGS is what actually reaches the
+    // device (the browser never authors a push payload), so the two must never
+    // drift — that is why they are maintained rather than left as dead keys.
+    const delivered = push.pushStringsFor(locale);
+    assert.equal(n.pushTitle, delivered.title, `${locale} pushTitle drifted from PUSH_STRINGS`);
+    assert.equal(n.pushBody, delivered.body, `${locale} pushBody drifted from PUSH_STRINGS`);
+    assert.ok(n.pushTitle.includes("V-Bucks"), `${locale} pushTitle must keep V-Bucks`);
   }
 });
 
@@ -1545,4 +1641,128 @@ test("admin test push validator rejects non-https and oversized endpoints", asyn
     );
   }
   assert.equal(adminTestPush.sent.length, 0);
+});
+
+// ---------------------------------------------------------------------------
+// REQUIREMENT 1 — one WebBox notification per subscription per UTC day.
+// These are the invariants the 30-minute cron cadence depends on.
+// ---------------------------------------------------------------------------
+
+test("a failed send followed by a successful retry yields exactly one notification", async () => {
+  // The dangerous shape: tick 1 fails and releases the claim, tick 2 retries
+  // and succeeds. The retry must NOT be additive — the day still yields
+  // exactly one delivered notification, and every later tick is silent.
+  const env = { DB: memoryDb(), VAPID_PUBLIC_KEY: "BPUB", VAPID_PRIVATE_JWK: {} };
+  const record = validSubscription();
+  await push.handlePushSubscribe(jsonRequest({ subscription: record }), env);
+  const id = await push.sha256Hex(record.endpoint);
+  let successes = 0;
+  let failures = 0;
+  const dateString = "2026-10-01";
+  const deps = () => ({
+    missions: { ...eligible, lastUpdated: "2026-10-01T00:05:00.000Z" },
+    subscriptions: [{ id, language: "en" }],
+    sendImpl: async () => {
+      if (failures === 0) {
+        failures += 1;
+        return { status: 503 };
+      }
+      successes += 1;
+      return { status: 201 };
+    },
+  });
+
+  const tick1 = await push.runPushFanout(env, null, dateString, deps());
+  assert.equal(tick1.transientFailures, 1);
+  assert.equal(tick1.sent, 0);
+
+  const tick2 = await push.runPushFanout(env, null, dateString, deps());
+  assert.equal(tick2.sent, 1, "the released claim must allow one retry");
+  assert.equal(tick2.transientFailures, 0);
+
+  // Every remaining cron tick that day is a no-op.
+  for (let i = 0; i < 5; i += 1) {
+    const later = await push.runPushFanout(env, null, dateString, deps());
+    assert.equal(later.sent, 0, `later tick ${i} must not send again`);
+    assert.equal(later.skipped, 1, `later tick ${i} must skip the claimed subscription`);
+  }
+  assert.equal(successes, 1, "exactly one successful delivery for the whole UTC day");
+  assert.equal(failures, 1);
+  assert.equal(
+    (await push.listActivePushSubscriptions(env))[0].last_notified_utc,
+    dateString,
+    "the successful retry keeps the claim",
+  );
+
+  // The next UTC day is a fresh opportunity.
+  const nextDay = await push.runPushFanout(env, null, "2026-10-02", {
+    missions: { ...eligible, lastUpdated: "2026-10-02T00:05:00.000Z" },
+    subscriptions: [{ id, language: "en" }],
+    sendImpl: async () => {
+      successes += 1;
+      return { status: 201 };
+    },
+  });
+  assert.equal(nextDay.sent, 1);
+  assert.equal(successes, 2);
+});
+
+test("overlapping cron invocations cannot double-notify one subscription", async () => {
+  // Cloudflare can overlap a slow tick with the next scheduled run. The claim
+  // is a single conditional UPDATE, so the second invocation observes the row
+  // already claimed and skips.
+  const env = { DB: memoryDb(), VAPID_PUBLIC_KEY: "BPUB", VAPID_PRIVATE_JWK: {} };
+  const record = validSubscription();
+  await push.handlePushSubscribe(jsonRequest({ subscription: record }), env);
+  const id = await push.sha256Hex(record.endpoint);
+  let sends = 0;
+  const runFanout = () =>
+    push.runPushFanout(env, null, "2026-10-01", {
+      missions: { ...eligible, lastUpdated: "2026-10-01T00:05:00.000Z" },
+      subscriptions: [{ id, language: "en" }],
+      sendImpl: async () => {
+        sends += 1;
+        return { status: 201 };
+      },
+    });
+  // Claim first (as an in-flight first tick would), then let a second tick run.
+  assert.equal(await push.claimPushSlot(env, id, "2026-10-01"), true);
+  const second = await runFanout();
+  assert.equal(second.sent, 0);
+  assert.equal(second.skipped, 1);
+  assert.equal(sends, 0, "a tick that never won the claim must never send");
+
+  // And the winner itself still sends exactly once.
+  assert.equal(await push.claimPushSlot(env, id, "2026-10-01"), false);
+});
+
+test("the daily claim is a single atomic conditional UPDATE", async () => {
+  // Atomicity is structural: read-then-write would race, one conditional
+  // UPDATE cannot. Guard it against a future refactor.
+  const source = await readFile(new URL("../../worker/push.js", import.meta.url), "utf8");
+  const claim = source.slice(source.indexOf("export async function claimPushSlot"));
+  const claimBody = claim.slice(0, claim.indexOf("\n}"));
+  assert.match(claimBody, /UPDATE push_subscriptions SET last_notified_utc=\?/);
+  assert.match(
+    claimBody,
+    /last_notified_utc IS NULL OR last_notified_utc != \?/,
+    "the claim must be a conditional compare-and-set",
+  );
+  const updates = claimBody.match(/UPDATE /g) ?? [];
+  assert.equal(updates.length, 1, "the claim must be exactly one statement");
+  // A claim failure must be observable as skipped, never as a send.
+  assert.match(claimBody, /meta\?\.changes/);
+});
+
+test("UTC day boundary is the only thing that opens a new notification", async () => {
+  // The dedup key is a YYYY-MM-DD UTC date string. No local time, no
+  // timestamp comparison, no hour-of-day window.
+  const source = push.missionCacheUtcDate({ lastUpdated: "2026-10-01T23:59:59.999Z" });
+  assert.equal(source, "2026-10-01");
+  assert.equal(push.missionCacheUtcDate({ lastUpdated: "2026-10-02T00:00:00.000Z" }), "2026-10-02");
+  // Every supported locale keeps the claim on the UTC day, so the date string
+  // is never locale- or timezone-derived.
+  assert.equal(typeof push.pushStringsFor("en").body, "string");
+  const pushSource = await readFile(new URL("../../worker/push.js", import.meta.url), "utf8");
+  assert.doesNotMatch(pushSource, /getDay\(\)|toLocaleDateString|Intl\.DateTimeFormat/);
 });

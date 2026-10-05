@@ -373,8 +373,10 @@ export const ru: TranslationDictionary = {
     close: "Полезные напоминания",
   },
   notifications: {
-    pushTitle: "HawkBucks",
-    pushBody: "Ежедневные миссии V-Bucks готовы к просмотру.",
+    pushTitle:
+      "\u041c\u0438\u0441\u0441\u0438\u0438 V-Bucks \u0434\u043e\u0441\u0442\u0443\u043f\u043d\u044b!",
+    pushBody:
+      "\u0417\u0430\u0433\u043b\u044f\u043d\u0438\u0442\u0435 \u0438 \u043f\u043e\u0441\u043c\u043e\u0442\u0440\u0438\u0442\u0435.",
     enabled: "Уведомления включены. HawkBucks напомнит проверить ежедневные миссии.",
     disabled: "Уведомления выключены.",
     blocked: "Уведомления браузера заблокированы. Можно включить в настройках сайта.",

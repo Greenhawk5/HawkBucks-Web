@@ -379,8 +379,8 @@ export const es: TranslationDictionary = {
     close: "Cerrar bienvenida",
   },
   notifications: {
-    pushTitle: "HawkBucks",
-    pushBody: "Las misiones diarias de V-Bucks están listas para revisar.",
+    pushTitle: "\u00a1Las misiones de V-Bucks est\u00e1n disponibles!",
+    pushBody: "\u00c9chales un vistazo.",
     enabled:
       "Las notificaciones están activadas. HawkBucks te recordará revisar las misiones diarias.",
     disabled: "Las notificaciones están desactivadas.",

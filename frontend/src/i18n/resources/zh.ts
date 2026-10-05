@@ -359,8 +359,8 @@ export const zh: TranslationDictionary = {
     close: "实用提醒",
   },
   notifications: {
-    pushTitle: "HawkBucks",
-    pushBody: "每日 V-Bucks 任务已准备好查看。",
+    pushTitle: "V-Bucks \u4efb\u52a1\u5df2\u4e0a\u7ebf\uff01",
+    pushBody: "\u5feb\u6765\u770b\u770b\u5427\u3002",
     enabled: "通知已开启。HawkBucks 会提醒您查看每日任务。",
     disabled: "通知已关闭。",
     blocked: "浏览器通知被阻止。可以在网站设置中重新开启。",

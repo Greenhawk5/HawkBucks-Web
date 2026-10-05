@@ -370,8 +370,9 @@ export const arSA: TranslationDictionary = {
     close: "إغلاق الترحيب",
   },
   notifications: {
-    pushTitle: "HawkBucks",
-    pushBody: "مهام V-Bucks اليومية جاهزة للاطلاع.",
+    pushTitle: "\u0645\u0647\u0627\u0645 V-Bucks \u0645\u062a\u0627\u062d\u0629!",
+    pushBody:
+      "\u062a\u0641\u0636\u0644 \u0628\u0627\u0637\u0644\u0627\u0639 \u0639\u0644\u064a\u0647\u0627.",
     enabled: "التنبيهات مفعلة. HawkBucks سيذكرك بمراجعة المهام اليومية.",
     disabled: "التنبيهات متوقفة.",
     blocked: "إشعارات المتصفح محظورة. يمكنك إعادة تفعيلها من إعدادات الموقع.",
