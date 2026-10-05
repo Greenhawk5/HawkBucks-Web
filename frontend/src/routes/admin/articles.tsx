@@ -14,6 +14,7 @@ import {
   CmsRoutePending,
   CmsSignInRequired,
 } from "@/components/cms/cc/CmsAuth";
+import { CmsImportDialog } from "@/components/cms/cc/CmsImportDialog";
 import {
   CmsActionMenu,
   CmsConfirmDialog,
@@ -59,7 +60,12 @@ function ArticlesAdmin() {
   if (!session.authenticated || !session.user) return <CmsSignInRequired title="Articles" />;
   return (
     <CmsShell active="articles" sessionUser={session.user} expiresAt={session.expiresAt}>
-      {hasChild ? null : <ArticlesBody items={items} />}
+      {hasChild ? null : (
+        <ArticlesBody
+          items={items}
+          canWrite={session.user.role === "editor" || session.user.role === "admin"}
+        />
+      )}
       {/* Child editor route (/admin/articles/$contentId) renders here.
           Without this Outlet the child match never paints, so opening any
           draft showed only the list with no editor and no error. */}
@@ -68,10 +74,11 @@ function ArticlesAdmin() {
   );
 }
 
-function ArticlesBody(props: { items: ArticleAdminItem[] }) {
+function ArticlesBody(props: { items: ArticleAdminItem[]; canWrite: boolean }) {
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("");
   const [createOpen, setCreateOpen] = useState(false);
+  const [importOpen, setImportOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
   const [confirm, setConfirm] = useState<{
@@ -111,13 +118,24 @@ function ArticlesBody(props: { items: ArticleAdminItem[] }) {
         title="Articles"
         description="Editorial guides and articles: structured blocks, categories, tags, entity references, and per-locale bodies. Only published articles appear publicly."
         action={
-          <button
-            type="button"
-            className="cc-btn cc-btn-primary cc-btn-sm"
-            onClick={() => setCreateOpen(true)}
-          >
-            + New article
-          </button>
+          props.canWrite ? (
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                type="button"
+                className="cc-btn cc-btn-primary cc-btn-sm"
+                onClick={() => setCreateOpen(true)}
+              >
+                + New article
+              </button>
+              <button
+                type="button"
+                className="cc-btn cc-btn-outline cc-btn-sm"
+                onClick={() => setImportOpen(true)}
+              >
+                Import JSON
+              </button>
+            </div>
+          ) : undefined
         }
       />
       {error ? <CmsNotice kind="error">{error}</CmsNotice> : null}
@@ -243,6 +261,14 @@ function ArticlesBody(props: { items: ArticleAdminItem[] }) {
             ? "Create the first article draft. Structured body, taxonomy, and SEO live in the editor."
             : "Try clearing the search or choosing a different status tab."
         }
+      />
+
+      <CmsImportDialog
+        open={importOpen}
+        kind="article"
+        canWrite={props.canWrite}
+        onClose={() => setImportOpen(false)}
+        onImported={() => window.location.reload()}
       />
 
       <CmsDialog open={createOpen} onClose={() => setCreateOpen(false)} title="New article draft">

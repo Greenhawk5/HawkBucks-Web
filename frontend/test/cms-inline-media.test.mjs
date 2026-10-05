@@ -424,6 +424,8 @@ test("the batched resolver returns the subset of ids that are usable", async () 
 
 test("no CMS editor is left with a bare free-text media id box", async () => {
   // [file, expected CmsMediaField count, [[label, setter], ...]]
+  // Wave 1 fix pass: media fields moved OUT of the metadata grids into
+  // dedicated Media sections, so these counts are per-section, not per-grid.
   const expectations = [
     [
       "../src/routes/admin/heroes.$contentId.tsx",
@@ -434,15 +436,10 @@ test("no CMS editor is left with a bare free-text media id box", async () => {
       ],
     ],
     ["../src/routes/admin/loadouts.$contentId.tsx", 1, [["Cover asset id", "setCoverAssetId"]]],
-    [
-      "../src/routes/admin/inventory.$contentId.tsx",
-      3,
-      [
-        ["Icon asset id", "setIcon"],
-        ["Icon asset id", "setIcon"],
-        ["Icon asset id", "setIcon"],
-      ],
-    ],
+    // Inventory renders ONE shared InventoryMediaForm for all four kinds, so
+    // there is exactly one CmsMediaField in the file.
+    ["../src/routes/admin/inventory.$contentId.tsx", 1, [["Icon asset id", "setIcon"]]],
+    ["../src/routes/admin/articles.$contentId.tsx", 1, [["Cover asset id", "setCoverAssetId"]]],
   ];
   for (const [p, expectedCount, fields] of expectations) {
     const src = stripComments(await file(p));
@@ -465,6 +462,108 @@ test("no CMS editor is left with a bare free-text media id box", async () => {
       `${p} must not keep the old free-text media field`,
     );
   }
+});
+
+/* ================================================================== */
+/* 6b. Wave 1 fix pass — dedicated Media sections                      */
+/* ================================================================== */
+
+test("media fields live in a dedicated Media section, not the metadata grid", async () => {
+  // The reported defect: a live preview is 3-4x taller than a metadata input,
+  // so inside the Identity grid it stretched whole rows and broke the field
+  // pairing. Every editor must now render CmsMediaSection.
+  const sectionSource = stripComments(await file("../src/components/cms/cc/CmsMediaSection.tsx"));
+  assert.match(sectionSource, /<CmsFormSection/);
+  assert.match(sectionSource, /title="Media"/);
+  // Stacked, never a grid — two media fields side by side is the same problem.
+  assert.match(sectionSource, /className="space-y-4"/);
+  assert.doesNotMatch(sectionSource, /sm:grid-cols/);
+
+  for (const p of [
+    "../src/routes/admin/heroes.$contentId.tsx",
+    "../src/routes/admin/loadouts.$contentId.tsx",
+    "../src/routes/admin/inventory.$contentId.tsx",
+    "../src/routes/admin/articles.$contentId.tsx",
+  ]) {
+    const src = stripComments(await file(p));
+    assert.match(
+      src,
+      /import \{ CmsMediaSection \} from "@\/components\/cms\/cc\/CmsMediaSection"/,
+      `${p} must render a dedicated Media section`,
+    );
+    assert.match(src, /<CmsMediaSection>/, `${p} must wrap its media in CmsMediaSection`);
+  }
+});
+
+test("metadata sections no longer carry media state", async () => {
+  // Identity / "Weapon fields" / "Trap fields" / "Schematic fields" must be
+  // metadata-only, and must say so, so the split is discoverable.
+  const hero = stripComments(await file("../src/routes/admin/heroes.$contentId.tsx"));
+  const identity = hero.slice(hero.indexOf('title="Identity"'), hero.indexOf("function MediaForm"));
+  assert.doesNotMatch(
+    identity,
+    /portraitAssetId|bannerAssetId/,
+    "the Hero Identity section must not carry media state",
+  );
+  assert.match(identity, /Media references live in their own section below/);
+
+  const loadout = stripComments(await file("../src/routes/admin/loadouts.$contentId.tsx"));
+  const loadoutIdentity = loadout.slice(
+    loadout.indexOf('title="Identity"'),
+    loadout.indexOf("function MediaForm"),
+  );
+  assert.doesNotMatch(loadoutIdentity, /coverAssetId/);
+  assert.match(loadoutIdentity, /cover reference lives in its own Media section/);
+
+  const inventory = stripComments(await file("../src/routes/admin/inventory.$contentId.tsx"));
+  const weaponForm = inventory.slice(
+    inventory.indexOf('title="Weapon fields"'),
+    inventory.indexOf("function InventoryMediaForm"),
+  );
+  assert.doesNotMatch(
+    weaponForm,
+    /iconAssetId/,
+    "the Weapon fields section must not write the icon reference",
+  );
+  const trapForm = inventory.slice(
+    inventory.indexOf('title="Trap fields"'),
+    inventory.indexOf("function SchematicForm"),
+  );
+  assert.doesNotMatch(trapForm, /iconAssetId/, "the Trap fields section must not write the icon");
+});
+
+test("all four inventory kinds get a Media section, including perks", async () => {
+  const src = stripComments(await file("../src/routes/admin/inventory.$contentId.tsx"));
+  // One shared component serves all four, dispatched on the R2 folder.
+  assert.match(src, /function InventoryMediaForm/);
+  for (const folder of ["weapons", "traps", "schematics", "perks"]) {
+    assert.match(src, new RegExp(`folder="${folder}"`), `${folder} needs a Media section`);
+  }
+  // Perks gained media support via the new updateAdminPerk loader.
+  assert.match(src, /updateAdminPerk/);
+  const loader = stripComments(await file("../src/lib/cms/schematics-admin.loader.ts"));
+  assert.match(loader, /export const updateAdminPerk/);
+  assert.match(loader, /iconAssetId\?: string \| null/);
+});
+
+test("article cover moved to a Media section; body image blocks did not", async () => {
+  const src = stripComments(await file("../src/routes/admin/articles.$contentId.tsx"));
+  const bodySection = src.slice(src.indexOf('title="Body"'), src.indexOf("<CmsMediaSection>"));
+  assert.doesNotMatch(
+    bodySection,
+    /Cover asset id/,
+    "the cover field must no longer live inside the Body section",
+  );
+  // Inline body media stays: it is article content, not a property of the record.
+  assert.match(bodySection, /<CmsArticleBlocks/);
+  assert.match(src, /<CmsArticleBlocks[\s\S]{0,200}?blocks=\{blocks\}/);
+  assert.match(
+    src,
+    /Image blocks inside the body reference their own assets and are edited in place above/,
+  );
+  // The bespoke cover picker is gone; CmsMediaField supersedes it.
+  assert.doesNotMatch(src, /CmsMediaPicker/);
+  assert.doesNotMatch(src, /coverPickerOpen/);
 });
 
 test("each media field uploads into the R2 folder that matches its entity", async () => {

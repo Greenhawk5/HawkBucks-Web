@@ -9,7 +9,15 @@ import {
   parseImportDocument,
   type ImportEntityKind,
 } from "./import-schemas";
-import { SCHEMATIC_ENTITY_TYPE, TRAP_ENTITY_TYPE, WEAPON_ENTITY_TYPE } from "./content-types";
+import {
+  ARTICLE_ENTITY_TYPE,
+  HERO_ENTITY_TYPE,
+  LOADOUT_ENTITY_TYPE,
+  PERK_ENTITY_TYPE,
+  SCHEMATIC_ENTITY_TYPE,
+  TRAP_ENTITY_TYPE,
+  WEAPON_ENTITY_TYPE,
+} from "./content-types";
 import type { D1Database } from "./db.server";
 
 /**
@@ -131,7 +139,7 @@ export const importAdminObjects = createServerFn({ method: "POST" })
     // the per-item `assertMediaUsable` the writer will run, so this pre-check
     // can never approve an id the writer would then reject.
     const { listUsableMediaAssetIds } = await import("./db.server");
-    const mediaRefs = collectMediaRefs(document.items);
+    const mediaRefs = await collectMediaRefs(document.items);
     if (mediaRefs.ids.size > 0) {
       const usable = await listUsableMediaAssetIds(db, [...mediaRefs.ids]);
       for (const [id, locations] of mediaRefs.byId) {
@@ -142,10 +150,9 @@ export const importAdminObjects = createServerFn({ method: "POST" })
       }
     }
 
-    // --- 5. resolve schematic targets ---------------------------------------
-    if (kind === SCHEMATIC_ENTITY_TYPE) {
-      errors.push(...(await validateSchematicTargets(db, document.items)));
-    }
+    // --- 5. resolve cross-content targets -----------------------------------
+    // Every branch here is a READ. Nothing is written until all of them pass.
+    errors.push(...(await validateRelationshipTargets(db, kind, document.items)));
 
     if (errors.length > 0) {
       // Nothing was written. This is the "no silent partial import" guarantee.
@@ -223,6 +230,208 @@ export const importAdminObjects = createServerFn({ method: "POST" })
       parseError: null,
     };
   });
+
+/**
+ * Resolve every cross-content reference an item makes, BEFORE any write.
+ *
+ * One dispatcher, one place. Each branch proves a class of problem that would
+ * otherwise only surface mid-write and force a rollback:
+ *   * schematics — target must exist, match entity type, and be unclaimed
+ *     (UNIQUE on weapon_content_id / trap_content_id), including within the file;
+ *   * loadouts — every roster hero/schematic and the team perk must exist with
+ *     the right entity type;
+ *   * articles — category id must resolve to a real article_categories row, and
+ *     every `entity` body block must reference live, referencable content.
+ */
+async function validateRelationshipTargets(
+  db: D1Database,
+  kind: ImportEntityKind,
+  items: Array<{ kind: string; item: unknown }>,
+): Promise<string[]> {
+  if (kind === SCHEMATIC_ENTITY_TYPE) return validateSchematicTargets(db, items);
+  if (kind === LOADOUT_ENTITY_TYPE) return validateLoadoutTargets(db, items);
+  if (kind === ARTICLE_ENTITY_TYPE) return validateArticleTargets(db, items);
+  return [];
+}
+
+/**
+ * Batch existence + entity-type check for a flat list of expected content ids.
+ * Returns one message per bad reference, naming the item and field.
+ */
+async function assertReferencedEntityTypes(
+  db: D1Database,
+  refs: Array<{ id: string; expected: string; item: number; field: string }>,
+  missingMessage: (ref: { id: string; expected: string }) => string = (ref) =>
+    `no content with id ${JSON.stringify(ref.id)} exists`,
+): Promise<string[]> {
+  const errors: string[] = [];
+  if (refs.length === 0) return errors;
+  const unique = [...new Set(refs.map((r) => r.id))];
+  const placeholders = unique.map(() => "?").join(", ");
+  const { results } = await db
+    .prepare(
+      `SELECT c.id AS id, c.entity_type AS entity_type FROM cms_contents c WHERE c.id IN (${placeholders})`,
+    )
+    .bind(...unique)
+    .all<{ id: string; entity_type: string }>();
+  const found = new Map(results.map((r) => [r.id, r.entity_type]));
+  for (const ref of refs) {
+    const entityType = found.get(ref.id);
+    if (entityType === undefined) {
+      errors.push(`Item ${ref.item} → ${ref.field}: ${missingMessage(ref)}`);
+      continue;
+    }
+    if (entityType !== ref.expected) {
+      errors.push(
+        `Item ${ref.item} → ${ref.field}: expected a "${ref.expected}" content id, but ${JSON.stringify(ref.id)} is a "${entityType}"`,
+      );
+    }
+  }
+  return errors;
+}
+
+/**
+ * Loadout roster + team perk resolution.
+ *
+ * `setLoadoutHeroes` / `setLoadoutSchematics` will re-check these at write time
+ * (commander required, max 6 / 12, no duplicates, entity type) — that is the
+ * authoritative guard and is deliberately left in place. This pre-check exists
+ * so a bad roster fails the WHOLE file up front instead of aborting a bulk
+ * import half-created.
+ */
+async function validateLoadoutTargets(
+  db: D1Database,
+  items: Array<{ kind: string; item: unknown }>,
+): Promise<string[]> {
+  const refs: Array<{ id: string; expected: string; item: number; field: string }> = [];
+  for (let index = 0; index < items.length; index++) {
+    const item = items[index]?.item as
+      | {
+          heroSlots?: Array<string | null>;
+          schematicContentIds?: string[];
+          teamPerkContentId?: string | null;
+        }
+      | undefined;
+    if (item === undefined) continue;
+    const itemNumber = index + 1;
+    (item.heroSlots ?? []).forEach((id, slot) => {
+      if (id === null || id === undefined) return;
+      refs.push({
+        id,
+        expected: HERO_ENTITY_TYPE,
+        item: itemNumber,
+        field: `heroContentIds[${slot}]`,
+      });
+    });
+    (item.schematicContentIds ?? []).forEach((id, slot) => {
+      if (typeof id !== "string") return;
+      refs.push({
+        id,
+        expected: SCHEMATIC_ENTITY_TYPE,
+        item: itemNumber,
+        field: `schematicContentIds[${slot}]`,
+      });
+    });
+    if (typeof item.teamPerkContentId === "string" && item.teamPerkContentId !== "") {
+      refs.push({
+        id: item.teamPerkContentId,
+        expected: PERK_ENTITY_TYPE,
+        item: itemNumber,
+        field: "teamPerkContentId",
+      });
+    }
+  }
+  return assertReferencedEntityTypes(
+    db,
+    refs,
+    (ref) => `no ${ref.expected} with id ${JSON.stringify(ref.id)} exists`,
+  );
+}
+
+/**
+ * Article references: the category row and every `entity` body block.
+ *
+ * `upsertArticleBody` re-validates both at write time; this is the up-front
+ * pass so a bad article fails the file rather than the batch.
+ */
+async function validateArticleTargets(
+  db: D1Database,
+  items: Array<{ kind: string; item: unknown }>,
+): Promise<string[]> {
+  const errors: string[] = [];
+  const { isArticleReferenceEntityType } = await import("./content-types");
+  const contentRefs: Array<{ id: string; expected: string; item: number; field: string }> = [];
+  const categoryRefs: Array<{ id: string; item: number }> = [];
+
+  for (let index = 0; index < items.length; index++) {
+    const item = items[index]?.item as
+      | {
+          body?: { blocks?: Array<{ type?: string; contentId?: string }> };
+          categoryId?: string | null;
+        }
+      | undefined;
+    if (item === undefined) continue;
+    const itemNumber = index + 1;
+    if (typeof item.categoryId === "string" && item.categoryId !== "") {
+      categoryRefs.push({ id: item.categoryId, item: itemNumber });
+    }
+    const blocks = item.body?.blocks ?? [];
+    blocks.forEach((block, blockIndex) => {
+      if (block?.type !== "entity") return;
+      const contentId = typeof block.contentId === "string" ? block.contentId.trim() : "";
+      if (contentId === "") return;
+      contentRefs.push({
+        id: contentId,
+        // The reference registry (ARTICLE_REFERENCE_ENTITY_TYPES) excludes
+        // `article` itself, so a block may not point at another article.
+        expected: "anyReferencedEntity",
+        item: itemNumber,
+        field: `body.blocks[${blockIndex}].contentId`,
+      });
+    });
+  }
+
+  if (categoryRefs.length > 0) {
+    const unique = [...new Set(categoryRefs.map((r) => r.id))];
+    const placeholders = unique.map(() => "?").join(", ");
+    const { results } = await db
+      .prepare(`SELECT id FROM article_categories WHERE id IN (${placeholders})`)
+      .bind(...unique)
+      .all<{ id: string }>();
+    const found = new Set(results.map((r) => r.id));
+    for (const ref of categoryRefs) {
+      if (found.has(ref.id)) continue;
+      errors.push(
+        `Item ${ref.item} → categoryId: no article category with id ${JSON.stringify(ref.id)} exists`,
+      );
+    }
+  }
+
+  if (contentRefs.length > 0) {
+    const unique = [...new Set(contentRefs.map((r) => r.id))];
+    const placeholders = unique.map(() => "?").join(", ");
+    const { results } = await db
+      .prepare(`SELECT id, entity_type FROM cms_contents WHERE id IN (${placeholders})`)
+      .bind(...unique)
+      .all<{ id: string; entity_type: string }>();
+    const found = new Map(results.map((r) => [r.id, r.entity_type]));
+    for (const ref of contentRefs) {
+      const entityType = found.get(ref.id);
+      if (entityType === undefined) {
+        errors.push(
+          `Item ${ref.item} → ${ref.field}: no content with id ${JSON.stringify(ref.id)} exists`,
+        );
+        continue;
+      }
+      if (!isArticleReferenceEntityType(entityType)) {
+        errors.push(
+          `Item ${ref.item} → ${ref.field}: a "${entityType}" cannot be referenced from an article body block`,
+        );
+      }
+    }
+  }
+  return errors;
+}
 
 /**
  * Resolve targets for schematic items BEFORE creating anything.
@@ -328,24 +537,46 @@ async function validateSchematicTargets(
 /**
  * Collect every media id referenced by the document, keeping the item numbers
  * that reference each one so the error can point at all of them at once.
+ *
+ * Covers direct media columns AND the image ids embedded in an article body's
+ * block list, which `articleBodyImageAssetIds` extracts using the same rule the
+ * writer applies. An article is therefore not an exception to the
+ * resolve-before-write guarantee.
  */
-function collectMediaRefs(items: Array<{ kind: string; item: unknown }>): {
-  ids: Set<string>;
-  byId: Map<string, string[]>;
-} {
+async function collectMediaRefs(
+  items: Array<{ kind: string; item: unknown }>,
+): Promise<{ ids: Set<string>; byId: Map<string, string[]> }> {
   const ids = new Set<string>();
   const byId = new Map<string, string[]>();
+  const add = (value: unknown, label: string): void => {
+    if (typeof value !== "string" || value === "") return;
+    ids.add(value);
+    const locations = byId.get(value);
+    if (locations === undefined) byId.set(value, [label]);
+    else locations.push(label);
+  };
+  const { articleBodyImageAssetIds } = await import("./articles");
   items.forEach((entry, index) => {
     const itemNumber = index + 1;
     const fields = entry.item as Record<string, unknown>;
-    for (const key of ["portraitAssetId", "bannerAssetId", "iconAssetId"]) {
-      const value = fields[key];
-      if (typeof value !== "string" || value === "") continue;
-      ids.add(value);
-      const locations = byId.get(value);
-      const label = `Item ${itemNumber} → ${key}`;
-      if (locations === undefined) byId.set(value, [label]);
-      else locations.push(label);
+    for (const key of ["portraitAssetId", "bannerAssetId", "coverAssetId", "iconAssetId"]) {
+      add(fields[key], `Item ${itemNumber} → ${key}`);
+    }
+    const body = fields["body"];
+    if (body !== undefined && body !== null && typeof body === "object") {
+      // Structured body: only image-block assets are collected, and the label
+      // carries the block index so a bad id points at the exact block.
+      for (const [offset, assetId] of articleBodyImageAssetIds(
+        body as Parameters<typeof articleBodyImageAssetIds>[0],
+      ).entries()) {
+        const blockIndex = (body as { blocks?: Array<{ assetId?: string }> }).blocks?.findIndex(
+          (b) => b?.assetId === assetId,
+        );
+        add(
+          assetId,
+          `Item ${itemNumber} → body.blocks[${blockIndex === undefined || blockIndex < 0 ? offset : blockIndex}].assetId`,
+        );
+      }
     }
   });
   return { ids, byId };

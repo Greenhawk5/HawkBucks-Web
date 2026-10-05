@@ -201,58 +201,39 @@ export const createAdminLoadout = createServerFn({ method: "POST" })
       loadoutType?: string;
       popularity?: number;
       sortOrder?: number;
+      coverAssetId?: string | null;
+      teamPerkContentId?: string | null;
+      /** Wave 1 — optional roster at creation; same rules as the Roster section. */
+      heroSlots?: Array<string | null>;
+      schematicContentIds?: string[];
       title: string;
       body?: string;
       slug?: string;
       locale?: string;
+      seoTitle?: string | null;
+      seoDescription?: string | null;
     }) => ({
       loadoutType: asOptionalString(i.loadoutType),
       popularity: asOptionalNumber(i.popularity),
       sortOrder: asOptionalNumber(i.sortOrder),
+      coverAssetId: asOptionalStringOrNull(i.coverAssetId),
+      teamPerkContentId: asOptionalStringOrNull(i.teamPerkContentId),
+      heroSlots: Array.isArray(i.heroSlots) ? i.heroSlots : undefined,
+      schematicContentIds: Array.isArray(i.schematicContentIds) ? i.schematicContentIds : undefined,
       title: requireTitle(i.title),
       body: asOptionalString(i.body),
       slug: asOptionalString(i.slug),
       locale: asOptionalString(i.locale),
+      seoTitle: asOptionalStringOrNull(i.seoTitle),
+      seoDescription: asOptionalStringOrNull(i.seoDescription),
     }),
   )
   .handler(async ({ data }) => {
     const { db, session } = await requireLoadoutSession("cms.write", true);
-    const { createContent, upsertContentTranslation } = await import("./db.server");
-    const { createLoadoutRecord } = await import("./heroes-loadouts.server");
-    const actor = { id: session.user.id, username: session.user.username };
-    const content = await createContent(
-      db,
-      { entityType: "loadout", defaultLocale: "en", createdBy: session.user.id },
-      actor,
-    );
-    try {
-      await createLoadoutRecord(
-        db,
-        content,
-        {
-          loadoutType: data.loadoutType ?? "custom",
-          popularity: data.popularity ?? 0,
-          sortOrder: data.sortOrder ?? 0,
-        },
-        actor,
-      );
-      await upsertContentTranslation(
-        db,
-        content,
-        {
-          contentId: content.id,
-          locale: data.locale ?? "en",
-          title: data.title,
-          body: data.body ?? "",
-          slug: data.slug ?? data.title,
-        },
-        actor,
-      );
-    } catch (e) {
-      await db.prepare("DELETE FROM cms_contents WHERE id = ?").bind(content.id).run();
-      throw e;
-    }
-    return { contentId: content.id };
+    const { createLoadoutDraft } = await import("./content-create.server");
+    // The SAME domain service the JSON importer calls — one create path, one
+    // rollback, one set of entity + roster rules.
+    return createLoadoutDraft(db, { id: session.user.id, username: session.user.username }, data);
   });
 export const setAdminLoadoutTeamPerk = createServerFn({ method: "POST" })
   .validator((i: { contentId: string; teamPerkContentId?: string | null }) => ({
@@ -338,43 +319,14 @@ export const setAdminLoadoutSchematics = createServerFn({ method: "POST" })
   })
   .handler(async ({ data }) => {
     const { db, session } = await requireLoadoutSession("cms.write", true);
-    const { getContentById, recordAuditEvent } = await import("./db.server");
-    const { buildAuditEvent } = await import("./audit");
-    const loadout = await getContentById(db, data.contentId);
-    if (!loadout || loadout.entity_type !== "loadout") throw new Error("Loadout not found.");
-    const seen = new Set<string>();
-    for (const id of data.schematicContentIds) {
-      if (seen.has(id)) throw new Error("Duplicate schematic in loadout.");
-      seen.add(id);
-      const target = await getContentById(db, id);
-      if (!target || target.entity_type !== "schematic")
-        throw new Error("Schematic content not found.");
-    }
-    await db
-      .prepare("DELETE FROM loadout_schematics WHERE loadout_content_id = ?")
-      .bind(data.contentId)
-      .run();
-    const ts = new Date().toISOString();
-    let order = 0;
-    for (const id of data.schematicContentIds) {
-      await db
-        .prepare(
-          "INSERT INTO loadout_schematics (id, loadout_content_id, schematic_content_id, slot_order, created_at) VALUES (?, ?, ?, ?, ?)",
-        )
-        .bind(`ls_${crypto.randomUUID()}`, data.contentId, id, order, ts)
-        .run();
-      order += 1;
-    }
-    await recordAuditEvent(
-      db,
-      buildAuditEvent({
-        actor: { id: session.user.id, username: session.user.username },
-        action: "content.update",
-        entityType: "loadout",
-        entityId: data.contentId,
-        metadata: { op: "loadout.schematics", count: data.schematicContentIds.length },
-      }),
-    );
+    // Wave 1 — the roster write moved into heroes-loadouts.server.ts so the
+    // JSON importer can attach schematics through the SAME rules, rather than
+    // this handler keeping a private second copy of the INSERTs.
+    const { setLoadoutSchematics } = await import("./heroes-loadouts.server");
+    await setLoadoutSchematics(db, data.contentId, data.schematicContentIds, {
+      id: session.user.id,
+      username: session.user.username,
+    });
     return { ok: true as const };
   });
 export const upsertAdminAbility = createServerFn({ method: "POST" })

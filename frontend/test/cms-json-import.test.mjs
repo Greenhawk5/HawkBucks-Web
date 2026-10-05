@@ -341,8 +341,18 @@ test("bulk: the envelope is validated (version, type, unknown keys)", () => {
     `version: unsupported document version 99; this CMS accepts version ${IMPORT_DOCUMENT_VERSION}`,
   ]);
 
-  const wrongType = run(JSON.stringify({ version: 1, type: "loadout", items: [HERO_OK] }));
-  assert.deepEqual(errorsOf(wrongType), ['type: expected one of ["hero","schematic"]']);
+  const wrongType = run(JSON.stringify({ version: 1, type: "loadout2", items: [HERO_OK] }));
+  assert.deepEqual(errorsOf(wrongType), [
+    `type: expected one of ${JSON.stringify([
+      "hero",
+      "loadout",
+      "weapon",
+      "trap",
+      "perk",
+      "schematic",
+      "article",
+    ])}`,
+  ]);
 
   // Importing a hero file into the schematics section is a section mismatch.
   // It is reported as such AND the per-item errors still come back, so the
@@ -356,7 +366,7 @@ test("bulk: the envelope is validated (version, type, unknown keys)", () => {
 
   const missingType = run(JSON.stringify({ version: 1, items: [HERO_OK] }));
   assert.deepEqual(errorsOf(missingType), [
-    'type: required field is missing (expected ["hero","schematic"])',
+    'type: required field is missing (expected ["hero","loadout","weapon","trap","perk","schematic","article"])',
   ]);
 
   const extraKey = run(
@@ -481,6 +491,613 @@ test("templates: field specs describe enums with their real values", () => {
   assert.deepEqual(rarity.values, ["common", "uncommon", "rare", "epic", "legendary", "mythic"]);
   const heroClass = importFieldsFor("hero").find((f) => f.key === "heroClass");
   assert.deepEqual(heroClass.values, ["soldier", "constructor", "ninja", "outlander"]);
+});
+
+/* ================================================================== */
+/* 3b. Loadouts — metadata AND roster relationships                     */
+/* ================================================================== */
+
+const LOADOUT_OK = { title: "Meta Raid", loadoutType: "meta" };
+
+test("loadout: a minimal valid item defaults its type and has no roster", () => {
+  const result = run(JSON.stringify(LOADOUT_OK), "loadout");
+  assert.equal(result.ok, true, JSON.stringify(result.issues));
+  const item = result.items[0].item;
+  assert.equal(item.loadoutType, "meta");
+  assert.deepEqual(item.heroSlots, [], "no roster is legal — the Commander is optional here");
+  assert.deepEqual(item.schematicContentIds, []);
+  assert.equal(item.coverAssetId, null);
+  assert.equal(item.teamPerkContentId, null);
+});
+
+test("loadout: a hero roster is accepted and preserved in slot order", () => {
+  const result = run(
+    JSON.stringify({
+      ...LOADOUT_OK,
+      heroContentIds: ["cms_hero_a", "cms_hero_b", "cms_hero_c"],
+      schematicContentIds: ["cms_schem_a", "cms_schem_b"],
+    }),
+    "loadout",
+  );
+  assert.equal(result.ok, true, JSON.stringify(result.issues));
+  const item = result.items[0].item;
+  assert.deepEqual(item.heroSlots, ["cms_hero_a", "cms_hero_b", "cms_hero_c"]);
+  assert.deepEqual(item.schematicContentIds, ["cms_schem_a", "cms_schem_b"]);
+});
+
+test("loadout: a null hole is a held empty slot, not an error", () => {
+  // `setLoadoutHeroes` treats null as an empty slot whose position is preserved.
+  const result = run(
+    JSON.stringify({ ...LOADOUT_OK, heroContentIds: ["cms_hero_a", null, "cms_hero_c"] }),
+    "loadout",
+  );
+  assert.equal(result.ok, true, JSON.stringify(result.issues));
+  assert.deepEqual(result.items[0].item.heroSlots, ["cms_hero_a", null, "cms_hero_c"]);
+});
+
+test("loadout: a roster whose slot 0 is empty is rejected (Commander required)", () => {
+  // Only when a roster is present at all — an absent roster is legal.
+  const withRoster = run(
+    JSON.stringify({ ...LOADOUT_OK, heroContentIds: [null, "cms_hero_b"] }),
+    "loadout",
+  );
+  assert.equal(withRoster.ok, false);
+  assert.deepEqual(errorsOf(withRoster), [
+    "Item 1 → heroContentIds[0]: the Commander (slot 0) is required",
+  ]);
+  assert.equal(run(JSON.stringify(LOADOUT_OK), "loadout").ok, true);
+});
+
+test("loadout: duplicate hero / schematic references are rejected", () => {
+  const dupHero = run(
+    JSON.stringify({ ...LOADOUT_OK, heroContentIds: ["cms_hero_a", "cms_hero_a"] }),
+    "loadout",
+  );
+  assert.deepEqual(errorsOf(dupHero), [
+    'Item 1 → heroContentIds[1]: duplicate hero "cms_hero_a" in this loadout',
+  ]);
+
+  const dupSchem = run(
+    JSON.stringify({ ...LOADOUT_OK, schematicContentIds: ["cms_s", "cms_s"] }),
+    "loadout",
+  );
+  assert.deepEqual(errorsOf(dupSchem), [
+    'Item 1 → schematicContentIds[1]: duplicate schematic "cms_s" in this loadout',
+  ]);
+});
+
+test("loadout: roster cardinality is capped at 6 heroes / 12 schematics", () => {
+  const heroes = Array.from({ length: 7 }, (_, i) => `cms_hero_${i}`);
+  const schematics = Array.from({ length: 13 }, (_, i) => `cms_schem_${i}`);
+  const tooManyHeroes = run(JSON.stringify({ ...LOADOUT_OK, heroContentIds: heroes }), "loadout");
+  assert.deepEqual(errorsOf(tooManyHeroes), [
+    "Item 1 → heroContentIds: must contain at most 6 entries",
+  ]);
+  const tooManySchematics = run(
+    JSON.stringify({ ...LOADOUT_OK, schematicContentIds: schematics }),
+    "loadout",
+  );
+  assert.deepEqual(errorsOf(tooManySchematics), [
+    "Item 1 → schematicContentIds: must contain at most 12 entries",
+  ]);
+});
+
+test("loadout: a malformed roster entry names the exact index", () => {
+  const result = run(JSON.stringify({ ...LOADOUT_OK, heroContentIds: ["cms_ok", 42] }), "loadout");
+  assert.equal(result.ok, false);
+  assert.match(errorsOf(result)[0], /^Item 1 → heroContentIds\[1\]: expected a hero content id/);
+  const notArray = run(JSON.stringify({ ...LOADOUT_OK, schematicContentIds: "x" }), "loadout");
+  assert.deepEqual(errorsOf(notArray), [
+    'Item 1 → schematicContentIds: expected an array of schematic content ids (each "cms_…")',
+  ]);
+});
+
+test("loadout: an invalid loadoutType is rejected and a bad media id too", () => {
+  const badType = run(JSON.stringify({ ...LOADOUT_OK, loadoutType: "grind" }), "loadout");
+  assert.deepEqual(errorsOf(badType), [
+    'Item 1 → loadoutType: expected one of ["beginner","meta","farming","boss","fun","custom"]',
+  ]);
+  const badMedia = run(
+    JSON.stringify({ ...LOADOUT_OK, coverAssetId: "https://x.test/a.png" }),
+    "loadout",
+  );
+  assert.match(errorsOf(badMedia)[0], /^Item 1 → coverAssetId: expected a Media Asset id/);
+});
+
+test("loadout: bulk preserves order and rejects an invalid middle item", () => {
+  const items = [
+    { ...LOADOUT_OK, title: "One" },
+    { ...LOADOUT_OK, title: "Two", heroContentIds: ["cms_a", "cms_a"] },
+    { ...LOADOUT_OK, title: "Three" },
+  ];
+  const result = run(doc(items, "loadout"), "loadout");
+  assert.equal(result.ok, false);
+  assert.deepEqual(errorsOf(result), [
+    'Item 2 → heroContentIds[1]: duplicate hero "cms_a" in this loadout',
+  ]);
+
+  const good = run(
+    doc(
+      [
+        { ...LOADOUT_OK, title: "One" },
+        { ...LOADOUT_OK, title: "Two" },
+      ],
+      "loadout",
+    ),
+    "loadout",
+  );
+  assert.deepEqual(
+    good.items.map((i) => i.item.title),
+    ["One", "Two"],
+  );
+});
+
+/* ================================================================== */
+/* 3c. Weapons / Traps / Perks                                          */
+/* ================================================================== */
+
+test("weapon: valid single, and the real enum is enforced", () => {
+  const ok = run(
+    JSON.stringify({ title: "Reaper", weaponSubtype: "sniper", rarity: "epic" }),
+    "weapon",
+  );
+  assert.equal(ok.ok, true, JSON.stringify(ok.issues));
+  assert.equal(ok.items[0].item.weaponSubtype, "sniper");
+  assert.equal(ok.items[0].item.rarity, "epic");
+
+  const bad = run(JSON.stringify({ title: "Reaper", weaponSubtype: "cannon" }), "weapon");
+  assert.deepEqual(errorsOf(bad), [
+    'Item 1 → weaponSubtype: expected one of ["assault","smg","pistol","shotgun","sniper","melee","explosive","other"]',
+  ]);
+  // Normalisation matches the editor.
+  const cased = run(JSON.stringify({ title: "R", weaponSubtype: "Sniper" }), "weapon");
+  assert.equal(cased.items[0].item.weaponSubtype, "sniper");
+});
+
+test("weapon: defaults, unknown fields, and a bad icon id", () => {
+  const minimal = run(JSON.stringify({ title: "Bare" }), "weapon");
+  assert.equal(minimal.ok, true, JSON.stringify(minimal.issues));
+  assert.equal(minimal.items[0].item.weaponSubtype, "other");
+
+  const unknown = run(JSON.stringify({ title: "X", icon: "media_1" }), "weapon");
+  assert.equal(unknown.ok, false);
+  assert.match(errorsOf(unknown)[0], /icon: unexpected field/);
+
+  const badIcon = run(JSON.stringify({ title: "X", iconAssetId: 7 }), "weapon");
+  assert.deepEqual(errorsOf(badIcon), [
+    'Item 1 → iconAssetId: expected a Media Asset id string (e.g. "media_…"), or null',
+  ]);
+});
+
+test("trap: placement + legacy role enums are both enforced", () => {
+  const ok = run(
+    JSON.stringify({ title: "Wood Wall", trapPlacement: "wall", trapSubtype: "healer" }),
+    "trap",
+  );
+  assert.equal(ok.ok, true, JSON.stringify(ok.issues));
+  assert.equal(ok.items[0].item.trapPlacement, "wall");
+
+  const badPlacement = run(JSON.stringify({ title: "T", trapPlacement: "ground" }), "trap");
+  assert.deepEqual(errorsOf(badPlacement), [
+    'Item 1 → trapPlacement: expected one of ["floor","wall","ceiling"]',
+  ]);
+  const badRole = run(JSON.stringify({ title: "T", trapSubtype: "nope" }), "trap");
+  assert.deepEqual(errorsOf(badRole), [
+    'Item 1 → trapSubtype: expected one of ["damage","healer","utility","other"]',
+  ]);
+  const defaults = run(JSON.stringify({ title: "T" }), "trap");
+  assert.equal(defaults.items[0].item.trapSubtype, "other");
+  assert.equal(defaults.items[0].item.trapPlacement, null);
+});
+
+test("perk: perkKey is REQUIRED and must be a valid machine key", () => {
+  const ok = run(
+    JSON.stringify({ title: "Reload", perkKey: "fast-reload", perkType: "utility" }),
+    "perk",
+  );
+  assert.equal(ok.ok, true, JSON.stringify(ok.issues));
+  assert.equal(ok.items[0].item.perkKey, "fast-reload");
+
+  const missing = run(JSON.stringify({ title: "Reload" }), "perk");
+  assert.deepEqual(errorsOf(missing), ["Item 1 → perkKey: required field is missing"]);
+
+  const invalid = run(JSON.stringify({ title: "R", perkKey: "Bad Key!" }), "perk");
+  assert.deepEqual(errorsOf(invalid), [
+    "Item 1 → perkKey: must be 1-64 characters of a-z, 0-9, hyphen or underscore, starting with a letter or digit",
+  ]);
+
+  const badType = run(JSON.stringify({ title: "R", perkKey: "k", perkType: "nope" }), "perk");
+  assert.deepEqual(errorsOf(badType), [
+    'Item 1 → perkType: expected one of ["offense","defense","utility","team","other"]',
+  ]);
+
+  // perkName / perkDescription land in perk_translations, not the generic table.
+  const named = run(
+    JSON.stringify({ title: "T", perkKey: "k", perkName: "N", perkDescription: "D" }),
+    "perk",
+  );
+  assert.equal(named.items[0].item.perkName, "N");
+  assert.equal(named.items[0].item.perkDescription, "D");
+});
+
+test("weapon/trap/perk: all three reject malformed JSON as a parser error", () => {
+  for (const kind of ["weapon", "trap", "perk"]) {
+    const result = run("{ oops", kind);
+    assert.equal(result.ok, false, kind);
+    assert.match(result.parseError, /^Malformed JSON: /, kind);
+    assert.deepEqual(result.issues, [], kind);
+  }
+});
+
+test("weapon/trap/perk: multiple errors are all reported at once", () => {
+  const result = run(
+    JSON.stringify({ title: "", weaponSubtype: "nope", popularity: -3, iconAssetId: 9 }),
+    "weapon",
+  );
+  assert.equal(result.ok, false);
+  assertErrorSet(errorsOf(result), [
+    "Item 1 → title: required field is missing",
+    'Item 1 → weaponSubtype: expected one of ["assault","smg","pistol","shotgun","sniper","melee","explosive","other"]',
+    "Item 1 → popularity: must be an integer between 0 and 1000000",
+    'Item 1 → iconAssetId: expected a Media Asset id string (e.g. "media_…"), or null',
+  ]);
+});
+
+/* ================================================================== */
+/* 3d. Articles — structured body preserved, never flattened           */
+/* ================================================================== */
+
+const BODY_OK = {
+  version: 1,
+  blocks: [
+    { type: "heading", level: 2, text: "Intro" },
+    { type: "paragraph", text: "Body copy." },
+  ],
+};
+
+test("article: a valid structured body round-trips as structured data", () => {
+  const result = run(
+    JSON.stringify({ title: "Ramp guide", body: BODY_OK, slug: "ramp-guide" }),
+    "article",
+  );
+  assert.equal(result.ok, true, JSON.stringify(result.issues));
+  const item = result.items[0].item;
+  // NOT a string: the block document survives import intact.
+  assert.equal(typeof item.body, "object");
+  assert.equal(item.body.version, 1);
+  assert.equal(item.body.blocks.length, 2);
+  assert.deepEqual(item.body.blocks[0], { type: "heading", text: "Intro", level: 2 });
+});
+
+test("article: every block type survives import", () => {
+  const doc = {
+    version: 1,
+    blocks: [
+      { type: "heading", level: 3, text: "H" },
+      { type: "paragraph", text: "P" },
+      { type: "quote", text: "Q" },
+      { type: "list", items: ["a", "b"] },
+      { type: "code", text: "const x = 1;" },
+      { type: "divider" },
+    ],
+  };
+  const result = run(JSON.stringify({ title: "All blocks", body: doc }), "article");
+  assert.equal(result.ok, true, JSON.stringify(result.issues));
+  assert.equal(result.items[0].item.body.blocks.length, 6);
+});
+
+test("article: an invalid block names the block index and field", () => {
+  const result = run(
+    JSON.stringify({
+      title: "Broken",
+      body: { version: 1, blocks: [{ type: "heading", text: "H" }] },
+    }),
+    "article",
+  );
+  assert.equal(result.ok, false);
+  // level must be 2 or 3.
+  assert.match(errorsOf(result)[0], /^Item 1 → body\.blocks\[0\]\.text: Invalid heading\.$/);
+});
+
+test("article: an image block without an assetId is rejected at its path", () => {
+  const result = run(
+    JSON.stringify({ title: "Broken", body: { version: 1, blocks: [{ type: "image" }] } }),
+    "article",
+  );
+  assert.equal(result.ok, false);
+  assert.deepEqual(errorsOf(result), [
+    "Item 1 → body.blocks[0].assetId: required field is missing for an image block",
+  ]);
+});
+
+test("article: a bad version or empty body is rejected", () => {
+  const badVersion = run(
+    JSON.stringify({ title: "A", body: { version: 2, blocks: [{ type: "divider" }] } }),
+    "article",
+  );
+  assert.equal(badVersion.ok, false);
+  assert.match(errorsOf(badVersion).join(" "), /Unsupported version/);
+
+  const empty = run(JSON.stringify({ title: "A", body: { version: 1, blocks: [] } }), "article");
+  assert.equal(empty.ok, false);
+  assert.match(errorsOf(empty).join(" "), /Invalid block count/);
+
+  const missing = run(JSON.stringify({ title: "A" }), "article");
+  assert.deepEqual(errorsOf(missing), ["Item 1 → body: required field is missing"]);
+
+  const notObject = run(JSON.stringify({ title: "A", body: "just text" }), "article");
+  assert.deepEqual(errorsOf(notObject), [
+    'Item 1 → body: expected a structured body object: { "version": 1, "blocks": [ … ] }',
+  ]);
+});
+
+test("article: a body is NOT a plain string, so it is never silently accepted", () => {
+  // The whole point of the structured representation: an article body must keep
+  // its blocks. A string body has no blocks array and must fail.
+  const result = run(
+    JSON.stringify({ title: "A", body: { version: 1, blocks: "not an array" } }),
+    "article",
+  );
+  assert.equal(result.ok, false);
+  assert.deepEqual(errorsOf(result), ['Item 1 → body: expected a "blocks" array']);
+});
+
+test("article: SEO, cover media, locale and slug are accepted", () => {
+  const result = run(
+    JSON.stringify({
+      title: "Full",
+      body: BODY_OK,
+      slug: "full",
+      locale: "fr",
+      seoTitle: "Full | HawkBucks",
+      seoDescription: "Desc",
+      coverAssetId: "media_cover",
+      categoryId: "artcat_x",
+    }),
+    "article",
+  );
+  assert.equal(result.ok, true, JSON.stringify(result.issues));
+  const item = result.items[0].item;
+  assert.equal(item.locale, "fr");
+  assert.equal(item.seoTitle, "Full | HawkBucks");
+  assert.equal(item.coverAssetId, "media_cover");
+  assert.equal(item.categoryId, "artcat_x");
+});
+
+test("article: an invalid media / category ref shape is rejected", () => {
+  const badCover = run(
+    JSON.stringify({ title: "A", body: BODY_OK, coverAssetId: "ftp://x/y" }),
+    "article",
+  );
+  assert.match(errorsOf(badCover)[0], /^Item 1 → coverAssetId: expected a Media Asset id/);
+  const badCat = run(JSON.stringify({ title: "A", body: BODY_OK, categoryId: "nope!" }), "article");
+  assert.match(errorsOf(badCat)[0], /^Item 1 → categoryId: expected a content id string/);
+});
+
+test("article: bulk preserves order and rejects an invalid middle item", () => {
+  const items = [
+    { title: "One", body: BODY_OK },
+    { title: "Two", body: { version: 1, blocks: [{ type: "code", text: "" }] } },
+    { title: "Three", body: BODY_OK },
+  ];
+  const result = run(doc(items, "article"), "article");
+  assert.equal(result.ok, false);
+  assert.deepEqual(
+    errorsOf(result),
+    ["Item 1... ", "Item 2 → body.blocks[0].text: Invalid code block."].slice(1),
+  );
+
+  const good = run(
+    doc(
+      [
+        { title: "One", body: BODY_OK },
+        { title: "Two", body: BODY_OK },
+      ],
+      "article",
+    ),
+    "article",
+  );
+  assert.equal(good.ok, true, JSON.stringify(good.issues));
+  assert.deepEqual(
+    good.items.map((i) => i.item.title),
+    ["One", "Two"],
+  );
+});
+
+test("article: duplicate titles are allowed — the server resolves the slug", () => {
+  const items = [
+    { title: "Duplicate", body: BODY_OK },
+    { title: "Duplicate", body: BODY_OK },
+  ];
+  const result = run(doc(items, "article"), "article");
+  assert.equal(result.ok, true, JSON.stringify(result.issues));
+  assert.equal(result.items.length, 2);
+});
+
+test("article: unknown fields are rejected so a typo cannot be dropped silently", () => {
+  const result = run(JSON.stringify({ title: "A", body: BODY_OK, content: "..." }), "article");
+  assert.equal(result.ok, false);
+  assert.deepEqual(errorsOf(result), [
+    "Item 1 → content: unexpected field (not part of this schema)",
+  ]);
+});
+
+/* ================================================================== */
+/* 3e. Handler contracts for the new entities                           */
+/* ================================================================== */
+
+test("every new entity converges on the shared create service", async () => {
+  const loadoutsLoader = stripComments(await file("../src/lib/cms/loadouts-admin.loader.ts"));
+  const inventoryLoader = stripComments(await file("../src/lib/cms/schematics-admin.loader.ts"));
+  const articlesLoader = stripComments(await file("../src/lib/cms/articles-admin.loader.ts"));
+
+  // One importer, one create path. The admin loaders delegate to the SAME
+  // service functions, so a form-created record and an imported record cannot
+  // diverge in shape.
+  assert.match(createSource, /export async function createLoadoutDraft/);
+  assert.match(createSource, /export async function createWeaponDraft/);
+  assert.match(createSource, /export async function createTrapDraft/);
+  assert.match(createSource, /export async function createPerkDraft/);
+  assert.match(createSource, /export async function createArticleDraft/);
+
+  assert.match(loadoutsLoader, /createLoadoutDraft/);
+  assert.match(inventoryLoader, /createWeaponDraft/);
+  assert.match(inventoryLoader, /createTrapDraft/);
+  assert.match(inventoryLoader, /createPerkDraft/);
+  assert.match(articlesLoader, /createArticleDraft/);
+
+  // createDraftFromImportItem dispatches on kind — no per-entity importer class.
+  const dispatch = createSource.slice(
+    createSource.indexOf("export async function createDraftFromImportItem"),
+  );
+  for (const kind of [
+    "HERO_ENTITY_TYPE",
+    "LOADOUT_ENTITY_TYPE",
+    "WEAPON_ENTITY_TYPE",
+    "TRAP_ENTITY_TYPE",
+    "PERK_ENTITY_TYPE",
+    "SCHEMATIC_ENTITY_TYPE",
+    "ARTICLE_ENTITY_TYPE",
+  ]) {
+    assert.match(dispatch, new RegExp(`case ${kind}:`), `dispatch must handle ${kind}`);
+  }
+});
+
+test("the loadout roster is written by the SAME service the editor uses", async () => {
+  // `setLoadoutSchematics` was extracted out of the admin loader so the roster
+  // rules exist once. The loader must call it, not re-implement the INSERTs.
+  const heroesServer = stripComments(await file("../src/lib/cms/heroes-loadouts.server.ts"));
+  const loadoutsLoader = stripComments(await file("../src/lib/cms/loadouts-admin.loader.ts"));
+
+  assert.match(heroesServer, /export async function setLoadoutSchematics/);
+  assert.match(heroesServer, /Duplicate schematic in loadout\./);
+  assert.match(heroesServer, /MAX_LOADOUT_SCHEMATICS = 12/);
+  assert.match(loadoutsLoader, /setLoadoutSchematics/);
+  assert.doesNotMatch(
+    loadoutsLoader,
+    /INSERT INTO loadout_schematics/,
+    "the roster INSERTs must live in the service, not the loader",
+  );
+  assert.doesNotMatch(
+    loadoutsLoader,
+    /DELETE FROM loadout_schematics/,
+    "the roster DELETE must live in the service, not the loader",
+  );
+
+  // And the create service attaches the roster inside the same try block, so a
+  // roster failure rolls the whole loadout back.
+  const loadoutDraft = createSource.slice(
+    createSource.indexOf("export async function createLoadoutDraft"),
+    createSource.indexOf("export interface CreateLoadoutDraftInput"),
+  );
+  assert.match(loadoutDraft, /setLoadoutHeroes\(db, content\.id, input\.heroSlots, actor\)/);
+  assert.match(loadoutDraft, /setLoadoutSchematics\(db, content\.id, input\.schematicContentIds/);
+  assert.match(loadoutDraft, /rollbackCreatedDrafts/);
+  const createAt = loadoutDraft.indexOf("createLoadoutRecord");
+  const rosterAt = loadoutDraft.indexOf("setLoadoutHeroes");
+  assert.ok(createAt < rosterAt, "the record is written before the roster");
+});
+
+test("article creation uses the editor's own body writer", () => {
+  const articleDraft = createSource.slice(
+    createSource.indexOf("export async function createArticleDraft"),
+  );
+  assert.match(articleDraft, /upsertArticleBody/);
+  assert.match(articleDraft, /body: input\.body/);
+  // No flattening: the document object is handed over as-is.
+  assert.doesNotMatch(articleDraft, /JSON\.stringify\(input\.body\)/);
+  assert.match(articleDraft, /rollbackCreatedDrafts/);
+});
+
+test("article media is resolved before any write, including body images", () => {
+  assert.match(loaderSource, /articleBodyImageAssetIds/);
+  assert.match(loaderSource, /"coverAssetId"/);
+  const collectAt = loaderSource.indexOf("await collectMediaRefs");
+  const createAt = loaderSource.indexOf("createDraftFromImportItem(db, actor, entry)");
+  assert.ok(collectAt < createAt, "media resolution precedes every create call");
+});
+
+test("loadout and article references are resolved before any write", () => {
+  assert.match(loaderSource, /validateRelationshipTargets/);
+  assert.match(loaderSource, /validateLoadoutTargets/);
+  assert.match(loaderSource, /validateArticleTargets/);
+  // Commander, roster, team perk, category, entity blocks.
+  assert.match(loaderSource, /heroContentIds\[\$\{slot\}\]/);
+  assert.match(loaderSource, /teamPerkContentId/);
+  assert.match(loaderSource, /article_categories WHERE id IN/);
+  assert.match(loaderSource, /isArticleReferenceEntityType/);
+  const guardAt = loaderSource.indexOf("validateRelationshipTargets(db, kind, document.items)");
+  const createAt = loaderSource.indexOf("createDraftFromImportItem(db, actor, entry)");
+  assert.ok(guardAt < createAt, "relationship resolution precedes every create call");
+});
+
+test("rollback covers every table the new create paths populate", () => {
+  const rollback = createSource.slice(createSource.indexOf("async function deleteDraftRows"));
+  for (const sql of [
+    "DELETE FROM loadout_heroes WHERE loadout_content_id = ?",
+    "DELETE FROM loadout_schematics WHERE loadout_content_id = ?",
+    "DELETE FROM weapon_records WHERE content_id = ?",
+    "DELETE FROM trap_records WHERE content_id = ?",
+    "DELETE FROM perk_records WHERE content_id = ?",
+    "DELETE FROM loadout_records WHERE content_id = ?",
+    "DELETE FROM perk_translations WHERE perk_content_id = ?",
+    "DELETE FROM article_bodies WHERE article_content_id = ?",
+    "DELETE FROM article_media WHERE article_content_id = ?",
+    "DELETE FROM article_tag_links WHERE article_content_id = ?",
+    "DELETE FROM article_entity_refs WHERE article_content_id = ?",
+    "DELETE FROM article_entity_refs WHERE target_content_id = ?",
+    "DELETE FROM article_related WHERE article_content_id = ?",
+    "DELETE FROM article_related WHERE related_content_id = ?",
+  ]) {
+    assert.ok(rollback.includes(sql), `rollback is missing: ${sql}`);
+  }
+  // Relationship rows still go before the root, so RESTRICT edges never block it.
+  const rootIndex = rollback.indexOf("DELETE FROM cms_contents WHERE id = ?");
+  for (const child of [
+    "DELETE FROM loadout_heroes WHERE loadout_content_id = ?",
+    "DELETE FROM loadout_schematics WHERE loadout_content_id = ?",
+    "DELETE FROM schematic_perks WHERE schematic_content_id = ?",
+    "DELETE FROM article_entity_refs WHERE target_content_id = ?",
+    "DELETE FROM cms_slugs WHERE content_id = ?",
+  ]) {
+    assert.ok(rollback.indexOf(child) < rootIndex, `${child} must precede the root delete`);
+  }
+  // Audit stays append-only; the rollback event is still written.
+  assert.doesNotMatch(createSource, /DELETE FROM cms_audit_events/);
+  assert.match(createSource, /action: "content\.import\.rollback"/);
+});
+
+test("no second media or upload path was introduced for the new entities", () => {
+  assert.doesNotMatch(loaderSource, /uploadAdminMedia|uploadMediaAsset|MEDIA_BUCKET/);
+  assert.doesNotMatch(createSource, /uploadAdminMedia|uploadMediaAsset|MEDIA_BUCKET/);
+  // Media still resolves through the one batched usability check.
+  assert.match(loaderSource, /listUsableMediaAssetIds/);
+});
+
+test("no Zod anywhere in the import path", async () => {
+  for (const p of [
+    "../src/lib/cms/import-schemas.ts",
+    "../src/lib/cms/import-admin.loader.ts",
+    "../src/lib/cms/content-create.server.ts",
+  ]) {
+    const src = stripComments(await file(p));
+    assert.doesNotMatch(src, /from "zod"|require\("zod"\)|z\.object/, `${p} must not use Zod`);
+  }
+});
+
+test("no database migration was added by this pass", async () => {
+  // Wave 1 fix pass is additive at the application layer only.
+  const migrations = await file("../../worker/migrations/0013_loadout_schematics.sql");
+  assert.match(migrations, /loadout_schematics/);
+  // Nothing in the CMS layer issues DDL.
+  for (const p of [
+    "../src/lib/cms/import-schemas.ts",
+    "../src/lib/cms/import-admin.loader.ts",
+    "../src/lib/cms/content-create.server.ts",
+  ]) {
+    const src = stripComments(await file(p));
+    assert.doesNotMatch(src, /CREATE TABLE|ALTER TABLE|DROP TABLE/, `${p} must not issue DDL`);
+  }
 });
 
 /* ================================================================== */

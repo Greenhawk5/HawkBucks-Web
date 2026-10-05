@@ -28,6 +28,7 @@ import {
   relativeTime,
 } from "@/components/cms/cc/CmsPrimitives";
 import { CmsSelect } from "@/components/cms/cc/CmsSelect";
+import { CmsImportDialog } from "@/components/cms/cc/CmsImportDialog";
 
 export const Route = createFileRoute("/admin/loadouts")({
   loader: async () => {
@@ -60,18 +61,24 @@ function LoadoutsAdmin() {
   if (!session.authenticated || !session.user) return <CmsSignInRequired title="Loadouts" />;
   return (
     <CmsShell active="loadouts" sessionUser={session.user} expiresAt={session.expiresAt}>
-      {hasChild ? null : <LoadoutsBody items={items} />}
+      {hasChild ? null : (
+        <LoadoutsBody
+          items={items}
+          canWrite={session.user.role === "editor" || session.user.role === "admin"}
+        />
+      )}
       {/* Child editor route renders here - without this Outlet the editor match never paints. */}
       <Outlet />
     </CmsShell>
   );
 }
 
-function LoadoutsBody(props: { items: LoadoutAdminItem[] }) {
+function LoadoutsBody(props: { items: LoadoutAdminItem[]; canWrite: boolean }) {
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("");
   const [typeFilter, setTypeFilter] = useState("");
   const [createOpen, setCreateOpen] = useState(false);
+  const [importOpen, setImportOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
   const [confirm, setConfirm] = useState<{
@@ -112,13 +119,24 @@ function LoadoutsBody(props: { items: LoadoutAdminItem[] }) {
         title="Loadouts"
         description="Team rosters: one commander plus up to five support heroes. Only published loadouts appear publicly."
         action={
-          <button
-            type="button"
-            className="cc-btn cc-btn-primary cc-btn-sm"
-            onClick={() => setCreateOpen(true)}
-          >
-            + New loadout
-          </button>
+          props.canWrite ? (
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                type="button"
+                className="cc-btn cc-btn-primary cc-btn-sm"
+                onClick={() => setCreateOpen(true)}
+              >
+                + New loadout
+              </button>
+              <button
+                type="button"
+                className="cc-btn cc-btn-outline cc-btn-sm"
+                onClick={() => setImportOpen(true)}
+              >
+                Import JSON
+              </button>
+            </div>
+          ) : undefined
         }
       />
       {error ? <CmsNotice kind="error">{error}</CmsNotice> : null}
@@ -272,6 +290,13 @@ function LoadoutsBody(props: { items: LoadoutAdminItem[] }) {
             "Loadout draft created.",
           )
         }
+      />
+      <CmsImportDialog
+        open={importOpen}
+        kind="loadout"
+        canWrite={props.canWrite}
+        onClose={() => setImportOpen(false)}
+        onImported={() => window.location.reload()}
       />
       <CmsConfirmDialog
         open={confirm !== null}

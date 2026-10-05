@@ -176,19 +176,18 @@ function InventoryBody(props: {
                 className="cc-btn cc-btn-primary cc-btn-sm"
                 onClick={() => setCreateOpen(true)}
               >
-                + New inventory draft
+                + New {kindLabels[kind].replace(/s$/, "").toLowerCase()} draft
               </button>
-              {/* Wave 1 — JSON import covers the schematic kind; the other
-                  inventory kinds keep their existing create dialogs. */}
-              {kind === "schematic" ? (
-                <button
-                  type="button"
-                  className="cc-btn cc-btn-outline cc-btn-sm"
-                  onClick={() => setImportOpen(true)}
-                >
-                  Import JSON
-                </button>
-              ) : null}
+              {/* One Import JSON action, retargeted at the active tab. The four
+                  inventory kinds are four real entity types, so the dialog's
+                  `kind` follows the tab rather than inventing a union type. */}
+              <button
+                type="button"
+                className="cc-btn cc-btn-outline cc-btn-sm"
+                onClick={() => setImportOpen(true)}
+              >
+                Import JSON
+              </button>
             </div>
           ) : undefined
         }
@@ -402,7 +401,7 @@ function InventoryBody(props: {
       />
       <CmsImportDialog
         open={importOpen}
-        kind="schematic"
+        kind={kind}
         canWrite={props.canWrite}
         onClose={() => setImportOpen(false)}
         onImported={() => window.location.reload()}

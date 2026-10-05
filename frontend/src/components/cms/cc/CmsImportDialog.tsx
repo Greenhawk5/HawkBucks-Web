@@ -3,6 +3,8 @@ import { Download, FileJson, Loader2, Upload } from "lucide-react";
 
 import { importAdminObjects, type ImportItemResult } from "@/lib/cms/import-admin.loader";
 import {
+  IMPORT_ENTITY_FIELD_LABELS,
+  IMPORT_ENTITY_LABELS,
   buildBulkImportTemplate,
   buildSingleImportTemplate,
   describeImportFields,
@@ -23,11 +25,6 @@ import { CmsDialog, CmsField, CmsNotice, cmsToast } from "@/components/cms/cc/Cm
  *   * Results keep the file's item order, and the slug shown is the one the
  *     server actually reserved (which may differ from the one authored).
  */
-
-const KIND_LABELS: Record<ImportEntityKind, string> = {
-  hero: "Heroes",
-  schematic: "Schematics",
-};
 
 const MAX_FILE_BYTES = 2 * 1024 * 1024;
 
@@ -93,18 +90,19 @@ export function CmsImportDialog(props: {
   }
 
   const fields = describeImportFields(props.kind);
+  const sectionLabel = IMPORT_ENTITY_LABELS[props.kind];
+  const singularLabel = IMPORT_ENTITY_FIELD_LABELS[props.kind];
 
   return (
     <CmsDialog
       open={props.open}
       onClose={props.onClose}
-      title={`Import ${KIND_LABELS[props.kind]} · JSON`}
+      title={`Import ${sectionLabel} · JSON`}
       wide
     >
       <div className="space-y-4">
         <p className="text-sm leading-relaxed opacity-75">
-          Upload a JSON document to create{" "}
-          <span className="font-medium">{props.kind === "hero" ? "hero" : "schematic"}</span>{" "}
+          Upload a JSON document to create <span className="font-medium">{singularLabel}</span>{" "}
           draft(s). Every item is validated against the same rules as the editor before anything is
           created — a file with any error creates nothing. Media is referenced by Media Asset id (
           <span className="font-mono">media_…</span>); upload the image in this editor or the Media
@@ -216,7 +214,7 @@ export function CmsImportDialog(props: {
           <div className="space-y-2">
             <CmsNotice kind="success">
               Created {created.length} draft{created.length === 1 ? "" : "s"}. Each is editable from
-              the {KIND_LABELS[props.kind]} list.
+              the {sectionLabel} list.
             </CmsNotice>
             <ul className="max-h-56 space-y-1 overflow-y-auto rounded-lg border px-3 py-2 text-xs cc-hairline">
               {created.map((item) => (

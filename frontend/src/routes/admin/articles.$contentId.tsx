@@ -26,7 +26,8 @@ import {
   useCmsEditorState,
 } from "@/components/cms/cc/CmsEditor";
 import { CmsArticleBlocks } from "@/components/cms/cc/CmsArticleBlocks";
-import { CmsMediaPicker } from "@/components/cms/cc/CmsMediaPicker";
+import { CmsMediaField } from "@/components/cms/media/CmsMediaField";
+import { CmsMediaSection } from "@/components/cms/cc/CmsMediaSection";
 
 export const Route = createFileRoute("/admin/articles/$contentId")({
   loader: async ({ params }) => {
@@ -103,7 +104,6 @@ function ArticleEditor() {
   const [refsText, setRefsText] = useState("");
   const [relatedText, setRelatedText] = useState("");
   const [coverAssetId, setCoverAssetId] = useState("");
-  const [coverPickerOpen, setCoverPickerOpen] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
   // Load the selected locale's saved body; starter blocks only when nothing
@@ -315,28 +315,6 @@ function ArticleEditor() {
             options={LOCALES.map((code) => ({ value: code, label: code }))}
           />
         </CmsField>
-        <CmsField
-          label="Cover asset id"
-          description="Optional R2 cover for this locale's body save."
-        >
-          <div className="flex flex-wrap gap-2">
-            <input
-              className="cc-input min-w-40 flex-1 font-mono"
-              value={coverAssetId}
-              disabled={!canWrite}
-              onChange={(e) => setCoverAssetId(e.target.value)}
-              placeholder="media_… (optional)"
-            />
-            <button
-              type="button"
-              className="cc-btn cc-btn-outline cc-btn-sm"
-              disabled={!canWrite}
-              onClick={() => setCoverPickerOpen(true)}
-            >
-              Browse…
-            </button>
-          </div>
-        </CmsField>
         <CmsArticleBlocks
           blocks={blocks}
           onChange={setBlocks}
@@ -344,6 +322,25 @@ function ArticleEditor() {
           disabled={!canWrite}
         />
       </CmsFormSection>
+
+      {/*
+        Wave 1 fix pass — object-level media gets its own section. Only the
+        per-locale cover moves here; the image blocks ABOVE stay inside Body,
+        because they are article content, not a property of the article record.
+      */}
+      <CmsMediaSection>
+        <CmsMediaField
+          label="Cover asset id"
+          description={`Saved with the ${locale} body save.`}
+          value={coverAssetId}
+          onChange={setCoverAssetId}
+          disabled={!canWrite}
+          folder="articles"
+        />
+        <p className="text-xs opacity-60">
+          Image blocks inside the body reference their own assets and are edited in place above.
+        </p>
+      </CmsMediaSection>
 
       <CmsFormSection
         title="Categories, tags, references"
@@ -457,13 +454,6 @@ function ArticleEditor() {
           </button>
         </div>
       </CmsFormSection>
-
-      <CmsMediaPicker
-        open={coverPickerOpen}
-        onClose={() => setCoverPickerOpen(false)}
-        title="Choose cover image"
-        onPick={(assetId) => setCoverAssetId(assetId)}
-      />
     </CmsEditorFrame>
   );
 }

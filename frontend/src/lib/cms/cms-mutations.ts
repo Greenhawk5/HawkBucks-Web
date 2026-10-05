@@ -79,6 +79,7 @@ export const CMS_MUTATION_INVENTORY: CmsMutationInventoryEntry[] = [
       "createAdminTrap",
       "updateAdminTrap",
       "createAdminPerk",
+      "updateAdminPerk",
       "upsertAdminPerkTranslation",
       "createAdminSchematic",
       "updateAdminSchematic",

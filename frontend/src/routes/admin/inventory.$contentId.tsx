@@ -6,6 +6,7 @@ import { getContentByIdLite, getInventoryDetail } from "@/lib/cms/inventory-admi
 import {
   publishAdminInventoryContent,
   setAdminSchematicPerks,
+  updateAdminPerk,
   updateAdminSchematic,
   updateAdminTrap,
   updateAdminWeapon,
@@ -16,6 +17,7 @@ import { CmsRouteErrorStandalone, CmsRoutePending } from "@/components/cms/cc/Cm
 import { CmsCard, CmsField, CmsNotice } from "@/components/cms/cc/CmsPrimitives";
 import { CmsSelect } from "@/components/cms/cc/CmsSelect";
 import { CmsMediaField } from "@/components/cms/media/CmsMediaField";
+import { CmsMediaSection } from "@/components/cms/cc/CmsMediaSection";
 import {
   CmsEditorFeedback,
   CmsEditorFrame,
@@ -182,18 +184,51 @@ function InventoryEditor() {
         />
       )}
       {detail.entityType === "weapon" ? (
-        <WeaponForm
-          contentId={detail.contentId}
-          record={detail.record}
-          disabled={!canWrite}
-          run={editor.run}
-          pending={editor.pending}
-        />
+        <>
+          <WeaponForm
+            contentId={detail.contentId}
+            record={detail.record}
+            disabled={!canWrite}
+            run={editor.run}
+            pending={editor.pending}
+          />
+          <InventoryMediaForm
+            contentId={detail.contentId}
+            record={detail.record}
+            kindLabel="Weapon"
+            folder="weapons"
+            disabled={!canWrite}
+            run={editor.run}
+            pending={editor.pending}
+          />
+        </>
       ) : null}
       {detail.entityType === "trap" ? (
-        <TrapForm
+        <>
+          <TrapForm
+            contentId={detail.contentId}
+            record={detail.record}
+            disabled={!canWrite}
+            run={editor.run}
+            pending={editor.pending}
+          />
+          <InventoryMediaForm
+            contentId={detail.contentId}
+            record={detail.record}
+            kindLabel="Trap"
+            folder="traps"
+            disabled={!canWrite}
+            run={editor.run}
+            pending={editor.pending}
+          />
+        </>
+      ) : null}
+      {detail.entityType === "perk" ? (
+        <InventoryMediaForm
           contentId={detail.contentId}
           record={detail.record}
+          kindLabel="Perk"
+          folder="perks"
           disabled={!canWrite}
           run={editor.run}
           pending={editor.pending}
@@ -204,6 +239,15 @@ function InventoryEditor() {
           <SchematicForm
             contentId={detail.contentId}
             record={detail.record}
+            disabled={!canWrite}
+            run={editor.run}
+            pending={editor.pending}
+          />
+          <InventoryMediaForm
+            contentId={detail.contentId}
+            record={detail.record}
+            kindLabel="Schematic"
+            folder="schematics"
             disabled={!canWrite}
             run={editor.run}
             pending={editor.pending}
@@ -384,11 +428,10 @@ function WeaponForm(props: {
   const [rarity, setRarity] = useState(String(props.record["rarity"] ?? ""));
   const [popularity, setPopularity] = useState(String(props.record["popularity"] ?? 0));
   const [sortOrder, setSortOrder] = useState(String(props.record["sort_order"] ?? 0));
-  const [icon, setIcon] = useState(String(props.record["icon_asset_id"] ?? ""));
   return (
     <CmsFormSection
       title="Weapon fields"
-      description="Subtype, discovery ordering, and icon media reference."
+      description="Subtype, rarity, and discovery ordering. The icon reference lives in its own Media section."
       action={
         <button
           type="button"
@@ -403,7 +446,6 @@ function WeaponForm(props: {
                   rarity: rarity === "" ? null : rarity,
                   popularity: Number(popularity),
                   sortOrder: Number(sortOrder),
-                  iconAssetId: icon.trim() === "" ? null : icon.trim(),
                 },
               });
               return "Weapon saved.";
@@ -452,14 +494,6 @@ function WeaponForm(props: {
             ]}
           />
         </CmsField>
-        <CmsMediaField
-          label="Icon asset id"
-          description="R2 media id (media_…). Upload inline or pick an existing asset."
-          value={icon}
-          onChange={setIcon}
-          disabled={props.disabled}
-          folder="weapons"
-        />
         <CmsField label="Popularity">
           <input
             className="cc-input"
@@ -480,6 +514,66 @@ function WeaponForm(props: {
         </CmsField>
       </div>
     </CmsFormSection>
+  );
+}
+
+/**
+ * Object-level media for an inventory record (Wave 1 fix pass).
+ *
+ * One component serves weapon / trap / schematic / perk because the shape is
+ * identical — a single `*_asset_id` column — and only the save call and the R2
+ * folder differ. Perks are included because `perk_records.icon_asset_id` and
+ * `updatePerkRecord` always supported it; Wave 1 simply never surfaced them.
+ */
+function InventoryMediaForm(props: {
+  contentId: string;
+  record: Record<string, string | number | null>;
+  kindLabel: string;
+  folder: "weapons" | "traps" | "schematics" | "perks";
+  disabled: boolean;
+  pending: boolean;
+  run: (action: () => Promise<string>) => Promise<boolean>;
+}) {
+  const [icon, setIcon] = useState(String(props.record["icon_asset_id"] ?? ""));
+  const save = async (): Promise<string> => {
+    const iconAssetId = icon.trim() === "" ? null : icon.trim();
+    const shared = { contentId: props.contentId, iconAssetId };
+    if (props.folder === "weapons") {
+      await updateAdminWeapon({ data: shared });
+      return "Weapon media saved.";
+    }
+    if (props.folder === "traps") {
+      await updateAdminTrap({ data: shared });
+      return "Trap media saved.";
+    }
+    if (props.folder === "schematics") {
+      await updateAdminSchematic({ data: shared });
+      return "Schematic media saved.";
+    }
+    await updateAdminPerk({ data: shared });
+    return "Perk media saved.";
+  };
+  return (
+    <CmsMediaSection>
+      <CmsMediaField
+        label="Icon asset id"
+        description={`Shown on ${props.kindLabel.toLowerCase()} cards and detail pages.`}
+        value={icon}
+        onChange={setIcon}
+        disabled={props.disabled}
+        folder={props.folder}
+      />
+      <div className="flex justify-end">
+        <button
+          type="button"
+          className="cc-btn cc-btn-primary cc-btn-sm"
+          disabled={props.disabled || props.pending}
+          onClick={() => props.run(save)}
+        >
+          {props.pending ? "Saving…" : "Save media"}
+        </button>
+      </div>
+    </CmsMediaSection>
   );
 }
 
@@ -505,11 +599,10 @@ function TrapForm(props: {
   const [rarity, setRarity] = useState(String(props.record["rarity"] ?? ""));
   const [popularity, setPopularity] = useState(String(props.record["popularity"] ?? 0));
   const [sortOrder, setSortOrder] = useState(String(props.record["sort_order"] ?? 0));
-  const [icon, setIcon] = useState(String(props.record["icon_asset_id"] ?? ""));
   return (
     <CmsFormSection
       title="Trap fields"
-      description="Subtype, discovery ordering, and icon media reference."
+      description="Placement, legacy role, rarity, and discovery ordering. The icon reference lives in its own Media section."
       action={
         <button
           type="button"
@@ -525,7 +618,6 @@ function TrapForm(props: {
                   rarity: rarity === "" ? null : rarity,
                   popularity: Number(popularity),
                   sortOrder: Number(sortOrder),
-                  iconAssetId: icon.trim() === "" ? null : icon.trim(),
                 },
               });
               return "Trap saved.";
@@ -581,14 +673,6 @@ function TrapForm(props: {
             options={RARITY_OPTIONS}
           />
         </CmsField>
-        <CmsMediaField
-          label="Icon asset id"
-          description="R2 media id (media_…). Upload inline or pick an existing asset."
-          value={icon}
-          onChange={setIcon}
-          disabled={props.disabled}
-          folder="traps"
-        />
         <CmsField label="Popularity">
           <input
             className="cc-input"
@@ -620,7 +704,6 @@ function SchematicForm(props: {
   run: (action: () => Promise<string>) => Promise<boolean>;
 }) {
   const [slots, setSlots] = useState("");
-  const [icon, setIcon] = useState(String(props.record["icon_asset_id"] ?? ""));
   const [popularity, setPopularity] = useState(String(props.record["popularity"] ?? 0));
   const [sortOrder, setSortOrder] = useState(String(props.record["sort_order"] ?? 0));
   const target = props.record["weapon_content_id"]
@@ -631,7 +714,7 @@ function SchematicForm(props: {
   return (
     <CmsFormSection
       title="Schematic fields"
-      description="Discovery ordering and icon media reference. Weapon/trap targeting is fixed at creation and changed only through a retarget."
+      description="Discovery ordering. Weapon/trap targeting is fixed at creation and changed only through a retarget. The icon reference lives in its own Media section."
       action={
         <button
           type="button"
@@ -644,7 +727,6 @@ function SchematicForm(props: {
                   contentId: props.contentId,
                   popularity: Number(popularity),
                   sortOrder: Number(sortOrder),
-                  iconAssetId: icon.trim() === "" ? null : icon.trim(),
                 },
               });
               return "Schematic saved.";
@@ -656,14 +738,6 @@ function SchematicForm(props: {
       }
     >
       <div className="grid gap-4 sm:grid-cols-2">
-        <CmsMediaField
-          label="Icon asset id"
-          description="R2 media id (media_…). Upload inline or pick an existing asset."
-          value={icon}
-          onChange={setIcon}
-          disabled={props.disabled}
-          folder="schematics"
-        />
         <CmsField label="Popularity">
           <input
             className="cc-input"

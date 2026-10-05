@@ -22,6 +22,7 @@ import { CmsRouteErrorStandalone, CmsRoutePending } from "@/components/cms/cc/Cm
 import { CmsCard, CmsField, CmsNotice } from "@/components/cms/cc/CmsPrimitives";
 import { CmsSelect } from "@/components/cms/cc/CmsSelect";
 import { CmsMediaField } from "@/components/cms/media/CmsMediaField";
+import { CmsMediaSection } from "@/components/cms/cc/CmsMediaSection";
 import {
   CmsEditorFeedback,
   CmsEditorFrame,
@@ -184,6 +185,7 @@ function LoadoutEditor() {
         run={editor.run}
         pending={editor.pending}
       />
+      <MediaForm loadout={loadout} disabled={!canWrite} run={editor.run} pending={editor.pending} />
       <TeamPerkForm
         loadout={loadout}
         disabled={!canWrite}
@@ -210,12 +212,11 @@ function IdentityForm(props: {
   const [loadoutType, setLoadoutType] = useState(loadout.loadoutType);
   const [popularity, setPopularity] = useState(String(loadout.popularity));
   const [sortOrder, setSortOrder] = useState(String(loadout.sortOrder));
-  const [coverAssetId, setCoverAssetId] = useState(loadout.coverAssetId ?? "");
 
   return (
     <CmsFormSection
       title="Identity"
-      description="Type, discovery ordering, and cover media reference."
+      description="Type and discovery ordering. The cover reference lives in its own Media section."
       action={
         <button
           type="button"
@@ -229,7 +230,6 @@ function IdentityForm(props: {
                   loadoutType,
                   popularity: Number(popularity),
                   sortOrder: Number(sortOrder),
-                  coverAssetId: coverAssetId.trim() === "" ? null : coverAssetId.trim(),
                 },
               });
               return "Identity saved.";
@@ -254,14 +254,6 @@ function IdentityForm(props: {
             }))}
           />
         </CmsField>
-        <CmsMediaField
-          label="Cover asset id"
-          description="R2 media id (media_…). Upload inline or pick an existing asset."
-          value={coverAssetId}
-          onChange={setCoverAssetId}
-          disabled={props.disabled}
-          folder="loadouts"
-        />
         <CmsField label="Popularity" description="Higher ranks first inside public listings.">
           <input
             className="cc-input"
@@ -282,6 +274,53 @@ function IdentityForm(props: {
         </CmsField>
       </div>
     </CmsFormSection>
+  );
+}
+
+/**
+ * Object-level media for a loadout, split out of IdentityForm (Wave 1 fix
+ * pass) for the same reason as the hero: a live preview breaks the metadata
+ * grid's row rhythm. Save path is unchanged.
+ */
+function MediaForm(props: {
+  loadout: LoadoutDetail;
+  disabled: boolean;
+  pending: boolean;
+  run: (action: () => Promise<string>) => Promise<boolean>;
+}) {
+  const loadout = props.loadout;
+  const [coverAssetId, setCoverAssetId] = useState(loadout.coverAssetId ?? "");
+  return (
+    <CmsMediaSection>
+      <CmsMediaField
+        label="Cover asset id"
+        description="Shown on loadout cards and the public loadout page."
+        value={coverAssetId}
+        onChange={setCoverAssetId}
+        disabled={props.disabled}
+        folder="loadouts"
+      />
+      <div className="flex justify-end">
+        <button
+          type="button"
+          className="cc-btn cc-btn-primary cc-btn-sm"
+          disabled={props.disabled || props.pending}
+          onClick={() =>
+            props.run(async () => {
+              await updateAdminLoadout({
+                data: {
+                  contentId: loadout.contentId,
+                  coverAssetId: coverAssetId.trim() === "" ? null : coverAssetId.trim(),
+                },
+              });
+              return "Media saved.";
+            })
+          }
+        >
+          {props.pending ? "Saving…" : "Save media"}
+        </button>
+      </div>
+    </CmsMediaSection>
   );
 }
 

@@ -5,6 +5,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import {
   asOptionalString,
+  asOptionalStringOrNull,
   asSearchFilter,
   asStatusFilter,
   clampAdminPaging,
@@ -82,37 +83,36 @@ export const listAdminArticles = createServerFn({ method: "GET" })
   });
 
 export const createAdminArticle = createServerFn({ method: "POST" })
-  .validator((i: { title: string; locale?: string }) => ({
-    title: requireTitle(i.title),
-    locale: asOptionalString(i.locale),
-  }))
+  .validator(
+    (i: {
+      title: string;
+      locale?: string;
+      /**
+       * Wave 1 — optional structured body + cover at creation, so an imported or
+       * scripted article arrives complete instead of needing a second save.
+       * Same `upsertArticleBody` path the editor's "Save body" uses.
+       */
+      body?: unknown;
+      coverAssetId?: string | null;
+      categoryId?: string | null;
+      slug?: string;
+      seoTitle?: string | null;
+      seoDescription?: string | null;
+    }) => ({
+      title: requireTitle(i.title),
+      locale: asOptionalString(i.locale),
+      body: i.body,
+      coverAssetId: asOptionalStringOrNull(i.coverAssetId),
+      categoryId: asOptionalStringOrNull(i.categoryId),
+      slug: asOptionalString(i.slug),
+      seoTitle: asOptionalStringOrNull(i.seoTitle),
+      seoDescription: asOptionalStringOrNull(i.seoDescription),
+    }),
+  )
   .handler(async ({ data }) => {
     const { db, session } = await requireArticleSession("cms.write", true);
-    const { createContent, upsertContentTranslation } = await import("./db.server");
-    const actor = { id: session.user.id, username: session.user.username };
-    const content = await createContent(
-      db,
-      { entityType: "article", defaultLocale: "en", createdBy: session.user.id },
-      actor,
-    );
-    try {
-      await upsertContentTranslation(
-        db,
-        content,
-        {
-          contentId: content.id,
-          locale: data.locale ?? "en",
-          title: data.title,
-          body: "",
-          slug: data.title,
-        },
-        actor,
-      );
-    } catch (error) {
-      await db.prepare("DELETE FROM cms_contents WHERE id = ?").bind(content.id).run();
-      throw error;
-    }
-    return { contentId: content.id };
+    const { createArticleDraft } = await import("./content-create.server");
+    return createArticleDraft(db, { id: session.user.id, username: session.user.username }, data);
   });
 
 export const saveAdminArticleBody = createServerFn({ method: "POST" })

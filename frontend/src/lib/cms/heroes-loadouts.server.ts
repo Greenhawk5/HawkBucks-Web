@@ -13,6 +13,7 @@ import {
   isCmsContentLocale,
 } from "./heroes";
 import { isUsableMediaStatus } from "./media-provider";
+import { SCHEMATIC_ENTITY_TYPE } from "./content-types";
 import { isContentStatus } from "./publish";
 import {
   getContentById,
@@ -621,6 +622,64 @@ export async function listLoadoutHeroes(
     .bind(loadoutContentId)
     .all<LoadoutHeroRow>();
   return results;
+}
+/** Max schematics attachable to one loadout (mirrors setLoadoutHeroes' 6). */
+export const MAX_LOADOUT_SCHEMATICS = 12;
+/**
+ * Wave 1 — schematic roster writer, moved OUT of setAdminLoadoutSchematics.
+ *
+ * Why it moved: the JSON importer must write the same roster, and a second
+ * copy of these INSERTs plus the duplicate/existence checks is exactly the
+ * duplicated business-rule system the brief forbids. The admin loader now calls
+ * this, the importer calls this, and the rules below are the only copy.
+ *
+ * Rules (unchanged from the inline version): max 12, no duplicates, every id
+ * must resolve to a published-or-draft `schematic` content row.
+ */
+export async function setLoadoutSchematics(
+  db: D1Database,
+  loadoutContentId: string,
+  schematicContentIds: readonly string[],
+  actor: AuditActor,
+): Promise<void> {
+  await assertLoadoutContent(db, loadoutContentId);
+  if (schematicContentIds.length > MAX_LOADOUT_SCHEMATICS) {
+    throw new Error(`At most ${MAX_LOADOUT_SCHEMATICS} schematics per loadout.`);
+  }
+  const seen = new Set<string>();
+  for (const id of schematicContentIds) {
+    if (seen.has(id)) throw new Error("Duplicate schematic in loadout.");
+    seen.add(id);
+    const target = await getContentById(db, id);
+    if (!target || target.entity_type !== SCHEMATIC_ENTITY_TYPE) {
+      throw new Error("Schematic content not found.");
+    }
+  }
+  await db
+    .prepare("DELETE FROM loadout_schematics WHERE loadout_content_id = ?")
+    .bind(loadoutContentId)
+    .run();
+  const ts = utcNow();
+  let order = 0;
+  for (const id of schematicContentIds) {
+    await db
+      .prepare(
+        "INSERT INTO loadout_schematics (id, loadout_content_id, schematic_content_id, slot_order, created_at) VALUES (?, ?, ?, ?, ?)",
+      )
+      .bind(newId("ls"), loadoutContentId, id, order, ts)
+      .run();
+    order += 1;
+  }
+  await recordAuditEvent(
+    db,
+    buildAuditEvent({
+      actor,
+      action: "content.update",
+      entityType: LOADOUT_ENTITY_TYPE,
+      entityId: loadoutContentId,
+      metadata: { op: "loadout.schematics", count: schematicContentIds.length },
+    }),
+  );
 }
 export async function assertMediaUnreferenced(db: D1Database, assetId: string): Promise<void> {
   const direct: Array<{ sql: string; two: boolean }> = [

@@ -13,6 +13,7 @@ import { upsertAdminAbility } from "@/lib/cms/loadouts-admin.loader";
 import { CmsRouteErrorStandalone, CmsRoutePending } from "@/components/cms/cc/CmsAuth";
 import { CmsCard, CmsField, CmsNotice } from "@/components/cms/cc/CmsPrimitives";
 import { CmsMediaField } from "@/components/cms/media/CmsMediaField";
+import { CmsMediaSection } from "@/components/cms/cc/CmsMediaSection";
 import { CmsSelect } from "@/components/cms/cc/CmsSelect";
 import {
   CmsEditorFeedback,
@@ -145,6 +146,12 @@ function HeroEditor() {
         run={editor.run}
         pending={editor.pending}
       />
+      <MediaForm
+        hero={currentHero}
+        disabled={!canWrite}
+        run={editor.run}
+        pending={editor.pending}
+      />
       <TranslationForm
         hero={currentHero}
         disabled={!canWrite}
@@ -175,13 +182,11 @@ function IdentityForm(props: {
   const [rarity, setRarity] = useState((hero as { rarity?: string | null }).rarity ?? "");
   const [popularity, setPopularity] = useState(String(hero.popularity));
   const [sortOrder, setSortOrder] = useState(String(hero.sortOrder));
-  const [portraitAssetId, setPortraitAssetId] = useState(hero.portraitAssetId ?? "");
-  const [bannerAssetId, setBannerAssetId] = useState(hero.bannerAssetId ?? "");
 
   return (
     <CmsFormSection
       title="Identity"
-      description="Class, category, discovery ordering, and portrait/banner media references."
+      description="Class, category, rarity, and discovery ordering. Media references live in their own section below."
       action={
         <button
           type="button"
@@ -197,8 +202,6 @@ function IdentityForm(props: {
                   rarity: rarity === "" ? null : rarity,
                   popularity: Number(popularity),
                   sortOrder: Number(sortOrder),
-                  portraitAssetId: portraitAssetId.trim() === "" ? null : portraitAssetId.trim(),
-                  bannerAssetId: bannerAssetId.trim() === "" ? null : bannerAssetId.trim(),
                 },
               });
               return "Identity saved.";
@@ -281,24 +284,66 @@ function IdentityForm(props: {
             disabled={props.disabled}
           />
         </CmsField>
-        <CmsMediaField
-          label="Portrait asset id"
-          description="R2 media id (media_…). Upload inline or pick an existing asset."
-          value={portraitAssetId}
-          onChange={setPortraitAssetId}
-          disabled={props.disabled}
-          folder="heroes"
-        />
-        <CmsMediaField
-          label="Banner asset id"
-          description="R2 media id (media_…). Upload inline or pick an existing asset."
-          value={bannerAssetId}
-          onChange={setBannerAssetId}
-          disabled={props.disabled}
-          folder="heroes"
-        />
       </div>
     </CmsFormSection>
+  );
+}
+
+/**
+ * Object-level media for a hero. Split out of IdentityForm (Wave 1 fix pass):
+ * a live preview is several times taller than a metadata input, so keeping it
+ * in the Identity grid stretched whole rows and broke the field pairing. The
+ * save path is unchanged — still `updateAdminHero`, still the same two columns.
+ */
+function MediaForm(props: {
+  hero: HeroDetail;
+  disabled: boolean;
+  pending: boolean;
+  run: (action: () => Promise<string>) => Promise<boolean>;
+}) {
+  const hero = props.hero;
+  const [portraitAssetId, setPortraitAssetId] = useState(hero.portraitAssetId ?? "");
+  const [bannerAssetId, setBannerAssetId] = useState(hero.bannerAssetId ?? "");
+  return (
+    <CmsMediaSection>
+      <CmsMediaField
+        label="Portrait asset id"
+        description="Shown on hero cards and the public hero page."
+        value={portraitAssetId}
+        onChange={setPortraitAssetId}
+        disabled={props.disabled}
+        folder="heroes"
+      />
+      <CmsMediaField
+        label="Banner asset id"
+        description="Wide hero artwork. Optional."
+        value={bannerAssetId}
+        onChange={setBannerAssetId}
+        disabled={props.disabled}
+        folder="heroes"
+      />
+      <div className="flex justify-end">
+        <button
+          type="button"
+          className="cc-btn cc-btn-primary cc-btn-sm"
+          disabled={props.disabled || props.pending}
+          onClick={() =>
+            props.run(async () => {
+              await updateAdminHero({
+                data: {
+                  contentId: hero.contentId,
+                  portraitAssetId: portraitAssetId.trim() === "" ? null : portraitAssetId.trim(),
+                  bannerAssetId: bannerAssetId.trim() === "" ? null : bannerAssetId.trim(),
+                },
+              });
+              return "Media saved.";
+            })
+          }
+        >
+          {props.pending ? "Saving…" : "Save media"}
+        </button>
+      </div>
+    </CmsMediaSection>
   );
 }
 

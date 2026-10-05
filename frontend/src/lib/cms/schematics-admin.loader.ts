@@ -109,9 +109,13 @@ export const createAdminWeapon = createServerFn({ method: "POST" })
       slug?: string;
       locale?: string;
       weaponSubtype?: string;
+      /** Wave 1 — icon may now be set at creation, not only on update. */
       rarity?: string | null;
+      iconAssetId?: string | null;
       popularity?: number;
       sortOrder?: number;
+      seoTitle?: string | null;
+      seoDescription?: string | null;
     }) => ({
       title: requireTitle(i.title),
       body: asOptionalString(i.body),
@@ -119,51 +123,18 @@ export const createAdminWeapon = createServerFn({ method: "POST" })
       locale: asOptionalString(i.locale),
       weaponSubtype: asOptionalString(i.weaponSubtype),
       rarity: asOptionalStringOrNull(i.rarity),
+      iconAssetId: asOptionalStringOrNull(i.iconAssetId),
       popularity: asOptionalNumber(i.popularity),
       sortOrder: asOptionalNumber(i.sortOrder),
+      seoTitle: asOptionalStringOrNull(i.seoTitle),
+      seoDescription: asOptionalStringOrNull(i.seoDescription),
     }),
   )
   .handler(async ({ data }) => {
     const { db, session } = await requireInventorySession("cms.write", true);
-    const { createContent, upsertContentTranslation } = await import("./db.server");
-    const { createWeaponRecord } = await import("./schematics-inventory.server");
-    if (typeof data.title !== "string" || data.title.trim() === "")
-      throw new Error("Title is required.");
-    const actor = { id: session.user.id, username: session.user.username };
-    const content = await createContent(
-      db,
-      { entityType: "weapon", defaultLocale: "en", createdBy: session.user.id },
-      actor,
-    );
-    try {
-      await createWeaponRecord(
-        db,
-        content,
-        {
-          weaponSubtype: data.weaponSubtype ?? "other",
-          rarity: (data as { rarity?: string | null }).rarity ?? null,
-          popularity: data.popularity ?? 0,
-          sortOrder: data.sortOrder ?? 0,
-        },
-        actor,
-      );
-      await upsertContentTranslation(
-        db,
-        content,
-        {
-          contentId: content.id,
-          locale: data.locale ?? "en",
-          title: data.title,
-          body: data.body ?? "",
-          slug: data.slug ?? data.title,
-        },
-        actor,
-      );
-    } catch (e) {
-      await db.prepare("DELETE FROM cms_contents WHERE id = ?").bind(content.id).run();
-      throw e;
-    }
-    return { contentId: content.id };
+    const { createWeaponDraft } = await import("./content-create.server");
+    // The SAME domain service the JSON importer calls.
+    return createWeaponDraft(db, { id: session.user.id, username: session.user.username }, data);
   });
 export const updateAdminWeapon = createServerFn({ method: "POST" })
   .validator(
@@ -205,9 +176,13 @@ export const createAdminTrap = createServerFn({ method: "POST" })
       locale?: string;
       trapSubtype?: string;
       trapPlacement?: string | null;
+      /** Wave 1 — icon may now be set at creation, not only on update. */
       rarity?: string | null;
+      iconAssetId?: string | null;
       popularity?: number;
       sortOrder?: number;
+      seoTitle?: string | null;
+      seoDescription?: string | null;
     }) => ({
       title: requireTitle(i.title),
       body: asOptionalString(i.body),
@@ -216,52 +191,17 @@ export const createAdminTrap = createServerFn({ method: "POST" })
       trapSubtype: asOptionalString(i.trapSubtype),
       trapPlacement: asOptionalStringOrNull(i.trapPlacement),
       rarity: asOptionalStringOrNull(i.rarity),
+      iconAssetId: asOptionalStringOrNull(i.iconAssetId),
       popularity: asOptionalNumber(i.popularity),
       sortOrder: asOptionalNumber(i.sortOrder),
+      seoTitle: asOptionalStringOrNull(i.seoTitle),
+      seoDescription: asOptionalStringOrNull(i.seoDescription),
     }),
   )
   .handler(async ({ data }) => {
     const { db, session } = await requireInventorySession("cms.write", true);
-    const { createContent, upsertContentTranslation } = await import("./db.server");
-    const { createTrapRecord } = await import("./schematics-inventory.server");
-    if (typeof data.title !== "string" || data.title.trim() === "")
-      throw new Error("Title is required.");
-    const actor = { id: session.user.id, username: session.user.username };
-    const content = await createContent(
-      db,
-      { entityType: "trap", defaultLocale: "en", createdBy: session.user.id },
-      actor,
-    );
-    try {
-      await createTrapRecord(
-        db,
-        content,
-        {
-          trapSubtype: data.trapSubtype ?? "other",
-          trapPlacement: (data as { trapPlacement?: string | null }).trapPlacement ?? null,
-          rarity: (data as { rarity?: string | null }).rarity ?? null,
-          popularity: data.popularity ?? 0,
-          sortOrder: data.sortOrder ?? 0,
-        },
-        actor,
-      );
-      await upsertContentTranslation(
-        db,
-        content,
-        {
-          contentId: content.id,
-          locale: data.locale ?? "en",
-          title: data.title,
-          body: data.body ?? "",
-          slug: data.slug ?? data.title,
-        },
-        actor,
-      );
-    } catch (e) {
-      await db.prepare("DELETE FROM cms_contents WHERE id = ?").bind(content.id).run();
-      throw e;
-    }
-    return { contentId: content.id };
+    const { createTrapDraft } = await import("./content-create.server");
+    return createTrapDraft(db, { id: session.user.id, username: session.user.username }, data);
   });
 export const updateAdminTrap = createServerFn({ method: "POST" })
   .validator(
@@ -307,6 +247,12 @@ export const createAdminPerk = createServerFn({ method: "POST" })
       perkType?: string;
       name?: string;
       description?: string;
+      /** Wave 1 — icon may now be set at creation, not only on update. */
+      iconAssetId?: string | null;
+      popularity?: number;
+      sortOrder?: number;
+      seoTitle?: string | null;
+      seoDescription?: string | null;
     }) => ({
       title: requireTitle(i.title),
       body: asOptionalString(i.body),
@@ -316,55 +262,60 @@ export const createAdminPerk = createServerFn({ method: "POST" })
       perkType: asOptionalString(i.perkType),
       name: asOptionalString(i.name),
       description: asOptionalString(i.description),
+      iconAssetId: asOptionalStringOrNull(i.iconAssetId),
+      popularity: asOptionalNumber(i.popularity),
+      sortOrder: asOptionalNumber(i.sortOrder),
+      seoTitle: asOptionalStringOrNull(i.seoTitle),
+      seoDescription: asOptionalStringOrNull(i.seoDescription),
     }),
   )
   .handler(async ({ data }) => {
     const { db, session } = await requireInventorySession("cms.write", true);
-    const { createContent, upsertContentTranslation } = await import("./db.server");
-    const { createPerkRecord, upsertPerkTranslation } =
-      await import("./schematics-inventory.server");
-    if (typeof data.title !== "string" || data.title.trim() === "")
-      throw new Error("Title is required.");
-    const actor = { id: session.user.id, username: session.user.username };
-    const content = await createContent(
+    const { createPerkDraft } = await import("./content-create.server");
+    return createPerkDraft(
       db,
-      { entityType: "perk", defaultLocale: "en", createdBy: session.user.id },
-      actor,
+      { id: session.user.id, username: session.user.username },
+      {
+        ...data,
+        perkName: data.name ?? null,
+        perkDescription: data.description ?? null,
+      },
     );
-    try {
-      await createPerkRecord(
-        db,
-        content,
-        { perkKey: data.perkKey, perkType: data.perkType ?? "other" },
-        actor,
-      );
-      await upsertContentTranslation(
-        db,
-        content,
-        {
-          contentId: content.id,
-          locale: data.locale ?? "en",
-          title: data.title,
-          body: data.body ?? "",
-          slug: data.slug ?? data.title,
-        },
-        actor,
-      );
-      await upsertPerkTranslation(
-        db,
-        content.id,
-        {
-          locale: data.locale ?? "en",
-          name: data.name ?? data.title,
-          description: data.description ?? "",
-        },
-        actor,
-      );
-    } catch (e) {
-      await db.prepare("DELETE FROM cms_contents WHERE id = ?").bind(content.id).run();
-      throw e;
-    }
-    return { contentId: content.id };
+  });
+/**
+ * Wave 1 — perk identity update.
+ *
+ * `perk_records.icon_asset_id` and `updatePerkRecord`'s `iconAssetId` have
+ * always existed, but no loader exposed them and the editor rendered no media
+ * control at all for perks. This exposes exactly the service's existing
+ * surface — no new column, no new rule, no schema change.
+ */
+export const updateAdminPerk = createServerFn({ method: "POST" })
+  .validator(
+    (i: {
+      contentId: string;
+      perkType?: string;
+      popularity?: number;
+      sortOrder?: number;
+      iconAssetId?: string | null;
+    }) =>
+      stripUndefined({
+        contentId: requireContentId(i.contentId),
+        perkType: asOptionalString(i.perkType),
+        popularity: asOptionalNumber(i.popularity),
+        sortOrder: asOptionalNumber(i.sortOrder),
+        iconAssetId: asOptionalStringOrNull(i.iconAssetId),
+      }),
+  )
+  .handler(async ({ data }) => {
+    const { db, session } = await requireInventorySession("cms.write", true);
+    const { updatePerkRecord } = await import("./schematics-inventory.server");
+    const { contentId, ...patch } = data as Record<string, unknown> & { contentId: string };
+    await updatePerkRecord(db, contentId, patch as Parameters<typeof updatePerkRecord>[2], {
+      id: session.user.id,
+      username: session.user.username,
+    });
+    return { ok: true as const };
   });
 export const upsertAdminPerkTranslation = createServerFn({ method: "POST" })
   .validator((i: { contentId: string; locale: string; name: string; description?: string }) =>
