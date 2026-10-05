@@ -390,6 +390,8 @@ export const de: TranslationDictionary = {
     blocked:
       "Browser-Benachrichtigungen sind blockiert. Du kannst sie in den Website-Einstellungen wieder aktivieren.",
     unsupported: "Die Benachrichtigungseinrichtung wird in diesem Browser nicht unterstützt.",
+    unsupportedInstallHint:
+      "Benachrichtigungen funktionieren, wenn HawkBucks als Web-App auf dem Startbildschirm installiert ist. Tippen Sie in Safari auf Teilen, dann auf Zum Startbildschirm, und aktivieren Sie Benachrichtigungen erneut.",
     enableLabel: "Erinnerungsbenachrichtigungen aktivieren",
     disableLabel: "Erinnerungsbenachrichtigungen deaktivieren",
     blockedLabel: "Erinnerungsbenachrichtigungen sind blockiert",

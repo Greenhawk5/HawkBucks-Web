@@ -184,7 +184,7 @@ export const adminLogout = createServerFn({ method: "POST" }).handler(
     const before = await resolveRequestSession(db).catch(() => null);
     await performRequestLogout(db);
     // Wave 2 — logout telemetry (best-effort; anonymous logout still records
-    // the event with a null actor so session-end volume stays honest).
+    // an event with a null actor so session-end volume stays honest).
     // Awaited so the row is durable before the handler returns.
     const { recordAuthEvent } = await import("./auth-telemetry.server");
     await recordAuthEvent(db, {
@@ -196,6 +196,66 @@ export const adminLogout = createServerFn({ method: "POST" }).handler(
     return { ok: true };
   },
 );
+
+export interface AdminTestPushInput {
+  endpoint: string;
+}
+
+export interface AdminTestPushResult {
+  success: boolean;
+  delivered: boolean;
+  status: number;
+  message?: string;
+}
+
+/**
+ * Notification hotfix — protected diagnostic test push.
+ *
+ * Sends the FIXED generic test payload to the subscription
+ * registered for `endpoint` — which in practice is the browser
+ * making the request (the admin's own device), since the client
+ * passes its live PushSubscription endpoint. The Worker resolves
+ * the row by endpoint and uses the real VAPID + RFC 8291
+ * delivery path; it never claims or modifies the once-per-UTC-day
+ * WebBox notification slot.
+ *
+ * Authorization: authenticated CMS session with the "cms.admin"
+ * capability — enforced HERE server-side (UI hiding enforces
+ * nothing). The payload is fixed server-side, so even a valid
+ * admin cannot craft arbitrary notification content, and the
+ * endpoint must be a well-formed https URL. This is NOT a public
+ * push endpoint: anonymous → 401, insufficient role → 403.
+ */
+export const sendTestPush = createServerFn({ method: "POST" })
+  .validator((input: AdminTestPushInput) => {
+    const endpoint = typeof input.endpoint === "string" ? input.endpoint.trim() : "";
+    if (!endpoint || endpoint.length > 2048) {
+      throw new Error("Invalid input: expected an endpoint URL.");
+    }
+    try {
+      const parsed = new URL(endpoint);
+      if (parsed.protocol !== "https:") {
+        throw new Error("Invalid input: expected an https endpoint.");
+      }
+    } catch {
+      throw new Error("Invalid input: expected an https endpoint.");
+    }
+    return { endpoint };
+  })
+  .handler(async ({ data }): Promise<AdminTestPushResult> => {
+    const { resolveRequestCmsDb } = await import("./db.server");
+    // Explicitly typed so requireCapability's `asserts` signature is usable
+    // (TS2775 rejects assertion calls on a bare destructured binding).
+    const auth: typeof import("./auth.server") = await import("./auth.server");
+    // POST mutation → CSRF guard first, before any DB or network work.
+    auth.assertSameOriginForMutation();
+    const { db } = await resolveRequestCmsDb();
+    const session = await auth.resolveRequestSession(db);
+    // Explicit capability gate: only CMS admins may trigger a test push.
+    auth.requireCapability(session, "cms.admin");
+    const { sendTestPushServer } = await import("@/services/push.server");
+    return sendTestPushServer({ endpoint: data.endpoint });
+  });
 
 export interface AdminMediaListInput {
   status?: string;

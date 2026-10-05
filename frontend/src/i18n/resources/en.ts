@@ -389,6 +389,8 @@ export const en: TranslationDictionary = {
     blocked:
       "Browser notifications are blocked. You can re-enable them in your browser site settings.",
     unsupported: "Notification setup is not supported in this browser.",
+    unsupportedInstallHint:
+      "Notifications are supported when HawkBucks is installed as a Home Screen web app. In Safari, tap Share, then Add to Home Screen, and enable notifications again.",
     enableLabel: "Enable reminder notifications",
     disableLabel: "Disable reminder notifications",
     blockedLabel: "Reminder notifications are blocked",

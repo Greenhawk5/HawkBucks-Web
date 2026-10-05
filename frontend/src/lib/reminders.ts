@@ -16,6 +16,7 @@ import {
   SERVICE_WORKER_TIMEOUT_MS,
   getPushPermission,
   isPushSupported,
+  isTouchDevice,
   resolvePushRegistration,
   subscribeForPush,
   unsubscribeFromPush,
@@ -50,6 +51,19 @@ async function loadPushServerApi(): Promise<PushServerApi> {
 }
 
 export type ReminderState = "on" | "off" | "blocked" | "unsupported" | "loading";
+
+/**
+ * Which "unsupported" explanation to show. Pure capability
+ * detection (feature + touch), never user-agent sniffing:
+ * iOS/iPadOS Safari tabs lack PushManager until the site is
+ * installed to the Home Screen, so touch devices get the
+ * install hint instead of a dead-end "not supported" message.
+ */
+export type UnsupportedMessageKey = "unsupported" | "unsupportedInstallHint";
+
+export function unsupportedMessageKey(): UnsupportedMessageKey {
+  return isTouchDevice() ? "unsupportedInstallHint" : "unsupported";
+}
 
 /** Outcome of one enable/disable attempt. `state` is always what resulted. */
 export interface ReminderOutcome {

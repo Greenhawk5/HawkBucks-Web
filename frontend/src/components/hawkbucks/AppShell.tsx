@@ -24,7 +24,11 @@ import {
 } from "@/hooks/use-preferences";
 import type { InitialServerPreferences } from "@/hooks/use-preferences";
 import { useReminderNotifications as useReminderNotificationsShared } from "@/hooks/use-reminder-notifications";
-import { enableReminderNotifications, resolveReminderState } from "@/lib/reminders";
+import {
+  enableReminderNotifications,
+  resolveReminderState,
+  unsupportedMessageKey,
+} from "@/lib/reminders";
 import { useI18n } from "@/i18n";
 import { ASSETS } from "@/lib/assets";
 import { NAV_GROUPS, localizedNavTo, matchNavItem } from "@/lib/navigation";
@@ -480,12 +484,15 @@ function WelcomeDialog() {
         // Re-resolve: the mutation's own state can be "off" while the true
         // cause is a blocked or unsupported browser.
         const resolved = await resolveReminderState();
+        const hint = unsupportedMessageKey() === "unsupportedInstallHint";
         setReminderStatus(
           t(
             resolved.state === "blocked" || state === "blocked"
               ? "notifications.blocked"
               : resolved.state === "unsupported" || state === "unsupported"
-                ? "notifications.unsupported"
+                ? hint
+                  ? "notifications.unsupportedInstallHint"
+                  : "notifications.unsupported"
                 : "notifications.disabled",
           ),
         );

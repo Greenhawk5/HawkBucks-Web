@@ -1,16 +1,23 @@
 import { useState } from "react";
 import { createFileRoute, Link, useRouter } from "@tanstack/react-router";
-import { ArrowRight, FileText, Package, Swords, Upload, Users } from "lucide-react";
+import { ArrowRight, BellRing, FileText, Package, Swords, Upload, Users } from "lucide-react";
 
 import { ASSETS } from "@/lib/assets";
 import { BRAND_NAME } from "@/lib/site";
-import { adminLogin, getAdminSession, getTurnstileSiteKey } from "@/lib/cms/admin.loader";
+import {
+  adminLogin,
+  getAdminSession,
+  getTurnstileSiteKey,
+  sendTestPush,
+  type AdminTestPushResult,
+} from "@/lib/cms/admin.loader";
 import {
   getOverviewCounts,
   listRecentAuditEvents,
   listRecentContent,
 } from "@/lib/cms/overview-admin.loader";
 import { getActivitySummary } from "@/lib/cms/activity-intel.loader";
+import { useReminderNotifications } from "@/hooks/use-reminder-notifications";
 import { CmsShell } from "@/components/cms/cc/CmsShell";
 import { CmsBarePage } from "@/components/cms/cc/CmsAuth";
 import { CmsLoginBackground } from "@/components/cms/cc/CmsLoginBackground";
@@ -556,7 +563,102 @@ function Dashboard(props: {
             and archived row across all entity types.
           </p>
         </CmsCard>
+
+        {/* Notification hotfix — diagnostic test push. Card is admin-only
+            by convention (like Activity); the server function re-checks
+            cms.admin server-side regardless. */}
+        {props.user.role === "admin" ? <NotificationTestCard /> : null}
       </div>
     </div>
+  );
+}
+
+/**
+ * Diagnostic test push (notification hotfix). Sends the fixed
+ * generic test payload to THIS device's registered push
+ * subscription through the real VAPID + RFC 8291 path — the
+ * exact delivery path the scheduled WebBox notification uses —
+ * without claiming or modifying the once-per-UTC-day slot.
+ * Purpose: distinguish a push-infrastructure problem (test push
+ * fails) from a scheduler/mission-detection problem (test push
+ * succeeds but the daily WebBox notification does not arrive).
+ */
+function NotificationTestCard() {
+  const reminders = useReminderNotifications();
+  const [pending, setPending] = useState(false);
+  const [result, setResult] = useState<AdminTestPushResult | null>(null);
+  const subscribed = reminders.state === "on" && reminders.endpoint !== null;
+
+  async function handleTestPush() {
+    if (pending || !reminders.endpoint) return;
+    setPending(true);
+    setResult(null);
+    try {
+      const outcome = await sendTestPush({ data: { endpoint: reminders.endpoint } });
+      setResult(outcome);
+    } catch (error) {
+      // Server-function rejections (401/403 from the CMS admin gate,
+      // transport failures) surface as thrown errors. Messages are
+      // generic and secret-free by design.
+      setResult({
+        success: false,
+        delivered: false,
+        status: 0,
+        message: error instanceof Error ? error.message : "Test push failed.",
+      });
+    } finally {
+      setPending(false);
+    }
+  }
+
+  return (
+    <CmsCard title="Notification delivery test">
+      <p className="mb-3 text-sm leading-relaxed opacity-80">
+        Sends a fixed test notification to this device&apos;s registered push subscription through
+        the same VAPID delivery path as the daily WebBox notification. It never counts toward or
+        modifies the once-per-day notification.
+      </p>
+      <div className="mb-3 flex items-center justify-between gap-2 border-b py-1.5 cc-hairline">
+        <dt className="text-sm opacity-70">This device&apos;s subscription</dt>
+        <dd className="text-sm font-semibold tabular-nums">
+          {reminders.state === "loading"
+            ? "Checking…"
+            : subscribed
+              ? "Registered"
+              : "Not registered"}
+        </dd>
+      </div>
+      {!subscribed && reminders.state !== "loading" ? (
+        <p className="mb-3 text-xs leading-relaxed opacity-70">
+          Enable notifications on this device first (sidebar bell icon), then send the test push.
+        </p>
+      ) : null}
+      <button
+        type="button"
+        onClick={() => {
+          void handleTestPush();
+        }}
+        disabled={pending || !subscribed}
+        className="cc-btn cc-btn-primary cc-btn-sm"
+      >
+        <BellRing aria-hidden="true" className="h-4 w-4" />
+        {pending ? "Sending…" : "Send test push"}
+      </button>
+      {result ? (
+        result.delivered ? (
+          <CmsNotice kind="success">
+            Test push delivered (HTTP {result.status}). The device should show a notification titled
+            &quot;HawkBucks&quot;.
+          </CmsNotice>
+        ) : (
+          <CmsNotice kind="error">
+            Test push failed (HTTP {result.status}).
+            {result.message ? ` ${result.message}` : ""} If this device&apos;s subscription is
+            registered but delivery fails, the cause is push configuration (VAPID) or the browser
+            push service — not the WebBox scheduler.
+          </CmsNotice>
+        )
+      ) : null}
+    </CmsCard>
   );
 }

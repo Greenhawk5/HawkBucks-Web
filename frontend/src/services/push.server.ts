@@ -50,3 +50,43 @@ export async function unsubscribePushServer(input: {
   });
   return { success: res.ok };
 }
+
+/**
+ * Admin-only diagnostic test push (Phase: notification hotfix).
+ * The backend Worker resolves the ACTIVE subscription registered
+ * for `endpoint` — the calling admin's own device — and sends the
+ * fixed generic test payload through the real VAPID + RFC 8291
+ * path. Authorization is enforced by the CMS admin server function
+ * that calls this transport; this module never decides who may send.
+ * Returns the Worker's delivery verdict (status = push-service HTTP
+ * status, 0 = unreachable). Never claims or modifies the daily
+ * WebBox notification slot.
+ */
+export async function sendTestPushServer(input: { endpoint: string }): Promise<{
+  success: boolean;
+  delivered: boolean;
+  status: number;
+  message?: string;
+}> {
+  const res = await callPush("/api/push/test", {
+    method: "POST",
+    headers: { "content-type": "application/json", accept: "application/json" },
+    body: JSON.stringify({ endpoint: input.endpoint }),
+  });
+  if (!res.ok) {
+    return { success: false, delivered: false, status: res.status };
+  }
+  const data = (await res.json()) as {
+    success?: boolean;
+    delivered?: boolean;
+    status?: number;
+    message?: string;
+  };
+  return {
+    success: data.success === true,
+    delivered: data.delivered === true,
+    status: typeof data.status === "number" ? data.status : 0,
+    // exactOptionalPropertyTypes: only attach the key when a message exists.
+    ...(typeof data.message === "string" ? { message: data.message } : {}),
+  };
+}

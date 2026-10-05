@@ -387,6 +387,8 @@ export const es: TranslationDictionary = {
     blocked:
       "Las notificaciones del navegador están bloqueadas. Puedes reactivarlas en los ajustes del sitio.",
     unsupported: "La configuración de notificaciones no es compatible con este navegador.",
+    unsupportedInstallHint:
+      "Las notificaciones funcionan cuando HawkBucks está instalado como aplicación de pantalla de inicio. En Safari, toca Compartir, luego Añadir a pantalla de inicio, y activa las notificaciones de nuevo.",
     enableLabel: "Activar notificaciones de recordatorio",
     disableLabel: "Desactivar notificaciones de recordatorio",
     blockedLabel: "Notificaciones de recordatorio bloqueadas",

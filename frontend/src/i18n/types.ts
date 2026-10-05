@@ -365,6 +365,7 @@ export interface TranslationDictionary {
     disabled: string;
     blocked: string;
     unsupported: string;
+    unsupportedInstallHint: string;
     enableLabel: string;
     disableLabel: string;
     blockedLabel: string;

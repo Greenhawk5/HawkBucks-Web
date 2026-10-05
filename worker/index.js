@@ -4,6 +4,7 @@ import {
   handlePushSubscribe,
   handlePushUnsubscribe,
   handlePushPublicKey,
+  handlePushTest,
   runPushFanout,
 } from './push.js';
 
@@ -1070,6 +1071,20 @@ export default {
       return json(result.data, result.status);
     }
 
+    // Admin-only diagnostic test push. This Worker is internal-only
+    // (workers_dev = false), so the route is reachable exclusively
+    // through the HAWKBUCKS_API Service Binding — and the frontend
+    // server function that calls it is gated behind the CMS admin
+    // session (requireCapability "cms.admin"). It is NOT a public
+    // push endpoint.
+    if (
+      request.method === 'POST' &&
+      url.pathname === '/api/push/test'
+    ) {
+      const result = await handlePushTest(request, env);
+      return json(result.data, result.status);
+    }
+
     if (
       request.method === 'GET' &&
       url.pathname === '/api/health'
@@ -1160,7 +1175,10 @@ export default {
         const summary = refreshed
           ? await runPushFanout(env, async () => refreshed, dateString, { missions: refreshed })
           : await runPushFanout(env, () => getCachedMissionData(env), dateString);
-        console.log(`Push fanout for ${dateString}: ${summary.sent} sent, ${summary.skipped} skipped, ${summary.deactivated} deactivated`);
+        // RC1/RC2 observability: transientFailures MUST be visible in
+        // the cron summary — a silently failing send used to look
+        // identical to "nothing to send".
+        console.log(`Push fanout for ${dateString}: ${summary.sent} sent, ${summary.skipped} skipped, ${summary.deactivated} deactivated, ${summary.transientFailures} transient failure(s)`);
       } catch (error) {
         console.error('Push fanout failed:', error instanceof Error ? error.message : 'unknown error');
       }

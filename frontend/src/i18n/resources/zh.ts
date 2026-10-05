@@ -365,6 +365,8 @@ export const zh: TranslationDictionary = {
     disabled: "通知已关闭。",
     blocked: "浏览器通知被阻止。可以在网站设置中重新开启。",
     unsupported: "此浏览器不支持通知设置。",
+    unsupportedInstallHint:
+      "当 HawkBucks 安装为主屏幕网络应用后即可接收通知。在 Safari 中点按“共享”，然后点按“添加到主屏幕”，并重新开启通知。",
     enableLabel: "启用提醒通知",
     disableLabel: "关闭提醒通知",
     blockedLabel: "提醒通知已被屏蔽",

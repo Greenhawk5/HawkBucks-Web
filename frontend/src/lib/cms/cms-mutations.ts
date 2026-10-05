@@ -111,8 +111,8 @@ export const CMS_MUTATION_INVENTORY: CmsMutationInventoryEntry[] = [
   },
   {
     file: "../src/lib/cms/admin.loader.ts",
-    mutations: ["adminLogin", "adminLogout"],
-    families: ["session issuance", "session revocation", "login throttle"],
+    mutations: ["adminLogin", "adminLogout", "sendTestPush"],
+    families: ["session issuance", "session revocation", "login throttle", "diagnostic push send"],
   },
 ];
 

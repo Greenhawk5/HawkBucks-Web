@@ -15,6 +15,7 @@ import { toast } from "sonner";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { HEADER_ICON, HEADER_ICON_BUTTON } from "@/components/hawkbucks/header-controls";
 import { useReminderNotifications } from "@/hooks/use-reminder-notifications";
+import { unsupportedMessageKey } from "@/lib/reminders";
 import { useI18n } from "@/i18n";
 import { cn } from "@/lib/utils";
 
@@ -53,7 +54,14 @@ export function ReminderToggle({ className }: { className?: string | undefined }
       // Blocked/unsupported never call requestPermission() — explain instead.
       // These toasts fire WITHOUT invoking toggle() at all.
       if (unsupported) {
-        toast.error(t("notifications.unsupported"));
+        // Touch-capable devices without PushManager are almost always
+        // iOS/iPadOS Safari tabs — explain the Home Screen install
+        // path instead of a dead-end "not supported" message.
+        toast.error(
+          unsupportedMessageKey() === "unsupportedInstallHint"
+            ? t("notifications.unsupportedInstallHint")
+            : t("notifications.unsupported"),
+        );
         return;
       }
       if (blocked && !enabled) {
@@ -81,7 +89,11 @@ export function ReminderToggle({ className }: { className?: string | undefined }
       } else if (outcome.state === "blocked") {
         toast.error(t("notifications.blocked"));
       } else {
-        toast.error(t("notifications.unsupported"));
+        toast.error(
+          unsupportedMessageKey() === "unsupportedInstallHint"
+            ? t("notifications.unsupportedInstallHint")
+            : t("notifications.unsupported"),
+        );
       }
     },
     [busy, loading, unsupported, blocked, enabled, toggle, t],

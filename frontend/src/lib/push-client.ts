@@ -22,6 +22,27 @@ export function isPushSupported(): boolean {
 }
 
 /**
+ * Touch-capability detection for the unsupported-notification
+ * explanation. NOT browser detection: on iOS/iPadOS the Push API
+ * exists only in web apps installed to the Home Screen, so a
+ * touch-capable device whose browser lacks PushManager is almost
+ * certainly a Safari tab that would work after installation.
+ * A touchscreen laptop still exposes PushManager (Chromium/Edge),
+ * so this hint only ever surfaces where push is genuinely
+ * unavailable AND the device is touch-capable.
+ */
+export function isTouchDevice(): boolean {
+  if (typeof window === "undefined") return false;
+  try {
+    return typeof navigator.maxTouchPoints === "number"
+      ? navigator.maxTouchPoints > 0
+      : "ontouchstart" in window;
+  } catch {
+    return false;
+  }
+}
+
+/**
  * Settle `promise` within `ms`. Returns `{ timedOut: true }` when the bound
  * elapses (or the promise rejects), and `{ timedOut: false, value }` otherwise.
  *

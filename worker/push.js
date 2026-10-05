@@ -7,8 +7,29 @@
 export const PUSH_MAX_ENDPOINT_LENGTH = 2048;
 export const PUSH_MAX_KEY_CHARS = 512;
 
+// A subscription is deactivated after this many consecutive failing UTC
+// days (fail_count increments at most once per UTC day even though a
+// failed send is retried every cron tick — see recordPushTransientFailure).
+export const PUSH_FAIL_DEACTIVATE_THRESHOLD = 7;
+
 export function pushTimestamp(date = new Date()) {
   return date.toISOString();
+}
+
+// Structured, secret-free push logging. Never receives endpoints, keys,
+// or credentials — only event names, counts, statuses, and the first 8
+// hex chars of the subscription id (a SHA-256 of the endpoint).
+export function logPushEvent(event, fields = {}) {
+  try {
+    console.log(JSON.stringify({ scope: "push", event, ...fields }));
+  } catch {
+    // Logging must never fail the cron tick.
+  }
+}
+
+/** Safe subscription identifier for logs: 8-char prefix of the id. */
+export function subscriptionTag(id) {
+  return typeof id === "string" && id.length >= 8 ? id.slice(0, 8) : "unknown";
 }
 
 export function isSupportedPushLanguage(value) {
@@ -122,6 +143,17 @@ export async function listActivePushSubscriptions(env, limit = 1000) {
   return rows?.results ?? [];
 }
 
+// Active subscription lookup by exact endpoint — used by the
+// admin-only test-push path to resolve "the current device's
+// registered subscription" without any user-account coupling.
+export async function getPushSubscriptionByEndpoint(env, endpoint) {
+  if (!env.DB) return null;
+  const rows = await env.DB.prepare(
+    'SELECT id, endpoint, p256dh, auth, language FROM push_subscriptions WHERE endpoint=? AND is_active=1 LIMIT 1'
+  ).bind(endpoint).all();
+  return rows?.results?.[0] ?? null;
+}
+
 // Claim the once-per-UTC-day slot BEFORE sending: conditional UPDATE is the
 // idempotency mechanism (overlapping crons, restarts, retries converge).
 export async function claimPushSlot(env, id, dateString, timestamp = pushTimestamp()) {
@@ -132,6 +164,18 @@ export async function claimPushSlot(env, id, dateString, timestamp = pushTimesta
   return (result?.meta?.changes ?? 0) > 0;
 }
 
+// RC1 — release a once-per-UTC-day claim after a failed delivery.
+// Conditional UPDATE: only the claim made for THIS date string is
+// released, so a concurrent tick can never release another day's
+// slot. A failed send must not consume the daily notification.
+export async function releasePushSlot(env, id, dateString, timestamp = pushTimestamp()) {
+  if (!env.DB) return { released: false };
+  const result = await env.DB.prepare(
+    'UPDATE push_subscriptions SET last_notified_utc=NULL, updated_at=? WHERE id=? AND is_active=1 AND last_notified_utc=?'
+  ).bind(timestamp, id, dateString).run();
+  return { released: (result?.meta?.changes ?? 0) > 0 };
+}
+
 export async function recordPushDelivered(env, id, timestamp = pushTimestamp()) {
   if (!env.DB) return;
   await env.DB.prepare(
@@ -139,11 +183,27 @@ export async function recordPushDelivered(env, id, timestamp = pushTimestamp()) 
   ).bind(timestamp, timestamp, id).run();
 }
 
+// Transient failure bookkeeping. Because RC1 releases the claim on
+// failure, the same subscription is retried every cron tick; to keep
+// PUSH_FAIL_DEACTIVATE_THRESHOLD meaningful as consecutive failing
+// DAYS (its original semantics under once-per-day claiming), the
+// counter increments at most once per UTC day. Returns the current
+// fail_count so the fanout can deactivate repeatedly failing rows.
 export async function recordPushTransientFailure(env, id, timestamp = pushTimestamp()) {
-  if (!env.DB) return;
+  if (!env.DB) return { failCount: 0 };
+  const dayStart = `${timestamp.slice(0, 10)}T00:00:00.000Z`;
   await env.DB.prepare(
-    'UPDATE push_subscriptions SET last_failure_at=?, fail_count=fail_count+1, updated_at=? WHERE id=?'
-  ).bind(timestamp, timestamp, id).run();
+    `UPDATE push_subscriptions
+     SET last_failure_at=?,
+         fail_count=fail_count + (CASE WHEN last_failure_at IS NULL OR last_failure_at < ? THEN 1 ELSE 0 END),
+         updated_at=?
+     WHERE id=?`
+  ).bind(timestamp, dayStart, timestamp, id).run();
+  const row = await env.DB
+    .prepare('SELECT fail_count FROM push_subscriptions WHERE id=?')
+    .bind(id)
+    .first();
+  return { failCount: Number(row?.fail_count ?? 0) };
 }
 
 export async function deactivatePushSubscriptionById(env, id, timestamp = pushTimestamp()) {
@@ -294,9 +354,36 @@ export function buildPushPayload(subscription, dateString) {
   return new TextEncoder().encode(JSON.stringify({ title: strings.title, body: strings.body, url, date: dateString }));
 }
 
-export async function sendPushNotification(env, subscription, dateString, fetchImpl = fetch) {
+// Fixed, generic, localized payload for the admin-only test push.
+// No mission data, no user data, no dynamic content.
+export const PUSH_TEST_STRINGS = {
+  en: 'Test notification: push delivery is working.',
+  es: 'Notificación de prueba: la entrega de notificaciones funciona.',
+  fr: 'Notification de test : la livraison des notifications fonctionne.',
+  ru: 'Тестовое уведомление: доставка уведомлений работает.',
+  de: 'Testbenachrichtigung: die Push-Zustellung funktioniert.',
+  pt: 'Notificação de teste: a entrega de notificações está funcionando.',
+  zh: '测试通知：推送送达功能正常。',
+  'ar-SA': 'إشعار اختبار: عملية توصيل الإشعارات تعمل.',
+  'fa-IR': 'اعلان آزمایشی: ارسال اعلان‌ها در حال کار است.'
+};
+
+export function pushTestStringsFor(language) {
+  return PUSH_TEST_STRINGS[isSupportedPushLanguage(language) ? language : 'en'];
+}
+
+export function buildTestPushPayload(subscription) {
+  const body = pushTestStringsFor(subscription.language);
+  const url = subscription.language && subscription.language !== 'en' ? '/' + subscription.language + '/' : '/';
+  return new TextEncoder().encode(JSON.stringify({ title: 'HawkBucks', body, url, test: true }));
+}
+
+// `payloadOverride` lets the admin test push send its fixed test
+// payload through the exact same VAPID + RFC 8291 delivery path
+// as the scheduled WebBox notification.
+export async function sendPushNotification(env, subscription, dateString, fetchImpl = fetch, payloadOverride = null) {
   const vapid = await buildVapidAuthorization(env, subscription.endpoint);
-  const payload = buildPushPayload(subscription, dateString);
+  const payload = payloadOverride ?? buildPushPayload(subscription, dateString);
   const body = await encryptPushPayload(subscription, payload);
   return fetchImpl(subscription.endpoint, {
     method: 'POST',
@@ -362,6 +449,55 @@ export async function handlePushUnsubscribe(request, env) {
   }
 }
 
+// Admin-only diagnostic test push (reached exclusively through the
+// HAWKBUCKS_API service binding from the CMS-admin-gated server
+// function — never a public route). Resolves the ACTIVE subscription
+// registered for the supplied endpoint (the calling admin's own
+// device), sends the FIXED localized test payload through the real
+// VAPID + RFC 8291 delivery path, and reports the outcome. It NEVER
+// claims or modifies the once-per-UTC-day WebBox notification slot
+// and never touches delivery bookkeeping, so it cannot distort the
+// scheduled fanout's state.
+export async function handlePushTest(request, env, deps = {}) {
+  let input = null;
+  try {
+    input = await request.json();
+  } catch {
+    return pushJson({ success: false, message: 'Invalid JSON body.' }, 400);
+  }
+  const endpoint = typeof input?.endpoint === 'string' ? input.endpoint.trim() : '';
+  if (!endpoint || endpoint.length > PUSH_MAX_ENDPOINT_LENGTH) {
+    return pushJson({ success: false, message: 'Invalid subscription.' }, 400);
+  }
+  let subscription = null;
+  try {
+    subscription = await getPushSubscriptionByEndpoint(env, endpoint);
+  } catch {
+    return pushJson({ success: false, message: 'Subscription storage is unavailable.' }, 503);
+  }
+  if (!subscription) {
+    return pushJson({ success: false, delivered: false, status: 0, message: 'No active subscription for this device.' }, 404);
+  }
+  const sendImpl = deps.sendImpl
+    || ((sub) => sendPushNotification(
+      env, sub, pushTimestamp().slice(0, 10), deps.fetchImpl || fetch, buildTestPushPayload(sub),
+    ));
+  logPushEvent('test_push_attempted', { sub: subscriptionTag(subscription.id) });
+  try {
+    const response = await sendImpl(subscription);
+    const status = response?.status ?? 0;
+    if (status >= 200 && status < 300) {
+      logPushEvent('test_push_delivered', { sub: subscriptionTag(subscription.id), status });
+      return pushJson({ success: true, delivered: true, status }, 200);
+    }
+    logPushEvent('test_push_rejected', { sub: subscriptionTag(subscription.id), status });
+    return pushJson({ success: false, delivered: false, status, message: `Push service responded HTTP ${status}.` }, 200);
+  } catch {
+    logPushEvent('test_push_unreachable', { sub: subscriptionTag(subscription.id) });
+    return pushJson({ success: false, delivered: false, status: 0, message: 'Push service was unreachable.' }, 200);
+  }
+}
+
 // UTC date (YYYY-MM-DD) stamped on the trusted mission cache payload.
 // Null when no parseable date is present; such payloads keep legacy
 // gating (mission/total checks + once-per-day claim).
@@ -378,35 +514,88 @@ export function missionCacheUtcDate(missions) {
 // mission. `deps` stubs missions/network/bookkeeping for tests.
 export async function runPushFanout(env, getMissions, dateString, deps = {}) {
   const summary = { checked: 0, sent: 0, skipped: 0, deactivated: 0, transientFailures: 0 };
+  // RC2 observability: a missing VAPID keypair is the one misconfiguration
+  // that leaves subscriptions silently undeliverable — the public-key
+  // endpoint still answers, browsers still subscribe, and every send
+  // throws. Surface it explicitly; secret values are never logged.
+  if (!env.VAPID_PUBLIC_KEY || !env.VAPID_PRIVATE_JWK) {
+    logPushEvent('push_not_configured');
+  }
+  logPushEvent('fanout_started', { date: dateString });
   let missions = null;
   try {
     missions = deps.missions !== undefined ? deps.missions : await getMissions();
   } catch {
+    logPushEvent('missions_fetch_failed');
     return summary;
   }
   const missionCount = Array.isArray(missions?.missions) ? missions.missions.length : 0;
   const totalVbucks = Number(missions?.totalVbucks || 0);
-  if (!missions || missionCount === 0 || totalVbucks <= 0) return summary;
+  if (!missions || missionCount === 0 || totalVbucks <= 0) {
+    logPushEvent('missions_none', { missionCount, totalVbucks });
+    return summary;
+  }
+  logPushEvent('missions_found', { missionCount, totalVbucks });
   // Freshness guard: a stale previous-UTC-day cache must never claim
   // today's once-per-day slot. Payloads without a parseable lastUpdated
   // keep legacy behavior; an explicit deps.cacheDate override (used by the
   // scheduled flow and tests) wins when present.
   const cacheDate = deps.cacheDate !== undefined ? deps.cacheDate : missionCacheUtcDate(missions);
-  if (cacheDate !== null && cacheDate !== undefined && cacheDate !== dateString) return summary;
+  if (cacheDate !== null && cacheDate !== undefined && cacheDate !== dateString) {
+    logPushEvent('missions_stale_cache', { cacheDate, date: dateString });
+    return summary;
+  }
   let subscriptions = [];
   try {
     subscriptions = deps.subscriptions !== undefined ? deps.subscriptions : await listActivePushSubscriptions(env);
   } catch {
+    logPushEvent('subscriptions_list_failed');
     return summary;
   }
+  logPushEvent('subscriptions_eligible', { count: subscriptions.length });
   const claim = deps.claimImpl || ((id) => claimPushSlot(env, id, dateString));
   const sendImpl = deps.sendImpl || ((sub) => sendPushNotification(env, sub, dateString, deps.fetchImpl || fetch));
+  const recordFailure = deps.recordFailureImpl || ((id) => recordPushTransientFailure(env, id));
+  const releaseClaim = deps.releaseImpl || ((id) => releasePushSlot(env, id, dateString));
+  const deactivate = deps.deactivateImpl || ((id) => deactivatePushSubscriptionById(env, id));
+  // RC1: a failed delivery must never consume the once-per-UTC-day slot.
+  // Record the failure (at most once per UTC day), deactivate after the
+  // repeated-failure threshold, then RELEASE the claim so the next cron
+  // tick may retry. One subscription's failure never affects the others.
+  const recordTransientDeliveryFailure = async (sub, status) => {
+    const tag = subscriptionTag(sub.id);
+    summary.transientFailures += 1;
+    logPushEvent('send_failed', { sub: tag, status: status > 0 ? status : 'network_error' });
+    let failCount = 0;
+    try {
+      const result = await recordFailure(sub.id);
+      failCount = Number(result?.failCount ?? 0);
+    } catch {
+      // Bookkeeping must never fail the cron tick.
+    }
+    if (failCount >= PUSH_FAIL_DEACTIVATE_THRESHOLD) {
+      summary.deactivated += 1;
+      logPushEvent('repeated_failure_deactivated', { sub: tag, failCount });
+      try {
+        await deactivate(sub.id);
+      } catch {
+        // Deactivation is best-effort; the row stays for diagnostics.
+      }
+    }
+    try {
+      await releaseClaim(sub.id);
+    } catch {
+      // Release is best-effort; worst case the slot is consumed once.
+    }
+  };
   for (const sub of subscriptions) {
     summary.checked += 1;
+    const tag = subscriptionTag(sub.id);
     let claimed = false;
     try {
       claimed = await claim(sub.id);
     } catch {
+      logPushEvent('send_failed', { sub: tag, reason: 'claim_error' });
       summary.skipped += 1;
       continue;
     }
@@ -414,30 +603,25 @@ export async function runPushFanout(env, getMissions, dateString, deps = {}) {
       summary.skipped += 1;
       continue;
     }
+    logPushEvent('send_attempted', { sub: tag });
     try {
       const response = await sendImpl(sub);
       const status = response?.status ?? 0;
       if (status >= 200 && status < 300) {
         summary.sent += 1;
+        logPushEvent('send_succeeded', { sub: tag });
         if (deps.recordDeliveredImpl) await deps.recordDeliveredImpl(sub.id);
         else await recordPushDelivered(env, sub.id);
       } else if (isPermanentPushFailure(status)) {
         summary.deactivated += 1;
+        logPushEvent('stale_subscription_deactivated', { sub: tag, status });
         if (deps.deactivateImpl) await deps.deactivateImpl(sub.id);
         else await deactivatePushSubscriptionById(env, sub.id);
       } else {
-        summary.transientFailures += 1;
-        if (deps.recordFailureImpl) await deps.recordFailureImpl(sub.id);
-        else await recordPushTransientFailure(env, sub.id);
+        await recordTransientDeliveryFailure(sub, status);
       }
     } catch {
-      summary.transientFailures += 1;
-      try {
-        if (deps.recordFailureImpl) await deps.recordFailureImpl(sub.id);
-        else await recordPushTransientFailure(env, sub.id);
-      } catch {
-        // Bookkeeping must never fail the cron tick.
-      }
+      await recordTransientDeliveryFailure(sub, 0);
     }
   }
   return summary;

@@ -395,6 +395,8 @@ export const fr: TranslationDictionary = {
     blocked:
       "Les notifications du navigateur sont bloquées. Vous pouvez les réactiver dans les réglages du site.",
     unsupported: "La configuration des notifications n’est pas prise en charge dans ce navigateur.",
+    unsupportedInstallHint:
+      "Les notifications fonctionnent lorsque HawkBucks est installé comme application d’écran d’accueil. Dans Safari, touchez Partager, puis Ajouter à l’écran d’accueil, et réactivez les notifications.",
     enableLabel: "Activer les notifications de rappel",
     disableLabel: "Désactiver les notifications de rappel",
     blockedLabel: "Notifications de rappel bloquées",

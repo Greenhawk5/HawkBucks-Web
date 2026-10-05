@@ -18,7 +18,9 @@ const push = await (async () => {
     "upsertPushSubscription",
     "deactivatePushSubscription",
     "listActivePushSubscriptions",
+    "getPushSubscriptionByEndpoint",
     "claimPushSlot",
+    "releasePushSlot",
     "recordPushDelivered",
     "recordPushTransientFailure",
     "deactivatePushSubscriptionById",
@@ -30,6 +32,13 @@ const push = await (async () => {
     "hkdfSha256",
     "encryptPushPayload",
     "buildPushPayload",
+    "buildTestPushPayload",
+    "pushTestStringsFor",
+    "PUSH_TEST_STRINGS",
+    "PUSH_FAIL_DEACTIVATE_THRESHOLD",
+    "logPushEvent",
+    "subscriptionTag",
+    "sha256Hex",
     "sendPushNotification",
     "isPermanentPushFailure",
     "isTransientPushFailure",
@@ -37,6 +46,7 @@ const push = await (async () => {
     "handlePushPublicKey",
     "handlePushSubscribe",
     "handlePushUnsubscribe",
+    "handlePushTest",
     "runPushFanout",
     "pushStringsFor",
     "isSupportedPushLanguage",
@@ -86,6 +96,7 @@ function memoryDb() {
                     language,
                     is_active: 1,
                     fail_count: 0,
+                    last_failure_at: null,
                     updated_at: updated,
                   });
                 } else {
@@ -98,51 +109,102 @@ function memoryDb() {
                     is_active: 1,
                     fail_count: 0,
                     last_notified_utc: null,
+                    last_delivered_at: null,
+                    last_failure_at: null,
                     created_at: created,
                     updated_at: updated,
                   });
                 }
                 return { meta: { changes: 1 } };
               }
-              if (sql.includes("endpoint=?")) {
+              // deactivatePushSubscription (by endpoint)
+              if (sql.includes("SET is_active=0") && sql.includes("endpoint=?")) {
                 let changes = 0;
                 for (const r of rows.values()) {
                   if (r.endpoint === args[1] && r.is_active === 1) {
                     r.is_active = 0;
+                    r.updated_at = args[0];
                     changes += 1;
                   }
                 }
                 return { meta: { changes } };
               }
+              // releasePushSlot — checked BEFORE the claim matcher
+              // because its WHERE clause also contains "last_notified_utc=?"
+              if (sql.includes("last_notified_utc=NULL")) {
+                let changes = 0;
+                for (const r of rows.values()) {
+                  if (r.id === args[1] && r.is_active === 1 && r.last_notified_utc === args[2]) {
+                    r.last_notified_utc = null;
+                    r.updated_at = args[0];
+                    changes += 1;
+                  }
+                }
+                return { meta: { changes } };
+              }
+              // claimPushSlot
               if (sql.includes("last_notified_utc=?")) {
                 let changes = 0;
                 for (const r of rows.values()) {
                   if (r.id === args[2] && r.is_active === 1 && r.last_notified_utc !== args[0]) {
                     r.last_notified_utc = args[0];
+                    r.updated_at = args[1];
                     changes += 1;
                   }
                 }
                 return { meta: { changes } };
               }
+              // recordPushDelivered
               if (sql.includes("last_delivered_at")) {
                 const r = rows.get(args[2]);
-                if (r) r.fail_count = 0;
+                if (r) {
+                  r.last_delivered_at = args[0];
+                  r.last_failure_at = null;
+                  r.fail_count = 0;
+                  r.updated_at = args[1];
+                }
                 return { meta: { changes: 1 } };
               }
-              if (sql.includes("fail_count=fail_count+1")) {
-                const r = rows.get(args[2]);
-                if (r) r.fail_count += 1;
+              // recordPushTransientFailure — once-per-UTC-day counting
+              if (sql.includes("fail_count=fail_count")) {
+                const r = rows.get(args[3]);
+                if (r) {
+                  if (r.last_failure_at === null || r.last_failure_at < args[1]) {
+                    r.fail_count += 1;
+                  }
+                  r.last_failure_at = args[0];
+                  r.updated_at = args[2];
+                }
                 return { meta: { changes: 1 } };
               }
+              // deactivatePushSubscriptionById
               if (sql.includes("SET is_active=0")) {
                 const r = rows.get(args[1]);
-                if (r) r.is_active = 0;
+                if (r) {
+                  r.is_active = 0;
+                  r.updated_at = args[0];
+                }
                 return { meta: { changes: 1 } };
               }
               return { meta: { changes: 0 } };
             },
             async all() {
+              if (sql.includes("WHERE endpoint=?")) {
+                return {
+                  results: [...rows.values()].filter(
+                    (r) => r.endpoint === args[0] && r.is_active === 1,
+                  ),
+                };
+              }
+              if (sql.includes("WHERE id=?")) {
+                const r = rows.get(args[0]);
+                return { results: r && r.is_active === 1 ? [r] : [] };
+              }
               return { results: [...rows.values()].filter((r) => r.is_active === 1) };
+            },
+            async first() {
+              const { results } = await this.all();
+              return results[0] ?? null;
             },
           };
         },
@@ -485,6 +547,7 @@ test("all nine locales ship notification keys with preserved terms", async () =>
       "disabled",
       "blocked",
       "unsupported",
+      "unsupportedInstallHint",
       "enableLabel",
       "disableLabel",
       "blockedLabel",
@@ -777,4 +840,709 @@ test("ReminderToggle keeps its accessible name and custom hover without native t
   assert.match(toggle, /<TooltipTrigger asChild>\{button\}<\/TooltipTrigger>/);
   assert.match(toggle, /<TooltipContent>\{label\}<\/TooltipContent>/);
   assert.match(styles, /hover:bg-accent\/10 hover:text-foreground/);
+});
+
+// ---------------------------------------------------------------------------
+// RC1 — a failed delivery must never consume the once-per-UTC-day slot.
+// Before the fix the claim was taken before the send and never released on
+// failure, so a single transient error silently skipped that device for the
+// whole day with no retry and no signal.
+// ---------------------------------------------------------------------------
+
+test("transient failure releases the daily claim so the next cron tick retries", async () => {
+  const env = { DB: memoryDb(), VAPID_PUBLIC_KEY: "BPUB", VAPID_PRIVATE_JWK: {} };
+  const record = validSubscription();
+  await push.handlePushSubscribe(jsonRequest({ subscription: record }), env);
+  const id = await push.sha256Hex(record.endpoint);
+  let attempts = 0;
+  const deps = {
+    missions: { ...eligible, lastUpdated: "2026-10-01T00:05:00.000Z" },
+    subscriptions: [{ id, language: "en" }],
+    sendImpl: async () => {
+      attempts += 1;
+      return { status: 503 };
+    },
+  };
+
+  const first = await push.runPushFanout(env, null, "2026-10-01", deps);
+  assert.equal(first.sent, 0);
+  assert.equal(first.transientFailures, 1);
+  assert.equal(first.skipped, 0);
+  assert.equal(attempts, 1);
+
+  // RC1: the failed attempt released the claim...
+  let row = (await push.listActivePushSubscriptions(env))[0];
+  assert.equal(row.last_notified_utc, null);
+  assert.equal(row.is_active, 1, "a transient failure must not deactivate the device");
+
+  // ...so the next tick within the same UTC day claims and retries instead of
+  // skipping the day.
+  const second = await push.runPushFanout(env, null, "2026-10-01", deps);
+  assert.equal(second.sent, 0);
+  assert.equal(second.transientFailures, 1);
+  assert.equal(second.skipped, 0, "the released claim must be re-claimable");
+  assert.equal(attempts, 2, "the retry must actually reach the push service");
+  row = (await push.listActivePushSubscriptions(env))[0];
+  assert.equal(row.last_notified_utc, null);
+});
+
+test("successful delivery keeps the daily claim and prevents same-day duplicates", async () => {
+  const env = { DB: memoryDb(), VAPID_PUBLIC_KEY: "BPUB", VAPID_PRIVATE_JWK: {} };
+  const record = validSubscription();
+  await push.handlePushSubscribe(jsonRequest({ subscription: record }), env);
+  const id = await push.sha256Hex(record.endpoint);
+  let attempts = 0;
+  const deps = {
+    missions: { ...eligible, lastUpdated: "2026-10-01T00:05:00.000Z" },
+    subscriptions: [{ id, language: "en" }],
+    sendImpl: async () => {
+      attempts += 1;
+      return { status: 201 };
+    },
+  };
+
+  const first = await push.runPushFanout(env, null, "2026-10-01", deps);
+  assert.equal(first.sent, 1);
+  const row = (await push.listActivePushSubscriptions(env))[0];
+  assert.equal(row.last_notified_utc, "2026-10-01", "a delivered notification must keep the claim");
+  assert.equal(row.fail_count, 0);
+
+  // The once-per-day guarantee still holds for a *successful* send.
+  const second = await push.runPushFanout(env, null, "2026-10-01", deps);
+  assert.equal(second.sent, 0);
+  assert.equal(second.skipped, 1);
+  assert.equal(attempts, 1, "the device must not be notified twice in one UTC day");
+});
+
+test("permanent failures deactivate the device immediately", async () => {
+  for (const status of [404, 410]) {
+    const env = { DB: memoryDb(), VAPID_PUBLIC_KEY: "BPUB", VAPID_PRIVATE_JWK: {} };
+    const record = validSubscription();
+    await push.handlePushSubscribe(jsonRequest({ subscription: record }), env);
+    const id = await push.sha256Hex(record.endpoint);
+    const summary = await push.runPushFanout(env, null, "2026-10-01", {
+      missions: { ...eligible, lastUpdated: "2026-10-01T00:05:00.000Z" },
+      subscriptions: [{ id, language: "en" }],
+      sendImpl: async () => ({ status }),
+    });
+    assert.equal(summary.sent, 0);
+    assert.equal(summary.deactivated, 1, `HTTP ${status} must deactivate immediately`);
+    assert.equal(summary.transientFailures, 0);
+    assert.equal((await push.listActivePushSubscriptions(env)).length, 0);
+  }
+});
+
+test("one failed subscription does not prevent delivery to the others", async () => {
+  const env = { DB: memoryDb(), VAPID_PUBLIC_KEY: "BPUB", VAPID_PRIVATE_JWK: {} };
+  const ok1 = validSubscription();
+  const bad = validSubscription({ endpoint: "https://push.example.com/sub/bad" });
+  const ok2 = validSubscription({ endpoint: "https://push.example.com/sub/ok2" });
+  for (const record of [ok1, bad, ok2]) {
+    await push.handlePushSubscribe(jsonRequest({ subscription: record }), env);
+  }
+  const subscriptions = await push.listActivePushSubscriptions(env);
+  assert.equal(subscriptions.length, 3);
+  const sentTo = [];
+  const summary = await push.runPushFanout(env, null, "2026-10-01", {
+    missions: { ...eligible, lastUpdated: "2026-10-01T00:05:00.000Z" },
+    subscriptions,
+    sendImpl: async (sub) => {
+      if (sub.endpoint === bad.endpoint) return { status: 500 };
+      sentTo.push(sub.endpoint);
+      return { status: 201 };
+    },
+  });
+  assert.equal(summary.sent, 2);
+  assert.equal(summary.transientFailures, 1);
+  assert.equal(summary.deactivated, 0);
+  assert.deepEqual(sentTo.sort(), [ok1.endpoint, ok2.endpoint].sort());
+
+  // The failed device is retryable (claim released); the delivered ones keep
+  // theirs so they are not re-notified today.
+  const rows = await push.listActivePushSubscriptions(env);
+  assert.equal(rows.find((r) => r.endpoint === bad.endpoint).last_notified_utc, null);
+  assert.equal(rows.find((r) => r.endpoint === ok1.endpoint).last_notified_utc, "2026-10-01");
+  assert.equal(rows.find((r) => r.endpoint === ok2.endpoint).last_notified_utc, "2026-10-01");
+});
+
+test("multi-device fan-out notifies every active subscription once", async () => {
+  const env = { DB: memoryDb(), VAPID_PUBLIC_KEY: "BPUB", VAPID_PRIVATE_JWK: {} };
+  const deviceA = validSubscription();
+  const deviceB = validSubscription({ endpoint: "https://fcm.example.com/sub/device-b" });
+  await push.handlePushSubscribe(jsonRequest({ subscription: deviceA }), env);
+  await push.handlePushSubscribe(jsonRequest({ subscription: deviceB }), env);
+  const subscriptions = await push.listActivePushSubscriptions(env);
+  assert.equal(subscriptions.length, 2);
+  const sentTo = [];
+  const sendImpl = async (sub) => {
+    sentTo.push(sub.endpoint);
+    return { status: 201 };
+  };
+  const first = await push.runPushFanout(env, null, "2026-10-01", {
+    missions: { ...eligible, lastUpdated: "2026-10-01T00:05:00.000Z" },
+    subscriptions,
+    sendImpl,
+  });
+  assert.equal(first.sent, 2);
+  assert.deepEqual([...sentTo].sort(), [deviceA.endpoint, deviceB.endpoint].sort());
+
+  const second = await push.runPushFanout(env, null, "2026-10-01", {
+    missions: { ...eligible, lastUpdated: "2026-10-01T00:05:00.000Z" },
+    subscriptions,
+    sendImpl,
+  });
+  assert.equal(second.sent, 0);
+  assert.equal(second.skipped, 2);
+  assert.equal(sentTo.length, 2, "neither device may be notified twice in one UTC day");
+});
+
+test("missing VAPID configuration fails every send as a retryable transient failure", async () => {
+  // RC2: with no keypair the public-key endpoint still answers, browsers still
+  // subscribe, and every send throws — previously invisible in the summary log.
+  const env = { DB: memoryDb() };
+  const record = validSubscription();
+  await push.handlePushSubscribe(jsonRequest({ subscription: record }), env);
+  const id = await push.sha256Hex(record.endpoint);
+  const summary = await push.runPushFanout(env, null, "2026-10-01", {
+    missions: { ...eligible, lastUpdated: "2026-10-01T00:05:00.000Z" },
+    subscriptions: [{ id, language: "en" }],
+  });
+  assert.equal(summary.sent, 0);
+  assert.equal(summary.transientFailures, 1);
+  const row = (await push.listActivePushSubscriptions(env))[0];
+  assert.equal(row.last_notified_utc, null, "a config error must stay retryable");
+  assert.equal(row.is_active, 1, "a config error must not deactivate real subscribers");
+});
+
+// ---------------------------------------------------------------------------
+// Stale-subscription hardening: fail_count, counted at most once per UTC day.
+// ---------------------------------------------------------------------------
+
+test("fail_count increments at most once per UTC day and resets on delivery", async () => {
+  const env = { DB: memoryDb() };
+  const { id } = await push.upsertPushSubscription(env, validSubscription());
+  const day1Morning = "2026-10-01T08:00:00.000Z";
+  const day1Evening = "2026-10-01T23:00:00.000Z";
+  const day2 = "2026-10-02T00:30:00.000Z";
+
+  assert.equal((await push.recordPushTransientFailure(env, id, day1Morning)).failCount, 1);
+  // A second failure on the same UTC day (the cron runs every 30 minutes)
+  // must not inflate the count toward the deactivation threshold.
+  assert.equal((await push.recordPushTransientFailure(env, id, day1Evening)).failCount, 1);
+  assert.equal((await push.recordPushTransientFailure(env, id, day2)).failCount, 2);
+
+  // A successful delivery clears the failure state entirely.
+  await push.recordPushDelivered(env, id, "2026-10-03T00:00:00.000Z");
+  assert.equal(
+    (await push.recordPushTransientFailure(env, id, "2026-10-04T00:00:00.000Z")).failCount,
+    1,
+  );
+  // The row is never deactivated by counting alone — only the fan-out reaches
+  // the threshold decision.
+  const rows = await push.listActivePushSubscriptions(env);
+  assert.equal(rows.length, 1);
+  assert.equal(rows[0].fail_count, 1);
+  assert.equal(rows[0].last_delivered_at, "2026-10-03T00:00:00.000Z");
+});
+
+test("repeated transient failures eventually deactivate the subscription", async () => {
+  assert.equal(push.PUSH_FAIL_DEACTIVATE_THRESHOLD, 7);
+  const deactivated = [];
+  const released = [];
+  const summary = await push.runPushFanout({}, null, "2026-10-01", {
+    missions: eligible,
+    subscriptions: [{ id: "flaky", language: "en" }],
+    claimImpl: async () => true,
+    sendImpl: async () => ({ status: 503 }),
+    recordFailureImpl: async () => ({ failCount: push.PUSH_FAIL_DEACTIVATE_THRESHOLD }),
+    deactivateImpl: async (id) => {
+      deactivated.push(id);
+    },
+    releaseImpl: async (id) => {
+      released.push(id);
+    },
+  });
+  assert.equal(summary.transientFailures, 1);
+  assert.equal(summary.deactivated, 1);
+  assert.deepEqual(deactivated, ["flaky"]);
+  assert.deepEqual(released, ["flaky"]);
+});
+
+test("transient failures below the threshold stay retryable and active", async () => {
+  const deactivated = [];
+  const summary = await push.runPushFanout({}, null, "2026-10-01", {
+    missions: eligible,
+    subscriptions: [{ id: "flaky", language: "en" }],
+    claimImpl: async () => true,
+    sendImpl: async () => ({ status: 503 }),
+    recordFailureImpl: async () => ({ failCount: push.PUSH_FAIL_DEACTIVATE_THRESHOLD - 1 }),
+    deactivateImpl: async (id) => {
+      deactivated.push(id);
+    },
+    releaseImpl: async () => {},
+  });
+  assert.equal(summary.transientFailures, 1);
+  assert.equal(summary.deactivated, 0);
+  assert.deepEqual(deactivated, [], "a single bad day must never drop a real subscriber");
+});
+
+test("releasePushSlot only releases a claim this fanout actually owns", async () => {
+  const env = { DB: memoryDb() };
+  const { id } = await push.upsertPushSubscription(env, validSubscription());
+  assert.equal(await push.claimPushSlot(env, id, "2026-10-01"), true);
+  // A stale release for a different day must not clear today's claim.
+  assert.equal((await push.releasePushSlot(env, id, "2026-09-30")).released, false);
+  assert.equal((await push.listActivePushSubscriptions(env))[0].last_notified_utc, "2026-10-01");
+  assert.equal(await push.claimPushSlot(env, id, "2026-10-01"), false);
+  // The matching day releases it.
+  assert.equal((await push.releasePushSlot(env, id, "2026-10-01")).released, true);
+  assert.equal((await push.listActivePushSubscriptions(env))[0].last_notified_utc, null);
+  assert.equal(await push.claimPushSlot(env, id, "2026-10-01"), true);
+});
+
+// ---------------------------------------------------------------------------
+// Admin test push — the diagnostic that makes RC2 visible in production.
+// ---------------------------------------------------------------------------
+
+test("admin test push delivers through the real VAPID + RFC 8291 path", async () => {
+  // Real P-256 keys on both sides: the synthetic validKeys() point is
+  // well-formed but off-curve, so crypto.subtle rejects it as an ECDH key.
+  // A real VAPID keypair + a real subscription keypair means signing and
+  // RFC 8291 encryption run for real; only the push-service fetch is stubbed.
+  const vapidKeys = await crypto.subtle.generateKey({ name: "ECDSA", namedCurve: "P-256" }, true, [
+    "sign",
+    "verify",
+  ]);
+  const privateJwk = await crypto.subtle.exportKey("jwk", vapidKeys.privateKey);
+  const publicJwk = await crypto.subtle.exportKey("jwk", vapidKeys.publicKey);
+  const publicKey = Buffer.concat([
+    Buffer.from([0x04]),
+    Buffer.from(publicJwk.x, "base64url"),
+    Buffer.from(publicJwk.y, "base64url"),
+  ]).toString("base64url");
+
+  const subscriptionKeys = await crypto.subtle.generateKey(
+    { name: "ECDH", namedCurve: "P-256" },
+    true,
+    ["deriveBits"],
+  );
+  const subscriptionPublicJwk = await crypto.subtle.exportKey("jwk", subscriptionKeys.publicKey);
+  const p256dh = Buffer.concat([
+    Buffer.from([0x04]),
+    Buffer.from(subscriptionPublicJwk.x, "base64url"),
+    Buffer.from(subscriptionPublicJwk.y, "base64url"),
+  ]).toString("base64url");
+  const auth = b64url(crypto.getRandomValues(new Uint8Array(16)));
+
+  const env = { DB: memoryDb(), VAPID_PUBLIC_KEY: publicKey, VAPID_PRIVATE_JWK: privateJwk };
+  const record = validSubscription({ keys: { p256dh, auth } });
+  await push.handlePushSubscribe(jsonRequest({ subscription: record }), env);
+
+  const requests = [];
+  const result = await push.handlePushTest(jsonRequest({ endpoint: record.endpoint }), env, {
+    fetchImpl: async (url, init) => {
+      requests.push({ url, init });
+      return { status: 201 };
+    },
+  });
+  assert.equal(result.status, 200);
+  assert.equal(result.data.success, true);
+  assert.equal(result.data.delivered, true);
+  assert.equal(result.data.status, 201);
+  assert.equal(requests.length, 1);
+  assert.equal(requests[0].url, record.endpoint);
+  assert.equal(requests[0].init.method, "POST");
+  assert.match(requests[0].init.headers.Authorization, /^vapid t=/);
+  assert.match(requests[0].init.headers["Crypto-Key"], /^p256ecdsa=/);
+  assert.equal(requests[0].init.headers["Content-Encoding"], "aes128gcm");
+  // 86 bytes of VAPID-signed header material precede the encrypted body.
+  assert.ok(requests[0].init.body.byteLength > 86);
+});
+
+test("admin test push never claims or modifies the daily WebBox slot", async () => {
+  const env = { DB: memoryDb(), VAPID_PUBLIC_KEY: "BPUB", VAPID_PRIVATE_JWK: {} };
+  const record = validSubscription();
+  await push.handlePushSubscribe(jsonRequest({ subscription: record }), env);
+  const id = await push.sha256Hex(record.endpoint);
+  await push.claimPushSlot(env, id, "2026-10-01");
+
+  const result = await push.handlePushTest(jsonRequest({ endpoint: record.endpoint }), env, {
+    sendImpl: async () => ({ status: 201 }),
+  });
+  assert.equal(result.data.delivered, true);
+  const row = (await push.listActivePushSubscriptions(env))[0];
+  assert.equal(row.last_notified_utc, "2026-10-01");
+  assert.equal(row.last_delivered_at, null, "a test push must not touch delivery bookkeeping");
+  assert.equal(row.fail_count, 0);
+});
+
+test("admin test push reports a rejected delivery instead of throwing", async () => {
+  const env = { DB: memoryDb(), VAPID_PUBLIC_KEY: "BPUB", VAPID_PRIVATE_JWK: {} };
+  const record = validSubscription();
+  await push.handlePushSubscribe(jsonRequest({ subscription: record }), env);
+
+  const rejected = await push.handlePushTest(jsonRequest({ endpoint: record.endpoint }), env, {
+    sendImpl: async () => ({ status: 404 }),
+  });
+  // HTTP 200 with success:false — a diagnostic must not look like a crash.
+  assert.equal(rejected.status, 200);
+  assert.equal(rejected.data.success, false);
+  assert.equal(rejected.data.delivered, false);
+  assert.equal(rejected.data.status, 404);
+
+  const unreachable = await push.handlePushTest(jsonRequest({ endpoint: record.endpoint }), env, {
+    sendImpl: async () => {
+      throw new Error("network down");
+    },
+  });
+  assert.equal(unreachable.status, 200);
+  assert.equal(unreachable.data.success, false);
+  assert.equal(unreachable.data.status, 0);
+});
+
+test("admin test push rejects unknown, inactive, and malformed targets", async () => {
+  const env = { DB: memoryDb(), VAPID_PUBLIC_KEY: "BPUB", VAPID_PRIVATE_JWK: {} };
+
+  const unknown = await push.handlePushTest(
+    jsonRequest({ endpoint: "https://push.example.com/sub/unknown" }),
+    env,
+  );
+  assert.equal(unknown.status, 404);
+  assert.equal(unknown.data.success, false);
+
+  const record = validSubscription();
+  await push.handlePushSubscribe(jsonRequest({ subscription: record }), env);
+  await push.deactivatePushSubscription(env, record.endpoint);
+  const inactive = await push.handlePushTest(jsonRequest({ endpoint: record.endpoint }), env);
+  assert.equal(inactive.status, 404, "a deactivated device is not a test target");
+
+  const empty = await push.handlePushTest(jsonRequest({}), env);
+  assert.equal(empty.status, 400);
+  const blank = await push.handlePushTest(jsonRequest({ endpoint: "   " }), env);
+  assert.equal(blank.status, 400);
+  const oversized = await push.handlePushTest(
+    jsonRequest({ endpoint: `https://push.example.com/${"a".repeat(2100)}` }),
+    env,
+  );
+  assert.equal(oversized.status, 400);
+  const badJson = await push.handlePushTest(
+    {
+      json: async () => {
+        throw new Error("not json");
+      },
+    },
+    env,
+  );
+  assert.equal(badJson.status, 400);
+});
+
+test("admin test push surfaces storage failures as retryable", async () => {
+  const brokenDb = {
+    prepare() {
+      return {
+        bind() {
+          return {
+            async all() {
+              throw new Error("D1 unavailable");
+            },
+            async first() {
+              throw new Error("D1 unavailable");
+            },
+            async run() {
+              throw new Error("D1 unavailable");
+            },
+          };
+        },
+      };
+    },
+  };
+  const result = await push.handlePushTest(
+    jsonRequest({ endpoint: "https://push.example.com/sub/abc123" }),
+    { DB: brokenDb, VAPID_PUBLIC_KEY: "BPUB", VAPID_PRIVATE_JWK: {} },
+  );
+  assert.equal(result.status, 503);
+  assert.equal(result.data.success, false);
+});
+
+test("test push payload is fixed, generic, localized, and carries no mission data", () => {
+  const decode = (subscription) =>
+    JSON.parse(new TextDecoder().decode(push.buildTestPushPayload(subscription)));
+  const de = decode({ language: "de" });
+  assert.equal(de.title, "HawkBucks");
+  assert.equal(de.url, "/de/");
+  assert.equal(de.test, true);
+  assert.ok(de.body.length > 0);
+  // Must not leak the real daily-mission payload (or its V-Bucks figures).
+  const serialized = JSON.stringify(de);
+  assert.ok(!serialized.includes("Thunder Route"));
+  assert.ok(!/V-Bucks/.test(serialized));
+  assert.ok(!/vBucks|vbucks/i.test(serialized));
+
+  for (const lang of ["en", "es", "fr", "ru", "de", "pt", "zh", "ar-SA", "fa-IR"]) {
+    const payload = decode({ language: lang });
+    assert.equal(typeof payload.body, "string");
+    assert.ok(payload.body.length > 0, `${lang} needs a test body`);
+    assert.equal(payload.title, "HawkBucks");
+  }
+  // Unknown languages fall back to English rather than rendering raw keys.
+  assert.equal(push.pushTestStringsFor("xx"), push.PUSH_TEST_STRINGS.en);
+  assert.deepEqual(Object.keys(push.PUSH_TEST_STRINGS).sort(), [
+    "ar-SA",
+    "de",
+    "en",
+    "es",
+    "fa-IR",
+    "fr",
+    "pt",
+    "ru",
+    "zh",
+  ]);
+});
+
+// ---------------------------------------------------------------------------
+// Capability detection (not user-agent sniffing) for the iOS install hint.
+// ---------------------------------------------------------------------------
+
+test("unsupported-notification messaging uses capability detection, not user-agent", async () => {
+  const client = await import("../src/lib/push-client.ts");
+  const reminders = await import("../src/lib/reminders.ts");
+
+  // SSR / Node: no browser globals at all.
+  assert.equal(client.isTouchDevice(), false);
+  assert.equal(reminders.unsupportedMessageKey(), "unsupported");
+
+  const hadWindow = "window" in globalThis;
+  const hadNavigator = "navigator" in globalThis;
+  const navigatorDescriptor = Object.getOwnPropertyDescriptor(globalThis, "navigator");
+  const windowDescriptor = Object.getOwnPropertyDescriptor(globalThis, "window");
+  try {
+    Object.defineProperty(globalThis, "window", { value: {}, configurable: true });
+    Object.defineProperty(globalThis, "navigator", {
+      value: { maxTouchPoints: 5 },
+      configurable: true,
+    });
+    assert.equal(client.isTouchDevice(), true);
+    assert.equal(reminders.unsupportedMessageKey(), "unsupportedInstallHint");
+
+    // A desktop browser that merely reports touch support stays on the plain
+    // "unsupported" copy — no install hint unless a touch device needs it.
+    Object.defineProperty(globalThis, "navigator", {
+      value: { maxTouchPoints: 0, userAgent: "Mozilla/5.0 (iPhone)" },
+      configurable: true,
+    });
+    assert.equal(
+      client.isTouchDevice(),
+      false,
+      "an iPhone user-agent string must not drive the decision",
+    );
+    assert.equal(reminders.unsupportedMessageKey(), "unsupported");
+  } finally {
+    if (windowDescriptor) Object.defineProperty(globalThis, "window", windowDescriptor);
+    else delete globalThis.window;
+    if (navigatorDescriptor) Object.defineProperty(globalThis, "navigator", navigatorDescriptor);
+    else delete globalThis.navigator;
+    assert.equal(hadWindow, "window" in globalThis);
+    assert.equal(hadNavigator, "navigator" in globalThis);
+  }
+});
+
+// ---------------------------------------------------------------------------
+// Wiring — the pieces above are only useful if they are actually connected.
+// ---------------------------------------------------------------------------
+
+test("admin test push is wired end to end and stays behind the admin gate", async () => {
+  const loader = await readFile(new URL("../src/lib/cms/admin.loader.ts", import.meta.url), "utf8");
+  assert.match(loader, /export const sendTestPush = createServerFn\(\{ method: "POST" \}\)/);
+  assert.match(loader, /requireCapability\(session, "cms\.admin"\)/);
+  assert.match(loader, /sendTestPushServer\(\{ endpoint: data\.endpoint \}\)/);
+  // Only the endpoint crosses the boundary — an admin cannot craft arbitrary
+  // notification content.
+  assert.match(loader, /parsed\.protocol !== "https:"/);
+  assert.doesNotMatch(loader, /createServerFn[\s\S]{0,400}sendTestPush[\s\S]{0,900}payload/i);
+
+  const transport = await readFile(
+    new URL("../src/services/push.server.ts", import.meta.url),
+    "utf8",
+  );
+  assert.match(transport, /export async function sendTestPushServer/);
+  assert.match(transport, /"\/api\/push\/test"/);
+  // The transport must be server-only like its siblings.
+  assert.match(transport, /@tanstack\/react-start\/server-only/);
+
+  const worker = await readFile(new URL("../../worker/index.js", import.meta.url), "utf8");
+  assert.match(worker, /handlePushTest/);
+  assert.match(worker, /\/api\/push\/test/);
+  // Internal-only Worker: no public route table.
+  assert.match(worker, /workers_dev\s*=\s*false|HAWKBUCKS_API/);
+
+  const adminRoute = await readFile(
+    new URL("../src/routes/admin/index.tsx", import.meta.url),
+    "utf8",
+  );
+  assert.match(adminRoute, /sendTestPush/);
+  assert.match(adminRoute, /useReminderNotifications/);
+  assert.match(adminRoute, /role === "admin"/);
+});
+
+test("fan-out summary log reports transient failures and misconfiguration", async () => {
+  const worker = await readFile(new URL("../../worker/index.js", import.meta.url), "utf8");
+  // Without this counter a fully-failing fan-out is indistinguishable from a
+  // quiet one in the cron log.
+  assert.match(worker, /transientFailures/);
+  assert.match(worker, /transient failure\(s\)/);
+  const pushSource = await readFile(new URL("../../worker/push.js", import.meta.url), "utf8");
+  assert.match(pushSource, /push_not_configured/);
+  // Structured, secret-free logging.
+  assert.match(pushSource, /scope:\s*"push"/);
+  assert.doesNotMatch(pushSource, /logPushEvent\([^)]*VAPID_PRIVATE_JWK/);
+  // The private JWK must never reach a response body or a log line.
+  assert.doesNotMatch(pushSource, /JSON\.stringify\(\s*env\b/);
+});
+
+test("unsupported messaging reaches the toggle and the welcome dialog", async () => {
+  const toggle = await readFile(
+    new URL("../src/components/hawkbucks/ReminderToggle.tsx", import.meta.url),
+    "utf8",
+  );
+  assert.match(toggle, /unsupportedMessageKey\(\)/);
+  assert.match(toggle, /notifications\.unsupportedInstallHint/);
+
+  const shell = await readFile(
+    new URL("../src/components/hawkbucks/AppShell.tsx", import.meta.url),
+    "utf8",
+  );
+  assert.match(shell, /unsupportedMessageKey\(\)/);
+  assert.match(shell, /notifications\.unsupportedInstallHint/);
+});
+
+// ---------------------------------------------------------------------------
+// Authorization of the admin test-push server function. The real
+// requireCapability semantics are reproduced in the mock below; what is under
+// test is that the handler resolves the session, enforces cms.admin BEFORE
+// touching the transport, and forwards only the endpoint.
+// ---------------------------------------------------------------------------
+
+const adminTestPush = { session: null, sent: [], result: { success: true, delivered: true } };
+
+test.before(() => {
+  test.mock.module("@tanstack/react-start", {
+    namedExports: {
+      createServerFn: () => {
+        let validatorFn = null;
+        const chain = {
+          validator: (fn) => {
+            validatorFn = fn;
+            return chain;
+          },
+          handler: (handler) => async (input) => {
+            const raw = input?.data ?? input;
+            return handler({ data: validatorFn ? validatorFn(raw) : raw });
+          },
+        };
+        return chain;
+      },
+    },
+  });
+  test.mock.module("@/lib/cms/db.server", {
+    namedExports: {
+      resolveRequestCmsDb: async () => ({ db: { __stub: true } }),
+    },
+  });
+  test.mock.module("@/lib/cms/auth.server", {
+    namedExports: {
+      resolveRequestSession: async () => adminTestPush.session,
+      // CSRF guard — pass-through here; commit4-remediation.test.mjs asserts
+      // that every CMS POST handler calls it.
+      assertSameOriginForMutation: () => {},
+      // Mirrors src/lib/cms/auth.server.ts: 401 anonymous, 403 wrong role.
+      requireCapability: (session, capability) => {
+        if (!session) {
+          const error = new Error("CMS authentication required.");
+          error.status = 401;
+          throw error;
+        }
+        const roleCapabilities = {
+          viewer: ["cms.read"],
+          editor: ["cms.read", "cms.write"],
+          admin: ["cms.read", "cms.write", "cms.publish", "cms.admin"],
+        };
+        if (!roleCapabilities[session.user.role]?.includes(capability)) {
+          const error = new Error(`Role "${session.user.role}" lacks capability "${capability}".`);
+          error.status = 403;
+          throw error;
+        }
+      },
+    },
+  });
+  test.mock.module("@/services/push.server", {
+    namedExports: {
+      sendTestPushServer: async (input) => {
+        adminTestPush.sent.push(input);
+        return adminTestPush.result;
+      },
+    },
+  });
+});
+
+test("admin test push rejects an anonymous request with 401", async () => {
+  const { sendTestPush } = await import("@/lib/cms/admin.loader");
+  adminTestPush.session = null;
+  adminTestPush.sent = [];
+  await assert.rejects(
+    sendTestPush({ data: { endpoint: "https://push.example.com/sub/abc123" } }),
+    (error) => error.status === 401,
+  );
+  assert.equal(adminTestPush.sent.length, 0, "no push may be sent for an anonymous caller");
+});
+
+test("admin test push rejects a non-admin role with 403", async () => {
+  const { sendTestPush } = await import("@/lib/cms/admin.loader");
+  adminTestPush.sent = [];
+  for (const role of ["viewer", "editor"]) {
+    adminTestPush.session = { user: { id: "u1", username: role, role }, expiresAt: "later" };
+    await assert.rejects(
+      sendTestPush({ data: { endpoint: "https://push.example.com/sub/abc123" } }),
+      (error) => error.status === 403,
+      `role ${role} must not be able to trigger a push`,
+    );
+  }
+  assert.equal(adminTestPush.sent.length, 0);
+});
+
+test("admin test push forwards only the endpoint for an admin session", async () => {
+  const { sendTestPush } = await import("@/lib/cms/admin.loader");
+  adminTestPush.sent = [];
+  adminTestPush.session = {
+    user: { id: "u1", username: "root", role: "admin" },
+    expiresAt: "later",
+  };
+  adminTestPush.result = { success: true, delivered: true, status: 201 };
+  const result = await sendTestPush({
+    data: { endpoint: "  https://push.example.com/sub/abc123  " },
+  });
+  assert.equal(result.delivered, true);
+  assert.deepEqual(adminTestPush.sent, [{ endpoint: "https://push.example.com/sub/abc123" }]);
+});
+
+test("admin test push validator rejects non-https and oversized endpoints", async () => {
+  const { sendTestPush } = await import("@/lib/cms/admin.loader");
+  adminTestPush.sent = [];
+  adminTestPush.session = {
+    user: { id: "u1", username: "root", role: "admin" },
+    expiresAt: "later",
+  };
+  for (const endpoint of [
+    "",
+    "   ",
+    "http://push.example.com/sub/abc123",
+    "ftp://push.example.com/sub/abc123",
+    "not-a-url",
+    `https://push.example.com/${"a".repeat(2100)}`,
+  ]) {
+    await assert.rejects(
+      sendTestPush({ data: { endpoint } }),
+      `validator must reject ${JSON.stringify(endpoint.slice(0, 32))}`,
+    );
+  }
+  assert.equal(adminTestPush.sent.length, 0);
 });

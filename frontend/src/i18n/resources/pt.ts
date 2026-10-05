@@ -389,6 +389,8 @@ export const pt: TranslationDictionary = {
     blocked:
       "As notificações do navegador estão bloqueadas. Você pode reativá-las nas configurações do site.",
     unsupported: "A configuração de notificações não é compatível com este navegador.",
+    unsupportedInstallHint:
+      "As notificações funcionam quando o HawkBucks está instalado como web app na Tela de Início. No Safari, toque em Compartilhar, depois em Adicionar à Tela de Início e ative as notificações novamente.",
     enableLabel: "Ativar notificações de lembrete",
     disableLabel: "Desativar notificações de lembrete",
     blockedLabel: "Notificações de lembrete bloqueadas",
