@@ -4,6 +4,7 @@ import { RefreshCw, Search, Upload } from "lucide-react";
 
 import { getAdminSession, listAdminMedia } from "@/lib/cms/admin.loader";
 import { deleteAdminMedia, uploadAdminMedia } from "@/lib/cms/media-admin.loader";
+import { fileToBase64 } from "@/lib/cms/media-upload-client";
 import { CmsShell } from "@/components/cms/cc/CmsShell";
 import {
   CmsRouteErrorStandalone,
@@ -49,19 +50,6 @@ export const Route = createFileRoute("/admin/media")({
   ),
   component: MediaAdmin,
 });
-
-function fileToBase64(file: File): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => {
-      const result = typeof reader.result === "string" ? reader.result : "";
-      const comma = result.indexOf(",");
-      resolve(comma >= 0 ? result.slice(comma + 1) : result);
-    };
-    reader.onerror = () => reject(new Error("Could not read file."));
-    reader.readAsDataURL(file);
-  });
-}
 
 function MediaAdmin() {
   const { session, items } = Route.useLoaderData();

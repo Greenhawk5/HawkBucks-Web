@@ -12,6 +12,7 @@ import {
 import { upsertAdminAbility } from "@/lib/cms/loadouts-admin.loader";
 import { CmsRouteErrorStandalone, CmsRoutePending } from "@/components/cms/cc/CmsAuth";
 import { CmsCard, CmsField, CmsNotice } from "@/components/cms/cc/CmsPrimitives";
+import { CmsMediaField } from "@/components/cms/media/CmsMediaField";
 import { CmsSelect } from "@/components/cms/cc/CmsSelect";
 import {
   CmsEditorFeedback,
@@ -280,24 +281,22 @@ function IdentityForm(props: {
             disabled={props.disabled}
           />
         </CmsField>
-        <CmsField label="Portrait asset id" description="R2 media id (media_…), optional.">
-          <input
-            className="cc-input font-mono"
-            value={portraitAssetId}
-            placeholder="media_… (optional)"
-            onChange={(e) => setPortraitAssetId(e.target.value)}
-            disabled={props.disabled}
-          />
-        </CmsField>
-        <CmsField label="Banner asset id" description="R2 media id (media_…), optional.">
-          <input
-            className="cc-input font-mono"
-            value={bannerAssetId}
-            placeholder="media_… (optional)"
-            onChange={(e) => setBannerAssetId(e.target.value)}
-            disabled={props.disabled}
-          />
-        </CmsField>
+        <CmsMediaField
+          label="Portrait asset id"
+          description="R2 media id (media_…). Upload inline or pick an existing asset."
+          value={portraitAssetId}
+          onChange={setPortraitAssetId}
+          disabled={props.disabled}
+          folder="heroes"
+        />
+        <CmsMediaField
+          label="Banner asset id"
+          description="R2 media id (media_…). Upload inline or pick an existing asset."
+          value={bannerAssetId}
+          onChange={setBannerAssetId}
+          disabled={props.disabled}
+          folder="heroes"
+        />
       </div>
     </CmsFormSection>
   );

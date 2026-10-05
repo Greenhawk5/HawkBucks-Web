@@ -81,6 +81,7 @@ export const CMS_MUTATION_INVENTORY: CmsMutationInventoryEntry[] = [
       "createAdminPerk",
       "upsertAdminPerkTranslation",
       "createAdminSchematic",
+      "updateAdminSchematic",
       "setAdminSchematicPerks",
       "publishAdminInventoryContent",
     ],
@@ -97,6 +98,15 @@ export const CMS_MUTATION_INVENTORY: CmsMutationInventoryEntry[] = [
     file: "../src/lib/cms/media-admin.loader.ts",
     mutations: ["uploadAdminMedia", "deleteAdminMedia"],
     families: ["create", "delete", "media association changes", "upload magic-byte validation"],
+  },
+  {
+    // Wave 1 — JSON import. One POST, guarded by the same session +
+    // capability + same-origin triad as every other CMS mutation; it calls the
+    // shared content-create.server.ts service, so it cannot create a record
+    // shape the normal create path would refuse.
+    file: "../src/lib/cms/import-admin.loader.ts",
+    mutations: ["importAdminObjects"],
+    families: ["create", "bulk create", "validation", "rollback"],
   },
   {
     file: "../src/lib/cms/admin.loader.ts",

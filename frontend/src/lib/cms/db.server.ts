@@ -27,7 +27,7 @@ import { buildAuditEvent, type AuditAction, type AuditActor, type AuditEvent } f
 import { normalizeSlug, resolveSlugCollision, isValidSlug } from "./slugs";
 import { canTransitionStatus, isContentStatus, type ContentStatus } from "./publish";
 import { CmsAuthError } from "./auth.server";
-import type { MediaAssetStatus, MediaProviderId } from "./media-provider";
+import { isUsableMediaStatus, type MediaAssetStatus, type MediaProviderId } from "./media-provider";
 
 /** Minimal structural D1 surface (real binding or test double). */
 export interface D1Result<T> {
@@ -272,6 +272,36 @@ export async function getMediaAssetByProviderAsset(
 
 export async function getMediaAssetById(db: D1Database, id: string): Promise<MediaAssetRow | null> {
   return db.prepare("SELECT * FROM media_assets WHERE id = ?").bind(id).first<MediaAssetRow>();
+}
+
+/**
+ * Batched form of the per-entity `assertMediaUsable` guard.
+ *
+ * Returns the subset of `ids` that exists AND is in a usable status, so a
+ * caller validating many records learns WHICH ids are bad instead of stopping
+ * at the first one. The usability rule itself is `isUsableMediaStatus` from
+ * media-provider.ts — the same constant the single-row guards consult — so this
+ * can never pre-approve an id the writer would then reject.
+ *
+ * `ids` is caller-supplied but never interpolated: placeholders are derived
+ * from the array length and every value is bound.
+ */
+export async function listUsableMediaAssetIds(
+  db: D1Database,
+  ids: readonly string[],
+): Promise<Set<string>> {
+  const unique = [...new Set(ids)];
+  if (unique.length === 0) return new Set<string>();
+  const placeholders = unique.map(() => "?").join(", ");
+  const { results } = await db
+    .prepare(`SELECT id, status FROM media_assets WHERE id IN (${placeholders})`)
+    .bind(...unique)
+    .all<{ id: string; status: string }>();
+  const usable = new Set<string>();
+  for (const row of results) {
+    if (isUsableMediaStatus(row.status)) usable.add(row.id);
+  }
+  return usable;
 }
 
 export async function listMediaAssets(

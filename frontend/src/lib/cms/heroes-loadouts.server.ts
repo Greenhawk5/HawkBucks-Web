@@ -12,6 +12,7 @@ import {
   normalizeHeroCategory,
   isCmsContentLocale,
 } from "./heroes";
+import { isUsableMediaStatus } from "./media-provider";
 import { isContentStatus } from "./publish";
 import {
   getContentById,
@@ -81,8 +82,7 @@ async function assertMediaUsable(db: D1Database, id: string | null | undefined):
     .bind(id)
     .first<{ id: string; status: string }>();
   if (!row) throw new Error("Media asset not found.");
-  if (row.status === "deleted" || row.status === "failed")
-    throw new Error("Media asset is not usable.");
+  if (!isUsableMediaStatus(row.status)) throw new Error("Media asset is not usable.");
 }
 async function assertHeroContent(db: D1Database, contentId: string): Promise<ContentRow> {
   const c = await getContentById(db, contentId);

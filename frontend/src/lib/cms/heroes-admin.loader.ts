@@ -190,62 +190,37 @@ export const createAdminHero = createServerFn({ method: "POST" })
       rarity?: string | null;
       popularity?: number;
       sortOrder?: number;
+      /** Wave 1 — media may now be set at creation, not only on update. */
+      portraitAssetId?: string | null;
+      bannerAssetId?: string | null;
       title: string;
       body?: string;
       slug?: string;
       locale?: string;
+      seoTitle?: string | null;
+      seoDescription?: string | null;
     }) => ({
       heroClass: requireNonEmptyString(i.heroClass, "heroClass"),
       category: asOptionalStringOrNull(i.category),
       rarity: asOptionalStringOrNull(i.rarity),
       popularity: asOptionalNumber(i.popularity),
       sortOrder: asOptionalNumber(i.sortOrder),
+      portraitAssetId: asOptionalStringOrNull(i.portraitAssetId),
+      bannerAssetId: asOptionalStringOrNull(i.bannerAssetId),
       title: requireTitle(i.title),
       body: asOptionalString(i.body),
       slug: asOptionalString(i.slug),
       locale: asOptionalString(i.locale),
+      seoTitle: asOptionalStringOrNull(i.seoTitle),
+      seoDescription: asOptionalStringOrNull(i.seoDescription),
     }),
   )
   .handler(async ({ data }) => {
     const { db, session } = await requireHeroSession("cms.write", true);
-    const { createContent, upsertContentTranslation } = await import("./db.server");
-    const { createHeroRecord } = await import("./heroes-loadouts.server");
-    const actor = { id: session.user.id, username: session.user.username };
-    const content = await createContent(
-      db,
-      { entityType: "hero", defaultLocale: "en", createdBy: session.user.id },
-      actor,
-    );
-    try {
-      await createHeroRecord(
-        db,
-        content,
-        {
-          heroClass: data.heroClass,
-          category: data.category ?? null,
-          rarity: data.rarity ?? null,
-          popularity: data.popularity ?? 0,
-          sortOrder: data.sortOrder ?? 0,
-        },
-        actor,
-      );
-      await upsertContentTranslation(
-        db,
-        content,
-        {
-          contentId: content.id,
-          locale: data.locale ?? "en",
-          title: data.title,
-          body: data.body ?? "",
-          slug: data.slug ?? data.title,
-        },
-        actor,
-      );
-    } catch (e) {
-      await db.prepare("DELETE FROM cms_contents WHERE id = ?").bind(content.id).run();
-      throw e;
-    }
-    return { contentId: content.id };
+    const { createHeroDraft } = await import("./content-create.server");
+    // The SAME domain service the JSON importer calls — one create path, one
+    // rollback, one set of entity rules.
+    return createHeroDraft(db, { id: session.user.id, username: session.user.username }, data);
   });
 export const updateAdminHero = createServerFn({ method: "POST" })
   .validator(

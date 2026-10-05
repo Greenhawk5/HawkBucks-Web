@@ -31,6 +31,23 @@ export const MEDIA_ASSET_STATUSES = ["ready", "processing", "failed", "deleted"]
 
 export type MediaAssetStatus = (typeof MEDIA_ASSET_STATUSES)[number];
 
+/**
+ * Statuses a content record may NOT reference. Tombstoned rows still exist (the
+ * table never hard-deletes) and failed rows never had usable bytes, so both are
+ * refused by every writer.
+ *
+ * This is the single definition of "unusable". The per-entity `assertMediaUsable`
+ * guards (heroes-loadouts / schematics-inventory / articles) and the batched
+ * `listUsableMediaAssetIds` reader in db.server.ts all consult THIS constant,
+ * so a bulk import can never pre-approve an id that the writer would reject.
+ */
+export const UNUSABLE_MEDIA_ASSET_STATUSES: readonly string[] = ["deleted", "failed"];
+
+/** True when a media asset row may be referenced by content. */
+export function isUsableMediaStatus(status: string): boolean {
+  return !UNUSABLE_MEDIA_ASSET_STATUSES.includes(status);
+}
+
 /** Provider-independent logical asset (what D1 stores, what UI renders). */
 export interface MediaAsset {
   id: string;

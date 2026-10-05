@@ -62,3 +62,12 @@ todo.txt
 /seo
 /fix-helpers
 Cms Template
+
+# Scraped Data
+/stw-db/*
+!/stw-db/package.json
+!/stw-db/tsconfig.json
+!/stw-db/README.md
+!/stw-db/src/
+!/stw-db/test/
+\stw-db

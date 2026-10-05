@@ -21,6 +21,7 @@ import {
 import { CmsRouteErrorStandalone, CmsRoutePending } from "@/components/cms/cc/CmsAuth";
 import { CmsCard, CmsField, CmsNotice } from "@/components/cms/cc/CmsPrimitives";
 import { CmsSelect } from "@/components/cms/cc/CmsSelect";
+import { CmsMediaField } from "@/components/cms/media/CmsMediaField";
 import {
   CmsEditorFeedback,
   CmsEditorFrame,
@@ -253,15 +254,14 @@ function IdentityForm(props: {
             }))}
           />
         </CmsField>
-        <CmsField label="Cover asset id" description="R2 media id (media_…), optional.">
-          <input
-            className="cc-input font-mono"
-            value={coverAssetId}
-            placeholder="media_… (optional)"
-            onChange={(e) => setCoverAssetId(e.target.value)}
-            disabled={props.disabled}
-          />
-        </CmsField>
+        <CmsMediaField
+          label="Cover asset id"
+          description="R2 media id (media_…). Upload inline or pick an existing asset."
+          value={coverAssetId}
+          onChange={setCoverAssetId}
+          disabled={props.disabled}
+          folder="loadouts"
+        />
         <CmsField label="Popularity" description="Higher ranks first inside public listings.">
           <input
             className="cc-input"

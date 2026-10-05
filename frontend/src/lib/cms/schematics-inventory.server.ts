@@ -1,5 +1,6 @@
 import "@tanstack/react-start/server-only";
 import { buildAuditEvent, type AuditActor } from "./audit";
+import { isUsableMediaStatus } from "./media-provider";
 import {
   MAX_PERK_SLOT_ORDER,
   MAX_SCHEMATIC_PERKS,
@@ -101,8 +102,7 @@ async function assertMediaUsable(db: D1Database, id: string | null | undefined):
     .bind(id)
     .first<{ id: string; status: string }>();
   if (!row) throw new Error("Media asset not found.");
-  if (row.status === "deleted" || row.status === "failed")
-    throw new Error("Media asset is not usable.");
+  if (!isUsableMediaStatus(row.status)) throw new Error("Media asset is not usable.");
 }
 async function assertWeaponContent(db: D1Database, contentId: string): Promise<ContentRow> {
   const c = await getContentById(db, contentId);

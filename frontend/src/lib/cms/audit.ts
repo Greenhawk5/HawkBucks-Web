@@ -18,6 +18,8 @@ export const AUDIT_ACTIONS = [
   "cms.logout",
   "content.create",
   "content.update",
+  "content.import",
+  "content.import.rollback",
   "content.publish",
   "content.unpublish",
   "content.archive",

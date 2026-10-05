@@ -23,6 +23,7 @@ import {
   validateTagInput,
 } from "./articles";
 import { ARTICLE_ENTITY_TYPE, isArticleReferenceEntityType } from "./content-types";
+import { isUsableMediaStatus } from "./media-provider";
 import { getContentById, recordAuditEvent, type D1Database, type D1Row } from "./db.server";
 
 function utcNow(): string {
@@ -47,7 +48,7 @@ async function assertMediaUsable(db: D1Database, id: string): Promise<void> {
     .bind(id)
     .first<{ id: string; status: string }>();
   if (!row) throw new Error("Media asset not found.");
-  if (row.status === "deleted" || row.status === "failed") {
+  if (!isUsableMediaStatus(row.status)) {
     throw new Error("Media asset is not usable.");
   }
 }

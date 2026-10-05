@@ -34,6 +34,7 @@ import {
   cmsToast,
 } from "@/components/cms/cc/CmsPrimitives";
 import { CmsSelect } from "@/components/cms/cc/CmsSelect";
+import { CmsImportDialog } from "@/components/cms/cc/CmsImportDialog";
 
 type Kind = "weapon" | "trap" | "perk" | "schematic";
 
@@ -80,7 +81,12 @@ function InventoryAdmin() {
     return <CmsSignInRequired title="Inventory" />;
   return (
     <CmsShell active="inventory" sessionUser={session.user} expiresAt={session.expiresAt}>
-      {hasChild ? null : <InventoryBody groups={groups} />}
+      {hasChild ? null : (
+        <InventoryBody
+          groups={groups}
+          canWrite={session.user.role === "editor" || session.user.role === "admin"}
+        />
+      )}
       {/* Child editor route renders here - without this Outlet the editor match never paints. */}
       <Outlet />
     </CmsShell>
@@ -94,11 +100,13 @@ function InventoryBody(props: {
     perks: InventoryAdminItem[];
     schematics: InventoryAdminItem[];
   };
+  canWrite: boolean;
 }) {
   const [kind, setKind] = useState<Kind>("weapon");
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("");
   const [createOpen, setCreateOpen] = useState(false);
+  const [importOpen, setImportOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
   const [confirm, setConfirm] = useState<{
@@ -161,13 +169,28 @@ function InventoryBody(props: {
         title="Inventory"
         description="Weapons, traps, perks, and schematics. A schematic references exactly one weapon or one trap. Only published rows appear publicly."
         action={
-          <button
-            type="button"
-            className="cc-btn cc-btn-primary cc-btn-sm"
-            onClick={() => setCreateOpen(true)}
-          >
-            + New inventory draft
-          </button>
+          props.canWrite ? (
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                type="button"
+                className="cc-btn cc-btn-primary cc-btn-sm"
+                onClick={() => setCreateOpen(true)}
+              >
+                + New inventory draft
+              </button>
+              {/* Wave 1 — JSON import covers the schematic kind; the other
+                  inventory kinds keep their existing create dialogs. */}
+              {kind === "schematic" ? (
+                <button
+                  type="button"
+                  className="cc-btn cc-btn-outline cc-btn-sm"
+                  onClick={() => setImportOpen(true)}
+                >
+                  Import JSON
+                </button>
+              ) : null}
+            </div>
+          ) : undefined
         }
       />
       {error ? <CmsNotice kind="error">{error}</CmsNotice> : null}
@@ -376,6 +399,13 @@ function InventoryBody(props: {
             );
           }
         }}
+      />
+      <CmsImportDialog
+        open={importOpen}
+        kind="schematic"
+        canWrite={props.canWrite}
+        onClose={() => setImportOpen(false)}
+        onImported={() => window.location.reload()}
       />
       <CmsConfirmDialog
         open={confirm !== null}

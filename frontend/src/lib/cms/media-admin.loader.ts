@@ -98,3 +98,111 @@ export const deleteAdminMedia = createServerFn({ method: "POST" })
     await deleteMediaAsset(db, env, { id: mediaId, deletedBy: session.user.id });
     return { ok: true };
   });
+
+export interface AdminMediaByIdsInput {
+  /** Up to 100 ids — the same cap listAdminMedia's paging enforces. */
+  ids: string[];
+}
+
+export interface AdminMediaResolvedItem {
+  id: string;
+  deliveryUrl: string;
+  originalFilename: string;
+  mimeType: string;
+  altText: string;
+  status: string;
+  byteSize: number | null;
+  width: number | null;
+  height: number | null;
+}
+
+const MAX_MEDIA_ID_LOOKUPS = 100;
+
+/**
+ * Resolve specific media ids to their rows, preserving REQUEST order.
+ *
+ * WHY THIS EXISTS
+ * ---------------
+ * A content editor stores only `media_assets.id` (that is the whole point of
+ * the asset indirection). To render a PREVIEW for an id it already holds, the
+ * browser needs the delivery URL — and `listAdminMedia` cannot supply it,
+ * because that reader is paged (max 100 rows, default 50) and unfiltered: an
+ * editor with 400 assets would not even see the one it references.
+ *
+ * This is a pure READ of existing rows: it creates nothing, writes nothing,
+ * and resolves exactly the ids the caller asks for. Unknown or deleted ids are
+ * simply absent from `items` rather than being an error, so a draft that
+ * references a since-tombstoned asset still renders its other fields.
+ *
+ * Paging is irrelevant here — this is a bounded point lookup by primary key,
+ * not a list.
+ */
+export const getAdminMediaByIds = createServerFn({ method: "GET" })
+  .validator((input: AdminMediaByIdsInput) => {
+    if (!Array.isArray(input.ids)) throw new Error("Invalid media id list.");
+    if (input.ids.length > MAX_MEDIA_ID_LOOKUPS) {
+      throw new Error(`Too many media ids requested (max ${MAX_MEDIA_ID_LOOKUPS}).`);
+    }
+    const seen = new Set<string>();
+    const ids: string[] = [];
+    for (const raw of input.ids) {
+      const id = requireNonEmptyString(raw, "id");
+      // Dedupe so a form holding the same asset twice costs one lookup.
+      if (seen.has(id)) continue;
+      seen.add(id);
+      ids.push(id);
+    }
+    return { ids };
+  })
+  .handler(async ({ data }): Promise<{ items: AdminMediaResolvedItem[] }> => {
+    const { resolveRequestCmsDb } = await import("./db.server");
+    const { resolveRequestSession, hasCapability, CmsAuthError } = await import("./auth.server");
+    const { db } = await resolveRequestCmsDb();
+    const session = await resolveRequestSession(db);
+    if (!session) throw new CmsAuthError(401, "CMS authentication required.");
+    if (!hasCapability(session.user.role, "cms.read")) {
+      throw new CmsAuthError(403, 'Role lacks capability "cms.read".');
+    }
+    if (data.ids.length === 0) return { items: [] };
+
+    // One statement, one round trip. `?` placeholders are generated from the
+    // bound parameter count, never from user text.
+    const placeholders = data.ids.map(() => "?").join(", ");
+    const { results } = await db
+      .prepare(
+        `SELECT id, delivery_url, original_filename, mime_type, alt_text, status, byte_size, width, height
+           FROM media_assets WHERE id IN (${placeholders})`,
+      )
+      .bind(...data.ids)
+      .all<{
+        id: string;
+        delivery_url: string;
+        original_filename: string;
+        mime_type: string;
+        alt_text: string;
+        status: string;
+        byte_size: number | null;
+        width: number | null;
+        height: number | null;
+      }>();
+
+    const byId = new Map(results.map((row) => [row.id, row]));
+    // Request order, not SQL order: D1 makes no ordering guarantee for IN(...).
+    const items: AdminMediaResolvedItem[] = [];
+    for (const id of data.ids) {
+      const row = byId.get(id);
+      if (!row) continue;
+      items.push({
+        id: row.id,
+        deliveryUrl: row.delivery_url,
+        originalFilename: row.original_filename,
+        mimeType: row.mime_type,
+        altText: row.alt_text,
+        status: row.status,
+        byteSize: row.byte_size,
+        width: row.width,
+        height: row.height,
+      });
+    }
+    return { items };
+  });

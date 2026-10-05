@@ -404,6 +404,12 @@ export const createAdminSchematic = createServerFn({ method: "POST" })
       locale?: string;
       weaponContentId?: string | null;
       trapContentId?: string | null;
+      /** Wave 1 — schematics gained media + ordering at creation. */
+      popularity?: number;
+      sortOrder?: number;
+      iconAssetId?: string | null;
+      seoTitle?: string | null;
+      seoDescription?: string | null;
     }) => ({
       title: requireTitle(i.title),
       body: asOptionalString(i.body),
@@ -411,47 +417,57 @@ export const createAdminSchematic = createServerFn({ method: "POST" })
       locale: asOptionalString(i.locale),
       weaponContentId: asOptionalStringOrNull(i.weaponContentId),
       trapContentId: asOptionalStringOrNull(i.trapContentId),
+      popularity: asOptionalNumber(i.popularity),
+      sortOrder: asOptionalNumber(i.sortOrder),
+      iconAssetId: asOptionalStringOrNull(i.iconAssetId),
+      seoTitle: asOptionalStringOrNull(i.seoTitle),
+      seoDescription: asOptionalStringOrNull(i.seoDescription),
     }),
   )
   .handler(async ({ data }) => {
     const { db, session } = await requireInventorySession("cms.write", true);
-    const { createContent, upsertContentTranslation } = await import("./db.server");
-    const { createSchematicRecord } = await import("./schematics-inventory.server");
-    if (typeof data.title !== "string" || data.title.trim() === "")
-      throw new Error("Title is required.");
-    const actor = { id: session.user.id, username: session.user.username };
-    const content = await createContent(
+    const { createSchematicDraft } = await import("./content-create.server");
+    // The SAME domain service the JSON importer calls.
+    return createSchematicDraft(db, { id: session.user.id, username: session.user.username }, data);
+  });
+/**
+ * Wave 1 — schematic identity update.
+ *
+ * Schematics were the one inventory kind with NO media field reachable from the
+ * CMS at all: `updateSchematicRecord` has always accepted `iconAssetId`, but no
+ * loader exposed it and the editor rendered nothing. This exposes exactly the
+ * service's existing surface — no new column, no new rule, no schema change.
+ *
+ * `retargetSchematicRecord` deliberately stays unreachable: weapon/trap
+ * re-targeting is a distinct, one-schematic-per-weapon business rule and is not
+ * part of Wave 1.
+ */
+export const updateAdminSchematic = createServerFn({ method: "POST" })
+  .validator(
+    (i: {
+      contentId: string;
+      popularity?: number;
+      sortOrder?: number;
+      iconAssetId?: string | null;
+    }) =>
+      stripUndefined({
+        contentId: requireContentId(i.contentId),
+        popularity: asOptionalNumber(i.popularity),
+        sortOrder: asOptionalNumber(i.sortOrder),
+        iconAssetId: asOptionalStringOrNull(i.iconAssetId),
+      }),
+  )
+  .handler(async ({ data }) => {
+    const { db, session } = await requireInventorySession("cms.write", true);
+    const { updateSchematicRecord } = await import("./schematics-inventory.server");
+    const { contentId, ...patch } = data as Record<string, unknown> & { contentId: string };
+    await updateSchematicRecord(
       db,
-      { entityType: "schematic", defaultLocale: "en", createdBy: session.user.id },
-      actor,
+      contentId,
+      patch as Parameters<typeof updateSchematicRecord>[2],
+      { id: session.user.id, username: session.user.username },
     );
-    try {
-      await createSchematicRecord(
-        db,
-        content,
-        {
-          weaponContentId: data.weaponContentId ?? null,
-          trapContentId: data.trapContentId ?? null,
-        },
-        actor,
-      );
-      await upsertContentTranslation(
-        db,
-        content,
-        {
-          contentId: content.id,
-          locale: data.locale ?? "en",
-          title: data.title,
-          body: data.body ?? "",
-          slug: data.slug ?? data.title,
-        },
-        actor,
-      );
-    } catch (e) {
-      await db.prepare("DELETE FROM cms_contents WHERE id = ?").bind(content.id).run();
-      throw e;
-    }
-    return { contentId: content.id };
+    return { ok: true as const };
   });
 export const setAdminSchematicPerks = createServerFn({ method: "POST" })
   .validator(
