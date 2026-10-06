@@ -24,11 +24,7 @@ test("every supported locale has a complete label table", () => {
       const v = t[k];
       if (typeof v === "object" && v !== null) {
         for (const inner of Object.keys(v)) {
-          assert.equal(
-            typeof v[inner],
-            "string",
-            `${loc}.${k}.${inner} must be a string`,
-          );
+          assert.equal(typeof v[inner], "string", `${loc}.${k}.${inner} must be a string`);
           assert.ok(v[inner].trim() !== "", `${loc}.${k}.${inner} is empty`);
         }
       } else {
@@ -113,7 +109,16 @@ test("new components contain no physical-direction CSS", async () => {
     "components/cms/HeroDetail.tsx",
     "components/cms/HeroPreviewDialog.tsx",
   ];
-  const banned = [/\bml-\d/, /\bmr-\d/, /\bpl-\d/, /\bpr-\d/, /\btext-left\b/, /\btext-right\b/, /left-\[/, /right-\[/];
+  const banned = [
+    /\bml-\d/,
+    /\bmr-\d/,
+    /\bpl-\d/,
+    /\bpr-\d/,
+    /\btext-left\b/,
+    /\btext-right\b/,
+    /left-\[/,
+    /right-\[/,
+  ];
   for (const f of files) {
     const raw = await readFile(new URL(`../src/${f}`, import.meta.url), "utf8");
     // Strip comments: prose that NAMES a banned class (as this file's own
@@ -125,7 +130,10 @@ test("new components contain no physical-direction CSS", async () => {
   }
   // Guard against the check silently becoming a no-op.
   const sample = await readFile(new URL(`../src/${files[0]}`, import.meta.url), "utf8");
-  assert.ok(sample.includes("ps-") || sample.includes("pe-") || sample.includes("text-end"), "logical props expected");
+  assert.ok(
+    sample.includes("ps-") || sample.includes("pe-") || sample.includes("text-end"),
+    "logical props expected",
+  );
 });
 
 test("locale list matches the project-wide supported locales", async () => {

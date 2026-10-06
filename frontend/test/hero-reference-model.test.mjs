@@ -33,7 +33,10 @@ test("0014 creates the full reference model and only that", async () => {
   // Columns added to existing tables.
   assert.match(sql, /ALTER TABLE hero_records ADD COLUMN stw_ref_slug TEXT/);
   assert.match(sql, /ALTER TABLE hero_records ADD COLUMN summary TEXT/);
-  assert.match(sql, /ALTER TABLE hero_records ADD COLUMN data_source TEXT NOT NULL DEFAULT 'editorial'/);
+  assert.match(
+    sql,
+    /ALTER TABLE hero_records ADD COLUMN data_source TEXT NOT NULL DEFAULT 'editorial'/,
+  );
   assert.match(sql, /ALTER TABLE hero_records ADD COLUMN data_snapshot_at TEXT/);
   assert.match(sql, /ALTER TABLE hero_abilities ADD COLUMN ability_def_id TEXT/);
 });
@@ -53,11 +56,22 @@ test("0014 leaves perk_records and cms_contents alone", async () => {
   const sql = await readFile(new URL(M14, MIGRATIONS), "utf8");
   const executed = sql.replace(/--.*$/gm, "");
   // The whole point of the design: hero perks live in their own namespace.
-  assert.equal(/CREATE TABLE IF NOT EXISTS hero_perks[\s\S]*?FOREIGN KEY \(perk_content_id\)/i.test(executed), false);
-  assert.equal(/perk_content_id/.test(executed), false, "0014 must not couple heroes to perk_records");
+  assert.equal(
+    /CREATE TABLE IF NOT EXISTS hero_perks[\s\S]*?FOREIGN KEY \(perk_content_id\)/i.test(executed),
+    false,
+  );
+  assert.equal(
+    /perk_content_id/.test(executed),
+    false,
+    "0014 must not couple heroes to perk_records",
+  );
   // Abilities must not become cms_contents entities.
   assert.equal(/entity_type\s*=\s*'ability'/.test(executed), false);
-  assert.equal(/ALTER TABLE cms_/.test(executed), false, "0014 must not alter cms_contents* tables");
+  assert.equal(
+    /ALTER TABLE cms_/.test(executed),
+    false,
+    "0014 must not alter cms_contents* tables",
+  );
 });
 
 test("0014 progression + cost constraints enforce uniqueness and scope", async () => {
@@ -66,15 +80,16 @@ test("0014 progression + cost constraints enforce uniqueness and scope", async (
   assert.match(sql, /UNIQUE \(hero_content_id, rarity, tier\)/);
   assert.match(sql, /UNIQUE \(hero_content_id, rarity, scope, tier, kind, resource_id\)/);
   // A NULL tier would evade the UNIQUE index in SQLite, hence the 0 sentinel.
-  assert.match(sql, /CHECK \(\(scope = 'total' AND tier = 0\) OR \(scope = 'tier' AND tier >= 1\)\)/);
+  assert.match(
+    sql,
+    /CHECK \(\(scope = 'total' AND tier = 0\) OR \(scope = 'tier' AND tier >= 1\)\)/,
+  );
   assert.match(sql, /CHECK \(hero_content_id != related_content_id\)/);
   assert.match(sql, /CHECK \(slot IN \('standard', 'commander'\)\)/);
 });
 
 test("0014 is the newest migration and the chain stays ordered", async () => {
-  const names = (await readdir(MIGRATIONS))
-    .filter((n) => n.endsWith(".sql"))
-    .sort();
+  const names = (await readdir(MIGRATIONS)).filter((n) => n.endsWith(".sql")).sort();
   assert.equal(names[names.length - 1], M14);
   // 0001-0013 are immutable history.
   for (let i = 1; i <= 13; i += 1) {
@@ -102,7 +117,10 @@ test("standard and commander perks never share a key", async () => {
     const a = ref.heroPerkKey("standard", std);
     const b = ref.heroPerkKey("commander", cmd);
     assert.notEqual(a, b, `${a} must not equal ${b}`);
-    assert.equal(a, `standard/${std.toLowerCase().replace(/\s+/g, "-")}`.replace("hang-time", "hang-time"));
+    assert.equal(
+      a,
+      `standard/${std.toLowerCase().replace(/\s+/g, "-")}`.replace("hang-time", "hang-time"),
+    );
   }
 });
 
@@ -168,8 +186,18 @@ test("scoring weights category and perk above class, and ignores power", () => {
   };
   const sameClass = { category: "support", heroClass: "ninja", perkKeys: [], abilityKeys: [] };
   const sameCategory = { category: "assault", heroClass: "soldier", perkKeys: [], abilityKeys: [] };
-  const samePerk = { category: null, heroClass: "soldier", perkKeys: ["standard/medic"], abilityKeys: [] };
-  const sameAbility = { category: null, heroClass: "soldier", perkKeys: [], abilityKeys: ["phase-shift"] };
+  const samePerk = {
+    category: null,
+    heroClass: "soldier",
+    perkKeys: ["standard/medic"],
+    abilityKeys: [],
+  };
+  const sameAbility = {
+    category: null,
+    heroClass: "soldier",
+    perkKeys: [],
+    abilityKeys: ["phase-shift"],
+  };
   const nothing = { category: null, heroClass: "outlander", perkKeys: [], abilityKeys: [] };
 
   assert.ok(ref.heroRelatedScore(self, sameCategory) > ref.heroRelatedScore(self, sameClass));
@@ -184,9 +212,22 @@ test("strongestSharedDimension is deterministic on weight ties", () => {
   // category (3) and ability (2) both shared -> category must win
   const both = { category: "assault", heroClass: "outlander", perkKeys: [], abilityKeys: ["x"] };
   assert.equal(ref.strongestSharedDimension(self, both), "same_category");
-  assert.equal(ref.strongestSharedDimension(self, { category: null, heroClass: "ninja", perkKeys: [], abilityKeys: [] }), "same_class");
   assert.equal(
-    ref.strongestSharedDimension(self, { category: null, heroClass: "x", perkKeys: [], abilityKeys: [] }),
+    ref.strongestSharedDimension(self, {
+      category: null,
+      heroClass: "ninja",
+      perkKeys: [],
+      abilityKeys: [],
+    }),
+    "same_class",
+  );
+  assert.equal(
+    ref.strongestSharedDimension(self, {
+      category: null,
+      heroClass: "x",
+      perkKeys: [],
+      abilityKeys: [],
+    }),
     null,
   );
 });
@@ -269,8 +310,24 @@ test("scoreRelatedGroups pins curated first and never repeats a hero", async () 
 test("buildProgression folds tiers and costs, and derives max power", async () => {
   const srv = await import("../src/lib/cms/hero-reference.server.ts");
   const rows = [
-    { hero_content_id: "h", rarity: "mythic", tier: 1, power_min: 12, power_max: 26, level_min: 1, level_max: 10 },
-    { hero_content_id: "h", rarity: "mythic", tier: 2, power_min: 35, power_max: 51, level_min: 10, level_max: 20 },
+    {
+      hero_content_id: "h",
+      rarity: "mythic",
+      tier: 1,
+      power_min: 12,
+      power_max: 26,
+      level_min: 1,
+      level_max: 10,
+    },
+    {
+      hero_content_id: "h",
+      rarity: "mythic",
+      tier: 2,
+      power_min: 35,
+      power_max: 51,
+      level_min: 10,
+      level_max: 20,
+    },
   ];
   const costs = [
     {
