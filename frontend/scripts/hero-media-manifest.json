@@ -1,0 +1,2153 @@
+{
+  "generatedBy": "scripts/map-hero-media.mjs",
+  "note": "READ-ONLY mapping report. Nothing was renamed, moved, deleted or uploaded. The asset tree under public/assets/heros is UNTRACKED in git and is therefore recoverable only from the local filesystem - see durabilityRisk.",
+  "assetRoot": "frontend/public/assets/heros",
+  "tracked": false,
+  "durabilityRisk": "frontend/public/assets/{heros,items,traps,weapons} are untracked. An owner decision is required on whether to version them or move them to a durable store.",
+  "tiers": {
+    "exact": [
+      {
+        "slug": "arrlene-izza",
+        "name": "\"Arrlene\" Izza",
+        "file": "frontend/public/assets/heros/icons/Constructors/Arrlene Izza.png",
+        "width": 512,
+        "height": 512,
+        "bytes": 263236
+      },
+      {
+        "slug": "8-bit-demo",
+        "name": "8-Bit Demo",
+        "file": "frontend/public/assets/heros/icons/Constructors/8 Bit Demo.png",
+        "width": 512,
+        "height": 512,
+        "bytes": 214966
+      },
+      {
+        "slug": "alchemist-sarah",
+        "name": "Alchemist Sarah",
+        "file": "frontend/public/assets/heros/icons/Ninjas/Alchemist Sarah.png",
+        "width": 512,
+        "height": 512,
+        "bytes": 167323
+      },
+      {
+        "slug": "ambush-buzz",
+        "name": "Ambush Buzz",
+        "file": "frontend/public/assets/heros/icons/Outlanders/Ambush Buzz.png",
+        "width": 512,
+        "height": 512,
+        "bytes": 155650
+      },
+      {
+        "slug": "ankylo-kyle",
+        "name": "Ankylo Kyle",
+        "file": "frontend/public/assets/heros/icons/Constructors/Ankylo Kyle.png",
+        "width": 512,
+        "height": 512,
+        "bytes": 206344
+      },
+      {
+        "slug": "anti-cuddle-sarah",
+        "name": "Anti-Cuddle Sarah",
+        "file": "frontend/public/assets/heros/icons/Ninjas/Anti-Cuddle Sarah.png",
+        "width": 512,
+        "height": 512,
+        "bytes": 189418
+      },
+      {
+        "slug": "archaeolo-jess",
+        "name": "Archaeolo-Jess",
+        "file": "frontend/public/assets/heros/icons/Outlanders/Archaeolo-Jess.png",
+        "width": 512,
+        "height": 512,
+        "bytes": 172712
+      },
+      {
+        "slug": "archetype-havoc",
+        "name": "Archetype Havoc",
+        "file": "frontend/public/assets/heros/icons/Soldiers/Archetype Havoc.png",
+        "width": 512,
+        "height": 512,
+        "bytes": 155401
+      },
+      {
+        "slug": "assassin-sarah",
+        "name": "Assassin Sarah",
+        "file": "frontend/public/assets/heros/icons/Ninjas/Assassin Sarah.png",
+        "width": 512,
+        "height": 512,
+        "bytes": 160019
+      },
+      {
+        "slug": "autumn-queen",
+        "name": "Autumn Queen",
+        "file": "frontend/public/assets/heros/icons/Soldiers/Autumn Queen.png",
+        "width": 512,
+        "height": 512,
+        "bytes": 226470
+      },
+      {
+        "slug": "azalea-clark",
+        "name": "Azalea Clark",
+        "file": "frontend/public/assets/heros/icons/Outlanders/Azalea Clark.png",
+        "width": 512,
+        "height": 512,
+        "bytes": 184195
+      },
+      {
+        "slug": "base-kyle",
+        "name": "B.A.S.E. Kyle",
+        "file": "frontend/public/assets/heros/icons/Constructors/Base Kyle.png",
+        "width": 512,
+        "height": 512,
+        "bytes": 199121
+      },
+      {
+        "slug": "battle-hound-jonesy",
+        "name": "Battle Hound Jonesy",
+        "file": "frontend/public/assets/heros/icons/Soldiers/Battle Hound Jonesy.png",
+        "width": 512,
+        "height": 512,
+        "bytes": 208672
+      },
+      {
+        "slug": "beetlejess",
+        "name": "Beetlejess",
+        "file": "frontend/public/assets/heros/icons/Outlanders/Beetlejess.png",
+        "width": 512,
+        "height": 512,
+        "bytes": 142582
+      },
+      {
+        "slug": "birthday-brigade-jonesy",
+        "name": "Birthday Brigade Jonesy",
+        "file": "frontend/public/assets/heros/icons/Soldiers/Birthday Brigade Jonesy.png",
+        "width": 512,
+        "height": 512,
+        "bytes": 163597
+      },
+      {
+        "slug": "birthday-brigade-ramirez",
+        "name": "Birthday Brigade Ramirez",
+        "file": "frontend/public/assets/heros/icons/Soldiers/Birthday Brigade Ramirez.png",
+        "width": 512,
+        "height": 512,
+        "bytes": 153402
+      },
+      {
+        "slug": "black-knight-garridan",
+        "name": "Black Knight Garridan",
+        "file": "frontend/public/assets/heros/icons/Constructors/Black Knight Garridan.png",
+        "width": 512,
+        "height": 512,
+        "bytes": 223437
+      },
+      {
+        "slug": "bladestorm-enforcer",
+        "name": "Bladestorm Enforcer",
+        "file": "frontend/public/assets/heros/icons/Ninjas/Bladestorm Enforcer.png",
+        "width": 512,
+        "height": 512,
+        "bytes": 180870
+      },
+      {
+        "slug": "blakebeard-the-blackhearted",
+        "name": "Blakebeard The Blackhearted",
+        "file": "frontend/public/assets/heros/icons/Constructors/Blakebeard the Blackhearted.png",
+        "width": 512,
+        "height": 512,
+        "bytes": 221435
+      },
+      {
+        "slug": "bloodfinder-ac",
+        "name": "Bloodfinder A.C.",
+        "file": "frontend/public/assets/heros/icons/Outlanders/Bloodfinder AC.png",
+        "width": 512,
+        "height": 512,
+        "bytes": 162803
+      },
+      {
+        "slug": "bombsquad-kyle",
+        "name": "BombSquad Kyle",
+        "file": "frontend/public/assets/heros/icons/Constructors/Bombsquad Kyle.png",
+        "width": 512,
+        "height": 512,
+        "bytes": 240849
+      },
+      {
+        "slug": "brainiac-jonesy",
+        "name": "Brainiac Jonesy",
+        "file": "frontend/public/assets/heros/icons/Soldiers/Brainiac Jonesy.png",
+        "width": 512,
+        "height": 512,
+        "bytes": 173536
+      },
+      {
+        "slug": "brainstorm",
+        "name": "Brainstorm",
+        "file": "frontend/public/assets/heros/icons/Constructors/Brainstorm.png",
+        "width": 512,
+        "height": 512,
+        "bytes": 101309
+      },
+      {
+        "slug": "brawler-luna",
+        "name": "Brawler Luna",
+        "file": "frontend/public/assets/heros/icons/Ninjas/Brawler Luna.png",
+        "width": 512,
+        "height": 512,
+        "bytes": 144903
+      },
+      {
+        "slug": "breakbeat-wildcat",
+        "name": "Breakbeat Wildcat",
+        "file": "frontend/public/assets/heros/icons/Soldiers/Breakbeat Wildcat.png",
+        "width": 512,
+        "height": 512,
+        "bytes": 199406
+      },
+      {
+        "slug": "buccaneer-jonesy",
+        "name": "Buccaneer Jonesy",
+        "file": "frontend/public/assets/heros/icons/Soldiers/Buccaneer Jonesy.png",
+        "width": 512,
+        "height": 512,
+        "bytes": 252419
+      },
+      {
+        "slug": "buckshot-raptor",
+        "name": "Buckshot Raptor",
+        "file": "frontend/public/assets/heros/icons/Soldiers/Buckshot Raptor.png",
+        "width": 512,
+        "height": 512,
+        "bytes": 162294
+      },
+      {
+        "slug": "bullet-storm-jonesy",
+        "name": "Bullet Storm Jonesy",
+        "file": "frontend/public/assets/heros/icons/Soldiers/Bullet Storm Jonesy.png",
+        "width": 512,
+        "height": 512,
+        "bytes": 183109
+      },
+      {
+        "slug": "bunny-brawler-luna",
+        "name": "Bunny Brawler Luna",
+        "file": "frontend/public/assets/heros/icons/Soldiers/Bunny Brawler Luna.png",
+        "width": 512,
+        "height": 512,
+        "bytes": 167631
+      },
+      {
+        "slug": "carbide",
+        "name": "Carbide",
+        "file": "frontend/public/assets/heros/icons/Soldiers/Carbide.png",
+        "width": 512,
+        "height": 512,
+        "bytes": 133813
+      },
+      {
+        "slug": "catstructor-penny",
+        "name": "Catstructor Penny",
+        "file": "frontend/public/assets/heros/icons/Constructors/Catstructor Penny.png",
+        "width": 512,
+        "height": 512,
+        "bytes": 193899
+      },
+      {
+        "slug": "centurion-hawk",
+        "name": "Centurion Hawk",
+        "file": "frontend/public/assets/heros/icons/Soldiers/Centurion Hawk.png",
+        "width": 512,
+        "height": 512,
+        "bytes": 182630
+      },
+      {
+        "slug": "chaos-agent",
+        "name": "Chaos Agent",
+        "file": "frontend/public/assets/heros/icons/Soldiers/Chaos Agent.png",
+        "width": 512,
+        "height": 512,
+        "bytes": 243749
+      },
+      {
+        "slug": "chromium-ramirez",
+        "name": "Chromium Ramirez",
+        "file": "frontend/public/assets/heros/icons/Soldiers/Chromium Ramirez.png",
+        "width": 512,
+        "height": 512,
+        "bytes": 168737
+      },
+      {
+        "slug": "cloaked-shadow",
+        "name": "Cloaked Shadow",
+        "file": "frontend/public/assets/heros/icons/Ninjas/Cloaked Shadow.png",
+        "width": 512,
+        "height": 512,
+        "bytes": 171959
+      },
+      {
+        "slug": "colonel-wildcat",
+        "name": "Colonel Wildcat",
+        "file": "frontend/public/assets/heros/icons/Soldiers/Colonel Wildcat.png",
+        "width": 512,
+        "height": 512,
+        "bytes": 177509
+      },
+      {
+        "slug": "commando-spitfire",
+        "name": "Commando Spitfire",
+        "file": "frontend/public/assets/heros/icons/Soldiers/Commando Spitfire.png",
+        "width": 512,
+        "height": 512,
+        "bytes": 183674
+      },
+      {
+        "slug": "conqueror-magnus",
+        "name": "Conqueror Magnus",
+        "file": "frontend/public/assets/heros/icons/Constructors/Conqueror Magnus.png",
+        "width": 512,
+        "height": 512,
+        "bytes": 212011
+      },
+      {
+        "slug": "controller-harper",
+        "name": "Controller Harper",
+        "file": "frontend/public/assets/heros/icons/Constructors/Controller Harper.png",
+        "width": 512,
+        "height": 512,
+        "bytes": 162970
+      },
+      {
+        "slug": "cottontail-eagle-eye",
+        "name": "Cottontail Eagle Eye",
+        "file": "frontend/public/assets/heros/icons/Outlanders/Cottontail Eagle Eye.png",
+        "width": 512,
+        "height": 512,
+        "bytes": 174109
+      },
+      {
+        "slug": "crackshot",
+        "name": "Crackshot",
+        "file": "frontend/public/assets/heros/icons/Soldiers/Crackshot.png",
+        "width": 512,
+        "height": 512,
+        "bytes": 165623
+      },
+      {
+        "slug": "crossbones-barret",
+        "name": "Crossbones Barret",
+        "file": "frontend/public/assets/heros/icons/Outlanders/Crossbones Barret.png",
+        "width": 512,
+        "height": 512,
+        "bytes": 171601
+      },
+      {
+        "slug": "cyberclops",
+        "name": "Cyberclops",
+        "file": "frontend/public/assets/heros/icons/Outlanders/Cyberclops.png",
+        "width": 512,
+        "height": 512,
+        "bytes": 180208
+      },
+      {
+        "slug": "dark-vanguard-airheart",
+        "name": "Dark Vanguard Airheart",
+        "file": "frontend/public/assets/heros/icons/Constructors/Dark Vanguard Airheart.png",
+        "width": 512,
+        "height": 512,
+        "bytes": 111029
+      },
+      {
+        "slug": "dashing-hare-ken",
+        "name": "Dashing Hare Ken",
+        "file": "frontend/public/assets/heros/icons/Ninjas/Dashing Hare Ken.png",
+        "width": 512,
+        "height": 512,
+        "bytes": 195331
+      },
+      {
+        "slug": "dashing-hawk",
+        "name": "Dashing Hawk",
+        "file": "frontend/public/assets/heros/icons/Soldiers/Dashing Hawk.png",
+        "width": 512,
+        "height": 512,
+        "bytes": 198148
+      },
+      {
+        "slug": "deadly-blade-crash",
+        "name": "Deadly Blade Crash",
+        "file": "frontend/public/assets/heros/icons/Ninjas/Deadly Blade Crash.png",
+        "width": 512,
+        "height": 512,
+        "bytes": 152341
+      },
+      {
+        "slug": "deadly-lotus-luna",
+        "name": "Deadly Lotus Luna",
+        "file": "frontend/public/assets/heros/icons/Ninjas/Deadly Lotus Luna.png",
+        "width": 512,
+        "height": 512,
+        "bytes": 140812
+      },
+      {
+        "slug": "deadly-star-scorpion",
+        "name": "Deadly Star Scorpion",
+        "file": "frontend/public/assets/heros/icons/Ninjas/Deadly Star Scorpion.png",
+        "width": 512,
+        "height": 512,
+        "bytes": 139424
+      },
+      {
+        "slug": "deimos",
+        "name": "Deimos",
+        "file": "frontend/public/assets/heros/icons/Ninjas/Deimos.png",
+        "width": 512,
+        "height": 512,
+        "bytes": 225579
+      },
+      {
+        "slug": "demolisher-jonesy",
+        "name": "Demolisher Jonesy",
+        "file": "frontend/public/assets/heros/icons/Soldiers/Demolisher Jonesy.png",
+        "width": 512,
+        "height": 512,
+        "bytes": 176362
+      },
+      {
+        "slug": "demolitionist-penny",
+        "name": "Demolitionist Penny",
+        "file": "frontend/public/assets/heros/icons/Constructors/Demolitionist Penny.png",
+        "width": 512,
+        "height": 512,
+        "bytes": 198632
+      },
+      {
+        "slug": "dennis",
+        "name": "Dennis",
+        "file": "frontend/public/assets/heros/icons/Ninjas/Dennis.png",
+        "width": 512,
+        "height": 512,
+        "bytes": 165264
+      },
+      {
+        "slug": "dennis-jr",
+        "name": "Dennis Jr.",
+        "file": "frontend/public/assets/heros/icons/Constructors/Dennis Jr.png",
+        "width": 512,
+        "height": 512,
+        "bytes": 196654
+      },
+      {
+        "slug": "diecast-jonesy",
+        "name": "Diecast Jonesy",
+        "file": "frontend/public/assets/heros/icons/Soldiers/Diecast Jonesy.png",
+        "width": 512,
+        "height": 512,
+        "bytes": 199231
+      },
+      {
+        "slug": "dim-mak-mari",
+        "name": "Dim Mak Mari",
+        "file": "frontend/public/assets/heros/icons/Ninjas/Dim Mak Mari.png",
+        "width": 512,
+        "height": 512,
+        "bytes": 135588
+      },
+      {
+        "slug": "dire",
+        "name": "Dire",
+        "file": "frontend/public/assets/heros/icons/Ninjas/Dire.png",
+        "width": 512,
+        "height": 512,
+        "bytes": 219428
+      },
+      {
+        "slug": "director-riggs",
+        "name": "Director Riggs",
+        "file": "frontend/public/assets/heros/icons/Constructors/Director Riggs.png",
+        "width": 512,
+        "height": 512,
+        "bytes": 73786
+      },
+      {
+        "slug": "double-agent-evelynn",
+        "name": "Double Agent Evelynn",
+        "file": "frontend/public/assets/heros/icons/Soldiers/Double Agent Evelynn.png",
+        "width": 512,
+        "height": 512,
+        "bytes": 172404
+      },
+      {
+        "slug": "dragon-scorch",
+        "name": "Dragon Scorch",
+        "file": "frontend/public/assets/heros/icons/Ninjas/Dragon Scorch.png",
+        "width": 512,
+        "height": 512,
+        "bytes": 141929
+      },
+      {
+        "slug": "ed-ee",
+        "name": "ED-EE",
+        "file": "frontend/public/assets/heros/icons/Constructors/ED-EE.png",
+        "width": 512,
+        "height": 512,
+        "bytes": 220140
+      },
+      {
+        "slug": "electro-pulse-penny",
+        "name": "Electro-pulse Penny",
+        "file": "frontend/public/assets/heros/icons/Constructors/Electro Pulse Penny.png",
+        "width": 512,
+        "height": 512,
+        "bytes": 187271
+      },
+      {
+        "slug": "energy-thief-mari",
+        "name": "Energy Thief Mari",
+        "file": "frontend/public/assets/heros/icons/Ninjas/Energy Thief mari.png",
+        "width": 512,
+        "height": 512,
+        "bytes": 135229
+      },
+      {
+        "slug": "enforcer-grizzly",
+        "name": "Enforcer Grizzly",
+        "file": "frontend/public/assets/heros/icons/Outlanders/Enforcer Grizzly.png",
+        "width": 512,
+        "height": 512,
+        "bytes": 156341
+      },
+      {
+        "slug": "extraterrestrial-rio",
+        "name": "Extraterrestrial Rio",
+        "file": "frontend/public/assets/heros/icons/Soldiers/Extraterrestrial Rio.png",
+        "width": 512,
+        "height": 512,
+        "bytes": 166567
+      },
+      {
+        "slug": "fallen-love-ranger-jonesy",
+        "name": "Fallen Love Ranger Jonesy",
+        "file": "frontend/public/assets/heros/icons/Soldiers/Fallen Love Ranger Jonesy.png",
+        "width": 512,
+        "height": 512,
+        "bytes": 254211
+      },
+      {
+        "slug": "fennix",
+        "name": "Fennix",
+        "file": "frontend/public/assets/heros/icons/Ninjas/Fennix.png",
+        "width": 512,
+        "height": 512,
+        "bytes": 183644
+      },
+      {
+        "slug": "field-agent-rio",
+        "name": "Field Agent Rio",
+        "file": "frontend/public/assets/heros/icons/Outlanders/Field Agent Rio.png",
+        "width": 512,
+        "height": 512,
+        "bytes": 150949
+      },
+      {
+        "slug": "fireflower-eagle-eye",
+        "name": "Fireflower Eagle Eye",
+        "file": "frontend/public/assets/heros/icons/Outlanders/Fireflower Eagle Eye.png",
+        "width": 512,
+        "height": 512,
+        "bytes": 161463
+      },
+      {
+        "slug": "first-shot-rio",
+        "name": "First Shot Rio",
+        "file": "frontend/public/assets/heros/icons/Soldiers/First Shot Rio.png",
+        "width": 512,
+        "height": 512,
+        "bytes": 158893
+      },
+      {
+        "slug": "flash-ac",
+        "name": "Flash A.C.",
+        "file": "frontend/public/assets/heros/icons/Outlanders/Flash AC.png",
+        "width": 512,
+        "height": 512,
+        "bytes": 195421
+      },
+      {
+        "slug": "fleetfoot-ken",
+        "name": "Fleetfoot Ken",
+        "file": "frontend/public/assets/heros/icons/Ninjas/Fleetfoot Ken.png",
+        "width": 512,
+        "height": 512,
+        "bytes": 177749
+      },
+      {
+        "slug": "forged-fate",
+        "name": "Forged Fate",
+        "file": "frontend/public/assets/heros/icons/Ninjas/Forged Fate.png",
+        "width": 512,
+        "height": 512,
+        "bytes": 155541
+      },
+      {
+        "slug": "fossil-southie",
+        "name": "Fossil Southie",
+        "file": "frontend/public/assets/heros/icons/Outlanders/Fossil Southie.png",
+        "width": 512,
+        "height": 512,
+        "bytes": 213741
+      },
+      {
+        "slug": "four-leaf-wildcat",
+        "name": "Four Leaf Wildcat",
+        "file": "frontend/public/assets/heros/icons/Soldiers/Four Leaf Wildcat.png",
+        "width": 512,
+        "height": 512,
+        "bytes": 186573
+      },
+      {
+        "slug": "fragment-flurry-jess",
+        "name": "Fragment Flurry Jess",
+        "file": "frontend/public/assets/heros/icons/Outlanders/Fragment Flurry jess.png",
+        "width": 512,
+        "height": 512,
+        "bytes": 141949
+      },
+      {
+        "slug": "freebooter-ken",
+        "name": "Freebooter Ken",
+        "file": "frontend/public/assets/heros/icons/Ninjas/Freebooter Ken.png",
+        "width": 512,
+        "height": 512,
+        "bytes": 225392
+      },
+      {
+        "slug": "ghoul-trooper-ramirez",
+        "name": "Ghoul Trooper Ramirez",
+        "file": "frontend/public/assets/heros/icons/Soldiers/Ghoul Trooper Ramirez.png",
+        "width": 512,
+        "height": 512,
+        "bytes": 149829
+      },
+      {
+        "slug": "gia",
+        "name": "Gia",
+        "file": "frontend/public/assets/heros/icons/Outlanders/Gia.png",
+        "width": 512,
+        "height": 512,
+        "bytes": 208723
+      },
+      {
+        "slug": "gold-knox",
+        "name": "Gold Knox",
+        "file": "frontend/public/assets/heros/icons/Constructors/Gold Knox.png",
+        "width": 512,
+        "height": 512,
+        "bytes": 215944
+      },
+      {
+        "slug": "guardian-bull",
+        "name": "Guardian Bull",
+        "file": "frontend/public/assets/heros/icons/Constructors/Guardian Bull.png",
+        "width": 512,
+        "height": 512,
+        "bytes": 172461
+      },
+      {
+        "slug": "gumshoe",
+        "name": "Gumshoe",
+        "file": "frontend/public/assets/heros/icons/Outlanders/Gumshoe.png",
+        "width": 512,
+        "height": 512,
+        "bytes": 192234
+      },
+      {
+        "slug": "gunblazer-southie",
+        "name": "Gunblazer Southie",
+        "file": "frontend/public/assets/heros/icons/Outlanders/Gunblazer Southie.png",
+        "width": 512,
+        "height": 512,
+        "bytes": 168336
+      },
+      {
+        "slug": "harvester-sarah",
+        "name": "Harvester Sarah",
+        "file": "frontend/public/assets/heros/icons/Ninjas/Harvester Sarah.png",
+        "width": 512,
+        "height": 512,
+        "bytes": 153102
+      },
+      {
+        "slug": "heavy-base-kyle",
+        "name": "Heavy B.A.S.E. Kyle",
+        "file": "frontend/public/assets/heros/icons/Constructors/Heavy Base Kyle.png",
+        "width": 512,
+        "height": 512,
+        "bytes": 216386
+      },
+      {
+        "slug": "highland-warrior-wildcat",
+        "name": "Highland Warrior Wildcat",
+        "file": "frontend/public/assets/heros/icons/Soldiers/Highland Warrior Wildcat.png",
+        "width": 512,
+        "height": 512,
+        "bytes": 192544
+      },
+      {
+        "slug": "hybrid",
+        "name": "Hybrid",
+        "file": "frontend/public/assets/heros/icons/Ninjas/Hybrid.png",
+        "width": 512,
+        "height": 512,
+        "bytes": 191106
+      },
+      {
+        "slug": "infiltrator-ken",
+        "name": "Infiltrator Ken",
+        "file": "frontend/public/assets/heros/icons/Ninjas/Infiltrator Ken.png",
+        "width": 512,
+        "height": 512,
+        "bytes": 186505
+      },
+      {
+        "slug": "intergalactic-ken",
+        "name": "Intergalactic Ken",
+        "file": "frontend/public/assets/heros/icons/Ninjas/Intergalactic Ken.png",
+        "width": 512,
+        "height": 512,
+        "bytes": 171240
+      },
+      {
+        "slug": "jilly-teacup",
+        "name": "Jilly Teacup",
+        "file": "frontend/public/assets/heros/icons/Outlanders/Jilly Teacup.png",
+        "width": 512,
+        "height": 512,
+        "bytes": 210739
+      },
+      {
+        "slug": "jingle-jess",
+        "name": "Jingle Jess",
+        "file": "frontend/public/assets/heros/icons/Outlanders/Jingle Jess.png",
+        "width": 512,
+        "height": 512,
+        "bytes": 181549
+      },
+      {
+        "slug": "jolly-headhunter",
+        "name": "Jolly Headhunter",
+        "file": "frontend/public/assets/heros/icons/Soldiers/Jolly Headhunter.png",
+        "width": 512,
+        "height": 512,
+        "bytes": 191386
+      },
+      {
+        "slug": "jonesee-bot",
+        "name": "JONESEE-BOT",
+        "file": "frontend/public/assets/heros/icons/Soldiers/JONESEE-BOT.png",
+        "width": 512,
+        "height": 512,
+        "bytes": 193644
+      },
+      {
+        "slug": "kurohomura",
+        "name": "Kurohomura",
+        "file": "frontend/public/assets/heros/icons/Outlanders/Kurohomura.png",
+        "width": 512,
+        "height": 512,
+        "bytes": 259122
+      },
+      {
+        "slug": "kyle-the-13th",
+        "name": "Kyle the 13th",
+        "file": "frontend/public/assets/heros/icons/Constructors/Kyle the 13th.png",
+        "width": 512,
+        "height": 512,
+        "bytes": 176792
+      },
+      {
+        "slug": "lars",
+        "name": "Lars",
+        "file": "frontend/public/assets/heros/icons/Constructors/lars.png",
+        "width": 512,
+        "height": 512,
+        "bytes": 206092
+      },
+      {
+        "slug": "liteshow-spitfire",
+        "name": "Liteshow Spitfire",
+        "file": "frontend/public/assets/heros/icons/Soldiers/Liteshow Spitfire.png",
+        "width": 512,
+        "height": 512,
+        "bytes": 164868
+      },
+      {
+        "slug": "lok-bot",
+        "name": "Lok-Bot",
+        "file": "frontend/public/assets/heros/icons/Constructors/Lok-Bot.png",
+        "width": 512,
+        "height": 512,
+        "bytes": 228790
+      },
+      {
+        "slug": "love-ranger-jonesy",
+        "name": "Love Ranger Jonesy",
+        "file": "frontend/public/assets/heros/icons/Soldiers/Love Ranger Jonesy.png",
+        "width": 512,
+        "height": 512,
+        "bytes": 191578
+      },
+      {
+        "slug": "madcap",
+        "name": "Madcap",
+        "file": "frontend/public/assets/heros/icons/Outlanders/Madcap.png",
+        "width": 512,
+        "height": 512,
+        "bytes": 261506
+      },
+      {
+        "slug": "main-stage-quinn",
+        "name": "Main Stage Quinn",
+        "file": "frontend/public/assets/heros/icons/Outlanders/Main Stage Quinn.png",
+        "width": 512,
+        "height": 512,
+        "bytes": 214960
+      },
+      {
+        "slug": "marathon-hype",
+        "name": "Marathon Hype",
+        "file": "frontend/public/assets/heros/icons/Constructors/Marathon Hype.png",
+        "width": 512,
+        "height": 512,
+        "bytes": 172068
+      },
+      {
+        "slug": "master-grenadier-ramirez",
+        "name": "Master Grenadier Ramirez",
+        "file": "frontend/public/assets/heros/icons/Soldiers/Master Grenadier Ramirez.png",
+        "width": 512,
+        "height": 512,
+        "bytes": 172089
+      },
+      {
+        "slug": "mayhem",
+        "name": "Mayhem",
+        "file": "frontend/public/assets/heros/icons/Outlanders/Mayhem.png",
+        "width": 512,
+        "height": 512,
+        "bytes": 196200
+      },
+      {
+        "slug": "mega-base-kyle",
+        "name": "MEGA B.A.S.E. Kyle",
+        "file": "frontend/public/assets/heros/icons/Constructors/MEGA Base Kyle.png",
+        "width": 512,
+        "height": 512,
+        "bytes": 180039
+      },
+      {
+        "slug": "mermonster-ken",
+        "name": "Mermonster Ken",
+        "file": "frontend/public/assets/heros/icons/Ninjas/Mermonster Ken.png",
+        "width": 512,
+        "height": 512,
+        "bytes": 263156
+      },
+      {
+        "slug": "metal-team-leader",
+        "name": "Metal Team Leader",
+        "file": "frontend/public/assets/heros/icons/Outlanders/Metal Team Leader.png",
+        "width": 512,
+        "height": 512,
+        "bytes": 211078
+      },
+      {
+        "slug": "miss-bunny-penny",
+        "name": "Miss Bunny Penny",
+        "file": "frontend/public/assets/heros/icons/Constructors/Miss Bunny Penny.png",
+        "width": 512,
+        "height": 512,
+        "bytes": 204404
+      },
+      {
+        "slug": "monks",
+        "name": "Monks",
+        "file": "frontend/public/assets/heros/icons/Ninjas/Monks.png",
+        "width": 512,
+        "height": 512,
+        "bytes": 296403
+      },
+      {
+        "slug": "noir",
+        "name": "Noir",
+        "file": "frontend/public/assets/heros/icons/Soldiers/Noir.png",
+        "width": 512,
+        "height": 512,
+        "bytes": 138947
+      },
+      {
+        "slug": "old-glory-ac",
+        "name": "Old Glory A.C.",
+        "file": "frontend/public/assets/heros/icons/Outlanders/Old Glory AC.png",
+        "width": 512,
+        "height": 512,
+        "bytes": 163379
+      },
+      {
+        "slug": "onslaught-headhunter",
+        "name": "Onslaught Headhunter",
+        "file": "frontend/public/assets/heros/icons/Soldiers/Onslaught Headhunter.png",
+        "width": 512,
+        "height": 512,
+        "bytes": 150305
+      },
+      {
+        "slug": "overtaker-hiro",
+        "name": "Overtaker Hiro",
+        "file": "frontend/public/assets/heros/icons/Ninjas/Overtaker Hiro.png",
+        "width": 512,
+        "height": 512,
+        "bytes": 161160
+      },
+      {
+        "slug": "paleo-luna",
+        "name": "Paleo Luna",
+        "file": "frontend/public/assets/heros/icons/Ninjas/Paleo Luna.png",
+        "width": 512,
+        "height": 512,
+        "bytes": 158464
+      },
+      {
+        "slug": "parasaur-jess",
+        "name": "Parasaur Jess",
+        "file": "frontend/public/assets/heros/icons/Outlanders/Parasaur Jess.png",
+        "width": 512,
+        "height": 512,
+        "bytes": 189556
+      },
+      {
+        "slug": "pathfinder-jess",
+        "name": "Pathfinder Jess",
+        "file": "frontend/public/assets/heros/icons/Outlanders/Pathfinder jess.png",
+        "width": 512,
+        "height": 512,
+        "bytes": 147622
+      },
+      {
+        "slug": "patriot-penny",
+        "name": "Patriot Penny",
+        "file": "frontend/public/assets/heros/icons/Constructors/Patriot Penny.png",
+        "width": 512,
+        "height": 512,
+        "bytes": 210376
+      },
+      {
+        "slug": "phase-scout-jess",
+        "name": "Phase Scout Jess",
+        "file": "frontend/public/assets/heros/icons/Outlanders/Phase Scout Jess.png",
+        "width": 512,
+        "height": 512,
+        "bytes": 141611
+      },
+      {
+        "slug": "piercing-lotus-edge",
+        "name": "Piercing Lotus Edge",
+        "file": "frontend/public/assets/heros/icons/Ninjas/Piercing Lotus Edge.png",
+        "width": 512,
+        "height": 512,
+        "bytes": 195618
+      },
+      {
+        "slug": "plague-doctor-igor",
+        "name": "Plague Doctor Igor",
+        "file": "frontend/public/assets/heros/icons/Ninjas/Plague Doctor Igor.png",
+        "width": 512,
+        "height": 512,
+        "bytes": 165919
+      },
+      {
+        "slug": "plasma-specialist-izza",
+        "name": "Plasma Specialist Izza",
+        "file": "frontend/public/assets/heros/icons/Constructors/Plasma Specialist Izza.png",
+        "width": 512,
+        "height": 512,
+        "bytes": 151649
+      },
+      {
+        "slug": "power-base-knox",
+        "name": "Power B.A.S.E. Knox",
+        "file": "frontend/public/assets/heros/icons/Constructors/Power Base Knox.png",
+        "width": 512,
+        "height": 512,
+        "bytes": 185465
+      },
+      {
+        "slug": "power-base-kyle",
+        "name": "Power B.A.S.E. Kyle",
+        "file": "frontend/public/assets/heros/icons/Constructors/Powerbase Kyle.png",
+        "width": 512,
+        "height": 512,
+        "bytes": 181761
+      },
+      {
+        "slug": "power-base-penny",
+        "name": "Power B.A.S.E. Penny",
+        "file": "frontend/public/assets/heros/icons/Constructors/Power Base Penny.png",
+        "width": 512,
+        "height": 512,
+        "bytes": 192846
+      },
+      {
+        "slug": "power-pop-penny",
+        "name": "Power Pop Penny",
+        "file": "frontend/public/assets/heros/icons/Constructors/Power Pop Penny.png",
+        "width": 512,
+        "height": 512,
+        "bytes": 185851
+      },
+      {
+        "slug": "powerhouse",
+        "name": "Powerhouse",
+        "file": "frontend/public/assets/heros/icons/Soldiers/Powerhouse.png",
+        "width": 512,
+        "height": 512,
+        "bytes": 217750
+      },
+      {
+        "slug": "prickly-patroller-ramirez",
+        "name": "Prickly Patroller Ramirez",
+        "file": "frontend/public/assets/heros/icons/Soldiers/Prickly Patroller Ramirez.png",
+        "width": 512,
+        "height": 512,
+        "bytes": 76574
+      },
+      {
+        "slug": "privateer-hype",
+        "name": "Privateer Hype",
+        "file": "frontend/public/assets/heros/icons/Constructors/Privateer Hype.png",
+        "width": 512,
+        "height": 512,
+        "bytes": 174405
+      },
+      {
+        "slug": "quickdraw-calamity",
+        "name": "Quickdraw Calamity",
+        "file": "frontend/public/assets/heros/icons/Soldiers/Quickdraw Calamity.png",
+        "width": 512,
+        "height": 512,
+        "bytes": 253544
+      },
+      {
+        "slug": "rabbit-raider-jonesy",
+        "name": "Rabbit Raider Jonesy",
+        "file": "frontend/public/assets/heros/icons/Soldiers/Rabbit Raider Jonesy.png",
+        "width": 512,
+        "height": 512,
+        "bytes": 216960
+      },
+      {
+        "slug": "ranger-deadeye",
+        "name": "Ranger Deadeye",
+        "file": "frontend/public/assets/heros/icons/Outlanders/Ranger Deadeye.png",
+        "width": 512,
+        "height": 512,
+        "bytes": 179564
+      },
+      {
+        "slug": "raven",
+        "name": "Raven",
+        "file": "frontend/public/assets/heros/icons/Soldiers/Raven.png",
+        "width": 512,
+        "height": 512,
+        "bytes": 169971
+      },
+      {
+        "slug": "razor",
+        "name": "Razor",
+        "file": "frontend/public/assets/heros/icons/Ninjas/Razor.png",
+        "width": 512,
+        "height": 512,
+        "bytes": 201642
+      },
+      {
+        "slug": "recon-scout-eagle-eye",
+        "name": "Recon Scout Eagle Eye",
+        "file": "frontend/public/assets/heros/icons/Outlanders/Recon Scout Eagle Eye.png",
+        "width": 512,
+        "height": 512,
+        "bytes": 146701
+      },
+      {
+        "slug": "red-willow",
+        "name": "Red Willow",
+        "file": "frontend/public/assets/heros/icons/Outlanders/Red Willow.png",
+        "width": 512,
+        "height": 512,
+        "bytes": 223949
+      },
+      {
+        "slug": "redline-ramirez",
+        "name": "Redline Ramirez",
+        "file": "frontend/public/assets/heros/icons/Soldiers/Redline Ramirez.png",
+        "width": 512,
+        "height": 512,
+        "bytes": 148699
+      },
+      {
+        "slug": "rescue-trooper-ramirez",
+        "name": "Rescue Trooper Ramirez",
+        "file": "frontend/public/assets/heros/icons/Soldiers/Rescue Trooper Ramirez.png",
+        "width": 512,
+        "height": 512,
+        "bytes": 175379
+      },
+      {
+        "slug": "rex-jonesy",
+        "name": "Rex Jonesy",
+        "file": "frontend/public/assets/heros/icons/Soldiers/Rex Jonesy.png",
+        "width": 512,
+        "height": 512,
+        "bytes": 197832
+      },
+      {
+        "slug": "riot-control-izza",
+        "name": "Riot Control Izza",
+        "file": "frontend/public/assets/heros/icons/Constructors/Riot Control Izza.png",
+        "width": 512,
+        "height": 512,
+        "bytes": 169289
+      },
+      {
+        "slug": "saboteur-bull",
+        "name": "Saboteur Bull",
+        "file": "frontend/public/assets/heros/icons/Constructors/Saboteur Bull.png",
+        "width": 512,
+        "height": 512,
+        "bytes": 185171
+      },
+      {
+        "slug": "samurai-scrapper",
+        "name": "Samurai Scrapper",
+        "file": "frontend/public/assets/heros/icons/Ninjas/Samurai Scrapper.png",
+        "width": 512,
+        "height": 512,
+        "bytes": 240974
+      },
+      {
+        "slug": "sarah-hotep",
+        "name": "Sarah Hotep",
+        "file": "frontend/public/assets/heros/icons/Ninjas/Sarah Hotep.png",
+        "width": 512,
+        "height": 512,
+        "bytes": 151010
+      },
+      {
+        "slug": "sentinel-hype",
+        "name": "Sentinel Hype",
+        "file": "frontend/public/assets/heros/icons/Constructors/Sentinel Hype.png",
+        "width": 512,
+        "height": 512,
+        "bytes": 174652
+      },
+      {
+        "slug": "sentry-gunner-airheart",
+        "name": "Sentry Gunner Airheart",
+        "file": "frontend/public/assets/heros/icons/Constructors/Sentry Gunner Airheart.png",
+        "width": 512,
+        "height": 512,
+        "bytes": 154806
+      },
+      {
+        "slug": "sentry-gunner-krampus",
+        "name": "Sentry Gunner Krampus",
+        "file": "frontend/public/assets/heros/icons/Constructors/Sentry Gunner Krampus.png",
+        "width": 512,
+        "height": 512,
+        "bytes": 270739
+      },
+      {
+        "slug": "sergeant-jonesy",
+        "name": "Sergeant Jonesy",
+        "file": "frontend/public/assets/heros/icons/Soldiers/Sergeant Jonesy.png",
+        "width": 512,
+        "height": 512,
+        "bytes": 171429
+      },
+      {
+        "slug": "sgt-tank-gatling",
+        "name": "Sgt. Tank Gatling",
+        "file": "frontend/public/assets/heros/icons/Constructors/Sgt Tank Gatling.png",
+        "width": 512,
+        "height": 512,
+        "bytes": 184773
+      },
+      {
+        "slug": "sgt-winter",
+        "name": "Sgt. Winter",
+        "file": "frontend/public/assets/heros/icons/Soldiers/Sgt Winter.png",
+        "width": 512,
+        "height": 512,
+        "bytes": 185421
+      },
+      {
+        "slug": "shock-specialist-ac",
+        "name": "Shock Specialist A.C.",
+        "file": "frontend/public/assets/heros/icons/Outlanders/Shock Specialist AC.png",
+        "width": 512,
+        "height": 512,
+        "bytes": 186351
+      },
+      {
+        "slug": "shock-trooper-renegade",
+        "name": "Shock Trooper Renegade",
+        "file": "frontend/public/assets/heros/icons/Soldiers/Shock Trooper Renegade.png",
+        "width": 512,
+        "height": 512,
+        "bytes": 162980
+      },
+      {
+        "slug": "shockblaster-buzz",
+        "name": "Shockblaster Buzz",
+        "file": "frontend/public/assets/heros/icons/Outlanders/Shockblaster Buzz.png",
+        "width": 512,
+        "height": 512,
+        "bytes": 149722
+      },
+      {
+        "slug": "shockgunner-grizzly",
+        "name": "Shockgunner Grizzly",
+        "file": "frontend/public/assets/heros/icons/Outlanders/Shockgunner Grizzly.png",
+        "width": 512,
+        "height": 512,
+        "bytes": 163156
+      },
+      {
+        "slug": "shrapnel-headhunter",
+        "name": "Shrapnel Headhunter",
+        "file": "frontend/public/assets/heros/icons/Soldiers/Shrapnel Headhunter.png",
+        "width": 512,
+        "height": 512,
+        "bytes": 156921
+      },
+      {
+        "slug": "shuriken-master-sarah",
+        "name": "Shuriken Master Sarah",
+        "file": "frontend/public/assets/heros/icons/Ninjas/Shuriken Master Sarah.png",
+        "width": 512,
+        "height": 512,
+        "bytes": 145431
+      },
+      {
+        "slug": "skirmisher-edge",
+        "name": "Skirmisher Edge",
+        "file": "frontend/public/assets/heros/icons/Ninjas/Skirmisher Edge.png",
+        "width": 512,
+        "height": 512,
+        "bytes": 178239
+      },
+      {
+        "slug": "skull-ranger-ramirez",
+        "name": "Skull Ranger Ramirez",
+        "file": "frontend/public/assets/heros/icons/Soldiers/Skull Ranger Ramirez.png",
+        "width": 512,
+        "height": 512,
+        "bytes": 144944
+      },
+      {
+        "slug": "skull-trooper-jonesy",
+        "name": "Skull Trooper Jonesy",
+        "file": "frontend/public/assets/heros/icons/Soldiers/Skull Trooper Jonesy.png",
+        "width": 512,
+        "height": 512,
+        "bytes": 142502
+      },
+      {
+        "slug": "sleuth",
+        "name": "Sleuth",
+        "file": "frontend/public/assets/heros/icons/Constructors/Sleuth.png",
+        "width": 512,
+        "height": 512,
+        "bytes": 207555
+      },
+      {
+        "slug": "special-forces-banshee",
+        "name": "Special Forces Banshee",
+        "file": "frontend/public/assets/heros/icons/Soldiers/Special Forces Banshee.png",
+        "width": 512,
+        "height": 512,
+        "bytes": 163604
+      },
+      {
+        "slug": "star-spangled-headhunter",
+        "name": "Star-Spangled Headhunter",
+        "file": "frontend/public/assets/heros/icons/Soldiers/Star-Spangled Headhunter.png",
+        "width": 512,
+        "height": 512,
+        "bytes": 147263
+      },
+      {
+        "slug": "staredown-southie",
+        "name": "Staredown Southie",
+        "file": "frontend/public/assets/heros/icons/Outlanders/Staredown Southie.png",
+        "width": 512,
+        "height": 512,
+        "bytes": 169908
+      },
+      {
+        "slug": "stars-and-stripes-jonesy",
+        "name": "Stars and Stripes Jonesy",
+        "file": "frontend/public/assets/heros/icons/Soldiers/Stars And Stripes Jonesy.png",
+        "width": 512,
+        "height": 512,
+        "bytes": 162467
+      },
+      {
+        "slug": "steel-wool-anthony",
+        "name": "Steel Wool Anthony",
+        "file": "frontend/public/assets/heros/icons/Outlanders/Steel Wool Anthony.png",
+        "width": 512,
+        "height": 512,
+        "bytes": 131127
+      },
+      {
+        "slug": "steel-wool-carlos",
+        "name": "Steel Wool Carlos",
+        "file": "frontend/public/assets/heros/icons/Soldiers/Steel Wool Carlos.png",
+        "width": 512,
+        "height": 512,
+        "bytes": 155109
+      },
+      {
+        "slug": "steel-wool-syd",
+        "name": "Steel Wool Syd",
+        "file": "frontend/public/assets/heros/icons/Constructors/Steel Wool Syd.png",
+        "width": 512,
+        "height": 512,
+        "bytes": 169353
+      },
+      {
+        "slug": "stonefoot-crash",
+        "name": "Stonefoot Crash",
+        "file": "frontend/public/assets/heros/icons/Ninjas/Stonefoot Crash.png",
+        "width": 512,
+        "height": 512,
+        "bytes": 154535
+      },
+      {
+        "slug": "stoneheart-farrah",
+        "name": "Stoneheart Farrah",
+        "file": "frontend/public/assets/heros/icons/Ninjas/Stoneheart Farrah.png",
+        "width": 512,
+        "height": 512,
+        "bytes": 155358
+      },
+      {
+        "slug": "striker-ac",
+        "name": "Striker A.C.",
+        "file": "frontend/public/assets/heros/icons/Outlanders/Striker AC.png",
+        "width": 512,
+        "height": 512,
+        "bytes": 172242
+      },
+      {
+        "slug": "support-specialist-hawk",
+        "name": "Support Specialist Hawk",
+        "file": "frontend/public/assets/heros/icons/Soldiers/Support Specialist Hawk.png",
+        "width": 512,
+        "height": 512,
+        "bytes": 175547
+      },
+      {
+        "slug": "survivalist-jonesy",
+        "name": "Survivalist Jonesy",
+        "file": "frontend/public/assets/heros/icons/Soldiers/Survivalist Jonesy.png",
+        "width": 512,
+        "height": 512,
+        "bytes": 137804
+      },
+      {
+        "slug": "swamp-knight",
+        "name": "Swamp Knight",
+        "file": "frontend/public/assets/heros/icons/Soldiers/Swamp Knight.png",
+        "width": 512,
+        "height": 512,
+        "bytes": 265427
+      },
+      {
+        "slug": "swift-shuriken-llamurai",
+        "name": "Swift Shuriken Llamurai",
+        "file": "frontend/public/assets/heros/icons/Ninjas/Swift Shuriken Llamurai.png",
+        "width": 512,
+        "height": 512,
+        "bytes": 113319
+      },
+      {
+        "slug": "swordmaster-ken",
+        "name": "Swordmaster Ken",
+        "file": "frontend/public/assets/heros/icons/Ninjas/Swordmaster Ken.png",
+        "width": 512,
+        "height": 512,
+        "bytes": 184615
+      },
+      {
+        "slug": "tedd-shot-jess",
+        "name": "T.E.D.D. Shot Jess",
+        "file": "frontend/public/assets/heros/icons/Outlanders/TEDD Shot Jess.png",
+        "width": 512,
+        "height": 512,
+        "bytes": 140141
+      },
+      {
+        "slug": "tank-penny",
+        "name": "Tank Penny",
+        "file": "frontend/public/assets/heros/icons/Constructors/Tank Penny.png",
+        "width": 512,
+        "height": 512,
+        "bytes": 186003
+      },
+      {
+        "slug": "ted",
+        "name": "Ted",
+        "file": "frontend/public/assets/heros/icons/Soldiers/Ted.png",
+        "width": 512,
+        "height": 512,
+        "bytes": 243481
+      },
+      {
+        "slug": "the-ice-king",
+        "name": "The Ice King",
+        "file": "frontend/public/assets/heros/icons/Constructors/The Ice King.png",
+        "width": 512,
+        "height": 512,
+        "bytes": 150816
+      },
+      {
+        "slug": "the-ice-queen",
+        "name": "The Ice Queen",
+        "file": "frontend/public/assets/heros/icons/Outlanders/The Ice Queen.png",
+        "width": 512,
+        "height": 512,
+        "bytes": 198606
+      },
+      {
+        "slug": "thunder-thora",
+        "name": "Thunder Thora",
+        "file": "frontend/public/assets/heros/icons/Constructors/Thunder Thora.png",
+        "width": 512,
+        "height": 512,
+        "bytes": 199878
+      },
+      {
+        "slug": "thunderstrike-mari",
+        "name": "Thunderstrike Mari",
+        "file": "frontend/public/assets/heros/icons/Ninjas/Thunderstrike Mari.png",
+        "width": 512,
+        "height": 512,
+        "bytes": 151518
+      },
+      {
+        "slug": "trailblaster-ac",
+        "name": "Trailblaster A.C.",
+        "file": "frontend/public/assets/heros/icons/Outlanders/Trailblaster AC.png",
+        "width": 512,
+        "height": 512,
+        "bytes": 165596
+      },
+      {
+        "slug": "trailblazer-jess",
+        "name": "Trailblazer Jess",
+        "file": "frontend/public/assets/heros/icons/Outlanders/Trailblazer Jess.png",
+        "width": 512,
+        "height": 512,
+        "bytes": 139403
+      },
+      {
+        "slug": "trailblazer-quinn",
+        "name": "Trailblazer Quinn",
+        "file": "frontend/public/assets/heros/icons/Outlanders/Trailblazer Quinn.png",
+        "width": 512,
+        "height": 512,
+        "bytes": 166024
+      },
+      {
+        "slug": "tricera-ops-ramirez",
+        "name": "Tricera Ops Ramirez",
+        "file": "frontend/public/assets/heros/icons/Soldiers/Tricera Ops Ramirez.png",
+        "width": 512,
+        "height": 512,
+        "bytes": 159576
+      },
+      {
+        "slug": "undercover-buzz",
+        "name": "Undercover Buzz",
+        "file": "frontend/public/assets/heros/icons/Outlanders/Undercover Buzz.png",
+        "width": 512,
+        "height": 512,
+        "bytes": 173436
+      },
+      {
+        "slug": "undercover-vaughn",
+        "name": "Undercover Vaughn",
+        "file": "frontend/public/assets/heros/icons/Soldiers/Undercover Vaughn.png",
+        "width": 512,
+        "height": 512,
+        "bytes": 182269
+      },
+      {
+        "slug": "urban-assault-headhunter",
+        "name": "Urban Assault Headhunter",
+        "file": "frontend/public/assets/heros/icons/Soldiers/Urban Assault Headhunter.png",
+        "width": 512,
+        "height": 512,
+        "bytes": 161469
+      },
+      {
+        "slug": "vanguard-southie",
+        "name": "Vanguard Southie",
+        "file": "frontend/public/assets/heros/icons/Outlanders/Vanguard Southie.png",
+        "width": 512,
+        "height": 512,
+        "bytes": 174874
+      },
+      {
+        "slug": "varsity-hiro",
+        "name": "Varsity Hiro",
+        "file": "frontend/public/assets/heros/icons/Ninjas/Varsity Hiro.png",
+        "width": 512,
+        "height": 512,
+        "bytes": 179038
+      },
+      {
+        "slug": "venturion",
+        "name": "Venturion",
+        "file": "frontend/public/assets/heros/icons/Ninjas/Venturion.png",
+        "width": 512,
+        "height": 512,
+        "bytes": 183475
+      },
+      {
+        "slug": "vintage-tech-penny",
+        "name": "Vintage-Tech Penny",
+        "file": "frontend/public/assets/heros/icons/Constructors/Vintage-Tech Penny.png",
+        "width": 512,
+        "height": 512,
+        "bytes": 203590
+      },
+      {
+        "slug": "warden-kyle",
+        "name": "Warden Kyle",
+        "file": "frontend/public/assets/heros/icons/Constructors/Warden Kyle.png",
+        "width": 512,
+        "height": 512,
+        "bytes": 206192
+      },
+      {
+        "slug": "whirlwind-scorch",
+        "name": "Whirlwind Scorch",
+        "file": "frontend/public/assets/heros/icons/Ninjas/Whirlwind Scorch.png",
+        "width": 512,
+        "height": 512,
+        "bytes": 146000
+      },
+      {
+        "slug": "whiteout-fiona",
+        "name": "Whiteout Fiona",
+        "file": "frontend/public/assets/heros/icons/Ninjas/Whiteout Fiona.png",
+        "width": 512,
+        "height": 512,
+        "bytes": 156548
+      },
+      {
+        "slug": "wild-fragment-deadeye",
+        "name": "Wild Fragment Deadeye",
+        "file": "frontend/public/assets/heros/icons/Outlanders/Wild Fragment Deadeye.png",
+        "width": 512,
+        "height": 512,
+        "bytes": 170065
+      },
+      {
+        "slug": "willow",
+        "name": "Willow",
+        "file": "frontend/public/assets/heros/icons/Outlanders/Willow.png",
+        "width": 512,
+        "height": 512,
+        "bytes": 184921
+      },
+      {
+        "slug": "wukong",
+        "name": "Wukong",
+        "file": "frontend/public/assets/heros/icons/Soldiers/Wukong.png",
+        "width": 512,
+        "height": 512,
+        "bytes": 245105
+      }
+    ],
+    "inferred": [
+      {
+        "slug": "aerobic-assassin",
+        "name": "Aerobic Assassin",
+        "file": "frontend/public/assets/heros/icons/Ninjas/aerobic assassin p.png",
+        "width": 512,
+        "height": 512,
+        "bytes": 132736
+      },
+      {
+        "slug": "berserker-renegade",
+        "name": "Berserker Renegade",
+        "file": "frontend/public/assets/heros/icons/Soldiers/Beserker Renegade.png",
+        "width": 512,
+        "height": 512,
+        "bytes": 192075
+      },
+      {
+        "slug": "birthday-brigade-penny",
+        "name": "Birthday Brigade Penny",
+        "file": "frontend/public/assets/heros/icons/Constructors/Birthday Bridage Penny.png",
+        "width": 512,
+        "height": 512,
+        "bytes": 178572
+      },
+      {
+        "slug": "buccaneer-ramirez",
+        "name": "Buccaneer Ramirez",
+        "file": "frontend/public/assets/heros/icons/Soldiers/Buccaneer Ramierz.png",
+        "width": 512,
+        "height": 512,
+        "bytes": 185916
+      },
+      {
+        "slug": "cassie-clip-lipman",
+        "name": "Cassie \"Clip\" Lipman",
+        "file": "frontend/public/assets/heros/icons/Outlanders/Clip.png",
+        "width": 512,
+        "height": 512,
+        "bytes": 152675
+      },
+      {
+        "slug": "eternal-wanderer",
+        "name": "Eternal Wanderer",
+        "file": "frontend/public/assets/heros/icons/Ninjas/Eternal Wanderer P.png",
+        "width": 512,
+        "height": 512,
+        "bytes": 94031
+      },
+      {
+        "slug": "flutter",
+        "name": "Flutter",
+        "file": "frontend/public/assets/heros/icons/Constructors/Flutter_p.png",
+        "width": 256,
+        "height": 256,
+        "bytes": 58659
+      },
+      {
+        "slug": "hotfixer-hazard",
+        "name": "Hotfixer Hazard",
+        "file": "frontend/public/assets/heros/icons/Constructors/Hotfixer Hazzard.png",
+        "width": 512,
+        "height": 512,
+        "bytes": 207091
+      },
+      {
+        "slug": "hotwire",
+        "name": "Hotwire",
+        "file": "frontend/public/assets/heros/icons/Constructors/Hotwire-P.png",
+        "width": 512,
+        "height": 512,
+        "bytes": 190421
+      },
+      {
+        "slug": "jurassic-ken",
+        "name": "Jurassic Ken",
+        "file": "frontend/public/assets/heros/icons/Ninjas/Jurrasic Ken.png",
+        "width": 512,
+        "height": 512,
+        "bytes": 214174
+      },
+      {
+        "slug": "lynx-kassandra",
+        "name": "Lynx Kassandra",
+        "file": "frontend/public/assets/heros/icons/Ninjas/Lynx.png",
+        "width": 512,
+        "height": 512,
+        "bytes": 173834
+      },
+      {
+        "slug": "machinist-harper",
+        "name": "Machinist Harper",
+        "file": "frontend/public/assets/heros/icons/Constructors/Machinest Harper.png",
+        "width": 512,
+        "height": 512,
+        "bytes": 163435
+      },
+      {
+        "slug": "machinist-mina",
+        "name": "Machinist Mina",
+        "file": "frontend/public/assets/heros/icons/Constructors/Machinest Mia.png",
+        "width": 512,
+        "height": 512,
+        "bytes": 139988
+      },
+      {
+        "slug": "major-oswald",
+        "name": "Major Oswald",
+        "file": "frontend/public/assets/heros/icons/Soldiers/Major.png",
+        "width": 512,
+        "height": 512,
+        "bytes": 134431
+      },
+      {
+        "slug": "prehistoric-izza",
+        "name": "Prehistoric Izza",
+        "file": "frontend/public/assets/heros/icons/Constructors/Prehistroic Izza.png",
+        "width": 512,
+        "height": 512,
+        "bytes": 179570
+      },
+      {
+        "slug": "ragnarok",
+        "name": "Ragnarok",
+        "file": "frontend/public/assets/heros/icons/Outlanders/Ragnorok.png",
+        "width": 512,
+        "height": 512,
+        "bytes": 270230
+      },
+      {
+        "slug": "recon-scout-ac",
+        "name": "Recon Scout A.C.",
+        "file": "frontend/public/assets/heros/icons/Ninjas/Razor.png",
+        "width": 512,
+        "height": 512,
+        "bytes": 201642
+      },
+      {
+        "slug": "recon-scout-jess",
+        "name": "Recon Scout Jess",
+        "file": "frontend/public/assets/heros/icons/Outlanders/Phase Scout Jess.png",
+        "width": 512,
+        "height": 512,
+        "bytes": 141611
+      },
+      {
+        "slug": "riot-response-hazard",
+        "name": "Riot Response Hazard",
+        "file": "frontend/public/assets/heros/icons/Constructors/Riot Response Hazzard.png",
+        "width": 512,
+        "height": 512,
+        "bytes": 193805
+      },
+      {
+        "slug": "robo-kevin",
+        "name": "Robo-Kevin",
+        "file": "frontend/public/assets/heros/icons/Ninjas/Ray-Bot.png",
+        "width": 512,
+        "height": 512,
+        "bytes": 132972
+      },
+      {
+        "slug": "robo-ray",
+        "name": "Robo-Ray",
+        "file": "frontend/public/assets/heros/icons/Ninjas/Razor.png",
+        "width": 512,
+        "height": 512,
+        "bytes": 201642
+      },
+      {
+        "slug": "sanguine-dusk",
+        "name": "Sanguine Dusk",
+        "file": "frontend/public/assets/heros/icons/Outlanders/Dusk.png",
+        "width": 512,
+        "height": 512,
+        "bytes": 186952
+      },
+      {
+        "slug": "sea-wolf-jonesy",
+        "name": "Sea Wolf Jonesy",
+        "file": "frontend/public/assets/heros/icons/Soldiers/Sea_Wolf_Jonsey.png",
+        "width": 512,
+        "height": 512,
+        "bytes": 338707
+      },
+      {
+        "slug": "snowstrike",
+        "name": "Snowstrike",
+        "file": "frontend/public/assets/heros/icons/Ninjas/Snowstrike_p.png",
+        "width": 512,
+        "height": 512,
+        "bytes": 195934
+      },
+      {
+        "slug": "snuggle-specialist-sarah",
+        "name": "Snuggle Specialist Sarah",
+        "file": "frontend/public/assets/heros/icons/Ninjas/Snuggle Speciaslist Sarah.png",
+        "width": 512,
+        "height": 512,
+        "bytes": 177877
+      },
+      {
+        "slug": "special-forces-jonesy",
+        "name": "Special Forces Jonesy",
+        "file": "frontend/public/assets/heros/icons/Soldiers/Special Forces Banshee.png",
+        "width": 512,
+        "height": 512,
+        "bytes": 163604
+      },
+      {
+        "slug": "special-forces-ramirez",
+        "name": "Special Forces Ramirez",
+        "file": "frontend/public/assets/heros/icons/Soldiers/Special Forces Banshee.png",
+        "width": 512,
+        "height": 512,
+        "bytes": 163604
+      },
+      {
+        "slug": "subzero-zenith",
+        "name": "Subzero Zenith",
+        "file": "frontend/public/assets/heros/icons/Outlanders/Zenith.png",
+        "width": 512,
+        "height": 512,
+        "bytes": 214216
+      },
+      {
+        "slug": "swashbuckler-keelhaul",
+        "name": "Swashbuckler Keelhaul",
+        "file": "frontend/public/assets/heros/icons/Ninjas/Keelhaul.png",
+        "width": 512,
+        "height": 512,
+        "bytes": 137374
+      },
+      {
+        "slug": "tactical-assault-sledgehammer",
+        "name": "Tactical Assault Sledgehammer",
+        "file": "frontend/public/assets/heros/icons/Soldiers/Sledgehammer.png",
+        "width": 512,
+        "height": 512,
+        "bytes": 240975
+      },
+      {
+        "slug": "the-cloaked-star",
+        "name": "The Cloaked Star",
+        "file": "frontend/public/assets/heros/icons/Ninjas/Cloaked Star.png",
+        "width": 512,
+        "height": 512,
+        "bytes": 223461
+      },
+      {
+        "slug": "trailblazer-ac",
+        "name": "Trailblazer A.C.",
+        "file": "frontend/public/assets/heros/icons/Outlanders/Trailblaster AC.png",
+        "width": 512,
+        "height": 512,
+        "bytes": 165596
+      },
+      {
+        "slug": "ventura-ramirez",
+        "name": "Ventura Ramirez",
+        "file": "frontend/public/assets/heros/icons/Outlanders/Ventura.png",
+        "width": 512,
+        "height": 512,
+        "bytes": 161808
+      }
+    ],
+    "ambiguous": [
+      {
+        "slug": "bluestreak-ken",
+        "name": "Bluestreak Ken",
+        "nearestFile": "frontend/public/assets/heros/icons/Ninjas/Fleetfoot Ken.png",
+        "distance": 7,
+        "reason": "no deterministic match; needs a human decision"
+      },
+      {
+        "slug": "commando-ramirez",
+        "name": "Commando Ramirez",
+        "nearestFile": "frontend/public/assets/heros/icons/Soldiers/Commando Spitfire.png",
+        "distance": 6,
+        "reason": "no deterministic match; needs a human decision"
+      },
+      {
+        "slug": "commando-renegade",
+        "name": "Commando Renegade",
+        "nearestFile": "frontend/public/assets/heros/icons/Soldiers/Commando Spitfire.png",
+        "distance": 7,
+        "reason": "no deterministic match; needs a human decision"
+      },
+      {
+        "slug": "guardian-knox",
+        "name": "Guardian Knox",
+        "nearestFile": "frontend/public/assets/heros/icons/Constructors/Guardian Bull.png",
+        "distance": 4,
+        "reason": "no deterministic match; needs a human decision"
+      },
+      {
+        "slug": "guardian-penny",
+        "name": "Guardian Penny",
+        "nearestFile": "frontend/public/assets/heros/icons/Constructors/Guardian Bull.png",
+        "distance": 5,
+        "reason": "no deterministic match; needs a human decision"
+      },
+      {
+        "slug": "jade-assassin-sarah",
+        "name": "Jade Assassin Sarah",
+        "nearestFile": "frontend/public/assets/heros/icons/Ninjas/Assassin Sarah.png",
+        "distance": 4,
+        "reason": "no deterministic match; needs a human decision"
+      },
+      {
+        "slug": "lotus-assassin-ken",
+        "name": "Lotus Assassin Ken",
+        "nearestFile": "frontend/public/assets/heros/icons/Ninjas/aerobic assassin p.png",
+        "distance": 9,
+        "reason": "no deterministic match; needs a human decision"
+      },
+      {
+        "slug": "lotus-assassin-sarah",
+        "name": "Lotus Assassin Sarah",
+        "nearestFile": "frontend/public/assets/heros/icons/Ninjas/Assassin Sarah.png",
+        "distance": 5,
+        "reason": "no deterministic match; needs a human decision"
+      },
+      {
+        "slug": "rescue-trooper-havoc",
+        "name": "Rescue Trooper Havoc",
+        "nearestFile": "frontend/public/assets/heros/icons/Soldiers/Rescue Trooper Ramirez.png",
+        "distance": 6,
+        "reason": "no deterministic match; needs a human decision"
+      },
+      {
+        "slug": "rogue-agent-jonesy",
+        "name": "Rogue Agent Jonesy",
+        "nearestFile": "frontend/public/assets/heros/icons/Soldiers/Sergeant Jonesy.png",
+        "distance": 6,
+        "reason": "no deterministic match; needs a human decision"
+      },
+      {
+        "slug": "sub-commando-jonesy",
+        "name": "Sub Commando Jonesy",
+        "nearestFile": "frontend/public/assets/heros/icons/Soldiers/Buccaneer Jonesy.png",
+        "distance": 8,
+        "reason": "no deterministic match; needs a human decision"
+      },
+      {
+        "slug": "valkyrie-rio",
+        "name": "Valkyrie Rio",
+        "nearestFile": "frontend/public/assets/heros/icons/Outlanders/Valkyrie.png",
+        "distance": 3,
+        "reason": "no deterministic match; needs a human decision"
+      }
+    ],
+    "missing": []
+  },
+  "resourceIcons": [
+    {
+      "resourceKey": "people-xp",
+      "file": null,
+      "width": null,
+      "height": null,
+      "tier": "missing"
+    },
+    {
+      "resourceKey": "pure-drop-of-rain",
+      "file": "frontend/public/assets/items/Evo Mats & Caches/Pure Drop Of Rain.png",
+      "width": 512,
+      "height": 512,
+      "tier": "inferred"
+    },
+    {
+      "resourceKey": "training-manual",
+      "file": null,
+      "width": null,
+      "height": null,
+      "tier": "missing"
+    },
+    {
+      "resourceKey": "lightning-in-a-bottle",
+      "file": "frontend/public/assets/items/Evo Mats & Caches/Lightning In a Bottle.png",
+      "width": 512,
+      "height": 512,
+      "tier": "inferred"
+    },
+    {
+      "resourceKey": "eye-of-the-storm",
+      "file": "frontend/public/assets/items/Evo Mats & Caches/Eye of The Storm.png",
+      "width": 512,
+      "height": 512,
+      "tier": "inferred"
+    },
+    {
+      "resourceKey": "storm-shard",
+      "file": "frontend/public/assets/items/Evo Mats & Caches/Storm Shard.png",
+      "width": 512,
+      "height": 512,
+      "tier": "inferred"
+    }
+  ],
+  "abilityIcons": [
+    {
+      "abilityKey": "bull-rush",
+      "file": "frontend/public/assets/heros/abilities/Bull Rush.png",
+      "width": 128,
+      "height": 128,
+      "tier": "inferred"
+    },
+    {
+      "abilityKey": "crescent-kick",
+      "file": "frontend/public/assets/heros/abilities/Crescent Kick.png",
+      "width": 128,
+      "height": 128,
+      "tier": "inferred"
+    },
+    {
+      "abilityKey": "decoy",
+      "file": "frontend/public/assets/heros/abilities/Decoy.png",
+      "width": 128,
+      "height": 128,
+      "tier": "inferred"
+    },
+    {
+      "abilityKey": "dragon-slash",
+      "file": "frontend/public/assets/heros/abilities/Dragon Slash.png",
+      "width": 128,
+      "height": 128,
+      "tier": "inferred"
+    },
+    {
+      "abilityKey": "frag-grenade",
+      "file": "frontend/public/assets/heros/abilities/Grenades.png",
+      "width": 128,
+      "height": 128,
+      "tier": "inferred"
+    },
+    {
+      "abilityKey": "goin-commando",
+      "file": "frontend/public/assets/heros/abilities/Goin' Commando.png",
+      "width": 128,
+      "height": 128,
+      "tier": "inferred"
+    },
+    {
+      "abilityKey": "goin-constructor",
+      "file": "frontend/public/assets/heros/abilities/Goin' Constructor.png",
+      "width": 128,
+      "height": 128,
+      "tier": "inferred"
+    },
+    {
+      "abilityKey": "kunai-storm",
+      "file": "frontend/public/assets/heros/abilities/Kunai.png",
+      "width": 128,
+      "height": 128,
+      "tier": "inferred"
+    },
+    {
+      "abilityKey": "lefty-and-righty",
+      "file": "frontend/public/assets/heros/abilities/Lefty & Righty.png",
+      "width": 128,
+      "height": 128,
+      "tier": "inferred"
+    },
+    {
+      "abilityKey": "phase-shift",
+      "file": "frontend/public/assets/heros/abilities/Phase Shift.png",
+      "width": 128,
+      "height": 128,
+      "tier": "inferred"
+    },
+    {
+      "abilityKey": "plasma-pulse",
+      "file": "frontend/public/assets/heros/abilities/Plasma Pulse.png",
+      "width": 128,
+      "height": 128,
+      "tier": "inferred"
+    },
+    {
+      "abilityKey": "rosie",
+      "file": "frontend/public/assets/heros/abilities/ROSIE.png",
+      "width": 128,
+      "height": 128,
+      "tier": "inferred"
+    },
+    {
+      "abilityKey": "seismic-smash",
+      "file": "frontend/public/assets/heros/abilities/Seismic Smash.png",
+      "width": 128,
+      "height": 128,
+      "tier": "inferred"
+    },
+    {
+      "abilityKey": "shock-tower",
+      "file": "frontend/public/assets/heros/abilities/Shock Tower.png",
+      "width": 128,
+      "height": 128,
+      "tier": "inferred"
+    },
+    {
+      "abilityKey": "shockwave",
+      "file": "frontend/public/assets/heros/abilities/Shockwave.png",
+      "width": 128,
+      "height": 128,
+      "tier": "inferred"
+    },
+    {
+      "abilityKey": "smoke-bomb",
+      "file": "frontend/public/assets/heros/abilities/Smoke Bomb.png",
+      "width": 128,
+      "height": 128,
+      "tier": "inferred"
+    },
+    {
+      "abilityKey": "teddy",
+      "file": "frontend/public/assets/heros/abilities/TEDDY.png",
+      "width": 128,
+      "height": 128,
+      "tier": "inferred"
+    },
+    {
+      "abilityKey": "throwing-stars",
+      "file": "frontend/public/assets/heros/abilities/Throwing Stars.png",
+      "width": 128,
+      "height": 128,
+      "tier": "inferred"
+    },
+    {
+      "abilityKey": "warcry",
+      "file": "frontend/public/assets/heros/abilities/Warcry.png",
+      "width": 128,
+      "height": 128,
+      "tier": "inferred"
+    },
+    {
+      "abilityKey": "amc",
+      "file": "frontend/public/assets/heros/abilities/AMC.png",
+      "width": 128,
+      "height": 128,
+      "tier": "inferred"
+    },
+    {
+      "abilityKey": "base",
+      "file": "frontend/public/assets/heros/abilities/BASE.png",
+      "width": 128,
+      "height": 128,
+      "tier": "inferred"
+    },
+    {
+      "abilityKey": "loot-llama",
+      "file": "frontend/public/assets/heros/abilities/Loot Llama.png",
+      "width": 128,
+      "height": 128,
+      "tier": "inferred"
+    }
+  ],
+  "stats": {
+    "referenceHeroes": 242,
+    "portraitsExact": 197,
+    "portraitsInferred": 33,
+    "portraitsResolved": 230,
+    "portraitsAmbiguous": 12,
+    "portraitsMissing": 12,
+    "iconFilesOnDisk": 238,
+    "abilityFilesOnDisk": 24,
+    "abilityIconsResolved": 22,
+    "resourceIconsResolved": 4,
+    "unusedIconFiles": 8
+  }
+}

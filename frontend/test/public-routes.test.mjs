@@ -23,7 +23,14 @@ test("public loaders published-only incl archived, no secret leakage", async () 
     new URL("../src/lib/cms/public-hero-detail.loader.ts", import.meta.url),
     "utf8",
   );
-  assert.ok(heroLoader.includes('status !== "published"'), "hero member re-check");
+  // Hero member relations (loadouts, curated/similar heroes) must be
+  // published-gated. Phase 23 moved that gate from a post-fetch JS re-check to
+  // the JOIN itself, which is strictly stronger: unpublished rows are never
+  // fetched at all. Accept either form, but never neither.
+  assert.ok(
+    /status !== "published"/.test(heroLoader) || /status\s*=\s*'published'/.test(heroLoader),
+    "hero member re-check",
+  );
   const loadoutLoader = await readFile(
     new URL("../src/lib/cms/public-loadout-detail.loader.ts", import.meta.url),
     "utf8",

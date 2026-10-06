@@ -69,11 +69,33 @@ export interface HubHeroRow {
   seo_title: string | null;
   seo_description: string | null;
   translation_status: string;
+  /** Phase 23: editorial one-liner. Preferred over a truncated body. */
+  summary: string | null;
+  /** Phase 23: resolved reference join key, when the hero has been synced. */
+  stw_ref_slug: string | null;
+  /** Phase 23: structured reference payload for the current page's heroes. */
+  reference?: {
+    perks: import("./hero-reference").PublicHeroPerk[];
+    abilities: import("./hero-reference").PublicHeroAbility[];
+    progression: import("./hero-reference").PublicHeroProgression | null;
+    maxPower: number | null;
+  };
 }
 
 function heroOrder(sort: string): string {
   if (sort === "name") return "ORDER BY t.title ASC, h.sort_order ASC, c.id ASC";
   if (sort === "recent") return "ORDER BY c.updated_at DESC, c.id ASC";
+  if (sort === "rarity") {
+    // Deterministic rarity order via CASE, then title. Ties never depend on
+    // row order, so pagination stays stable across requests.
+    return (
+      "ORDER BY CASE h.rarity " +
+      "WHEN 'mythic' THEN 5 WHEN 'legendary' THEN 4 WHEN 'epic' THEN 3 " +
+      "WHEN 'rare' THEN 2 WHEN 'uncommon' THEN 1 WHEN 'common' THEN 0 ELSE 9 END ASC, " +
+      "t.title ASC, c.id ASC"
+    );
+  }
+  if (sort === "class") return "ORDER BY h.hero_class ASC, t.title ASC, c.id ASC";
   return "ORDER BY h.sort_order ASC, h.popularity DESC, t.title ASC, c.id ASC";
 }
 
@@ -83,60 +105,206 @@ export const listHubHeroes = createServerFn({ method: "GET" })
       locale?: string;
       heroClass?: string;
       rarity?: string;
+      category?: string;
+      perks?: string | string[];
+      abilities?: string | string[];
+      minPower?: string;
       search?: string;
       sort?: string;
       limit?: number;
       offset?: number;
+      /** Skip the facet-count queries when a caller does not render filters. */
+      withFacets?: boolean;
     }) => i,
   )
-  .handler(async ({ data }): Promise<{ items: HubHeroRow[]; total: number }> => {
-    const { resolveRequestCmsDb } = await import("./db.server");
-    const locale = typeof data.locale === "string" && data.locale !== "" ? data.locale : "en";
-    const heroClass =
-      typeof data.heroClass === "string" && isHeroClass(data.heroClass)
-        ? data.heroClass
-        : undefined;
-    const rarity =
-      typeof data.rarity === "string" && isRarity(data.rarity.trim().toLowerCase())
-        ? data.rarity.trim().toLowerCase()
-        : undefined;
-    const q = normalizeSearchQuery(data.search);
-    const sort = data.sort === "name" || data.sort === "recent" ? data.sort : "editorial";
-    const { limit, offset } = parseListPaging(data);
-    const { db } = await resolveRequestCmsDb();
-    const clauses = ["c.entity_type = 'hero'", "c.status = 'published'"];
-    const values: unknown[] = [locale];
-    if (heroClass !== undefined) {
-      clauses.push("h.hero_class = ?");
-      values.push(heroClass);
-    }
-    if (rarity !== undefined) {
-      clauses.push("h.rarity = ?");
-      values.push(rarity);
-    }
-    if (q !== "") {
-      clauses.push("LOWER(t.title) LIKE ? ESCAPE '\\'");
-      values.push(`%${escapeLike(q)}%`);
-    }
-    return pagedQuery<HubHeroRow>(db, {
-      columns:
-        "c.id AS content_id, t.slug AS slug, t.title AS title, t.body AS body, " +
-        "h.hero_class AS hero_class, h.category AS category, h.rarity AS rarity, " +
-        "h.popularity AS popularity, h.sort_order AS sort_order, " +
-        "m.delivery_url AS delivery_url, t.seo_title AS seo_title, " +
-        "t.seo_description AS seo_description, t.translation_status AS translation_status",
-      from:
-        "FROM cms_contents c " +
-        "JOIN cms_content_translations t ON t.content_id = c.id AND t.locale = ? " +
-        "JOIN hero_records h ON h.content_id = c.id " +
-        "LEFT JOIN media_assets m ON m.id = h.portrait_asset_id AND m.status = 'ready'",
-      where: clauses.join(" AND "),
-      orderBy: heroOrder(sort),
-      values,
-      limit,
-      offset,
-    });
-  });
+  .handler(
+    async ({
+      data,
+    }): Promise<{
+      items: HubHeroRow[];
+      total: number;
+      facets: {
+        class: Array<{ value: string; count: number }>;
+        rarity: Array<{ value: string; count: number }>;
+        category: Array<{ value: string; count: number }>;
+        perk: Array<{ value: string; count: number }>;
+        ability: Array<{ value: string; count: number }>;
+      };
+    }> => {
+      const { resolveRequestCmsDb } = await import("./db.server");
+      const { parseFacetKeys, parsePowerParam, parseHeroSort } = await import("./hero-reference");
+      const locale = typeof data.locale === "string" && data.locale !== "" ? data.locale : "en";
+      const heroClass =
+        typeof data.heroClass === "string" && isHeroClass(data.heroClass)
+          ? data.heroClass
+          : undefined;
+      const rarity =
+        typeof data.rarity === "string" && isRarity(data.rarity.trim().toLowerCase())
+          ? data.rarity.trim().toLowerCase()
+          : undefined;
+      const category =
+        typeof data.category === "string" && data.category.trim() !== ""
+          ? data.category.trim().toLowerCase()
+          : undefined;
+      const perkKeys = parseFacetKeys(data.perks);
+      const abilityKeys = parseFacetKeys(data.abilities);
+      const minPower = parsePowerParam(data.minPower);
+      const q = normalizeSearchQuery(data.search);
+      const sort = parseHeroSort(data.sort);
+      const { limit, offset } = parseListPaging(data);
+      const { db } = await resolveRequestCmsDb();
+
+      const clauses = ["c.entity_type = 'hero'", "c.status = 'published'"];
+      const values: unknown[] = [locale];
+      if (heroClass !== undefined) {
+        clauses.push("h.hero_class = ?");
+        values.push(heroClass);
+      }
+      if (rarity !== undefined) {
+        clauses.push("h.rarity = ?");
+        values.push(rarity);
+      }
+      if (category !== undefined) {
+        clauses.push("h.category = ?");
+        values.push(category);
+      }
+      if (perkKeys.length > 0) {
+        // Any-of within a facet: selecting two perks widens the result, which is
+        // how a multi-select facet is expected to behave.
+        clauses.push(
+          `EXISTS (SELECT 1 FROM hero_perks p JOIN hero_perk_defs d ON d.id = p.hero_perk_def_id
+                    WHERE p.hero_content_id = c.id AND d.perk_key IN (${perkKeys.map(() => "?").join(",")}))`,
+        );
+        values.push(...perkKeys);
+      }
+      if (abilityKeys.length > 0) {
+        clauses.push(
+          `EXISTS (SELECT 1 FROM hero_abilities a
+                    WHERE a.hero_content_id = c.id AND a.ability_key IN (${abilityKeys.map(() => "?").join(",")}))`,
+        );
+        values.push(...abilityKeys);
+      }
+      if (minPower !== null) {
+        clauses.push(
+          "(SELECT MAX(pp.power_max) FROM hero_progression pp WHERE pp.hero_content_id = c.id) >= ?",
+        );
+        values.push(minPower);
+      }
+      if (q !== "") {
+        // Search the editor-written summary and title. Perk/ability names are
+        // reachable through their own facets instead of a text match, so the
+        // result set never silently changes meaning with indexing.
+        clauses.push(
+          "(LOWER(t.title) LIKE ? ESCAPE '\\' OR LOWER(COALESCE(h.summary, '')) LIKE ? ESCAPE '\\')",
+        );
+        const like = `%${escapeLike(q)}%`;
+        values.push(like, like);
+      }
+
+      // `power` and `class` sorts need the reference/classification columns in
+      // ORDER BY; everything else sorts on already-selected columns.
+      const orderBy =
+        sort === "power"
+          ? "ORDER BY (SELECT MAX(pp.power_max) FROM hero_progression pp WHERE pp.hero_content_id = c.id) DESC, t.title ASC, c.id ASC"
+          : heroOrder(sort);
+
+      const page = await pagedQuery<HubHeroRow>(db, {
+        columns:
+          "c.id AS content_id, t.slug AS slug, t.title AS title, t.body AS body, " +
+          "h.hero_class AS hero_class, h.category AS category, h.rarity AS rarity, " +
+          "h.popularity AS popularity, h.sort_order AS sort_order, " +
+          "h.summary AS summary, h.stw_ref_slug AS stw_ref_slug, " +
+          "m.delivery_url AS delivery_url, t.seo_title AS seo_title, " +
+          "t.seo_description AS seo_description, t.translation_status AS translation_status",
+        from:
+          "FROM cms_contents c " +
+          "JOIN cms_content_translations t ON t.content_id = c.id AND t.locale = ? " +
+          "JOIN hero_records h ON h.content_id = c.id " +
+          "LEFT JOIN media_assets m ON m.id = h.portrait_asset_id AND m.status = 'ready'",
+        where: clauses.join(" AND "),
+        orderBy,
+        values,
+        limit,
+        offset,
+      });
+
+      // Reference enrichment for the current page only: a fixed number of
+      // bounded queries for the whole page, never one per hero.
+      const { readHeroReference } = await import("./hero-reference.server");
+      const ids = page.items.map((r) => r.content_id);
+      const bestById = new Map(page.items.map((r) => [r.content_id, r.rarity]));
+      const reference = await readHeroReference(db, ids, locale, bestById);
+
+      const items: HubHeroRow[] = page.items.map((row) => {
+        const ref = reference.get(row.content_id);
+        return {
+          ...row,
+          reference: {
+            perks: ref?.perks ?? [],
+            abilities: ref?.abilities ?? [],
+            progression: ref?.progression ?? null,
+            maxPower: ref?.progression?.maxPower ?? null,
+          },
+        };
+      });
+
+      const empty = { class: [], rarity: [], category: [], perk: [], ability: [] };
+      if (data.withFacets === false) {
+        return { items, total: page.total, facets: empty };
+      }
+
+      // Facet counts ignore the facet's own selection (standard faceted-search
+      // behaviour) so a user can always widen a choice without clearing others.
+      const { readPerkFacetBuckets, readAbilityFacetBuckets } =
+        await import("./hero-reference.server");
+      const countBase =
+        "FROM cms_contents c JOIN hero_records h ON h.content_id = c.id " +
+        "WHERE c.entity_type='hero' AND c.status='published'";
+
+      const [classCounts, rarityCounts, categoryCounts] = await Promise.all([
+        db
+          .prepare(
+            `SELECT h.hero_class AS value, COUNT(*) AS count ${countBase} GROUP BY h.hero_class`,
+          )
+          .all<{ value: string; count: number }>(),
+        db
+          .prepare(
+            `SELECT h.rarity AS value, COUNT(*) AS count ${countBase} AND h.rarity IS NOT NULL GROUP BY h.rarity`,
+          )
+          .all<{ value: string; count: number }>(),
+        db
+          .prepare(
+            `SELECT h.category AS value, COUNT(*) AS count ${countBase} AND h.category IS NOT NULL GROUP BY h.category`,
+          )
+          .all<{ value: string; count: number }>(),
+      ]);
+
+      // Reference-derived facets read their own definitions, so they are bounded
+      // and independently queryable rather than recomputed per hero.
+      const [perkBuckets, abilityBuckets] = await Promise.all([
+        readPerkFacetBuckets(db),
+        readAbilityFacetBuckets(db),
+      ]);
+
+      return {
+        items,
+        total: page.total,
+        facets: {
+          class: classCounts.results.map((r) => ({ value: r.value, count: Number(r.count) || 0 })),
+          rarity: rarityCounts.results.map((r) => ({
+            value: r.value,
+            count: Number(r.count) || 0,
+          })),
+          category: categoryCounts.results.map((r) => ({
+            value: r.value,
+            count: Number(r.count) || 0,
+          })),
+          perk: perkBuckets.map((r) => ({ value: r.value, count: r.count })),
+          ability: abilityBuckets.map((r) => ({ value: r.value, count: r.count })),
+        },
+      };
+    },
+  );
 
 export interface HubSchematicRow {
   content_id: string;

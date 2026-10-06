@@ -164,11 +164,106 @@ function HeroEditor() {
         run={editor.run}
         pending={editor.pending}
       />
+      <ReferencePanel hero={currentHero} />
     </CmsEditorFrame>
   );
 }
 
 type HeroDetail = Awaited<ReturnType<typeof getAdminHero>>["hero"];
+
+/**
+ * Read-only view of what the reference sync populated.
+ *
+ * Deliberately NOT a form. Perks, progression and costs are written only by
+ * scripts/sync-heroes-reference.mjs, so exposing them as editable fields would
+ * let an editor change data that the next sync would silently overwrite - and
+ * would break the reference-only rollback this separation makes possible.
+ *
+ * Editorial fields (identity, media, translations, SEO) live in the forms above.
+ */
+function ReferencePanel({ hero }: { hero: HeroDetail }) {
+  const ref = hero.reference;
+  const hasAny =
+    ref.perks.length > 0 || ref.rarities.length > 0 || ref.costRows > 0 || hero.stwRefSlug !== null;
+  return (
+    <CmsFormSection
+      title="Reference data (synced)"
+      description="Written by the reference sync, not editable here. Editorial fields are in the sections above."
+      data-testid="hero-reference-panel"
+    >
+      {!hasAny ? (
+        <CmsNotice kind="info">
+          No reference data synced for this hero yet. Run scripts/sync-heroes-reference.mjs against
+          the reference snapshot.
+        </CmsNotice>
+      ) : (
+        <dl className="grid gap-2 sm:grid-cols-2">
+          <div>
+            <dt className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+              Source
+            </dt>
+            <dd className="mt-0.5 font-mono text-xs">{hero.dataSource}</dd>
+          </div>
+          <div>
+            <dt className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+              Reference slug
+            </dt>
+            <dd className="mt-0.5 font-mono text-xs">{hero.stwRefSlug ?? "—"}</dd>
+          </div>
+          <div>
+            <dt className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+              Snapshot
+            </dt>
+            <dd className="mt-0.5 font-mono text-xs">
+              {hero.dataSnapshotAt ? hero.dataSnapshotAt.slice(0, 10) : "—"}
+            </dd>
+          </div>
+          <div>
+            <dt className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+              Cost rows
+            </dt>
+            <dd className="mt-0.5 font-mono text-xs tabular-nums">{ref.costRows}</dd>
+          </div>
+        </dl>
+      )}
+
+      {ref.perks.length > 0 ? (
+        <div className="mt-4">
+          <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+            Perks
+          </p>
+          <ul className="mt-1.5 space-y-0.5">
+            {ref.perks.map((p) => (
+              <li key={p.key} className="text-sm">
+                <span className="text-xs uppercase text-muted-foreground">{p.slot}</span>{" "}
+                <span className="font-medium">{p.name}</span>{" "}
+                <span className="font-mono text-xs text-muted-foreground">{p.key}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
+
+      {ref.rarities.length > 0 ? (
+        <div className="mt-4">
+          <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+            Progression
+          </p>
+          <ul className="mt-1.5 space-y-0.5">
+            {ref.rarities.map((r) => (
+              <li key={r.rarity} className="text-sm">
+                <span className="font-medium capitalize">{r.rarity}</span>{" "}
+                <span className="tabular-nums text-muted-foreground">
+                  {r.tiers} tiers · max power {r.maxPower ?? "—"}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
+    </CmsFormSection>
+  );
+}
 
 function IdentityForm(props: {
   hero: HeroDetail;
@@ -182,6 +277,7 @@ function IdentityForm(props: {
   const [rarity, setRarity] = useState((hero as { rarity?: string | null }).rarity ?? "");
   const [popularity, setPopularity] = useState(String(hero.popularity));
   const [sortOrder, setSortOrder] = useState(String(hero.sortOrder));
+  const [summary, setSummary] = useState(hero.summary ?? "");
 
   return (
     <CmsFormSection
@@ -202,6 +298,11 @@ function IdentityForm(props: {
                   rarity: rarity === "" ? null : rarity,
                   popularity: Number(popularity),
                   sortOrder: Number(sortOrder),
+                  summary: summary.trim() === "" ? null : summary.trim(),
+                  // Optimistic concurrency: reject the write if another editor
+                  // changed this record since the page was rendered, instead of
+                  // silently overwriting their work.
+                  expectedUpdatedAt: hero.recordUpdatedAt,
                 },
               });
               return "Identity saved.";
@@ -213,6 +314,19 @@ function IdentityForm(props: {
       }
     >
       <div className="grid gap-4 sm:grid-cols-2">
+        <CmsField
+          label="Summary"
+          description="One short line (about 160 characters) shown on cards and in Quick View. Leave empty to show no summary — the long description is never truncated into this slot."
+        >
+          <input
+            id="hero-summary"
+            className="cc-input"
+            value={summary}
+            onChange={(e) => setSummary(e.currentTarget.value)}
+            disabled={props.disabled}
+            maxLength={240}
+          />
+        </CmsField>
         <CmsField label="Class" description="Soldier, constructor, ninja, or outlander.">
           <CmsSelect
             id="hero-class"
@@ -360,6 +474,9 @@ function TranslationForm(props: {
   const [body, setBody] = useState(active?.body ?? "");
   const [seoTitle, setSeoTitle] = useState(active?.seoTitle ?? "");
   const [seoDescription, setSeoDescription] = useState(active?.seoDescription ?? "");
+  // translation_status gates BOTH the hreflang alternates and the sitemap
+  // entry, so it must be settable from the editor.
+  const [translationStatus, setTranslationStatus] = useState(active?.translationStatus ?? "draft");
 
   return (
     <CmsFormSection
@@ -381,6 +498,7 @@ function TranslationForm(props: {
                   body,
                   seoTitle: seoTitle.trim() === "" ? null : seoTitle.trim(),
                   seoDescription: seoDescription.trim() === "" ? null : seoDescription.trim(),
+                  translationStatus,
                 },
               });
               return `Translation saved (${locale}).`;
@@ -426,6 +544,22 @@ function TranslationForm(props: {
         />
       </CmsField>
       <div className="grid gap-4 sm:grid-cols-2">
+        <CmsField
+          label="Translation status"
+          description="Complete advertises this locale in hreflang and includes it in the sitemap. Draft keeps it out of both."
+        >
+          <CmsSelect
+            id="hero-translation-status"
+            value={translationStatus}
+            onChange={setTranslationStatus}
+            disabled={props.disabled}
+            width="full"
+            options={[
+              { value: "draft", label: "Draft" },
+              { value: "complete", label: "Complete" },
+            ]}
+          />
+        </CmsField>
         <CmsField label="SEO title" description="Optional override, plain text.">
           <input
             className="cc-input"

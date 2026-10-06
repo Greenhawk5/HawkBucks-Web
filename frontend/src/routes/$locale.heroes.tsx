@@ -1,6 +1,10 @@
+import * as React from "react";
 import { createFileRoute, Outlet, redirect, useChildMatches } from "@tanstack/react-router";
 import { hasChildMatch } from "@/lib/cms/entity-meta";
-import { HeroesPage } from "@/components/cms/HeroesPage";
+import { HeroesPage, type HeroFacetsResult } from "@/components/cms/HeroesPage";
+import type { HubHeroRow } from "@/lib/cms/public-hubs.loader";
+import { HeroListItemListJsonLd } from "@/components/heroes/HeroListJsonLd";
+import { parseFacetKeys, parsePowerParam, parseHeroSort } from "@/lib/cms/hero-reference";
 import { I18nProvider } from "@/i18n/context";
 import { translate } from "@/i18n/core";
 import {
@@ -34,6 +38,24 @@ export const Route = createFileRoute("/$locale/heroes")({
   validateSearch: (s: Record<string, unknown>) => ({
     class: typeof s["class"] === "string" ? s["class"] : undefined,
     rarity: typeof s["rarity"] === "string" ? s["rarity"] : undefined,
+    category: typeof s["category"] === "string" ? s["category"] : undefined,
+    perk: (() => {
+      const v = s["perk"];
+      if (Array.isArray(v)) {
+        const out = v.filter((x): x is string => typeof x === "string");
+        return out.length > 0 ? out : undefined;
+      }
+      return typeof v === "string" && v !== "" ? [v] : undefined;
+    })(),
+    ability: (() => {
+      const v = s["ability"];
+      if (Array.isArray(v)) {
+        const out = v.filter((x): x is string => typeof x === "string");
+        return out.length > 0 ? out : undefined;
+      }
+      return typeof v === "string" && v !== "" ? [v] : undefined;
+    })(),
+    power: typeof s["power"] === "string" ? s["power"] : undefined,
     q: typeof s["q"] === "string" ? s["q"] : undefined,
     sort: typeof s["sort"] === "string" ? s["sort"] : undefined,
     page: typeof s["page"] === "string" || typeof s["page"] === "number" ? s["page"] : undefined,
@@ -44,17 +66,29 @@ export const Route = createFileRoute("/$locale/heroes")({
     const heroClass = parseHeroClassParam(deps.class);
     const rarity = parsePublicRarityParam(deps.rarity);
     const q = parseSearchParam(deps.q) ?? "";
-    const sort = deps.sort === "name" || deps.sort === "recent" ? deps.sort : "editorial";
+    const sort = parseHeroSort(deps.sort);
     const page = parsePageParam(deps.page);
+    const category =
+      typeof deps.category === "string" && deps.category.trim() !== ""
+        ? deps.category.trim().toLowerCase()
+        : null;
+    const perks = parseFacetKeys(deps.perk);
+    const abilities = parseFacetKeys(deps.ability);
+    const minPower = parsePowerParam(deps.power);
     return listHubHeroes({
       data: {
         locale: lang,
         ...(heroClass === null ? {} : { heroClass }),
         ...(rarity === null ? {} : { rarity }),
+        ...(category === null ? {} : { category }),
+        ...(perks.length === 0 ? {} : { perks }),
+        ...(abilities.length === 0 ? {} : { abilities }),
+        ...(minPower === null ? {} : { minPower: String(minPower) }),
         ...(q === "" ? {} : { search: q }),
         sort,
         limit: PUBLIC_PAGE_SIZE,
         offset: (page - 1) * PUBLIC_PAGE_SIZE,
+        withFacets: true,
       },
     });
   },
@@ -99,19 +133,27 @@ function LocalizedHeroesListing() {
   const { locale } = Route.useParams() as { locale?: unknown };
   const lang = parseLocaleParam(locale) ?? DEFAULT_LANGUAGE;
   const search = Route.useSearch() as Record<string, unknown>;
-  const data = Route.useLoaderData() as { items: unknown[]; total: number } | undefined;
+  const data = Route.useLoaderData() as
+    { items: HubHeroRow[]; total: number; facets: HeroFacetsResult } | undefined;
+  const [mode, setMode] = React.useState<"compact" | "reference">("compact");
   // This hub route is the PARENT of its detail route, so a child match must
   // paint through the Outlet; rendering the listing unconditionally made every
   // detail URL show the hub instead of the entity.
   if (useChildMatches({ select: (m) => m.length > 0 })) return <Outlet />;
+  if (!data) return null;
+  const basePath = lang === "en" ? "/heroes" : `/${lang}/heroes`;
   return (
     <I18nProvider initialLanguage={lang} fixedLanguage={lang}>
       <HeroesPage
         locale={lang}
         search={search}
-        basePath={lang === "en" ? "/heroes" : `/${lang}/heroes`}
-        initial={data as never}
+        basePath={basePath}
+        initial={data}
+        view={{ mode, onChange: setMode }}
       />
+      {/* head() cannot see loader data, so the page-scoped ItemList goes into
+          the SSR HTML here. Localized item URLs match this page's locale. */}
+      <HeroListItemListJsonLd items={data.items} basePath={basePath} locale={lang} />
     </I18nProvider>
   );
 }

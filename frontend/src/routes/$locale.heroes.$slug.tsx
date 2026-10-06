@@ -2,7 +2,7 @@ import { createFileRoute, notFound, redirect } from "@tanstack/react-router";
 import { HeroDetail } from "@/components/cms/HeroDetail";
 import { I18nProvider } from "@/i18n/context";
 import { jsonLdScript } from "@/lib/seo";
-import { getPublicHero } from "@/lib/cms/public-hero-detail.loader";
+import { getPublicHero, type PublicHeroDetail } from "@/lib/cms/public-hero-detail.loader";
 import {
   buildHeroJsonLd,
   entityHreflangAlternates,
@@ -51,23 +51,10 @@ export const Route = createFileRoute("/$locale/heroes/$slug")({
   head: ({ loaderData, params }) => {
     const lang =
       parseLocaleParam((params as { locale?: unknown } | undefined)?.locale) ?? DEFAULT_LANGUAGE;
-    const hero = (
-      loaderData as
-        | {
-            hero?: {
-              title: string;
-              description: string;
-              slug: string;
-              imageUrl: string | null;
-              heroClass: string;
-              seoTitle: string | null;
-              seoDescription: string | null;
-              completeLocales?: string[];
-              slugsByLocale?: Record<string, string>;
-            };
-          }
-        | undefined
-    )?.hero;
+    // Use the real DTO type rather than a hand-written structural copy. The
+    // copy had silently drifted from the loader and blocked every new field
+    // (perks, progression, banner) from being reachable here.
+    const hero = (loaderData as { hero?: PublicHeroDetail } | undefined)?.hero;
     const seo = resolveCmsSeo({
       status: hero ? "published" : "draft",
       publicPath: hero
@@ -106,13 +93,24 @@ export const Route = createFileRoute("/$locale/heroes/$slug")({
       localizePath,
       canonicalUrlFor,
     });
+    // Reference properties are included only when the reference model actually
+    // populated them, so the entity describes what the page renders.
+    const stdPerk = hero.perks.find((p) => p.slot === "standard") ?? null;
+    const cmdPerk = hero.perks.find((p) => p.slot === "commander") ?? null;
     const ld = buildHeroJsonLd({
       name: hero.title,
-      description: toSafeHeadText(hero.description, 300),
+      description: toSafeHeadText(hero.summary || hero.description, 300),
       url: self,
-      image: hero.imageUrl,
+      image: hero.bannerUrl || hero.imageUrl,
       heroClass: hero.heroClass,
       breadcrumbBase: `${SITE_URL}/`,
+      rarity: hero.rarity,
+      category: hero.category,
+      standardPerk: stdPerk?.name ?? null,
+      commanderPerk: cmdPerk?.name ?? null,
+      abilities: hero.abilities.map((a) => a.name),
+      maxPower: hero.progression?.maxPower ?? null,
+      tierCount: hero.progression?.tierCount ?? null,
     });
     return {
       meta: [
@@ -125,6 +123,9 @@ export const Route = createFileRoute("/$locale/heroes/$slug")({
         { property: "og:url", content: self },
         ...(seo.ogImageUrl ? [{ property: "og:image", content: seo.ogImageUrl }] : []),
         { name: "twitter:card", content: "summary_large_image" },
+        { name: "twitter:title", content: seo.ogTitle },
+        { name: "twitter:description", content: seo.ogDescription },
+        ...(seo.ogImageUrl ? [{ name: "twitter:image", content: seo.ogImageUrl }] : []),
       ],
       links: [
         { rel: "canonical", href: self },

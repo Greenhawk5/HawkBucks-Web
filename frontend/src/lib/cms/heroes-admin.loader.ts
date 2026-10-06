@@ -38,6 +38,28 @@ export interface HeroAdminItem {
 export interface HeroAdminDetail extends HeroAdminItem {
   portraitAssetId: string | null;
   bannerAssetId: string | null;
+  /** Phase 23 editorial one-liner. */
+  summary: string | null;
+  /**
+   * hero_records.updated_at, surfaced so the editor can send it back as an
+   * optimistic concurrency token. Distinct from HeroAdminItem.updatedAt, which
+   * is cms_contents.updated_at.
+   */
+  recordUpdatedAt: string | null;
+  /**
+   * Reference provenance + a READ-ONLY summary of what the sync populated.
+   * No admin mutation writes to hero_perks / hero_progression /
+   * hero_progression_costs / hero_perk_defs / ability_defs, so a reference-only
+   * rollback stays safe.
+   */
+  dataSource: string;
+  dataSnapshotAt: string | null;
+  stwRefSlug: string | null;
+  reference: {
+    perks: Array<{ slot: string; name: string; key: string }>;
+    rarities: Array<{ rarity: string; tiers: number; maxPower: number | null }>;
+    costRows: number;
+  };
   translations: Array<{
     locale: string;
     title: string;
@@ -141,6 +163,32 @@ export const getAdminHero = createServerFn({ method: "GET" })
         translation_status: string;
       }>();
     const abilities = await listAbilities(db, data.contentId);
+    // Phase 23 reference summary. READ-ONLY: the CMS displays this so an editor
+    // can see what the sync populated, but no admin mutation writes to these
+    // tables. That separation is what makes a later reference-only rollback
+    // (delete rows WHERE data_source='stw-sync') safe.
+    const [refPerks, refProg, refCosts] = await Promise.all([
+      db
+        .prepare(
+          `SELECT d.slot AS slot, d.display_name AS name, d.perk_key AS perk_key
+             FROM hero_perks p JOIN hero_perk_defs d ON d.id = p.hero_perk_def_id
+            WHERE p.hero_content_id = ? ORDER BY p.slot_order ASC`,
+        )
+        .bind(data.contentId)
+        .all<{ slot: string; name: string; perk_key: string }>(),
+      db
+        .prepare(
+          `SELECT rarity, COUNT(*) AS tiers, MAX(power_max) AS max_power
+             FROM hero_progression WHERE hero_content_id = ?
+            GROUP BY rarity ORDER BY rarity ASC`,
+        )
+        .bind(data.contentId)
+        .all<{ rarity: string; tiers: number; max_power: number | null }>(),
+      db
+        .prepare(`SELECT COUNT(*) AS n FROM hero_progression_costs WHERE hero_content_id = ?`)
+        .bind(data.contentId)
+        .first<{ n: number }>(),
+    ]);
     const detail: HeroAdminDetail = {
       contentId: data.contentId,
       status: c.status,
@@ -155,6 +203,20 @@ export const getAdminHero = createServerFn({ method: "GET" })
       locales: trs.map((x) => x.locale),
       portraitAssetId: record.portrait_asset_id,
       bannerAssetId: record.banner_asset_id,
+      summary: record.summary ?? null,
+      recordUpdatedAt: record.updated_at ?? null,
+      dataSource: record.data_source ?? "editorial",
+      dataSnapshotAt: record.data_snapshot_at ?? null,
+      stwRefSlug: record.stw_ref_slug ?? null,
+      reference: {
+        perks: refPerks.results.map((r) => ({ slot: r.slot, name: r.name, key: r.perk_key })),
+        rarities: refProg.results.map((r) => ({
+          rarity: r.rarity,
+          tiers: Number(r.tiers) || 0,
+          maxPower: r.max_power === null ? null : Number(r.max_power),
+        })),
+        costRows: Number(refCosts?.n ?? 0),
+      },
       translations: trs.map((t) => ({
         locale: t.locale,
         title: t.title,
@@ -233,6 +295,10 @@ export const updateAdminHero = createServerFn({ method: "POST" })
       sortOrder?: number;
       portraitAssetId?: string | null;
       bannerAssetId?: string | null;
+      /** Phase 23 editorial one-liner shown on cards and in quick view. */
+      summary?: string | null;
+      /** Optimistic concurrency token (hero_records.updated_at as rendered). */
+      expectedUpdatedAt?: string | null;
     }) =>
       stripUndefined({
         contentId: requireContentId(i.contentId),
@@ -243,6 +309,8 @@ export const updateAdminHero = createServerFn({ method: "POST" })
         sortOrder: asOptionalNumber(i.sortOrder),
         portraitAssetId: asOptionalStringOrNull(i.portraitAssetId),
         bannerAssetId: asOptionalStringOrNull(i.bannerAssetId),
+        summary: asOptionalStringOrNull(i.summary),
+        expectedUpdatedAt: asOptionalStringOrNull(i.expectedUpdatedAt),
       }),
   )
   .handler(async ({ data }) => {

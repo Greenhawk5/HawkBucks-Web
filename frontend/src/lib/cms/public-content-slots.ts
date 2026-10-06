@@ -281,6 +281,19 @@ export function buildHeroJsonLd(input: {
   image: string | null;
   heroClass: string;
   breadcrumbBase: string;
+  /**
+   * Phase 23 reference properties. Optional so existing callers and tests that
+   * do not have the reference model keep working unchanged; when supplied they
+   * are emitted as additionalProperty entries so the entity describes the actual
+   * structured data on the page rather than a bare Thing.
+   */
+  rarity?: string | null;
+  category?: string | null;
+  standardPerk?: string | null;
+  commanderPerk?: string | null;
+  abilities?: readonly string[];
+  maxPower?: number | null;
+  tierCount?: number | null;
 }): unknown {
   const itemList = {
     "@context": "https://schema.org",
@@ -291,6 +304,30 @@ export function buildHeroJsonLd(input: {
       { "@type": "ListItem", position: 3, name: input.name, item: input.url },
     ],
   };
+
+  // Only properties that are actually present are emitted. A validator flags
+  // empty-valued PropertyValue entries, and inventing "null" values would
+  // describe data the page does not show.
+  const properties: Array<Record<string, unknown>> = [
+    { "@type": "PropertyValue", name: "heroClass", value: input.heroClass },
+  ];
+  const pushIf = (name: string, value: string | number | null | undefined) => {
+    if (value === null || value === undefined) return;
+    const s = String(value).trim();
+    if (s === "") return;
+    properties.push({ "@type": "PropertyValue", name, value: s });
+  };
+  pushIf("rarity", input.rarity);
+  pushIf("category", input.category);
+  pushIf("standardPerk", input.standardPerk);
+  pushIf("commanderPerk", input.commanderPerk);
+  pushIf(
+    "abilities",
+    input.abilities && input.abilities.length > 0 ? input.abilities.join(", ") : null,
+  );
+  pushIf("maxPower", input.maxPower);
+  pushIf("tierCount", input.tierCount);
+
   const entity: Record<string, unknown> = {
     "@context": "https://schema.org",
     "@type": "WebPage",
@@ -301,7 +338,9 @@ export function buildHeroJsonLd(input: {
       "@type": "Thing",
       name: input.name,
       description: input.description,
-      additionalProperty: { "@type": "PropertyValue", name: "heroClass", value: input.heroClass },
+      // Always an array: schema.org allows a single PropertyValue, but a stable
+      // array shape avoids the validator warning when there is only one entry.
+      additionalProperty: properties,
     },
   };
   if (input.image) entity["primaryImageOfPage"] = input.image;

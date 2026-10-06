@@ -32,6 +32,7 @@ secrets.json
 *.secret
 *.pem
 *.key
+/frontend/sync.sql
 
 # Logs
 *.log

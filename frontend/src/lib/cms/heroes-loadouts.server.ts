@@ -37,6 +37,12 @@ export interface HeroRecordRow extends D1Row {
   sort_order: number;
   portrait_asset_id: string | null;
   banner_asset_id: string | null;
+  /** Phase 23 editorial one-liner. */
+  summary: string | null;
+  /** Phase 23 reference provenance (see migration 0014). */
+  data_source: string | null;
+  data_snapshot_at: string | null;
+  stw_ref_slug: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -103,6 +109,14 @@ export interface HeroInput {
   sortOrder?: number;
   portraitAssetId?: string | null;
   bannerAssetId?: string | null;
+  /** Phase 23 editorial one-liner used by cards and quick view. */
+  summary?: string | null;
+  /**
+   * Optimistic concurrency token: the hero_records.updated_at the editor page
+   * was rendered from. When supplied and stale, the write is rejected instead
+   * of silently overwriting a concurrent editor's change.
+   */
+  expectedUpdatedAt?: string | null;
 }
 function validateHeroInput(i: HeroInput): {
   heroClass: string;
@@ -184,6 +198,19 @@ export async function updateHeroRecord(
     .bind(contentId)
     .first<HeroRecordRow>();
   if (!cur) throw new Error("Hero record not found.");
+  // Optimistic concurrency. The merge below is read-modify-write, so two editors
+  // who loaded the same page would otherwise both succeed and the second write
+  // would silently discard the first. Rejecting on a stale token turns that into
+  // a visible, recoverable conflict.
+  if (
+    typeof input.expectedUpdatedAt === "string" &&
+    input.expectedUpdatedAt !== "" &&
+    input.expectedUpdatedAt !== cur.updated_at
+  ) {
+    throw new Error(
+      "This hero was changed by another editor while you were editing. Reload the page and reapply your change.",
+    );
+  }
   const merged: HeroInput = {
     heroClass: input.heroClass ?? cur.hero_class,
     category: input.category !== undefined ? input.category : cur.category,
@@ -193,13 +220,14 @@ export async function updateHeroRecord(
     portraitAssetId:
       input.portraitAssetId !== undefined ? input.portraitAssetId : cur.portrait_asset_id,
     bannerAssetId: input.bannerAssetId !== undefined ? input.bannerAssetId : cur.banner_asset_id,
+    summary: input.summary !== undefined ? input.summary : ((cur.summary as string | null) ?? null),
   };
   const v = validateHeroInput(merged);
   await assertMediaUsable(db, merged.portraitAssetId ?? null);
   await assertMediaUsable(db, merged.bannerAssetId ?? null);
   await db
     .prepare(
-      "UPDATE hero_records SET hero_class = ?, category = ?, rarity = ?, popularity = ?, sort_order = ?, portrait_asset_id = ?, banner_asset_id = ?, updated_at = ? WHERE content_id = ?",
+      "UPDATE hero_records SET hero_class = ?, category = ?, rarity = ?, popularity = ?, sort_order = ?, portrait_asset_id = ?, banner_asset_id = ?, summary = ?, updated_at = ? WHERE content_id = ?",
     )
     .bind(
       v.heroClass,
@@ -209,6 +237,7 @@ export async function updateHeroRecord(
       v.sortOrder,
       merged.portraitAssetId ?? null,
       merged.bannerAssetId ?? null,
+      merged.summary ?? null,
       utcNow(),
       contentId,
     )

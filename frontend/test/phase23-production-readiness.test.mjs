@@ -260,12 +260,18 @@ test("Phase 22 intact: canonical origin and sitemap hosts are unchanged", async 
 
 // --- Migrations: the canonical set a deployment applies --------------------
 
-test("D1: worker/migrations holds the full 13-migration chain in order", async () => {
+// Phase 23 (0014, heroes reference model) extended the chain. Update this count
+// whenever a migration is added: the ordering assertion below is the real guard.
+test("D1: worker/migrations holds the full migration chain in order", async () => {
   const names = (await readdir(new URL("../worker/migrations/", FRONTEND)))
     .filter((n) => n.endsWith(".sql"))
     .sort();
 
-  assert.equal(names.length, 13, `expected 13 migrations, found ${names.length}`);
+  assert.ok(names.length >= 14, `expected at least 14 migrations, found ${names.length}`);
+  for (let i = 1; i <= names.length; i += 1) {
+    assert.match(names[i - 1], new RegExp(`^${String(i).padStart(4, "0")}_`));
+  }
+  // 0001-0013 are immutable history and must never be re-ordered or removed.
   for (let i = 1; i <= 13; i += 1) {
     assert.match(names[i - 1], new RegExp(`^${String(i).padStart(4, "0")}_`));
   }
