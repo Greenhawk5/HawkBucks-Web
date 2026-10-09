@@ -59,18 +59,101 @@ export function inventoryStateDescription(state: MediaInventoryState): string {
   }
 }
 
-/** True when the object can be previewed as an image inline. */
-export function isPreviewableContentType(contentType: string | null): boolean {
-  if (typeof contentType !== "string") return false;
-  return contentType.startsWith("image/") && contentType !== "image/svg+xml";
+/**
+ * Extension → MIME map, DISPLAY-ONLY fallback.
+ *
+ * WHY THIS EXISTS: objects uploaded straight from the Cloudflare dashboard
+ * carry NO stored HTTP metadata — R2 returns `httpMetadata.contentType ===
+ * null` for them even though the public delivery endpoint serves them with a
+ * correct `Content-Type`. Gating the preview on the STORED type alone therefore
+ * rendered a folder icon and an "UNKNOWN" label for files that are perfectly
+ * servable images (verified: `heroes/abilities/AMC.png` and
+ * `items/Crafting Mats/Rough Ore.png` both return `200 image/png`).
+ *
+ * This is a conservative DISPLAY and PREVIEW-GATE hint only. It never rewrites
+ * the stored object, never changes a D1 row, and never claims a stored type.
+ * Formats R2 stores but the project cannot safely inline are listed so the
+ * card can name the format instead of saying UNKNOWN.
+ */
+const EXTENSION_CONTENT_TYPES: Record<string, string> = {
+  apng: "image/apng",
+  avif: "image/avif",
+  bmp: "image/bmp",
+  gif: "image/gif",
+  ico: "image/x-icon",
+  jpeg: "image/jpeg",
+  jpg: "image/jpeg",
+  png: "image/png",
+  svg: "image/svg+xml",
+  tif: "image/tiff",
+  tiff: "image/tiff",
+  webp: "image/webp",
+  heic: "image/heic",
+  json: "application/json",
+  mp4: "video/mp4",
+  pdf: "application/pdf",
+  txt: "text/plain",
+  webm: "video/webm",
+  xml: "application/xml",
+};
+
+/**
+ * Best-effort MIME for an object key, from its extension. Case-insensitive.
+ * Returns null for keys with no recognisable extension — never a guess.
+ */
+export function contentTypeFromKey(key: string | null | undefined): string | null {
+  if (typeof key !== "string" || key === "") return null;
+  const filename = key.split("/").pop() ?? "";
+  const dot = filename.lastIndexOf(".");
+  if (dot <= 0 || dot === filename.length - 1) return null;
+  return EXTENSION_CONTENT_TYPES[filename.slice(dot + 1).toLowerCase()] ?? null;
+}
+
+export interface ResolvedContentType {
+  /** What the UI should show and gate on. */
+  contentType: string | null;
+  /** Where it came from — the UI never implies R2 stored a derived value. */
+  source: "object" | "extension" | "unknown";
+}
+
+/**
+ * Resolve the content type for display and preview gating: the object's own
+ * HTTP metadata when present, otherwise a conservative extension-derived hint.
+ */
+export function resolveContentType(
+  stored: string | null | undefined,
+  key: string | null | undefined,
+): ResolvedContentType {
+  if (typeof stored === "string" && stored.trim() !== "") {
+    return { contentType: stored, source: "object" };
+  }
+  const derived = contentTypeFromKey(key);
+  if (derived !== null) return { contentType: derived, source: "extension" };
+  return { contentType: null, source: "unknown" };
+}
+
+/**
+ * True when the object can be previewed as an inline image.
+ *
+ * SVG stays excluded on purpose: media-provider.ts excludes it from uploads
+ * because served-as-image SVG with embedded scripts is a stored-XSS vector, and
+ * this gate must not reintroduce it through the inventory.
+ */
+export function isPreviewableContentType(stored: string | null | undefined, key: string): boolean {
+  const resolved = resolveContentType(stored, key).contentType;
+  return (
+    typeof resolved === "string" && resolved.startsWith("image/") && resolved !== "image/svg+xml"
+  );
 }
 
 /** "image/png" -> "PNG". Falls back to the raw value for unknown types. */
-export function formatContentType(contentType: string | null): string {
-  if (contentType === null || contentType === "") return "unknown";
-  const subtype = contentType.split("/")[1];
-  if (!subtype) return contentType;
-  return subtype.toUpperCase();
+export function formatContentType(stored: string | null | undefined, key = ""): string {
+  const resolved = resolveContentType(stored, key).contentType;
+  if (resolved === null || resolved === "") return "unknown";
+  const subtype = resolved.split("/")[1];
+  if (!subtype) return resolved;
+  // Structured suffixes read as noise on a card badge: image/svg+xml -> SVG.
+  return subtype.replace(/\+xml$/i, "").toUpperCase();
 }
 
 const BYTE_UNITS = ["B", "KB", "MB", "GB"] as const;

@@ -138,6 +138,42 @@ export function registrationStateFor(state: MediaInventoryState): MediaRegistrat
   }
 }
 
+/**
+ * May this object be selected for registration?
+ *
+ * ONLY a verified stored object with no CMS row qualifies — which is exactly
+ * `discovered_unregistered`. Everything else is excluded by construction:
+ *   * registered / metadata_incomplete — a row already exists (re-registering
+ *     would be a no-op at best and a metadata overwrite at worst);
+ *   * cms_deleted_object_present — the row is a tombstone; "restore" is a
+ *     separate, explicit action and is never folded into Select all;
+ *   * cms_deleted_object_missing / registered_missing — no object exists in
+ *     R2, so there is nothing to register or delete.
+ *
+ * The server re-verifies every key with `bucket.head()` and create-if-absent,
+ * so this predicate is a UX guard, never the security boundary.
+ */
+export function isRegisterableState(state: MediaInventoryState): boolean {
+  return state === "discovered_unregistered";
+}
+
+/**
+ * Should this entry appear in the ACTIVE library view?
+ *
+ * An entry whose object is gone from R2 (or whose CMS record is a tombstone)
+ * is not browsable media: there is no file to preview, open or reuse, so
+ * letting it dominate the grid alongside real objects is noise. Those entries
+ * stay reachable behind an explicit filter, and the underlying rows are never
+ * touched — this only decides what the default view renders.
+ */
+export function isActiveLibraryState(state: MediaInventoryState): boolean {
+  return !(
+    state === "registered_missing" ||
+    state === "cms_deleted_object_present" ||
+    state === "cms_deleted_object_missing"
+  );
+}
+
 /* ---------------------------------------------------------------------------
  * Public delivery URLs (PURE).
  *

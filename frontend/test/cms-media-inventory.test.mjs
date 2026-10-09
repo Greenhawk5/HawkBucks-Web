@@ -1597,7 +1597,55 @@ test("registration: the stored URL encodes characters that would break the reque
 });
 
 /* ================================================================== */
-/* 11. Boundary contracts (source text, following repo convention)     */
+/* 12. Preview URLs for real dashboard-uploaded keys                   */
+/* ================================================================== */
+
+test("preview url: real dashboard keys resolve to the objects the browser fetches", () => {
+  // Verified live against media.hawkbucks.com (200 + image/png): a nested hero
+  // ability, an item with spaces, a weapon with spaces, and a punctuation case.
+  for (const key of [
+    "heroes/abilities/AMC.png",
+    "heroes/abilities/Goin' Commando.png",
+    "items/Crafting Mats/Rough Ore.png",
+    "weapons/Base/Melee/Clubs/Masters Driver.png",
+  ]) {
+    const url = r2.r2DeliveryUrl(BASE_URL, key);
+    assert.ok(url.startsWith(`${BASE_URL}/`), `${key} must stay on the media origin`);
+    // Folder structure preserved: exactly one slash between segments, none escaped.
+    const path = url.slice(BASE_URL.length + 1);
+    assert.equal(decodeURIComponent(path), key, `${key} must decode back to the exact R2 key`);
+    assert.equal((path.match(/%2F/gi) ?? []).length, 0, "slashes must never be encoded");
+    // No double-encoding.
+    assert.equal(path.includes("%2520"), false, `${key} must not be double-encoded`);
+  }
+  // The raw apostrophe/space are escaped, so the URL is fetchable as-is.
+  assert.equal(
+    r2.r2DeliveryUrl(BASE_URL, "heroes/abilities/Goin' Commando.png"),
+    `${BASE_URL}/heroes/abilities/Goin'%20Commando.png`,
+  );
+  // Unicode keys stay resolvable.
+  assert.equal(
+    r2.r2DeliveryUrl(BASE_URL, "heroes/Ünterwegs.png"),
+    `${BASE_URL}/heroes/%C3%9Cnterwegs.png`,
+  );
+});
+
+test("inventory page: an object with no stored content type still previews", async () => {
+  // R2 returns httpMetadata.contentType === null for dashboard uploads, yet the
+  // public endpoint serves them. The page must still hand the browser a usable
+  // delivery URL and the key, so the card can preview by extension.
+  const bucket = createFakeBucket([{ key: "heroes/lynx.png", contentType: null, size: 10 }]);
+  const page = await inventoryServer.readMediaInventoryPage(createMemoryD1(), envWith(bucket), {
+    prefix: "heroes/",
+  });
+  const [entry] = page.entries;
+  assert.equal(entry.key, "heroes/lynx.png");
+  assert.equal(entry.contentType, null, "R2 stored no content type — nothing is fabricated");
+  assert.equal(entry.deliveryUrl, `${BASE_URL}/heroes/lynx.png`);
+});
+
+/* ================================================================== */
+/* 13. Boundary contracts (source text, following repo convention)     */
 /* ================================================================== */
 
 test("boundary: the admin loader never touches the bucket binding and always authorizes", async () => {

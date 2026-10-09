@@ -1,4 +1,4 @@
-﻿import { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { ExternalLink, Loader2, RotateCcw, Save, Trash2 } from "lucide-react";
 
 import {
@@ -19,6 +19,7 @@ import {
   INVENTORY_STATE_TONES,
   inventoryStateDescription,
   isPreviewableContentType,
+  resolveContentType,
 } from "./media-inventory-format";
 
 export type MediaDetailAction =
@@ -29,7 +30,7 @@ export type MediaDetailAction =
   | { kind: "deleteObject" };
 
 /**
- * Object detail panel â€” the place where the lifecycle becomes explicit.
+ * Object detail panel — the place where the lifecycle becomes explicit.
  *
  * Every destructive action is a SEPARATE, clearly labelled control with its
  * own confirmation copy:
@@ -78,7 +79,7 @@ export function MediaObjectDetail(props: {
       <div className="grid gap-5 lg:grid-cols-[minmax(0,1.05fr)_minmax(0,1fr)] lg:items-start">
         <figure className="m-0 min-w-0 space-y-2">
           <div className="relative flex aspect-[4/3] max-h-[46dvh] w-full items-center justify-center overflow-hidden rounded-xl border bg-black/30 p-3 cc-hairline">
-            {isPreviewableContentType(entry.contentType) ? (
+            {isPreviewableContentType(entry.contentType, entry.key) ? (
               <img
                 src={entry.deliveryUrl}
                 alt={row?.altText ?? ""}
@@ -96,14 +97,14 @@ export function MediaObjectDetail(props: {
             ) : null}
             <div
               data-detail-fallback
-              hidden={isPreviewableContentType(entry.contentType)}
+              hidden={isPreviewableContentType(entry.contentType, entry.key)}
               className="flex flex-col items-center justify-center gap-2 px-4 text-center"
             >
               <p className="font-mono text-[11px] uppercase tracking-wider opacity-70">
-                {formatContentType(entry.contentType)}
+                {formatContentType(entry.contentType, entry.key)}
               </p>
               <p className="max-w-[18rem] text-xs leading-relaxed opacity-60">
-                {isPreviewableContentType(entry.contentType)
+                {isPreviewableContentType(entry.contentType, entry.key)
                   ? "This object could not be loaded from its public URL. The metadata below still reflects what R2 reports."
                   : "This object is not a previewable image. Its metadata is still accurate."}
               </p>
@@ -118,9 +119,9 @@ export function MediaObjectDetail(props: {
           <div className="flex flex-wrap items-center gap-2">
             <CmsStatusBadge tone={tone}>{INVENTORY_STATE_LABELS[entry.state]}</CmsStatusBadge>
             <span className="font-mono text-[11px] opacity-60">
-              {[formatContentType(entry.contentType), formatObjectSize(entry.size)]
+              {[formatContentType(entry.contentType, entry.key), formatObjectSize(entry.size)]
                 .filter(Boolean)
-                .join(" Â· ")}
+                .join(" · ")}
             </span>
           </div>
 
@@ -157,7 +158,16 @@ export function MediaObjectDetail(props: {
                 />
               </ValueRow>
               <MetadataRow label="File size" value={formatObjectSize(entry.size)} mono />
-              <MetadataRow label="Content type" value={formatContentType(entry.contentType)} mono />
+              <MetadataRow
+                label="Content type"
+                value={formatContentType(entry.contentType, entry.key)}
+                mono
+                title={
+                  resolveContentType(entry.contentType, entry.key).source === "extension"
+                    ? "R2 stores no HTTP content type for this object (common for files uploaded through the Cloudflare dashboard). This label is derived from the filename extension; the stored object was not modified."
+                    : "Stored on the R2 object."
+                }
+              />
               <MetadataRow label="Uploaded" value={formatStoredAt(entry.uploaded)} mono />
               <MetadataRow
                 label="ETag"
@@ -166,7 +176,7 @@ export function MediaObjectDetail(props: {
                 title={
                   entry.etag === null
                     ? undefined
-                    : "R2 ETag of the stored object â€” a storage artefact, not a guaranteed content hash"
+                    : "R2 ETag of the stored object — a storage artefact, not a guaranteed content hash"
                 }
               />
             </dl>
@@ -184,7 +194,7 @@ export function MediaObjectDetail(props: {
                 }
                 mono
               />
-              <MetadataRow label="Asset ID" value={row?.id ?? "â€”"} mono />
+              <MetadataRow label="Asset ID" value={row?.id ?? "—"} mono />
               <MetadataRow
                 label="Stored size"
                 value={
@@ -198,14 +208,14 @@ export function MediaObjectDetail(props: {
             {row === null ? (
               <p className="py-3 text-xs leading-relaxed opacity-70">
                 This object has no CMS row, so it cannot be referenced by content yet. Register it
-                to create the metadata row â€” no bytes are uploaded or rewritten.
+                to create the metadata row — no bytes are uploaded or rewritten.
               </p>
             ) : (
               <div className="py-3">
                 <CmsField
                   label="Alt text"
                   htmlFor="media-detail-alt"
-                  description="Describes the image for screen readers. Stored in D1 only â€” saving never rewrites the R2 object."
+                  description="Describes the image for screen readers. Stored in D1 only — saving never rewrites the R2 object."
                 >
                   <textarea
                     id="media-detail-alt"
@@ -225,7 +235,7 @@ export function MediaObjectDetail(props: {
             {props.referencesLoading ? (
               <p className="flex items-center gap-2 py-3 text-xs opacity-70">
                 <Loader2 aria-hidden="true" className="h-3.5 w-3.5 animate-spin" />
-                Checking referencesâ€¦
+                Checking references…
               </p>
             ) : row === null ? (
               <p className="py-3 text-xs leading-relaxed opacity-70">
@@ -304,7 +314,7 @@ export function MediaObjectDetail(props: {
                   !canDestroy
                     ? "The object is already gone from R2."
                     : destroyBlocked
-                      ? "Referenced assets cannot be deleted â€” remove the references first."
+                      ? "Referenced assets cannot be deleted — remove the references first."
                       : "Permanently delete the object from R2"
                 }
                 onClick={() => setConfirmDestroy(true)}
@@ -323,7 +333,7 @@ export function MediaObjectDetail(props: {
             {row && row.status === "deleted" ? (
               <p className="text-xs leading-relaxed opacity-70">
                 This asset is currently removed from the CMS. Restoring it does not re-upload
-                anything â€” it flips the CMS state back for the object that still exists.
+                anything — it flips the CMS state back for the object that still exists.
               </p>
             ) : null}
           </section>
@@ -359,7 +369,7 @@ export function MediaObjectDetail(props: {
   );
 }
 
-/** Label + value row. A plain container â€” never a button â€” so the value's own
+/** Label + value row. A plain container — never a button — so the value's own
  * interactive element receives its own clicks. */
 function ValueRow(props: { label: string; children: React.ReactNode }) {
   return (

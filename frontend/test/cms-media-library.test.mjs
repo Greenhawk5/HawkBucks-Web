@@ -27,7 +27,11 @@ import { readFile } from "node:fs/promises";
 
 const { writeClipboardText } = await import("../src/lib/clipboard.ts");
 
-const file = (p) => readFile(new URL(p, import.meta.url), "utf8");
+// CRLF is normalised on read: the repo stores LF (see .gitattributes
+// `* text=auto eol=lf`), but a checkout or an editor can reintroduce CRLF, and
+// none of the structural assertions below should depend on that.
+const file = async (p) =>
+  (await readFile(new URL(p, import.meta.url), "utf8")).replace(/\r\n/g, "\n");
 
 /** Strip CSS comments so assertions can never be satisfied by prose. */
 const stripComments = (css) => css.replace(/\/\*[\s\S]*?\*\//g, "");
@@ -248,7 +252,127 @@ test("copy never writes an empty string and never claims success for one", async
   }
 });
 /* ================================================================== */
-/* 2. Component wiring contracts                                       */
+/* 4. Content-type resolution (preview + UNKNOWN-label root cause)     */
+/* ================================================================== */
+
+const fmt = await import("../src/components/cms/media/media-inventory-format.ts");
+
+test("format: an object with no stored content type is derived from its extension", () => {
+  // ROOT CAUSE: dashboard uploads carry no R2 HTTP metadata, so the card had
+  // nothing to gate on and rendered a generic icon + "UNKNOWN" for files the
+  // public endpoint serves as images.
+  assert.equal(fmt.resolveContentType(null, "heroes/lynx.png").contentType, "image/png");
+  assert.equal(fmt.resolveContentType(null, "heroes/lynx.png").source, "extension");
+  assert.equal(fmt.formatContentType(null, "heroes/lynx.png"), "PNG");
+  assert.equal(fmt.formatContentType(null, "heroes/abilities/AMC.png"), "PNG");
+  assert.equal(fmt.formatContentType(null, "icons/photo.JPG"), "JPEG");
+  assert.equal(fmt.formatContentType(null, "icons/anim.webp"), "WEBP");
+  assert.equal(fmt.formatContentType(null, "icons/anim.gif"), "GIF");
+  assert.equal(fmt.formatContentType(null, "icons/modern.avif"), "AVIF");
+  assert.equal(fmt.formatContentType(null, "icons/logo.svg"), "SVG");
+});
+
+test("format: stored HTTP metadata always wins over the extension", () => {
+  const resolved = fmt.resolveContentType("image/avif", "weapons/thing.png");
+  assert.equal(resolved.contentType, "image/avif", "the stored type is authoritative");
+  assert.equal(resolved.source, "object");
+  assert.equal(fmt.formatContentType("image/avif", "weapons/thing.png"), "AVIF");
+});
+
+test("format: a key with no recognisable extension is honestly unknown", () => {
+  assert.equal(fmt.contentTypeFromKey("misc/README"), null);
+  assert.equal(fmt.contentTypeFromKey("misc/.hidden"), null);
+  assert.equal(fmt.contentTypeFromKey("misc/data.unknown"), null);
+  assert.equal(fmt.resolveContentType(null, "misc/README").source, "unknown");
+  assert.equal(fmt.formatContentType(null, "misc/README"), "unknown");
+});
+
+test("format: extension parsing handles spaces, punctuation and unicode names", () => {
+  assert.equal(fmt.contentTypeFromKey("heroes/abilities/Goin' Commando.png"), "image/png");
+  assert.equal(fmt.contentTypeFromKey("items/Mats and Elements/Obsidian #2.png"), "image/png");
+  assert.equal(fmt.contentTypeFromKey("heroes/Ünterwegs.PNG"), "image/png", "case-insensitive");
+  // A dot in a FOLDER must not be mistaken for the file extension.
+  assert.equal(fmt.contentTypeFromKey("v1.2/heroes/a.png"), "image/png");
+  assert.equal(fmt.contentTypeFromKey("v1.2/heroes/a"), null);
+});
+
+test("preview: extension-derived images are previewable, SVG never is", () => {
+  assert.equal(fmt.isPreviewableContentType(null, "heroes/lynx.png"), true);
+  assert.equal(
+    fmt.isPreviewableContentType(null, "weapons/Base/Melee/Clubs/Masters Driver.png"),
+    true,
+  );
+  // media-provider.ts excludes SVG uploads (stored-XSS vector); the preview gate
+  // must not reintroduce it through the inventory.
+  assert.equal(fmt.isPreviewableContentType(null, "icons/logo.svg"), false);
+  assert.equal(fmt.isPreviewableContentType("image/svg+xml", "icons/logo.svg"), false);
+  assert.equal(fmt.isPreviewableContentType("video/mp4", "misc/clip.mp4"), false);
+  assert.equal(fmt.isPreviewableContentType(null, "misc/README"), false);
+  assert.equal(fmt.isPreviewableContentType(null, null ?? undefined), false);
+});
+
+/* ================================================================== */
+/* 5. Registration eligibility + active-view rules                    */
+/* ================================================================== */
+
+const inv = await import("../src/lib/cms/media-inventory.ts");
+
+test("eligibility: only a discovered stored object can be registered", () => {
+  // This is the predicate Select all and the per-card checkbox both use, so a
+  // tombstone or a missing object can never enter a registration batch.
+  assert.equal(inv.isRegisterableState("discovered_unregistered"), true);
+  assert.equal(inv.isRegisterableState("registered_present"), false);
+  assert.equal(inv.isRegisterableState("metadata_incomplete"), false);
+  assert.equal(inv.isRegisterableState("registered_missing"), false);
+  assert.equal(inv.isRegisterableState("cms_deleted_object_present"), false);
+  assert.equal(inv.isRegisterableState("cms_deleted_object_missing"), false);
+});
+
+test("active view: removed and missing records are out of the default view", () => {
+  // The two hero entries the user reported: a tombstone and a live row whose
+  // object is gone. Both must leave the active grid but stay inspectable.
+  assert.equal(inv.isActiveLibraryState("discovered_unregistered"), true);
+  assert.equal(inv.isActiveLibraryState("registered_present"), true);
+  assert.equal(inv.isActiveLibraryState("metadata_incomplete"), true);
+  assert.equal(inv.isActiveLibraryState("registered_missing"), false);
+  assert.equal(inv.isActiveLibraryState("cms_deleted_object_present"), false);
+  assert.equal(inv.isActiveLibraryState("cms_deleted_object_missing"), false);
+});
+
+test("active view: the two reported hero entries land in the filtered view", () => {
+  // heroes/lynx.png -> live row, object gone. heroes/blakebeard… -> tombstoned.
+  const lynx = inv.classifyMediaEntry({
+    key: "heroes/lynx.png",
+    object: null,
+    row: {
+      id: "m1",
+      status: "ready",
+      alt_text: "Lynx",
+      byte_size: 1,
+      mime_type: "image/png",
+      original_filename: "Lynx.png",
+    },
+  });
+  const blake = inv.classifyMediaEntry({
+    key: "heroes/blakebeard-the-blackhearted.png",
+    object: null,
+    row: {
+      id: "m2",
+      status: "deleted",
+      alt_text: "",
+      byte_size: 1,
+      mime_type: "image/png",
+      original_filename: "b.png",
+    },
+  });
+  assert.equal(inv.isActiveLibraryState(lynx), false);
+  assert.equal(inv.isActiveLibraryState(blake), false);
+  assert.equal(inv.isRegisterableState(lynx), false);
+  assert.equal(inv.isRegisterableState(blake), false);
+});
+
+/* ================================================================== */
+/* 6. Clipboard plumbing                                               */
 /* ================================================================== */
 
 // JSX/TS comments are stripped for the wiring assertions: these checks are
@@ -328,10 +452,41 @@ test("card: every stored object renders, whatever its registration state", () =>
 
 test("card: previews are lazy and non-previewable types get a type badge", () => {
   assert.match(cardSource, /loading="lazy"/);
-  assert.match(cardSource, /isPreviewableContentType\(entry\.contentType\)/);
+  // The gate consults the object key too, so a dashboard upload (no stored
+  // content type) still previews instead of falling back to a folder icon.
+  assert.match(cardSource, /isPreviewableContentType\(entry\.contentType, entry\.key\)/);
   // object-contain keeps mixed aspect ratios legible in one grid.
   assert.match(cardSource, /object-contain/);
   assert.match(cardSource, /aspect-\[4\/3\]/);
+});
+
+test("card: a failed preview is reported, never hidden behind the type badge", () => {
+  // A real 403/404 must look different from "this is not an image".
+  assert.match(cardSource, /data-fallback/);
+  assert.match(cardSource, /data-load-failed/);
+  assert.match(cardSource, /Preview unavailable/);
+  assert.match(cardSource, /The object may be missing or not publicly readable/);
+  // ...and the swap only hides the type badge when an <img> was actually tried.
+  const onError = /onError=\{\(e\) => \{([\s\S]*?)\}\}/.exec(cardSource)[1];
+  assert.match(onError, /visibility = "hidden"/);
+  assert.match(onError, /data-load-failed/);
+});
+
+test("card: selection uses the shared accessible Checkbox, not a raw input", () => {
+  // Radix supplies role=checkbox + Space/Enter; the label wrapper is the
+  // comfortable target and carries the visible focus ring.
+  assert.match(cardSource, /import \{ Checkbox \} from "@\/components\/ui\/checkbox"/);
+  assert.match(cardSource, /<Checkbox/);
+  assert.match(cardSource, /aria-label=\{`Select \$\{entry\.filename\} for registration`\}/);
+  assert.match(cardSource, /focus-within:ring-2 focus-within:ring-\[var\(--cc-accent\)\]/);
+  assert.match(cardSource, /data-\[state=checked\]:bg-\[var\(--cc-accent\)\]/);
+  // No raw checkbox input, and no Unicode/emoji stand-ins.
+  assert.doesNotMatch(cardSource, /<input\s+type="checkbox"/);
+  assert.doesNotMatch(cardSource, /[☐☑✅❌]/u);
+  // A selected card is visibly distinguishable.
+  assert.match(cardSource, /data-selected=\{props\.selected \? "true" : undefined\}/);
+  assert.match(cardSource, /props\.selected\s*\?\s*"border-\[var\(--cc-accent\)\] ring-1/);
+  assert.match(cardSource, /\{props\.selected \? "Selected" : "Select"\}/);
 });
 
 // --- Detail panel ----------------------------------------------------------
@@ -408,7 +563,12 @@ test("detail: metadata editing is D1-only and never rewrites the object", () => 
     detailSource,
     /the R2 object, its bytes, its content type and its public URL are untouched|never rewrites the R2 object/,
   );
-  assert.match(detailSource, /Stored in D1 only â€” saving never rewrites the R2 object/);
+  // Prose runs through `flatten`, so a Prettier re-wrap cannot break it.
+  assert.match(flatten(detailSource), /saving never rewrites the R2 object/);
+  // The content-type label must say when it was derived rather than stored.
+  assert.match(detailSource, /R2 stores no HTTP content type for this object/);
+  assert.match(detailSource, /derived from the filename extension/);
+  assert.match(detailSource, /the stored object was not modified/);
 });
 
 test("detail: a registered asset can be restored while its object still exists", () => {
@@ -439,6 +599,40 @@ test("browser: folder navigation exposes the prefix as breadcrumbs with a root",
   // Folders are listed as a navigable list, never as fake directory objects.
   assert.match(browserSource, /aria-label="Folders"/);
   assert.match(browserSource, /folderLabel\(folder\)/);
+});
+
+test("browser: folder navigation, pagination, search, refresh, reconciliation controls", () => {
+  assert.match(browserSource, /aria-label="Folder path"/);
+  assert.match(browserSource, /All files/);
+  assert.match(browserSource, /aria-current=\{isLast \? "page" : undefined\}/);
+  assert.match(browserSource, /aria-label="Folders"/);
+  assert.match(browserSource, /folderLabel\(folder\)/);
+  assert.match(browserSource, /aria-label="Objects"/);
+  assert.match(browserSource, /aria-label="Inventory view"/);
+});
+
+test("browser: folders and objects each take the full content width", () => {
+  // Regression guard for the reported void: folders used to live in a 15rem
+  // sidebar next to an empty column when a folder held only sub-folders.
+  assert.doesNotMatch(
+    browserSource,
+    /lg:grid-cols-\[minmax\(0,15rem\)/,
+    "the narrow folder sidebar must not come back",
+  );
+  assert.match(browserSource, /\{folders\.length > 0 \? \(\s*<section aria-label="Folders">/);
+  // A responsive folder grid uses the horizontal space.
+  assert.match(
+    browserSource,
+    /grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6/,
+  );
+  // The object grid is independent of any sidebar.
+  assert.match(
+    browserSource,
+    /grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 2xl:grid-cols-5/,
+  );
+  // Each section renders only when the data has it: folders-only, objects-only
+  // and both are all valid shapes.
+  assert.match(browserSource, /: folders\.length > 0\s*\? "No objects directly in this folder"/);
 });
 
 test("browser: paging is cursor-based and never loads the whole bucket", () => {
@@ -494,12 +688,72 @@ test("browser: the search scope is stated, never implied to be bucket-wide", () 
 });
 
 test("browser: discovered objects can be selected and registered explicitly", () => {
+  // Eligibility comes from the shared registration predicate, not the badge —
+  // a tombstone or a missing object can never become selectable.
   assert.match(
     browserSource,
-    /selectable=\{props\.canWrite && entry\.registration === "discovered"\}/,
+    /selectable=\{props\.canWrite && isRegisterableState\(entry\.state\)\}/,
   );
   assert.match(browserSource, /Register selected/);
   assert.match(browserSource, /registerR2MediaObjects/);
+});
+
+test("browser: Select all picks only registerable objects in the current scope", () => {
+  assert.match(browserSource, /const registerable = useMemo\(/);
+  assert.match(
+    browserSource,
+    /scoped\.filter\(\(entry\) => inView\(entry\) && isRegisterableState\(entry\.state\)\)/,
+  );
+  assert.match(browserSource, /new Set\(registerable\.map\(\(entry\) => entry\.key\)\)/);
+  assert.match(browserSource, /Clear selection/);
+  assert.match(browserSource, /Select all/);
+  // The scope is labelled, never implied.
+  assert.match(browserSource, /loaded so far in this folder/);
+  assert.match(browserSource, /in these results/);
+});
+
+test("browser: selection is reset when the folder changes", () => {
+  const loadPrefix = /const loadPrefix = useCallback\(([\s\S]*?)\n  \}, \[\]\);/.exec(
+    browserSource,
+  )[1];
+  assert.match(loadPrefix, /setSelected\(new Set\(\)\)/);
+});
+
+test("browser: registration runs one bounded batch and keeps the remainder selected", () => {
+  // Sliced by stable neighbouring declarations rather than the closing line, so
+  // Prettier re-wrapping the dependency array cannot break the extraction.
+  const register = browserSource.slice(
+    browserSource.indexOf("const registerSelected = useCallback("),
+    browserSource.indexOf("const handleDetailAction = useCallback("),
+  );
+  assert.ok(register.length > 0, "registerSelected must exist");
+  assert.match(register, /const batch = keys\.slice\(0, MAX_REGISTER_KEYS\)/);
+  // Only processed keys leave the selection; failures and the remainder stay.
+  assert.match(
+    register,
+    /const consumed = new Set\(\[\.\.\.outcome\.registered, \.\.\.outcome\.failed/,
+  );
+  assert.match(register, /for \(const key of consumed\) next\.delete\(key\)/);
+  assert.match(flatten(register), /still selected/);
+  assert.match(
+    flatten(browserSource),
+    /Registration sends at most \{MAX_REGISTER_KEYS\} per request/,
+  );
+});
+
+test("browser: removed and missing records are filtered out of the active view", () => {
+  assert.match(
+    browserSource,
+    /const \[view, setView\] = useState<"active" \| "inactive">\("active"\)/,
+  );
+  assert.match(browserSource, /isActiveLibraryState/);
+  assert.match(browserSource, /Removed \/ missing/);
+  assert.match(browserSource, /In library/);
+  // Both slices render, so the records stay inspectable rather than hidden.
+  assert.match(
+    browserSource,
+    /view === "active" \? isActiveLibraryState\(entry\.state\) : !isActiveLibraryState\(entry\.state\)/,
+  );
 });
 
 test("browser: write controls are hidden for viewers and gated server-side", () => {
@@ -577,9 +831,9 @@ test("reconcile: registering names how many objects it will touch", () => {
     panelCopy,
     /more in this scope — run the report again after this batch to continue\./,
   );
-  // The selection path in the browser is bounded the same way, and says so.
+  // The selection path in the browser is bounded the same way (see the
+  // "registration runs one bounded batch" test for its copy assertions).
   assert.match(browserSource, /const batch = keys\.slice\(0, MAX_REGISTER_KEYS\)/);
-  assert.match(flatten(browserSource), /run Register again to continue\./);
   // The server cap is derived from the same constant, not restated.
   assert.match(mediaLoaderSource, /MAX_ADMIN_REGISTER_KEYS = MAX_REGISTER_KEYS/);
 });

@@ -38,6 +38,7 @@ import {
 } from "@/lib/cms/media-admin.loader";
 import { fileToBase64 } from "@/lib/cms/media-upload-client";
 import { MAX_REGISTER_KEYS, mediaBreadcrumbs } from "@/lib/cms/media-inventory";
+import { isActiveLibraryState, isRegisterableState } from "@/lib/cms/media-inventory";
 import type { AdminMediaReferencesResult } from "@/lib/cms/media-admin.loader";
 import type { ReconciliationSummary } from "@/lib/cms/media-inventory";
 import type {
@@ -94,6 +95,18 @@ export function MediaLibraryBrowser(props: {
   const [reconciling, setReconciling] = useState(false);
   const [reportOpen, setReportOpen] = useState(false);
 
+  /**
+   * Which slice of the inventory is on screen.
+   *
+   * "active" (default) shows only entries that can actually be browsed as
+   * media. An entry whose R2 object is gone, or whose CMS record is a
+   * tombstone, has no file to preview, open or reuse — showing it beside real
+   * assets is noise (this is what put the two removed hero entries in the
+   * active grid). Those records are untouched and stay fully inspectable
+   * behind the explicit "removed / missing" filter.
+   */
+  const [view, setView] = useState<"active" | "inactive">("active");
+
   // Stale-response guard: a slow page fetch must never overwrite a newer one.
   const requestSeq = useRef(0);
   // The detail panel carries DESTRUCTIVE actions, so a late response for a
@@ -101,10 +114,41 @@ export function MediaLibraryBrowser(props: {
   // now looking at — otherwise "Delete object" would target the wrong file.
   const detailSeq = useRef(0);
 
-  const visible = useMemo(() => {
+  const inView = useMemo(
+    () => (entry: MediaInventoryEntry) =>
+      view === "active" ? isActiveLibraryState(entry.state) : !isActiveLibraryState(entry.state),
+    [view],
+  );
+
+  /** Everything the current scope returned, before the view filter. */
+  const scoped = useMemo(() => {
     const list = searchResults ?? entries;
     return [...list].sort(compareEntriesByKey);
   }, [entries, searchResults]);
+
+  const visible = useMemo(() => scoped.filter(inView), [scoped, inView]);
+
+  const inactiveCount = useMemo(
+    () => scoped.filter((entry) => !isActiveLibraryState(entry.state)).length,
+    [scoped],
+  );
+
+  /**
+   * Objects that Select all may pick: registerable objects only, in the
+   * current scope and current view. Eligibility is the SAME predicate the
+   * registration planner uses server-side, so Select all can never include a
+   * registered asset, a tombstone, or an object that is not in R2.
+   */
+  const registerable = useMemo(
+    () => scoped.filter((entry) => inView(entry) && isRegisterableState(entry.state)),
+    [scoped, inView],
+  );
+
+  /** Keys already chosen, restricted to what is still selectable and on screen. */
+  const selectedKeys = useMemo(
+    () => [...selected].filter((key) => registerable.some((entry) => entry.key === key)),
+    [selected, registerable],
+  );
 
   const loadPrefix = useCallback(async (nextPrefix: string) => {
     const seq = ++requestSeq.current;
@@ -233,10 +277,12 @@ export function MediaLibraryBrowser(props: {
   const registerSelected = useCallback(
     async (keys: string[]) => {
       if (keys.length === 0) return;
-      // One request registers at most MAX_REGISTER_KEYS objects: the cap is the
-      // runtime's subrequest budget. A larger selection is bounded here (rather
-      // than sent and rejected) and reported honestly, so the editor is never
-      // told "done" for a subset they cannot see.
+      // ONE batch per click, capped at MAX_REGISTER_KEYS (the runtime's
+      // subrequest budget). Anything beyond the batch is NOT discarded: it
+      // stays selected so the editor can continue with another click, and the
+      // toast says exactly how many are left. Re-running is idempotent
+      // server-side (create-if-absent), and a failed key never rolls back or
+      // duplicates the keys that already succeeded.
       const batch = keys.slice(0, MAX_REGISTER_KEYS);
       const remainder = keys.length - batch.length;
       setPending(true);
@@ -245,15 +291,23 @@ export function MediaLibraryBrowser(props: {
         const outcome = await registerR2MediaObjects({ data: { keys: batch } });
         const failed = outcome.failed.length;
         const did = outcome.registered.length;
+        // Successful keys leave the selection; failed + remaining stay put.
+        const consumed = new Set([...outcome.registered, ...outcome.failed.map((f) => f.key)]);
+        setSelected((prev) => {
+          const next = new Set(prev);
+          for (const key of consumed) next.delete(key);
+          return next;
+        });
         cmsToast(
           failed === 0 ? "success" : "error",
           failed === 0
             ? `Registered ${did} object${did === 1 ? "" : "s"} in the CMS.${
-                remainder > 0 ? ` ${remainder} more — run Register again to continue.` : ""
+                remainder > 0
+                  ? ` ${remainder} still selected — press Register again for the next batch of ${MAX_REGISTER_KEYS}.`
+                  : ""
               }`
-            : `Registered ${did}; ${failed} failed.`,
+            : `Registered ${did}; ${failed} failed and remain selected for another attempt.`,
         );
-        setSelected(new Set());
         refresh();
         // Re-run the report when one is on screen: leaving stale counts up
         // would claim objects that are now registered are still discovered.
@@ -516,125 +570,221 @@ export function MediaLibraryBrowser(props: {
         })}
       </nav>
 
-      <div className="grid gap-5 lg:grid-cols-[minmax(0,15rem)_minmax(0,1fr)] lg:items-start">
-        <div className="space-y-4">
-          <section className="cc-panel px-3 py-3" aria-label="Folders">
-            <h2 className="cc-eyebrow">Folders</h2>
-            {loading ? (
-              <p className="mt-2 flex items-center gap-2 text-xs opacity-70">
-                <Loader2 aria-hidden="true" className="h-3.5 w-3.5 animate-spin" />
-                Reading inventory…
-              </p>
-            ) : folders.length === 0 ? (
-              <p className="mt-2 text-xs leading-relaxed opacity-65">
-                No sub-folders in {scopeLabel}. Object counts per folder are only shown when they
-                have actually been measured.
-              </p>
-            ) : (
-              <ul className="mt-2 space-y-0.5">
-                {folders.map((folder) => (
-                  <li key={folder}>
-                    <button
-                      type="button"
-                      className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-[13px] transition-colors hover:bg-white/5 focus-visible:ring-2 focus-visible:ring-[var(--cc-accent)]"
-                      onClick={() => void loadPrefix(folder)}
-                    >
-                      <Folder aria-hidden="true" className="h-3.5 w-3.5 shrink-0 opacity-60" />
-                      <span className="truncate">{folderLabel(folder)}</span>
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </section>
-
-          <MediaReconcilePanel
-            report={reportOpen ? report : null}
-            pending={reconciling}
-            canWrite={props.canWrite}
-            scopeLabel={scopeLabel}
-            onRun={() => void runReconcile()}
-            onRegister={(keys) => void registerSelected(keys)}
-          />
-        </div>
-
-        <div className="min-w-0">
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <CmsSectionTitle>
-              {searchResults !== null ? "Search results" : prefix === "" ? "Bucket root" : prefix}
-            </CmsSectionTitle>
-            {selected.size > 0 ? (
-              <p className="text-xs opacity-70" role="status">
-                {selected.size} selected
-              </p>
-            ) : null}
+      {/* FOLDERS FIRST, FULL WIDTH.
+          The old layout pinned folders into a 15rem sidebar, so a folder holding
+          only sub-folders (e.g. icons/) left the whole content column empty.
+          Folders are now a responsive grid across the full width and the object
+          grid below uses the full width too; each section renders only when the
+          data actually has something to show. */}
+      {folders.length > 0 ? (
+        <section aria-label="Folders">
+          <div className="flex flex-wrap items-baseline justify-between gap-2">
+            <CmsSectionTitle>Folders</CmsSectionTitle>
+            <p className="text-xs opacity-60">
+              {folders.length} sub-folder{folders.length === 1 ? "" : "s"} in {scopeLabel}
+            </p>
           </div>
-
           {loading ? (
-            <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 2xl:grid-cols-5">
-              {Array.from({ length: 8 }, (_, i) => (
-                <div key={i} className="cc-panel h-44 animate-pulse" aria-hidden="true" />
+            <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6">
+              {Array.from({ length: 6 }, (_, i) => (
+                <div key={i} className="cc-panel h-[4.5rem] animate-pulse" aria-hidden="true" />
               ))}
             </div>
-          ) : visible.length === 0 ? (
-            <div className="mt-3">
-              <CmsEmpty
-                title={
-                  searchResults !== null
-                    ? "No matches in this folder"
-                    : prefix === "" && entries.length === 0
-                      ? "No objects found"
-                      : "This folder is empty"
-                }
-                description={
-                  searchResults !== null
-                    ? `The search covers the objects R2 lists under ${scopeLabel} — it is not a bucket-wide full-text search. Try a shorter term, or open a sub-folder first.`
-                    : "Nothing is stored directly in this prefix. Use a sub-folder, or upload a file."
-                }
-              />
-            </div>
           ) : (
-            <ul className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 2xl:grid-cols-5">
-              {visible.map((entry) => (
-                <MediaObjectCard
-                  key={entry.key}
-                  entry={entry}
-                  selectable={props.canWrite && entry.registration === "discovered"}
-                  selected={selected.has(entry.key)}
-                  onOpen={(next) => void openDetail(next.key)}
-                  onToggleSelect={(next) =>
-                    setSelected((prev) => {
-                      const nextSet = new Set(prev);
-                      if (nextSet.has(next.key)) nextSet.delete(next.key);
-                      else nextSet.add(next.key);
-                      return nextSet;
-                    })
-                  }
-                />
+            <ul className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6">
+              {folders.map((folder) => (
+                <li key={folder} className="min-w-0">
+                  <button
+                    type="button"
+                    className="cc-panel flex w-full items-center gap-2.5 px-3 py-3 text-left transition-colors hover:border-[var(--cc-accent)] focus-visible:ring-2 focus-visible:ring-[var(--cc-accent)]"
+                    onClick={() => void loadPrefix(folder)}
+                    title={`Open folder ${folder}`}
+                  >
+                    <Folder aria-hidden="true" className="h-4 w-4 shrink-0 opacity-70" />
+                    <span className="min-w-0">
+                      <span className="block truncate text-[13px] font-medium">
+                        {folderLabel(folder)}
+                      </span>
+                      <span className="block truncate font-mono text-[10px] opacity-50">
+                        {folder}
+                      </span>
+                    </span>
+                  </button>
+                </li>
               ))}
             </ul>
           )}
+        </section>
+      ) : null}
 
-          {cursor !== null && searchResults === null ? (
-            <div className="mt-4 flex items-center gap-3">
+      <MediaReconcilePanel
+        report={reportOpen ? report : null}
+        pending={reconciling}
+        canWrite={props.canWrite}
+        scopeLabel={scopeLabel}
+        onRun={() => void runReconcile()}
+        onRegister={(keys) => void registerSelected(keys)}
+      />
+
+      <section aria-label="Objects">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <CmsSectionTitle>
+            {searchResults !== null ? "Search results" : prefix === "" ? "Bucket root" : prefix}
+          </CmsSectionTitle>
+          <div className="flex flex-wrap items-center gap-2">
+            {/* Removed / missing records are real rows but NOT browsable media
+                (no file to preview, open or reuse), so they are out of the
+                default view and one click away. Nothing is altered by this. */}
+            <div className="flex gap-1" role="tablist" aria-label="Inventory view">
               <button
                 type="button"
-                className="cc-btn cc-btn-outline cc-btn-sm"
-                disabled={loadingMore}
-                onClick={() => void loadMore()}
+                role="tab"
+                aria-selected={view === "active"}
+                className={
+                  view === "active"
+                    ? "cc-btn cc-btn-primary cc-btn-sm"
+                    : "cc-btn cc-btn-ghost cc-btn-sm border cc-hairline"
+                }
+                onClick={() => setView("active")}
               >
-                {loadingMore ? (
-                  <Loader2 aria-hidden="true" className="h-3.5 w-3.5 animate-spin" />
-                ) : null}
-                {loadingMore ? "Loading…" : "Load more objects"}
+                In library
               </button>
-              <p className="text-xs opacity-60">
-                More objects exist in {scopeLabel}. Only the pages you open are fetched.
-              </p>
+              <button
+                type="button"
+                role="tab"
+                aria-selected={view === "inactive"}
+                className={
+                  view === "inactive"
+                    ? "cc-btn cc-btn-primary cc-btn-sm"
+                    : "cc-btn cc-btn-ghost cc-btn-sm border cc-hairline"
+                }
+                onClick={() => setView("inactive")}
+              >
+                Removed / missing{inactiveCount > 0 ? ` (${inactiveCount})` : ""}
+              </button>
             </div>
-          ) : null}
+            {props.canWrite && view === "active" && registerable.length > 0 ? (
+              <button
+                type="button"
+                className="cc-btn cc-btn-ghost cc-btn-sm"
+                onClick={() =>
+                  setSelected(
+                    selectedKeys.length === registerable.length
+                      ? new Set()
+                      : new Set(registerable.map((entry) => entry.key)),
+                  )
+                }
+              >
+                {selectedKeys.length === registerable.length ? "Clear selection" : "Select all"}
+              </button>
+            ) : null}
+            {selectedKeys.length > 0 ? (
+              <p className="text-xs opacity-70" role="status">
+                {selectedKeys.length} selected
+              </p>
+            ) : null}
+          </div>
         </div>
-      </div>
+
+        {/* Selection scope is stated, never implied. */}
+        {props.canWrite && view === "active" && registerable.length > 0 ? (
+          <p className="mt-1 text-[11px] opacity-55">
+            {selectedKeys.length === registerable.length
+              ? `All ${registerable.length} registerable object${
+                  registerable.length === 1 ? "" : "s"
+                } ${searchResults !== null ? "in these results" : "in this folder"} are selected.`
+              : `${registerable.length} registerable object${
+                  registerable.length === 1 ? "" : "s"
+                } ${
+                  searchResults !== null
+                    ? "in these results"
+                    : cursor === null
+                      ? "in this folder"
+                      : "loaded so far in this folder"
+                } — load more pages to include the rest.`}
+          </p>
+        ) : null}
+
+        {selectedKeys.length > MAX_REGISTER_KEYS ? (
+          <p className="mt-1 text-[11px] text-[var(--cc-amber)]" role="status">
+            {selectedKeys.length} selected. Registration sends at most {MAX_REGISTER_KEYS} per
+            request — press Register {Math.ceil(selectedKeys.length / MAX_REGISTER_KEYS)} times to
+            finish. Registered keys leave the selection automatically.
+          </p>
+        ) : null}
+
+        {loading ? (
+          <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 2xl:grid-cols-5">
+            {Array.from({ length: 8 }, (_, i) => (
+              <div key={i} className="cc-panel h-44 animate-pulse" aria-hidden="true" />
+            ))}
+          </div>
+        ) : visible.length === 0 ? (
+          <div className="mt-3">
+            <CmsEmpty
+              title={
+                view === "inactive"
+                  ? "No removed or missing objects here"
+                  : searchResults !== null
+                    ? "No matches in this folder"
+                    : prefix === "" && entries.length === 0
+                      ? "No objects found"
+                      : folders.length > 0
+                        ? "No objects directly in this folder"
+                        : "This folder is empty"
+              }
+              description={
+                view === "inactive"
+                  ? "Objects removed from the CMS, and CMS records whose file is no longer in R2, are listed here for inspection. Use Restore to bring a removed asset back, or replace the object at the same key to restore a missing one."
+                  : searchResults !== null
+                    ? `The search covers the objects R2 lists under ${scopeLabel} — it is not a bucket-wide full-text search. Try a shorter term, or open a sub-folder first.`
+                    : folders.length > 0
+                      ? "Everything here lives in the sub-folders above."
+                      : "Nothing is stored directly in this prefix. Use a sub-folder, or upload a file."
+              }
+            />
+          </div>
+        ) : (
+          <ul className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 2xl:grid-cols-5">
+            {visible.map((entry) => (
+              <MediaObjectCard
+                key={entry.key}
+                entry={entry}
+                selectable={props.canWrite && isRegisterableState(entry.state)}
+                selected={selected.has(entry.key)}
+                onOpen={(next) => void openDetail(next.key)}
+                onToggleSelect={(next) =>
+                  setSelected((prev) => {
+                    const nextSet = new Set(prev);
+                    if (nextSet.has(next.key)) nextSet.delete(next.key);
+                    else nextSet.add(next.key);
+                    return nextSet;
+                  })
+                }
+              />
+            ))}
+          </ul>
+        )}
+
+        {cursor !== null && searchResults === null ? (
+          <div className="mt-4 flex items-center gap-3">
+            <button
+              type="button"
+              className="cc-btn cc-btn-outline cc-btn-sm"
+              disabled={loadingMore}
+              onClick={() => void loadMore()}
+            >
+              {loadingMore ? (
+                <Loader2 aria-hidden="true" className="h-3.5 w-3.5 animate-spin" />
+              ) : null}
+              {loadingMore ? "Loading…" : "Load more objects"}
+            </button>
+            <p className="text-xs opacity-60">
+              More objects exist in {scopeLabel}. Only the pages you open are fetched.
+            </p>
+          </div>
+        ) : null}
+      </section>
 
       <CmsMediaUploadDialog
         open={uploadOpen}
