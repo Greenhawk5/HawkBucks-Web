@@ -1,7 +1,19 @@
 import { createServerFn } from "@tanstack/react-start";
-import { asOptionalString, asOptionalStringOrNull, requireNonEmptyString } from "./admin-inputs";
-import { CmsAuthError, requireCapability, resolveRequestSession } from "./auth.server";
+import {
+  asOptionalString,
+  asOptionalStringOrNull,
+  asOptionalNumber,
+  requireNonEmptyString,
+} from "./admin-inputs";
+import {
+  CmsAuthError,
+  hasCapability,
+  requireCapability,
+  resolveRequestSession,
+} from "./auth.server";
 import { resolveRequestCmsDb } from "./db.server";
+// Pure, client-safe constants (no server-only import).
+import { MAX_REGISTER_KEYS } from "./media-inventory";
 
 /**
  * Phase 15.5 — CMS media admin server-function boundary.
@@ -33,6 +45,15 @@ export interface MediaUploadResponse {
 }
 
 const MAX_BASE64_BYTES = 10 * 1024 * 1024 * 1.4;
+
+/**
+ * Registration is bounded per call so a large selection stays retry-safe.
+ *
+ * Derived from the single source of truth in ./media-inventory so the request
+ * cap, the service cap and the UI copy can never drift apart — see
+ * MAX_REGISTER_KEYS for the subrequest budget behind the number.
+ */
+export const MAX_ADMIN_REGISTER_KEYS = MAX_REGISTER_KEYS;
 
 async function requireWriteSession() {
   const { db, env } = await resolveRequestCmsDb();
@@ -88,15 +109,23 @@ export const uploadAdminMedia = createServerFn({ method: "POST" })
 
 export const deleteAdminMedia = createServerFn({ method: "POST" })
   .validator((input: { id: string }) => ({ id: requireNonEmptyString(input.id, "id") }))
-  .handler(async ({ data }): Promise<{ ok: true }> => {
+  .handler(async ({ data }): Promise<AdminMediaDeleteResult> => {
     const { db, env, session } = await requireWriteSession();
     const { deleteMediaAsset } = await import("./media.server");
     const mediaId = (data as { id?: unknown }).id;
     if (typeof mediaId !== "string" || mediaId === "") {
       throw new Error("Invalid media asset id.");
     }
-    await deleteMediaAsset(db, env, { id: mediaId, deletedBy: session.user.id });
-    return { ok: true };
+    // Reference checks run INSIDE deleteMediaAsset (server-side, every table).
+    // The result states whether the R2 object was actually destroyed versus
+    // only the D1 row being tombstoned — the caller reports exactly that.
+    const result = await deleteMediaAsset(db, env, { id: mediaId, deletedBy: session.user.id });
+    return {
+      ok: true,
+      objectDeleted: result.objectDeleted,
+      tombstoned: result.tombstoned,
+      key: result.key,
+    };
   });
 
 export interface AdminMediaByIdsInput {
@@ -205,4 +234,322 @@ export const getAdminMediaByIds = createServerFn({ method: "GET" })
       });
     }
     return { items };
+  });
+
+/* ==========================================================================
+ * R2 INVENTORY / RECONCILIATION BOUNDARY
+ *
+ * These server functions are the ONLY browser-reachable surface for bucket
+ * discovery. They resolve the request-scoped Cloudflare env, so the R2 binding
+ * and the D1 handle stay server-side — the browser receives plain JSON and
+ * never sees a bucket handle, a credential, or a raw listing shape.
+ *
+ * Authorization is enforced per handler, server-side:
+ *   * reads (inventory page, search, detail, references, reconciliation):
+ *     authenticated session with "cms.read"
+ *   * writes (register, metadata edit, remove-from-CMS, physical delete):
+ *     "cms.write" plus the same-origin mutation guard
+ * UI hiding enforces nothing; every check here runs again on the server.
+ * ========================================================================== */
+
+/** Resolve a read-only session: 401 anonymous, 403 unprivileged. */
+async function requireReadSession() {
+  const { db, env } = await resolveRequestCmsDb();
+  const session = await resolveRequestSession(db);
+  if (!session) throw new CmsAuthError(401, "CMS authentication required.");
+  if (!hasCapability(session.user.role, "cms.read")) {
+    throw new CmsAuthError(403, 'Role lacks capability "cms.read".');
+  }
+  return { db, env, session };
+}
+
+export interface R2MediaInventoryInput {
+  prefix?: string | undefined;
+  cursor?: string | undefined;
+  limit?: number | undefined;
+}
+
+/**
+ * One folder page from the bucket: immediate sub-folders plus the objects in
+ * the current prefix, each carrying its D1 registration state.
+ */
+export const listR2MediaInventory = createServerFn({ method: "GET" })
+  .validator((input: R2MediaInventoryInput) => ({
+    prefix: asOptionalString(input.prefix),
+    cursor: asOptionalString(input.cursor),
+    limit: asOptionalNumber(input.limit),
+  }))
+  .handler(async ({ data }) => {
+    const { db, env } = await requireReadSession();
+    const { readMediaInventoryPage } = await import("./media-inventory.server");
+    // Prefix validation (traversal / empty segment / scheme rejection) runs in
+    // the service layer, so a malformed value fails closed with a 400-shaped
+    // error instead of silently widening the listing.
+    return readMediaInventoryPage(db, env, {
+      ...(data.prefix !== undefined ? { prefix: data.prefix } : {}),
+      ...(data.cursor !== undefined ? { cursor: data.cursor } : {}),
+      ...(data.limit !== undefined ? { limit: data.limit } : {}),
+    });
+  });
+
+export interface R2MediaSearchInput {
+  prefix?: string | undefined;
+  query: string;
+  limit?: number | undefined;
+}
+
+/** Bounded key search inside one prefix (see the scope note in the service). */
+export const searchR2MediaInventory = createServerFn({ method: "GET" })
+  .validator((input: R2MediaSearchInput) => ({
+    prefix: asOptionalString(input.prefix),
+    query: requireNonEmptyString(input.query, "query").slice(0, 120),
+    limit: asOptionalNumber(input.limit),
+  }))
+  .handler(async ({ data }) => {
+    const { db, env } = await requireReadSession();
+    const { searchMediaInventory } = await import("./media-inventory.server");
+    return searchMediaInventory(db, env, {
+      ...(data.prefix !== undefined ? { prefix: data.prefix } : {}),
+      query: data.query,
+      ...(data.limit !== undefined ? { limit: data.limit } : {}),
+    });
+  });
+
+/** Metadata for one object: R2 facts, CMS row, and its references. */
+export const getR2MediaObjectDetail = createServerFn({ method: "GET" })
+  .validator((input: { key: string }) => ({
+    key: requireNonEmptyString(input.key, "key").slice(0, 512),
+  }))
+  .handler(async ({ data }) => {
+    const { db, env } = await requireReadSession();
+    const { readMediaObjectDetail } = await import("./media-inventory.server");
+    return readMediaObjectDetail(db, env, { key: data.key });
+  });
+
+export interface AdminMediaReferencesResult {
+  id: string;
+  references: Array<{ source: string; label: string; entityId: string }>;
+}
+
+/**
+ * Where is this asset used? Reads the reference tables server-side; the
+ * browser never computes or supplies a reference count.
+ */
+export const getAdminMediaReferences = createServerFn({ method: "GET" })
+  .validator((input: { id: string }) => ({
+    id: requireNonEmptyString(input.id, "id").slice(0, 128),
+  }))
+  .handler(async ({ data }): Promise<AdminMediaReferencesResult> => {
+    const { db } = await requireReadSession();
+    const { findMediaReferences, MEDIA_REFERENCE_LABELS } =
+      await import("./media-references.server");
+    const references = await findMediaReferences(db, data.id);
+    return {
+      id: data.id,
+      references: references.map((reference) => ({
+        source: reference.source,
+        label: MEDIA_REFERENCE_LABELS[reference.source],
+        entityId: reference.entityId,
+      })),
+    };
+  });
+
+export interface R2MediaReconcileInput {
+  prefix?: string | undefined;
+  cursor?: string | undefined;
+}
+
+/**
+ * Read-only reconciliation report.
+ *
+ * A GET reader like every other reader in this boundary: it writes nothing, so
+ * the repository's "GET stays guard-free" invariant applies unchanged. The walk
+ * is bounded inside the service (object count AND page count), so a single
+ * request can never become an unbounded scan.
+ */
+export const reconcileR2MediaInventory = createServerFn({ method: "GET" })
+  .validator((input: R2MediaReconcileInput) => ({
+    prefix: asOptionalString(input.prefix),
+    cursor: asOptionalString(input.cursor),
+  }))
+  .handler(async ({ data }) => {
+    const { db, env } = await requireReadSession();
+    const { runMediaReconciliation } = await import("./media-inventory.server");
+    return runMediaReconciliation(db, env, {
+      ...(data.prefix !== undefined ? { prefix: data.prefix } : {}),
+      ...(data.cursor !== undefined ? { cursor: data.cursor } : {}),
+    });
+  });
+
+export interface RegisterR2MediaInput {
+  keys: string[];
+}
+
+export interface RegisterR2MediaOutcome {
+  requested: number;
+  registered: string[];
+  /** The created rows, so a picker can select the new asset immediately. */
+  created: Array<{ id: string; key: string; deliveryUrl: string; filename: string }>;
+  skipped: Array<{ key: string; reason: string }>;
+  failed: Array<{ key: string; error: string }>;
+}
+
+/**
+ * Register discovered objects as CMS assets. Idempotent: keys that already
+ * have a row come back as skipped, so re-running never duplicates a row and
+ * never overwrites alt text, ids or editorial metadata.
+ */
+export const registerR2MediaObjects = createServerFn({ method: "POST" })
+  .validator((input: RegisterR2MediaInput) => {
+    if (!Array.isArray(input.keys)) throw new Error("Invalid media key list.");
+    if (input.keys.length > MAX_ADMIN_REGISTER_KEYS) {
+      throw new Error(`Too many objects selected (max ${MAX_ADMIN_REGISTER_KEYS}).`);
+    }
+    const seen = new Set<string>();
+    const keys: string[] = [];
+    for (const raw of input.keys) {
+      const key = requireNonEmptyString(raw, "key").slice(0, 512);
+      if (seen.has(key)) continue;
+      seen.add(key);
+      keys.push(key);
+    }
+    return { keys };
+  })
+  .handler(async ({ data }): Promise<RegisterR2MediaOutcome> => {
+    const { db, env, session } = await requireWriteSession();
+    const { registerMediaObjects } = await import("./media-inventory.server");
+    const { recordAuditEvent } = await import("./db.server");
+    const { buildAuditEvent } = await import("./audit");
+    const outcome = await registerMediaObjects(db, env, { keys: data.keys });
+    await recordAuditEvent(
+      db,
+      buildAuditEvent({
+        actor: { id: session.user.id, username: session.user.username },
+        action: "media.register",
+        entityType: "media",
+        entityId: outcome.registered[0] ?? "",
+        metadata: {
+          requested: data.keys.length,
+          registered: outcome.registered.length,
+          skipped: outcome.plan.skipped,
+        },
+      }),
+    );
+    return {
+      requested: data.keys.length,
+      registered: outcome.registered,
+      created: outcome.created,
+      // Includes keys lost to a concurrent registration, so the caller never
+      // reports "done" for a row it did not create.
+      skipped: outcome.skipped,
+      failed: outcome.failed,
+    };
+  });
+
+export interface UpdateAdminMediaMetadataInput {
+  id: string;
+  altText: string;
+  title?: string | null | undefined;
+  caption?: string | null | undefined;
+}
+
+/**
+ * Edit CMS metadata only. Touches D1 exclusively — the R2 object, its bytes,
+ * its content type and its public URL are untouched by this operation.
+ */
+export const updateAdminMediaMetadata = createServerFn({ method: "POST" })
+  .validator((input: UpdateAdminMediaMetadataInput) => {
+    // Alt text may legitimately be CLEARED (the column is NOT NULL DEFAULT ''),
+    // so it is shape- and length-checked rather than required non-empty.
+    if (typeof input.altText !== "string") throw new Error("altText must be a string.");
+    if (input.altText.length > 500) throw new Error("Alt text is too long (max 500 characters).");
+    return {
+      id: requireNonEmptyString(input.id, "id").slice(0, 128),
+      altText: input.altText,
+      title: asOptionalStringOrNull(input.title),
+      caption: asOptionalStringOrNull(input.caption),
+    };
+  })
+  .handler(async ({ data }) => {
+    const { db, session } = await requireWriteSession();
+    const { getMediaAssetById, updateMediaAssetMetadata, recordAuditEvent } =
+      await import("./db.server");
+    const { buildAuditEvent } = await import("./audit");
+    const row = await getMediaAssetById(db, data.id);
+    if (!row) throw new Error("Media asset not found.");
+    await updateMediaAssetMetadata(db, {
+      id: data.id,
+      altText: data.altText,
+      ...(data.title !== undefined ? { title: data.title } : {}),
+      ...(data.caption !== undefined ? { caption: data.caption } : {}),
+    });
+    await recordAuditEvent(
+      db,
+      buildAuditEvent({
+        actor: { id: session.user.id, username: session.user.username },
+        action: "media.metadata_update",
+        entityType: "media",
+        entityId: data.id,
+        metadata: { objectRewritten: false, key: row.provider_asset_id },
+      }),
+    );
+    return { ok: true } as const;
+  });
+
+/**
+ * Hide an asset from the CMS WITHOUT deleting its R2 object. The public URL
+ * keeps working; the copy in the confirmation says so explicitly.
+ */
+export const removeAdminMediaFromCms = createServerFn({ method: "POST" })
+  .validator((input: { id: string }) => ({
+    id: requireNonEmptyString(input.id, "id").slice(0, 128),
+  }))
+  .handler(async ({ data }) => {
+    const { db, session } = await requireWriteSession();
+    const { removeMediaFromCms } = await import("./media.server");
+    await removeMediaFromCms(db, { id: data.id, removedBy: session.user.id });
+    return { ok: true } as const;
+  });
+
+/** Clear a tombstone for an asset whose object is still in R2. */
+export const restoreAdminMedia = createServerFn({ method: "POST" })
+  .validator((input: { id: string }) => ({
+    id: requireNonEmptyString(input.id, "id").slice(0, 128),
+  }))
+  .handler(async ({ data }) => {
+    const { db, session } = await requireWriteSession();
+    const { restoreMediaFromCms } = await import("./media.server");
+    await restoreMediaFromCms(db, { id: data.id, restoredBy: session.user.id });
+    return { ok: true } as const;
+  });
+
+export interface AdminMediaDeleteResult {
+  ok: true;
+  /** True only when the bucket delete actually ran in this call. */
+  objectDeleted: boolean;
+  tombstoned: boolean;
+  key: string;
+}
+
+/**
+ * Physically delete an unregistered R2 object (no D1 row). Registered assets
+ * go through `deleteAdminMedia`, which runs the reference checks.
+ */
+export const deleteAdminMediaObject = createServerFn({ method: "POST" })
+  .validator((input: { key: string }) => ({
+    key: requireNonEmptyString(input.key, "key").slice(0, 512),
+  }))
+  .handler(async ({ data }): Promise<AdminMediaDeleteResult> => {
+    const { db, env, session } = await requireWriteSession();
+    const { deleteMediaObjectByKey } = await import("./media.server");
+    const result = await deleteMediaObjectByKey(db, env, {
+      key: data.key,
+      deletedBy: session.user.id,
+    });
+    return {
+      ok: true,
+      objectDeleted: result.objectDeleted,
+      tombstoned: result.tombstoned,
+      key: result.key,
+    };
   });

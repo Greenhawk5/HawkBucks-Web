@@ -366,38 +366,17 @@ export async function setArticleEntityRefs(
  * Reference guard for article media. Called by media deletion so an asset
  * attached to an article (cover OR inline image block OR media attachment)
  * can never be destroyed while the article references it.
+ *
+ * Delegates to the consolidated finder: the article tables are covered there
+ * alongside every other reference table, so a reference can never be missed
+ * because it lives in the article half of the schema.
  */
 export async function assertArticleMediaUnreferenced(
   db: D1Database,
   assetId: string,
 ): Promise<void> {
-  const checks = [
-    "SELECT article_content_id FROM article_bodies WHERE cover_asset_id = ? LIMIT 1",
-    "SELECT article_content_id FROM article_media WHERE asset_id = ? LIMIT 1",
-  ];
-  for (const sql of checks) {
-    const hit = await db.prepare(sql).bind(assetId).first<{ article_content_id: string }>();
-    if (hit) throw new Error("Media asset is still referenced by an article.");
-  }
-  const { results } = await db
-    .prepare("SELECT body_json FROM article_bodies")
-    .bind()
-    .all<{ body_json: string }>();
-  for (const row of results) {
-    try {
-      const doc = validateArticleDocument(row.body_json);
-      if (doc.blocks.some((block) => block.type === "image" && block.assetId === assetId)) {
-        throw new Error("Media asset is still referenced by an article.");
-      }
-    } catch (error) {
-      if (
-        error instanceof Error &&
-        error.message === "Media asset is still referenced by an article."
-      ) {
-        throw error;
-      }
-    }
-  }
+  const { assertMediaUnreferenced: assertNoReferences } = await import("./media-references.server");
+  await assertNoReferences(db, assetId);
 }
 
 export async function setArticleRelated(

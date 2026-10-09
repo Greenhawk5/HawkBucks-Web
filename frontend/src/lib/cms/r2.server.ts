@@ -35,6 +35,7 @@ import {
   type MediaUploadResult,
   type MediaVariantOptions,
 } from "./media-provider";
+import { mediaObjectDeliveryUrl } from "./media-inventory";
 
 export const R2_PROVIDER_ID = "r2" as const;
 
@@ -76,7 +77,64 @@ export interface R2BucketLike {
     options?: { httpMetadata?: { contentType?: string | undefined } },
   ): Promise<unknown>;
   delete(key: string): Promise<void>;
-  head(key: string): Promise<{ size: number } | null>;
+  head(key: string): Promise<R2ObjectHead | null>;
+  /**
+   * Cursor-paginated object listing. Mirrors the Workers R2Bucket.list()
+   * contract this project relies on: `delimiter` rolls the keys that share a
+   * prefix up into `delimitedPrefixes` (folder emulation) and `truncated` +
+   * `cursor` carry the continuation. A missing method means the runtime has no
+   * listing support and the inventory fails closed.
+   */
+  list(options?: {
+    prefix?: string | undefined;
+    cursor?: string | undefined;
+    limit?: number | undefined;
+    delimiter?: string | undefined;
+  }): Promise<R2ListPage>;
+}
+
+/**
+ * Object metadata available from R2 without downloading the body.
+ *
+ * ETHag NOTE: `etag` is the R2 ETag of the stored object. It is a
+ * multipart-vs-single-part storage artefact, NOT a guaranteed cryptographic
+ * content hash, so consumers must never treat it as one. Dimensions, alt text
+ * and CMS editorial data are NOT available here — R2 does not carry them.
+ */
+export interface R2ObjectHead {
+  key: string;
+  size: number;
+  etag: string;
+  uploaded: Date;
+  httpMetadata?: { contentType?: string | undefined } | undefined;
+  customMetadata?: Record<string, string> | undefined;
+}
+
+/** One page of `bucket.list()` results, normalised to JSON-safe values. */
+export interface R2ListPage {
+  objects: R2ObjectHead[];
+  /** True when more pages follow; the caller must pass `cursor` back. */
+  truncated: boolean;
+  /** Opaque continuation token (undefined once truncated is false). */
+  cursor?: string | undefined;
+  /** Folder-like prefixes rolled up by `delimiter` (e.g. "heroes/"). */
+  delimitedPrefixes: string[];
+}
+
+/** Inventory-facing view of one stored object (plain values, no Date). */
+export interface R2InventoryObject {
+  key: string;
+  size: number;
+  etag: string | null;
+  uploaded: string | null;
+  contentType: string | null;
+}
+
+export interface R2InventoryPage {
+  objects: R2InventoryObject[];
+  delimitedPrefixes: string[];
+  truncated: boolean;
+  cursor: string | null;
 }
 
 export interface R2Config {
@@ -139,6 +197,38 @@ export function sanitizeR2Folder(folder: unknown): R2FolderPrefix {
 }
 
 /**
+ * Validator for keys that ALREADY EXIST in the bucket, as opposed to keys this
+ * service derives for a new upload.
+ *
+ * WHY TWO VALIDATORS: `isValidR2Key` guards keys WE create, which are slugified
+ * to [A-Za-z0-9._-] so they need no escaping. Objects uploaded straight from
+ * the Cloudflare dashboard keep their original filenames — "Goin' Commando.png",
+ * "Obsidian #2.png", "Ünterwegs.png" — and those are legitimate, listable,
+ * registerable and DELETABLE objects. Reusing the strict validator would refuse
+ * to delete exactly the files this feature exists to manage.
+ *
+ * Safety is unchanged for the things that matter: a key may never be absolute,
+ * traverse, carry a scheme, contain control characters or empty/dot segments,
+ * or point at a folder marker. Everything else the bucket already contains is
+ * allowed, because it is already in storage — this validator decides what we
+ * may ACT ON, not what the bucket may hold.
+ */
+export function isSafeR2ObjectKey(key: unknown): key is string {
+  if (typeof key !== "string") return false;
+  if (key === "" || key.length > 1024) return false;
+  if (key.startsWith("/") || key.includes("\\")) return false;
+  if (key.includes("://") || /^[a-zA-Z][a-zA-Z0-9+.-]*:/.test(key)) return false;
+  // eslint-disable-next-line no-control-regex
+  if (/[\u0000-\u001f\u007f]/.test(key)) return false;
+  // A trailing slash marks a folder, never an object.
+  if (key.endsWith("/")) return false;
+  const segments = key.split("/");
+  if (segments.some((segment) => segment === "" || segment === "." || segment === ".."))
+    return false;
+  return true;
+}
+
+/**
  * Derive a deterministic object key for an upload: "<prefix>/<slug>.<ext>".
  * The slug comes from the original filename (sanitized, lowercased, capped);
  * the extension comes from the validated MIME type (never the filename), so
@@ -169,12 +259,18 @@ export function buildR2Key(input: {
  * Canonical delivery URL for an object key. Absolute https URLs (legacy
  * ImageKit rows) pass through untouched so the compatibility layer can reuse
  * this function — see ./media-compat.ts.
+ *
+ * Relative keys are encoded PER SEGMENT by the shared pure builder in
+ * ./media-inventory.ts, so a key uploaded straight from the dashboard
+ * ("Goin' Commando.png", "Obsidian #2.png") yields a fetchable URL and the
+ * provider and the registration path can never disagree about one.
  */
 export function r2DeliveryUrl(baseUrl: string, key: string): string {
-  if (key.startsWith("https://")) return key;
-  const base = baseUrl.replace(/\/+$/, "");
-  return `${base}/${key.replace(/^\/+/, "")}`;
+  return mediaObjectDeliveryUrl(baseUrl, key);
 }
+
+/** Re-exported: the per-segment encoder is shared with the inventory layer. */
+export { encodeMediaObjectKey } from "./media-inventory";
 
 export function createR2Provider(bucket: R2BucketLike, config: R2Config): MediaProvider {
   const base = config.publicBaseUrl.replace(/\/+$/, "");
@@ -207,7 +303,11 @@ export function createR2Provider(bucket: R2BucketLike, config: R2Config): MediaP
     },
 
     async remove(providerAssetId: string): Promise<void> {
-      if (!isValidR2Key(providerAssetId)) {
+      // Objects the bucket already holds may contain spaces, apostrophes or
+      // non-ASCII characters (dashboard uploads keep their original names), so
+      // deletion validates against the object-key rules, not the stricter
+      // upload-key rules.
+      if (!isSafeR2ObjectKey(providerAssetId)) {
         throw new Error("Invalid provider asset id.");
       }
       await bucket.delete(providerAssetId);
@@ -215,7 +315,7 @@ export function createR2Provider(bucket: R2BucketLike, config: R2Config): MediaP
 
     /** True when the object exists in the bucket. */
     async exists(providerAssetId: string): Promise<boolean> {
-      if (!isValidR2Key(providerAssetId)) return false;
+      if (!isSafeR2ObjectKey(providerAssetId)) return false;
       return (await bucket.head(providerAssetId)) !== null;
     },
 
@@ -236,4 +336,116 @@ export function createR2Provider(bucket: R2BucketLike, config: R2Config): MediaP
       return this.deliveryUrl(providerAssetId);
     },
   } as MediaProvider & { exists(providerAssetId: string): Promise<boolean> };
+}
+
+/* ---------------------------------------------------------------------------
+ * Inventory primitives (listing + object metadata).
+ *
+ * These are deliberately SEPARATE from the MediaProvider: the provider owns
+ * write/lifecycle operations for assets the CMS created, while the inventory
+ * must also describe objects that were uploaded straight from the R2 dashboard
+ * and have no CMS row at all.
+ * ------------------------------------------------------------------------- */
+
+/** Absolute bounds for one inventory page (R2 allows 1..1000 per request). */
+export const R2_LIST_MIN_LIMIT = 1;
+export const R2_LIST_MAX_LIMIT = 200;
+export const R2_LIST_DEFAULT_LIMIT = 60;
+
+/** Clamp a caller-supplied page size into the supported window. */
+export function clampR2ListLimit(value: unknown): number {
+  if (typeof value !== "number" || !Number.isFinite(value)) return R2_LIST_DEFAULT_LIMIT;
+  return Math.max(R2_LIST_MIN_LIMIT, Math.min(R2_LIST_MAX_LIMIT, Math.floor(value)));
+}
+
+/**
+ * Validate a pagination cursor. R2 cursors are opaque server-issued tokens, so
+ * the only thing this can enforce is SHAPE: non-empty, bounded, and no
+ * whitespace/control characters. A malformed cursor must be rejected with a
+ * 400-shaped error rather than forwarded to the bucket.
+ */
+export function isValidR2Cursor(value: unknown): value is string {
+  if (typeof value !== "string") return false;
+  if (value === "" || value.length > 1024) return false;
+  // eslint-disable-next-line no-control-regex
+  return !/[\u0000-\u001f\u007f\s]/.test(value);
+}
+
+function normalizeR2Head(object: R2ObjectHead | null): R2InventoryObject | null {
+  if (!object || typeof object.key !== "string" || object.key === "") return null;
+  const uploaded = object.uploaded instanceof Date ? object.uploaded : null;
+  return {
+    key: object.key,
+    size: Number.isFinite(object.size) ? Number(object.size) : 0,
+    etag: typeof object.etag === "string" && object.etag !== "" ? object.etag : null,
+    uploaded:
+      uploaded !== null && !Number.isNaN(uploaded.getTime()) ? uploaded.toISOString() : null,
+    contentType:
+      typeof object.httpMetadata?.contentType === "string" && object.httpMetadata.contentType !== ""
+        ? object.httpMetadata.contentType
+        : null,
+  };
+}
+
+/**
+ * Public wrapper over the head normaliser. `bucket.head()` returns the runtime's
+ * own object shape; this converts one result into the JSON-safe inventory shape
+ * (or null when the object does not exist), so no caller has to know about
+ * Date instances or the optional httpMetadata envelope.
+ */
+export function toInventoryObject(object: R2ObjectHead | null): R2InventoryObject | null {
+  return normalizeR2Head(object);
+}
+
+/**
+ * Read one page of objects. Never downloads bodies — this is metadata-only
+ * listing through the bucket binding, so the whole inventory can be paged
+ * without moving a single object byte.
+ */
+export async function listR2InventoryPage(
+  bucket: R2BucketLike,
+  options: {
+    prefix?: string | undefined;
+    cursor?: string | undefined;
+    limit?: number | undefined;
+    /** Set to "/" to roll shared prefixes up into folder entries. */
+    delimiter?: string | undefined;
+  } = {},
+): Promise<R2InventoryPage> {
+  if (typeof bucket.list !== "function") {
+    throw new Error(
+      "R2 listing is unavailable: the MEDIA_BUCKET binding exposed by this runtime has no list() method.",
+    );
+  }
+  if (options.cursor !== undefined && !isValidR2Cursor(options.cursor)) {
+    throw new Error("Invalid pagination cursor.");
+  }
+  const page = await bucket.list({
+    ...(options.prefix !== undefined ? { prefix: options.prefix } : {}),
+    ...(options.cursor !== undefined ? { cursor: options.cursor } : {}),
+    limit: clampR2ListLimit(options.limit),
+    ...(options.delimiter !== undefined ? { delimiter: options.delimiter } : {}),
+  });
+  const objects = Array.isArray(page?.objects) ? page.objects : [];
+  const prefixes = Array.isArray(page?.delimitedPrefixes) ? page.delimitedPrefixes : [];
+  const cursor = typeof page?.cursor === "string" && page.cursor !== "" ? page.cursor : null;
+  return {
+    objects: objects
+      .map(normalizeR2Head)
+      .filter((object): object is R2InventoryObject => object !== null),
+    delimitedPrefixes: prefixes.filter(
+      (prefix): prefix is string => typeof prefix === "string" && prefix !== "",
+    ),
+    truncated: page?.truncated === true && cursor !== null,
+    cursor: page?.truncated === true ? cursor : null,
+  };
+}
+
+/** Metadata for ONE object (no body download). Returns null when absent. */
+export async function headR2Object(
+  bucket: R2BucketLike,
+  key: string,
+): Promise<R2InventoryObject | null> {
+  if (typeof bucket.head !== "function") return null;
+  return normalizeR2Head(await bucket.head(key));
 }

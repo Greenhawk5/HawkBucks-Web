@@ -96,9 +96,35 @@ export const CMS_MUTATION_INVENTORY: CmsMutationInventoryEntry[] = [
     ],
   },
   {
+    // Media lifecycle. Every entry is a DISTINCT operation: registration
+    // creates the CMS row for an object that already exists in R2 (no upload),
+    // a metadata edit touches D1 only (no object rewrite), "remove from CMS"
+    // tombstones WITHOUT deleting bytes, and the two delete entries are the
+    // only ones that destroy an object in the bucket. They are separate
+    // handlers on purpose — a tombstone must never be reported as a physical
+    // deletion.
     file: "../src/lib/cms/media-admin.loader.ts",
-    mutations: ["uploadAdminMedia", "deleteAdminMedia"],
-    families: ["create", "delete", "media association changes", "upload magic-byte validation"],
+    mutations: [
+      "uploadAdminMedia",
+      "registerR2MediaObjects",
+      "updateAdminMediaMetadata",
+      "removeAdminMediaFromCms",
+      "restoreAdminMedia",
+      "deleteAdminMedia",
+      "deleteAdminMediaObject",
+    ],
+    families: [
+      "create",
+      "create",
+      "update",
+      "delete",
+      "update",
+      "delete",
+      "delete",
+      "media association changes",
+      "upload magic-byte validation",
+      "reference-aware physical deletion",
+    ],
   },
   {
     // Wave 1 — JSON import. One POST, guarded by the same session +

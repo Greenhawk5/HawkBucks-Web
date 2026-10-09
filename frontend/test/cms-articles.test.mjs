@@ -79,8 +79,25 @@ test("articles: article media references stay guarded by the media lifecycle", a
     new URL("../src/lib/cms/media.server.ts", import.meta.url),
     "utf8",
   );
-  assert.match(deletion, /assertArticleMediaUnreferenced/);
+  // The physical deletion path consults the CONSOLIDATED reference finder, so
+  // article references can never be missed because they live in the article
+  // half of the schema (the finder covers every reference table in one place).
+  assert.match(deletion, /assertMediaUnreferenced/);
   assert.match(deletion, /ACTIVE_MEDIA_PROVIDER = "r2"/);
+  const finder = await readFile(
+    new URL("../src/lib/cms/media-references.server.ts", import.meta.url),
+    "utf8",
+  );
+  assert.match(finder, /article_bodies WHERE cover_asset_id/);
+  assert.match(finder, /article_media WHERE asset_id/);
+  assert.match(finder, /article_inline_image/);
+  // The per-entity guard still exists and delegates to the one table list.
+  const guard = await readFile(
+    new URL("../src/lib/cms/articles.server.ts", import.meta.url),
+    "utf8",
+  );
+  assert.match(guard, /export async function assertArticleMediaUnreferenced/);
+  assert.match(guard, /media-references\.server/);
 });
 
 test("articles: unpublished references never leak through public cards", async () => {

@@ -270,6 +270,64 @@ export async function getMediaAssetByProviderAsset(
     .first<MediaAssetRow>();
 }
 
+/**
+ * Create a media row ONLY if `(provider, provider_asset_id)` is still free.
+ *
+ * WHY THIS EXISTS ALONGSIDE `createMediaAsset`: that function deliberately
+ * UPSERTS, because a deterministic-key upload must replace the bytes AND
+ * refresh the metadata of the row it owns. Registration of a DISCOVERED object
+ * must do the opposite — it may never modify a row it did not create.
+ *
+ * The caller (registration) checks for an existing row before writing, but that
+ * check and the INSERT are not atomic. If another editor registers the same
+ * object in that window, the upsert would silently overwrite editor-authored
+ * `alt_text` / `title` / `caption` with empty values AND resurrect a tombstoned
+ * row (`status = 'ready'`). DO NOTHING makes that race a no-op, and the
+ * read-back tells the caller which of the two happened.
+ *
+ * @returns the row when THIS call created it, or null when it already existed.
+ */
+export async function createMediaAssetIfAbsent(
+  db: D1Database,
+  input: CreateMediaAssetInput,
+): Promise<MediaAssetRow | null> {
+  const timestamp = utcNow();
+  const id = newId("media");
+  await db
+    .prepare(
+      `INSERT INTO media_assets
+        (id, provider, provider_asset_id, delivery_url, original_filename, mime_type,
+         byte_size, width, height, alt_text, title, caption, status, created_by, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+       ON CONFLICT(provider, provider_asset_id) DO NOTHING`,
+    )
+    .bind(
+      id,
+      input.provider,
+      input.providerAssetId,
+      input.deliveryUrl,
+      input.originalFilename,
+      input.mimeType,
+      input.byteSize ?? null,
+      input.width ?? null,
+      input.height ?? null,
+      input.altText ?? "",
+      input.title ?? null,
+      input.caption ?? null,
+      "ready",
+      input.createdBy ?? null,
+      timestamp,
+      timestamp,
+    )
+    .run();
+  const stored = await getMediaAssetByProviderAsset(db, input.provider, input.providerAssetId);
+  if (!stored) {
+    throw new Error("Media asset row could not be persisted.");
+  }
+  // Our generated id only survives in the table if OUR insert won the race.
+  return stored.id === id ? stored : null;
+}
+
 export async function getMediaAssetById(db: D1Database, id: string): Promise<MediaAssetRow | null> {
   return db.prepare("SELECT * FROM media_assets WHERE id = ?").bind(id).first<MediaAssetRow>();
 }
@@ -344,6 +402,125 @@ export async function listMediaAssets(
 export async function tombstoneMediaAsset(db: D1Database, id: string): Promise<void> {
   await db
     .prepare("UPDATE media_assets SET status = 'deleted', updated_at = ? WHERE id = ?")
+    .bind(utcNow(), id)
+    .run();
+}
+
+/**
+ * Batched lookup of media rows by their exact R2 object key.
+ *
+ * THE INVENTORY PATH: one R2 listing page yields up to N object keys and this
+ * resolves ALL of them in a single `IN (...)` statement. Doing it per object
+ * would be the classic N+1 pattern, which is what makes an inventory unusable
+ * at hundreds of objects.
+ *
+ * Placeholders are generated from the ARRAY LENGTH and every value is bound —
+ * the keys are never interpolated into SQL.
+ */
+export async function listMediaAssetsByProviderAssetIds(
+  db: D1Database,
+  provider: string,
+  providerAssetIds: readonly string[],
+): Promise<MediaAssetRow[]> {
+  const unique = [...new Set(providerAssetIds)].filter(
+    (key) => typeof key === "string" && key !== "",
+  );
+  if (unique.length === 0) return [];
+  const placeholders = unique.map(() => "?").join(", ");
+  const { results } = await db
+    .prepare(
+      `SELECT * FROM media_assets WHERE provider = ? AND provider_asset_id IN (${placeholders})`,
+    )
+    .bind(provider, ...unique)
+    .all<MediaAssetRow>();
+  return results;
+}
+
+/**
+ * Every R2-backed media row (any status) — the D1 half of a reconciliation.
+ *
+ * Rows come back in their real column shape (`provider_asset_id`, not an alias)
+ * so callers can key them by object key without a lossy re-mapping. Ordered by
+ * key so repeated reconciliation passes are deterministic.
+ */
+export async function listR2MediaRows(db: D1Database): Promise<MediaAssetRow[]> {
+  const { results } = await db
+    .prepare("SELECT * FROM media_assets WHERE provider = 'r2' ORDER BY provider_asset_id ASC")
+    .all<MediaAssetRow>();
+  return results;
+}
+
+/**
+ * R2-backed media rows whose object key starts with a prefix.
+ *
+ * THE D1 SIDE OF RECONCILIATION: comparing "what R2 stores" against "what D1
+ * records" is impossible from the R2 listing alone — a CMS row whose object was
+ * deleted on the bucket side never appears in any listing. This reader returns
+ * exactly those rows so the reconciliation can report a live CMS row whose
+ * bytes are gone.
+ *
+ * `prefix` is matched on a fixed character count (`substr(..., 1, ?) = ?`), so
+ * the prefix is a BOUND VALUE and needs no escaping, and `heroes/` can never
+ * match `heroestest/`. Pass the prefix WITHOUT its trailing slash.
+ */
+export async function listR2MediaRowsUnderPrefix(
+  db: D1Database,
+  prefix: string,
+): Promise<MediaAssetRow[]> {
+  const bare = prefix.replace(/\/+$/, "");
+  if (bare === "") return listR2MediaRows(db);
+  const { results } = await db
+    .prepare(
+      `SELECT * FROM media_assets
+         WHERE provider = 'r2' AND substr(provider_asset_id, 1, ?) = ?
+         ORDER BY provider_asset_id ASC`,
+    )
+    .bind(bare.length, bare)
+    .all<MediaAssetRow>();
+  return results;
+}
+
+/**
+ * Update CMS metadata only. The R2 object is NEVER touched: alt text, title
+ * and caption live in D1, so editing them cannot change bytes, content type,
+ * ETag or the public URL.
+ */
+export async function updateMediaAssetMetadata(
+  db: D1Database,
+  input: {
+    id: string;
+    altText: string;
+    title?: string | null | undefined;
+    caption?: string | null | undefined;
+  },
+): Promise<void> {
+  const sets = ["alt_text = ?", "updated_at = ?"];
+  const values: unknown[] = [input.altText];
+  if (input.title !== undefined) {
+    sets.push("title = ?");
+    values.push(input.title);
+  }
+  if (input.caption !== undefined) {
+    sets.push("caption = ?");
+    values.push(input.caption);
+  }
+  values.push(utcNow(), input.id);
+  await db
+    .prepare(`UPDATE media_assets SET ${sets.join(", ")} WHERE id = ?`)
+    .bind(...values)
+    .run();
+}
+
+/**
+ * Restore a previously tombstoned row to 'ready'. Used by "remove from CMS"
+ * recovery: the object is still in R2, so the honest fix is to flip the CMS
+ * state rather than pretend the bytes came back.
+ *
+ * A no-op for rows that are already live.
+ */
+export async function restoreMediaAsset(db: D1Database, id: string): Promise<void> {
+  await db
+    .prepare("UPDATE media_assets SET status = 'ready', updated_at = ? WHERE id = ?")
     .bind(utcNow(), id)
     .run();
 }

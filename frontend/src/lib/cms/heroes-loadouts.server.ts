@@ -710,27 +710,16 @@ export async function setLoadoutSchematics(
     }),
   );
 }
+/**
+ * Reference guard for the hero/loadout side of the schema.
+ *
+ * The authoritative table list lives in ONE place — `findMediaReferences` —
+ * so a new reference column cannot be added to the schema and silently missed
+ * by this guard. Throws when any reference exists (fail closed).
+ */
 export async function assertMediaUnreferenced(db: D1Database, assetId: string): Promise<void> {
-  const direct: Array<{ sql: string; two: boolean }> = [
-    {
-      sql: "SELECT content_id FROM hero_records WHERE portrait_asset_id = ? OR banner_asset_id = ?",
-      two: true,
-    },
-    { sql: "SELECT id FROM hero_abilities WHERE icon_asset_id = ?", two: false },
-    { sql: "SELECT content_id FROM loadout_records WHERE cover_asset_id = ?", two: false },
-    {
-      sql: "SELECT content_id FROM cms_content_translations WHERE og_image_asset_id = ?",
-      two: false,
-    },
-  ];
-  for (const c of direct) {
-    const params = c.two ? [assetId, assetId] : [assetId];
-    const row = await db
-      .prepare(`${c.sql} LIMIT 1`)
-      .bind(...params)
-      .first<Record<string, string>>();
-    if (row) throw new Error("Media asset is still referenced and cannot be destroyed.");
-  }
+  const { assertMediaUnreferenced: assertNoReferences } = await import("./media-references.server");
+  await assertNoReferences(db, assetId);
 }
 export interface PublishedHero {
   content: ContentRow;

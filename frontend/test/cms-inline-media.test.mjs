@@ -35,6 +35,11 @@ const mediaServerSource = stripComments(await file("../src/lib/cms/media.server.
 const r2Source = stripComments(await file("../src/lib/cms/r2.server.ts"));
 const uploadClientSource = stripComments(await file("../src/lib/cms/media-upload-client.ts"));
 const mediaRouteSource = stripComments(await file("../src/routes/admin/media.tsx"));
+// The Media Library route is a thin shell; the browser component owns browsing
+// and the upload call, so the entry-point contracts are asserted against it.
+const mediaBrowserSource = stripComments(
+  await file("../src/components/cms/media/MediaLibraryBrowser.tsx"),
+);
 
 /* ================================================================== */
 /* 1. Transport behaviour — driven for real against a FileReader stub  */
@@ -145,14 +150,16 @@ test("there is exactly ONE base64 upload helper, shared by both entry points", a
     /new FileReader\(\)/,
     "admin/media.tsx must not keep its own FileReader",
   );
+  // The Media Library route is a thin shell; the browser component that
+  // renders the uploader owns the call.
   assert.match(
-    mediaRouteSource,
+    mediaBrowserSource,
     /import \{ fileToBase64 \} from "@\/lib\/cms\/media-upload-client"/,
   );
   assert.match(fieldSource, /import \{ fileToBase64 \} from "@\/lib\/cms\/media-upload-client"/);
 
   const reads =
-    [...mediaRouteSource.matchAll(/new FileReader/g)].length +
+    [...mediaBrowserSource.matchAll(/new FileReader/g)].length +
     [...fieldSource.matchAll(/new FileReader/g)].length;
   assert.equal(reads, 0, "no component may construct a FileReader directly");
 
@@ -166,7 +173,7 @@ test("there is exactly ONE base64 upload helper, shared by both entry points", a
 
 test("the inline uploader calls the SAME server function as the Media Library", () => {
   assert.match(fieldSource, /uploadAdminMedia/);
-  assert.match(mediaRouteSource, /uploadAdminMedia/);
+  assert.match(mediaBrowserSource, /uploadAdminMedia/);
   // Both go through the one boundary — not a bespoke editor endpoint.
   assert.doesNotMatch(fieldSource, /uploadAdminMediaEditor|saveAdminHeroMedia/);
 });
@@ -309,8 +316,10 @@ test("getAdminMediaByIds is a guarded GET reader, not a mutation", () => {
 });
 
 test("getAdminMediaByIds binds every value instead of interpolating it", () => {
+  const start = mediaLoaderSource.indexOf("export const getAdminMediaByIds");
   const segment = mediaLoaderSource.slice(
-    mediaLoaderSource.indexOf("export const getAdminMediaByIds"),
+    start,
+    mediaLoaderSource.indexOf("\nexport const", start + 10),
   );
   // The ONLY interpolation is a placeholder string derived from the array
   // length; every id itself is a bound parameter.

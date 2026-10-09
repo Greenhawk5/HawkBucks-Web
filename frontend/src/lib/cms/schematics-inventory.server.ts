@@ -939,17 +939,14 @@ export async function listSchematicRecords(
     .all<SchematicRecordRow>();
   return results;
 }
+/**
+ * Reference guard for the inventory side of the schema (weapons, traps, perks,
+ * schematics). Delegates to the consolidated finder so the table list exists in
+ * exactly one place — see ./media-references.server.ts.
+ */
 export async function assertMediaUnreferenced(db: D1Database, assetId: string): Promise<void> {
-  const checks: Array<{ sql: string }> = [
-    { sql: "SELECT content_id FROM weapon_records WHERE icon_asset_id = ? LIMIT 1" },
-    { sql: "SELECT content_id FROM trap_records WHERE icon_asset_id = ? LIMIT 1" },
-    { sql: "SELECT content_id FROM perk_records WHERE icon_asset_id = ? LIMIT 1" },
-    { sql: "SELECT content_id FROM schematic_records WHERE icon_asset_id = ? LIMIT 1" },
-  ];
-  for (const c of checks) {
-    const hit = await db.prepare(c.sql).bind(assetId).first<{ content_id: string }>();
-    if (hit) throw new Error("Media asset is referenced by inventory content.");
-  }
+  const { assertMediaUnreferenced: assertNoReferences } = await import("./media-references.server");
+  await assertNoReferences(db, assetId);
 }
 export interface PublishedPerk {
   content: ContentRow;
