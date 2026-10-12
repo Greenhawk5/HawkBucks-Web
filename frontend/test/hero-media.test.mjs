@@ -50,10 +50,10 @@ test("0015 adds exactly one column and nothing destructive", async () => {
   );
 });
 
-test("0015 is the newest migration and the chain stays ordered", async () => {
+test("0016 is the newest migration and the chain stays ordered", async () => {
   const names = (await readdir(MIGRATIONS)).filter((name) => name.endsWith(".sql")).sort();
-  assert.equal(names.at(-1), "0015_hero_media_associations.sql");
-  for (let i = 1; i <= 15; i += 1) {
+  assert.equal(names.at(-1), "0016_editorial_overrides_and_catalog.sql");
+  for (let i = 1; i <= 16; i += 1) {
     assert.match(names[i - 1], new RegExp(`^${String(i).padStart(4, "0")}_`));
   }
 });

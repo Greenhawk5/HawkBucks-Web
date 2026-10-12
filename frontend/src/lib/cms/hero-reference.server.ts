@@ -63,6 +63,8 @@ interface AbilityJoinRow {
   hero_content_id: string;
   ability_key: string;
   display_name: string | null;
+  /** Definition-translation effective name for the requested locale (override-aware). */
+  def_translated_name: string | null;
   description: string | null;
   icon_url: string | null;
   sort_order: number;
@@ -114,6 +116,11 @@ const asStr = (v: unknown): string => (v === null || v === undefined ? "" : Stri
  * Both are ordinary `media_assets` FKs, so one join to media_assets with the
  * `status = 'ready'` guard is the whole story - a tombstoned or missing asset
  * resolves to no icon rather than to a broken image.
+ *
+ * NAME RESOLUTION (migration 0016): definition and translation columns carry
+ * the reference text; `editorial_*` siblings carry overrides the sync never
+ * writes. Effective value = COALESCE(editorial, reference), with the same
+ * empty-string fallback the pre-override queries used.
  */
 export async function readHeroPerks(
   db: D1Database,
@@ -129,8 +136,8 @@ export async function readHeroPerks(
         `SELECT p.hero_content_id AS hero_content_id,
                 d.perk_key AS perk_key,
                 d.slot AS slot,
-                COALESCE(NULLIF(t.name, ''), d.display_name) AS display_name,
-                COALESCE(t.description, '') AS description,
+                COALESCE(NULLIF(t.editorial_name, ''), NULLIF(t.name, ''), NULLIF(d.editorial_name, ''), d.display_name) AS display_name,
+                COALESCE(NULLIF(t.editorial_description, ''), t.description, '') AS description,
                 m.delivery_url AS icon_url,
                 p.slot_order AS slot_order
            FROM hero_perks p
@@ -188,7 +195,8 @@ export async function readHeroAbilities(
       .prepare(
         `SELECT a.hero_content_id AS hero_content_id,
                 a.ability_key AS ability_key,
-                d.display_name AS display_name,
+                COALESCE(NULLIF(d.editorial_name, ''), d.display_name) AS display_name,
+                COALESCE(NULLIF(t.editorial_name, ''), NULLIF(t.name, '')) AS def_translated_name,
                 COALESCE(t.description, '') AS description,
                 m.delivery_url AS icon_url,
                 a.sort_order AS sort_order,
@@ -212,8 +220,14 @@ export async function readHeroAbilities(
       const list = out.get(r.hero_content_id) ?? [];
       list.push({
         key: r.ability_key,
-        // Priority: editor translation, definition name, then the machine key.
-        name: asStr(r.translated_name) || asStr(r.display_name) || r.ability_key,
+        // Priority: per-hero editor translation, definition-translation
+        // effective name (locale, override-aware), definition effective name,
+        // then the machine key.
+        name:
+          asStr(r.translated_name) ||
+          asStr(r.def_translated_name) ||
+          asStr(r.display_name) ||
+          r.ability_key,
         description: asStr(r.description),
         iconUrl: r.icon_url ?? null,
       });
@@ -223,7 +237,10 @@ export async function readHeroAbilities(
   return out;
 }
 
-/** Progression tiers for many heroes in ONE query. */
+/** Progression tiers for many heroes in ONE query. Migration 0016: editorial
+ *  power/level overrides resolve here (COALESCE), and `editorial_excluded`
+ *  rows are filtered out of effective data — they stay in the database for
+ *  audit/restore but never render. */
 export async function readHeroProgressionRows(
   db: D1Database,
   contentIds: readonly string[],
@@ -234,9 +251,14 @@ export async function readHeroProgressionRows(
   for (const ids of chunk(contentIds)) {
     const { results } = await db
       .prepare(
-        `SELECT hero_content_id, rarity, tier, power_min, power_max, level_min, level_max
+        `SELECT hero_content_id, rarity, tier,
+                COALESCE(editorial_power_min, power_min) AS power_min,
+                COALESCE(editorial_power_max, power_max) AS power_max,
+                COALESCE(editorial_level_min, level_min) AS level_min,
+                COALESCE(editorial_level_max, level_max) AS level_max
            FROM hero_progression
           WHERE hero_content_id IN (${placeholders(ids.length)})
+            AND editorial_excluded = 0
           ORDER BY hero_content_id ASC, rarity ASC, tier ASC`,
       )
       .bind(...ids)
@@ -250,10 +272,15 @@ export async function readHeroProgressionRows(
   return out;
 }
 
-/** All cost rows (tier + total, evolve + recycle) for many heroes in ONE query. */
+/** All cost rows (tier + total, evolve + recycle) for many heroes in ONE query.
+ *  Migration 0016: `editorial_amount` overrides resolve here, excluded rows
+ *  are filtered, retired catalog items are hidden from public output, and the
+ *  resource name resolves through the catalog chain (locale translation ->
+ *  editorial override -> reference display name). */
 export async function readHeroProgressionCosts(
   db: D1Database,
   contentIds: readonly string[],
+  locale?: string,
 ): Promise<Map<string, CostRow[]>> {
   const out = new Map<string, CostRow[]>();
   if (contentIds.length === 0) return out;
@@ -263,15 +290,18 @@ export async function readHeroProgressionCosts(
       .prepare(
         `SELECT c.hero_content_id AS hero_content_id, c.rarity AS rarity,
                 c.scope AS scope, c.tier AS tier, c.kind AS kind,
-                r.resource_key AS resource_key, r.display_name AS display_name,
-                c.amount AS amount, m.delivery_url AS icon_url
+                r.resource_key AS resource_key,
+                COALESCE(NULLIF(rt.name, ''), NULLIF(r.editorial_name, ''), r.display_name) AS display_name,
+                COALESCE(c.editorial_amount, c.amount) AS amount, m.delivery_url AS icon_url
            FROM hero_progression_costs c
-           JOIN resources r ON r.id = c.resource_id
+           JOIN resources r ON r.id = c.resource_id AND r.status = 'active'
+           LEFT JOIN resource_translations rt ON rt.resource_id = r.id AND rt.locale = ?
            LEFT JOIN media_assets m ON m.id = r.icon_asset_id AND m.status = 'ready'
           WHERE c.hero_content_id IN (${placeholders(ids.length)})
+            AND c.editorial_excluded = 0
           ORDER BY c.hero_content_id ASC, c.rarity ASC, c.scope ASC, c.tier ASC, r.sort_order ASC`,
       )
-      .bind(...ids)
+      .bind(locale ?? "en", ...ids)
       .all<CostRow>();
     for (const r of results) {
       const list = out.get(r.hero_content_id) ?? [];
@@ -380,7 +410,7 @@ export async function readHeroReference(
     readHeroPerks(db, contentIds, locale),
     readHeroAbilities(db, contentIds, locale),
     readHeroProgressionRows(db, contentIds),
-    readHeroProgressionCosts(db, contentIds),
+    readHeroProgressionCosts(db, contentIds, locale),
   ]);
 
   const ids = new Set<string>([...perks.keys(), ...abilities.keys(), ...progRows.keys()]);
@@ -416,13 +446,15 @@ export async function readPerkFacetBuckets(
 ): Promise<Array<{ value: string; count: number; name: string }>> {
   const { results } = await db
     .prepare(
-      `SELECT d.perk_key AS value, d.display_name AS name, COUNT(*) AS count
+      `SELECT d.perk_key AS value,
+              COALESCE(NULLIF(d.editorial_name, ''), d.display_name) AS name,
+              COUNT(*) AS count
          FROM hero_perks p
          JOIN hero_perk_defs d ON d.id = p.hero_perk_def_id
          JOIN cms_contents c ON c.id = p.hero_content_id AND c.entity_type='hero' AND c.status='published'
         WHERE d.slot = 'standard'
         GROUP BY d.perk_key
-        ORDER BY count DESC, d.display_name ASC
+        ORDER BY count DESC, name ASC
         LIMIT 400`,
     )
     .all<{ value: string; name: string; count: number }>();
@@ -436,7 +468,7 @@ export async function readAbilityFacetBuckets(
   const { results } = await db
     .prepare(
       `SELECT a.ability_key AS value,
-              COALESCE(NULLIF(d.display_name, ''), a.ability_key) AS name,
+              COALESCE(NULLIF(d.editorial_name, ''), NULLIF(d.display_name, ''), a.ability_key) AS name,
               COUNT(*) AS count
          FROM hero_abilities a
          LEFT JOIN ability_defs d ON d.id = a.ability_def_id
@@ -453,9 +485,11 @@ export async function readAbilityFacetBuckets(
 export async function readHeroMaxPowers(db: D1Database): Promise<Map<string, number>> {
   const { results } = await db
     .prepare(
-      `SELECT p.hero_content_id AS content_id, MAX(p.power_max) AS max_power
+      `SELECT p.hero_content_id AS content_id,
+              MAX(COALESCE(p.editorial_power_max, p.power_max)) AS max_power
          FROM hero_progression p
          JOIN cms_contents c ON c.id = p.hero_content_id AND c.entity_type='hero' AND c.status='published'
+        WHERE p.editorial_excluded = 0
         GROUP BY p.hero_content_id`,
     )
     .all<{ content_id: string; max_power: number | null }>();

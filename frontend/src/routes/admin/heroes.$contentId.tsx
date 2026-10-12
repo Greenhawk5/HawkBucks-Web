@@ -14,6 +14,16 @@ import {
   type HeroAdminDetail,
 } from "@/lib/cms/heroes-admin.loader";
 import { upsertAdminAbility } from "@/lib/cms/loadouts-admin.loader";
+import {
+  addAdminCostRow,
+  addAdminProgressionTier,
+  deleteAdminCostRow,
+  deleteAdminProgressionTier,
+  getAdminHeroEvolution,
+  setAdminCostOverride,
+  setAdminProgressionOverride,
+} from "@/lib/cms/catalog-admin.loader";
+import { listAdminCatalogResources } from "@/lib/cms/catalog-admin.loader";
 import { HERO_SUMMARY_MAX_LENGTH } from "@/lib/cms/heroes-loadouts.server";
 import { CmsRouteErrorStandalone, CmsRoutePending } from "@/components/cms/cc/CmsAuth";
 import { CmsCard, CmsField, CmsNotice } from "@/components/cms/cc/CmsPrimitives";
@@ -183,6 +193,11 @@ function HeroEditor() {
         run={editor.run}
         refresh={refreshHero}
       />
+      <EvolutionEditor
+        hero={currentHero}
+        canWrite={canWrite}
+        refreshHero={refreshHero}
+      />
       <ReferencePanel hero={currentHero} />
     </CmsEditorFrame>
   );
@@ -206,6 +221,1020 @@ type HeroDetail = Awaited<ReturnType<typeof getAdminHero>>["hero"];
  *
  * Editorial fields (identity, media, translations, SEO) live in the forms above.
  */
+/**
+ * Editable evolution & progression section (migration 0016).
+ *
+ * The reference sync owns the upstream values; this editor writes ONLY
+ * the `editorial_*` override columns the sync never touches. Every row
+ * shows the reference value, the effective value, and whether an
+ * override is active. Clearing an override restores the reference value;
+ * excluding a row suppresses it from public output without deleting it
+ * (the sync would recreate a deleted reference row).
+ *
+ * Rows the CMS created itself (`data_source = 'editorial'`) may be
+ * hard-deleted because the sync only recreates combinations present in
+ * the upstream snapshot.
+ */
+function EvolutionEditor(props: {
+  hero: HeroDetail;
+  canWrite: boolean;
+  refreshHero: () => Promise<void>;
+}) {
+  const { hero, canWrite } = props;
+  const [data, setData] = useState<Awaited<
+    ReturnType<typeof getAdminHeroEvolution>
+  > | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [message, setMessage] = useState<string | null>(null);
+  const [tierTarget, setTierTarget] = useState<EditableTierRow | null>(null);
+  const [costTarget, setCostTarget] = useState<EditableCostRow | null>(null);
+  const [addTierOpen, setAddTierOpen] = useState(false);
+  const [addCostOpen, setAddCostOpen] = useState(false);
+  const [confirmDeleteTier, setConfirmDeleteTier] = useState<EditableTierRow | null>(null);
+  const [confirmDeleteCost, setConfirmDeleteCost] = useState<EditableCostRow | null>(null);
+
+  const reload = useCallback(async () => {
+    setLoadError(null);
+    try {
+      const result = await getAdminHeroEvolution({ data: { contentId: hero.contentId } });
+      setData(result);
+    } catch (e) {
+      setLoadError(e instanceof Error ? e.message : "Failed to load evolution data.");
+    }
+  }, [hero.contentId]);
+
+  useEffect(() => {
+    void reload();
+  }, [reload]);
+
+  const run = useCallback(
+    async (action: () => Promise<unknown>, success: string) => {
+      setError(null);
+      setMessage(null);
+      setBusy(true);
+      try {
+        await action();
+        setMessage(success);
+        await Promise.all([reload(), props.refreshHero()]);
+      } catch (e) {
+        setError(e instanceof Error ? e.message : "Save failed.");
+      } finally {
+        setBusy(false);
+      }
+    },
+    [reload, props],
+  );
+
+  const tiers = data?.tiers ?? [];
+  const costs = data?.costs ?? [];
+  const rarities = [...new Set(tiers.map((t) => t.rarity))];
+
+  return (
+    <CmsFormSection
+      title="Evolution & progression"
+      description="Editorial overrides over synced reference data. Overrides survive the reference sync; clearing one restores the upstream value."
+      data-testid="hero-evolution-editor"
+      action={
+        canWrite ? (
+          <div className="flex gap-2">
+            <button
+              type="button"
+              className="cc-btn cc-btn-outline cc-btn-sm"
+              onClick={() => setAddTierOpen(true)}
+            >
+              + Add tier
+            </button>
+            <button
+              type="button"
+              className="cc-btn cc-btn-outline cc-btn-sm"
+              onClick={() => setAddCostOpen(true)}
+            >
+              + Add cost
+            </button>
+          </div>
+        ) : undefined
+      }
+    >
+      {!canWrite ? (
+        <CmsNotice kind="warning">
+          Your role is read-only. Editing overrides requires the editor role.
+        </CmsNotice>
+      ) : null}
+      {loadError ? (
+        <CmsNotice kind="error">{loadError}</CmsNotice>
+      ) : !data ? (
+        <CmsNotice kind="info">Loading evolution data…</CmsNotice>
+      ) : tiers.length === 0 ? (
+        <CmsNotice kind="info">
+          No evolution data for this hero yet. Add a tier, or run the reference sync.
+        </CmsNotice>
+      ) : (
+        <div className="space-y-4">
+          {rarities.map((rarity) => {
+            const rarityTiers = tiers
+              .filter((t) => t.rarity === rarity)
+              .sort((a, b) => a.tier - b.tier);
+            const rarityCosts = costs.filter((c) => c.rarity === rarity);
+            return (
+              <div key={rarity} className="cc-panel p-3">
+                <div className="flex flex-wrap items-baseline justify-between gap-2">
+                  <h3 className="text-sm font-semibold capitalize">{rarity}</h3>
+                  <p className="text-xs tabular-nums opacity-60">
+                    {rarityTiers.length} tiers ·{" "}
+                    {rarityCosts.filter((c) => c.scope === "total").length} total row(s)
+                  </p>
+                </div>
+                <table className="cc-table mt-2 w-full">
+                  <thead>
+                    <tr>
+                      <th scope="col">Tier</th>
+                      <th scope="col">Power (ref → effective)</th>
+                      <th scope="col">Level (ref → effective)</th>
+                      <th scope="col">Evolve to next</th>
+                      <th scope="col" className="text-end">
+                        Actions
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {rarityTiers.map((tier) => {
+                      const top =
+                        tier.tier === rarityTiers[rarityTiers.length - 1]?.tier;
+                      const tierCosts = rarityCosts.filter(
+                        (c) => c.scope === "tier" && c.tier === tier.tier && c.kind === "evolve",
+                      );
+                      const overridden =
+                        tier.editorial_power_min !== null ||
+                        tier.editorial_power_max !== null ||
+                        tier.editorial_level_min !== null ||
+                        tier.editorial_level_max !== null;
+                      return (
+                        <tr
+                          key={tier.id}
+                          className={tier.editorial_excluded ? "opacity-50" : ""}
+                        >
+                          <td className="tabular-nums font-semibold">
+                            {tier.tier}
+                            {tier.editorial_excluded ? (
+                              <span className="ms-1 cc-badge" title="Excluded from public output">
+                                excluded
+                              </span>
+                            ) : null}
+                          </td>
+                          <td className="tabular-nums">
+                            {fmtRange(tier.power_min, tier.power_max)}
+                            {overridden ? (
+                              <span className="ms-1 text-xs text-[var(--cc-accent)]">
+                                → {fmtRange(
+                                  tier.editorial_power_min ?? tier.power_min,
+                                  tier.editorial_power_max ?? tier.power_max,
+                                )}
+                              </span>
+                            ) : null}
+                          </td>
+                          <td className="tabular-nums">
+                            {fmtRange(tier.level_min, tier.level_max)}
+                            {(tier.editorial_level_min !== null ||
+                              tier.editorial_level_max !== null) && (
+                              <span className="ms-1 text-xs text-[var(--cc-accent)]">
+                                → {fmtRange(
+                                  tier.editorial_level_min ?? tier.level_min,
+                                  tier.editorial_level_max ?? tier.level_max,
+                                )}
+                              </span>
+                            )}
+                          </td>
+                          <td>
+                            {tierCosts.length === 0 ? (
+                              <span className="text-xs opacity-60">
+                                {top ? "Final tier — no further evolution." : "—"}
+                              </span>
+                            ) : (
+                              <ul className="flex flex-wrap gap-1">
+                                {tierCosts.map((c) => (
+                                  <li
+                                    key={c.id}
+                                    className="inline-flex items-center gap-1 rounded border px-1.5 py-0.5 text-xs tabular-nums cc-hairline"
+                                  >
+                                    <span className="font-semibold">
+                                      {c.effective_amount.toLocaleString("en-US")}
+                                    </span>
+                                    <span className="opacity-80">{c.resource_name}</span>
+                                    {c.editorial_amount !== null ? (
+                                      <span
+                                        className="text-[var(--cc-accent)]"
+                                        title={`Reference: ${c.amount.toLocaleString("en-US")}`}
+                                      >
+                                        *
+                                      </span>
+                                    ) : null}
+                                    {c.editorial_excluded ? (
+                                      <span className="cc-badge">excl</span>
+                                    ) : null}
+                                  </li>
+                                ))}
+                              </ul>
+                            )}
+                          </td>
+                          <td className="text-end">
+                            <div className="flex justify-end gap-1">
+                              <button
+                                type="button"
+                                className="cc-btn cc-btn-ghost cc-btn-sm"
+                                disabled={!canWrite || busy}
+                                onClick={() => setTierTarget(tier)}
+                              >
+                                Override
+                              </button>
+                              {tier.data_source === "editorial" ? (
+                                <button
+                                  type="button"
+                                  className="cc-btn cc-btn-ghost cc-btn-sm"
+                                  disabled={!canWrite || busy}
+                                  onClick={() => setConfirmDeleteTier(tier)}
+                                >
+                                  Delete
+                                </button>
+                              ) : null}
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+
+                {rarityCosts.filter((c) => c.scope === "total").length > 0 ? (
+                  <div className="mt-2 rounded-md border p-2.5 cc-hairline">
+                    <p className="text-[11px] font-bold uppercase tracking-[0.14em] opacity-60">
+                      Total to max / recycling
+                    </p>
+                    <ul className="mt-1.5 flex flex-wrap gap-1.5">
+                      {rarityCosts
+                        .filter((c) => c.scope === "total")
+                        .map((c) => (
+                          <li
+                            key={c.id}
+                            className="inline-flex items-center gap-1 rounded border px-2 py-1 text-[13px] tabular-nums cc-hairline"
+                          >
+                            <span className="font-semibold">
+                              {c.effective_amount.toLocaleString("en-US")}
+                            </span>
+                            <span className="opacity-80">{c.resource_name}</span>
+                            <span className="text-[10px] uppercase opacity-50">{c.kind}</span>
+                            {c.editorial_amount !== null ? (
+                              <span
+                                className="text-[var(--cc-accent)]"
+                                title={`Reference: ${c.amount.toLocaleString("en-US")}`}
+                              >
+                                *
+                              </span>
+                            ) : null}
+                            {canWrite ? (
+                              <button
+                                type="button"
+                                className="cc-btn cc-btn-ghost cc-btn-sm"
+                                disabled={busy}
+                                onClick={() => setCostTarget(c)}
+                                aria-label={`Edit ${c.resource_name} ${c.kind} cost`}
+                              >
+                                ✎
+                              </button>
+                            ) : null}
+                            {c.data_source === "editorial" && canWrite ? (
+                              <button
+                                type="button"
+                                className="cc-btn cc-btn-ghost cc-btn-sm"
+                                disabled={busy}
+                                onClick={() => setConfirmDeleteCost(c)}
+                                aria-label={`Delete ${c.resource_name} ${c.kind} cost`}
+                              >
+                                ✕
+                              </button>
+                            ) : null}
+                          </li>
+                        ))}
+                    </ul>
+                  </div>
+                ) : null}
+
+                {rarityCosts.filter((c) => c.scope === "tier").length > 0 ? (
+                  <div className="mt-2">
+                    <p className="text-[11px] font-bold uppercase tracking-[0.14em] opacity-60">
+                      Tier &amp; recycle costs
+                    </p>
+                    <ul className="mt-1.5 flex flex-wrap gap-1.5">
+                      {rarityCosts
+                        .filter((c) => c.scope === "tier")
+                        .map((c) => (
+                          <li
+                            key={c.id}
+                            className="inline-flex items-center gap-1 rounded border px-2 py-1 text-[13px] tabular-nums cc-hairline"
+                          >
+                            <span className="text-[10px] uppercase opacity-50">
+                              T{c.tier} {c.kind}
+                            </span>
+                            <span className="font-semibold">
+                              {c.effective_amount.toLocaleString("en-US")}
+                            </span>
+                            <span className="opacity-80">{c.resource_name}</span>
+                            {c.editorial_amount !== null ? (
+                              <span
+                                className="text-[var(--cc-accent)]"
+                                title={`Reference: ${c.amount.toLocaleString("en-US")}`}
+                              >
+                                *
+                              </span>
+                            ) : null}
+                            {canWrite ? (
+                              <button
+                                type="button"
+                                className="cc-btn cc-btn-ghost cc-btn-sm"
+                                disabled={busy}
+                                onClick={() => setCostTarget(c)}
+                                aria-label={`Edit ${c.resource_name} ${c.kind} cost`}
+                              >
+                                ✎
+                              </button>
+                            ) : null}
+                            {c.data_source === "editorial" && canWrite ? (
+                              <button
+                                type="button"
+                                className="cc-btn cc-btn-ghost cc-btn-sm"
+                                disabled={busy}
+                                onClick={() => setConfirmDeleteCost(c)}
+                                aria-label={`Delete ${c.resource_name} ${c.kind} cost`}
+                              >
+                                ✕
+                              </button>
+                            ) : null}
+                          </li>
+                        ))}
+                    </ul>
+                  </div>
+                ) : null}
+              </div>
+            );
+          })}
+          <p className="text-xs opacity-55">
+            * marks an editorial override — the reference value is preserved and restorable.
+            Synced snapshot{" "}
+            <span className="font-mono">{hero.dataSnapshotAt?.slice(0, 10) ?? "unknown"}</span>.
+          </p>
+          {error ? (
+            <CmsNotice kind="error">{error}</CmsNotice>
+          ) : null}
+          {message ? <CmsNotice kind="success">{message}</CmsNotice> : null}
+        </div>
+      )}
+
+      {tierTarget ? (
+        <TierOverrideDialog
+          tier={tierTarget}
+          busy={busy}
+          onClose={() => setTierTarget(null)}
+          onSave={(patch, excluded) =>
+            run(
+              () =>
+                setAdminProgressionOverride({
+                  data: { id: tierTarget.id, ...patch, excluded },
+                }),
+              "Tier override saved.",
+            )
+          }
+          onExclude={(excluded) =>
+            run(
+              () => setAdminProgressionOverride({ data: { id: tierTarget.id, excluded } }),
+              excluded ? "Tier excluded from public output." : "Tier restored to public output.",
+            )
+          }
+        />
+      ) : null}
+      {costTarget ? (
+        <CostOverrideDialog
+          cost={costTarget}
+          busy={busy}
+          onClose={() => setCostTarget(null)}
+          onSave={(amount, excluded) =>
+            run(
+              () => setAdminCostOverride({ data: { id: costTarget.id, editorialAmount: amount, excluded } }),
+              "Cost override saved.",
+            )
+          }
+          onExclude={(excluded) =>
+            run(
+              () => setAdminCostOverride({ data: { id: costTarget.id, excluded } }),
+              excluded ? "Cost excluded from public output." : "Cost restored to public output.",
+            )
+          }
+        />
+      ) : null}
+      {addTierOpen ? (
+        <AddTierDialog
+          heroContentId={hero.contentId}
+          busy={busy}
+          onClose={() => setAddTierOpen(false)}
+          onSave={(input) =>
+            run(() => addAdminProgressionTier({ data: input }), "Tier added.")
+          }
+        />
+      ) : null}
+      {addCostOpen ? (
+        <AddCostDialog
+          heroContentId={hero.contentId}
+          busy={busy}
+          onClose={() => setAddCostOpen(false)}
+          onSave={(input) => run(() => addAdminCostRow({ data: input }), "Cost added.")}
+        />
+      ) : null}
+      {confirmDeleteTier ? (
+        <CmsConfirmDialog
+          open
+          onClose={() => setConfirmDeleteTier(null)}
+          onConfirm={() => {
+            const tier = confirmDeleteTier;
+            setConfirmDeleteTier(null);
+            void run(
+              () => deleteAdminProgressionTier({ data: { id: tier.id } }),
+              "Tier deleted.",
+            );
+          }}
+          title="Delete editor-created tier?"
+          body={`Tier ${confirmDeleteTier.tier} (${confirmDeleteTier.rarity}) was created in the CMS, so it is safe to delete. Synced tiers must be excluded instead — the sync would recreate them.`}
+          confirmLabel="Delete tier"
+          tone="danger"
+        />
+      ) : null}
+      {confirmDeleteCost ? (
+        <CmsConfirmDialog
+          open
+          onClose={() => setConfirmDeleteCost(null)}
+          onConfirm={() => {
+            const cost = confirmDeleteCost;
+            setConfirmDeleteCost(null);
+            void run(
+              () => deleteAdminCostRow({ data: { id: cost.id } }),
+              "Cost row deleted.",
+            );
+          }}
+          title="Delete editor-created cost?"
+          body={`This cost row was created in the CMS, so it is safe to delete. Synced costs must be excluded instead — the sync would recreate them.`}
+          confirmLabel="Delete cost"
+          tone="danger"
+        />
+      ) : null}
+    </CmsFormSection>
+  );
+}
+
+function fmtRange(min: number | null, max: number | null): string {
+  if (min === null && max === null) return "—";
+  return `${min ?? "—"}–${max ?? "—"}`;
+}
+
+type EditableTierRow = Awaited<ReturnType<typeof getAdminHeroEvolution>>["tiers"][number];
+type EditableCostRow = Awaited<ReturnType<typeof getAdminHeroEvolution>>["costs"][number];
+
+function TierOverrideDialog(props: {
+  tier: EditableTierRow;
+  busy: boolean;
+  onClose: () => void;
+  onSave: (
+    patch: {
+      editorialPowerMin?: number | null;
+      editorialPowerMax?: number | null;
+      editorialLevelMin?: number | null;
+      editorialLevelMax?: number | null;
+    },
+    excluded: boolean,
+  ) => void;
+  onExclude: (excluded: boolean) => void;
+}) {
+  const t = props.tier;
+  const [powerMin, setPowerMin] = useState(t.editorial_power_min ?? t.power_min ?? "");
+  const [powerMax, setPowerMax] = useState(t.editorial_power_max ?? t.power_max ?? "");
+  const [levelMin, setLevelMin] = useState(t.editorial_level_min ?? t.level_min ?? "");
+  const [levelMax, setLevelMax] = useState(t.editorial_level_max ?? t.level_max ?? "");
+  const [excluded, setExcluded] = useState(t.editorial_excluded === 1);
+  const [localError, setLocalError] = useState<string | null>(null);
+  const num = (v: string): number | null =>
+    v.trim() === "" ? null : Number(v.trim());
+  return (
+    <CmsDialog open onClose={props.onClose} title={`Override tier ${t.tier} (${t.rarity})`}>
+      <div className="space-y-4">
+        <p className="text-xs opacity-70">
+          Reference: power {fmtRange(t.power_min, t.power_max)} · level{" "}
+          {fmtRange(t.level_min, t.level_max)}. Leave a field empty to clear its override
+          and restore the reference value.
+        </p>
+        <div className="grid gap-3 sm:grid-cols-2">
+          <CmsField label="Power min" description="Reference: " >
+            <input
+              className="cc-input"
+              inputMode="numeric"
+              value={String(powerMin ?? "")}
+              onChange={(e) => setPowerMin(e.target.value)}
+              placeholder={t.power_min === null ? "—" : String(t.power_min)}
+            />
+          </CmsField>
+          <CmsField label="Power max">
+            <input
+              className="cc-input"
+              inputMode="numeric"
+              value={String(powerMax ?? "")}
+              onChange={(e) => setPowerMax(e.target.value)}
+              placeholder={t.power_max === null ? "—" : String(t.power_max)}
+            />
+          </CmsField>
+          <CmsField label="Level min">
+            <input
+              className="cc-input"
+              inputMode="numeric"
+              value={String(levelMin ?? "")}
+              onChange={(e) => setLevelMin(e.target.value)}
+              placeholder={t.level_min === null ? "—" : String(t.level_min)}
+            />
+          </CmsField>
+          <CmsField label="Level max">
+            <input
+              className="cc-input"
+              inputMode="numeric"
+              value={String(levelMax ?? "")}
+              onChange={(e) => setLevelMax(e.target.value)}
+              placeholder={t.level_max === null ? "—" : String(t.level_max)}
+            />
+          </CmsField>
+        </div>
+        <label className="flex items-center gap-2 text-sm">
+          <input
+            type="checkbox"
+            checked={excluded}
+            onChange={(e) => setExcluded(e.target.checked)}
+          />
+          Exclude this tier from public output (stays in the database, restorable)
+        </label>
+        {localError ? (
+          <p className="text-sm text-[var(--cc-danger)]" role="alert">
+            {localError}
+          </p>
+        ) : null}
+        <div className="flex flex-wrap justify-between gap-2">
+          <button
+            type="button"
+            className="cc-btn cc-btn-ghost cc-btn-sm"
+            disabled={props.busy}
+            onClick={() => props.onExclude(excluded)}
+          >
+            {excluded ? "Restore" : "Apply exclusion"}
+          </button>
+          <div className="flex gap-2">
+            <button type="button" className="cc-btn cc-btn-ghost cc-btn-sm" onClick={props.onClose}>
+              Cancel
+            </button>
+            <button
+              type="button"
+              className="cc-btn cc-btn-primary cc-btn-sm"
+              disabled={props.busy}
+              onClick={() => {
+                const pMin = num(powerMin as string);
+                const pMax = num(powerMax as string);
+                const lMin = num(levelMin as string);
+                const lMax = num(levelMax as string);
+                for (const [label, v] of [
+                  ["Power min", pMin],
+                  ["Power max", pMax],
+                  ["Level min", lMin],
+                  ["Level max", lMax],
+                ] as const) {
+                  if (v !== null && (!Number.isInteger(v) || v < 0)) {
+                    setLocalError(`${label} must be a whole number ≥ 0.`);
+                    return;
+                  }
+                }
+                if (pMin !== null && pMax !== null && pMin > pMax) {
+                  setLocalError("Power min cannot exceed power max.");
+                  return;
+                }
+                if (lMin !== null && lMax !== null && lMin > lMax) {
+                  setLocalError("Level min cannot exceed level max.");
+                  return;
+                }
+                props.onSave(
+                  {
+                    editorialPowerMin: pMin,
+                    editorialPowerMax: pMax,
+                    editorialLevelMin: lMin,
+                    editorialLevelMax: lMax,
+                  },
+                  excluded,
+                );
+              }}
+            >
+              {props.busy ? "Saving…" : "Save override"}
+            </button>
+          </div>
+        </div>
+      </div>
+    </CmsDialog>
+  );
+}
+
+function CostOverrideDialog(props: {
+  cost: EditableCostRow;
+  busy: boolean;
+  onClose: () => void;
+  onSave: (amount: number | null, excluded: boolean) => void;
+  onExclude: (excluded: boolean) => void;
+}) {
+  const c = props.cost;
+  const [amount, setAmount] = useState(c.editorial_amount ?? c.amount ?? "");
+  const [excluded, setExcluded] = useState(c.editorial_excluded === 1);
+  const [localError, setLocalError] = useState<string | null>(null);
+  return (
+    <CmsDialog
+      open
+      onClose={props.onClose}
+      title={`Override ${c.resource_name} (${c.kind})`}
+    >
+      <div className="space-y-4">
+        <p className="text-xs opacity-70">
+          {c.rarity} · {c.scope === "total" ? "total to max" : `tier ${c.tier}`} ·{" "}
+          {c.kind}. Reference amount: {c.amount.toLocaleString("en-US")}. Leave empty to
+          clear the override and restore the reference value.
+        </p>
+        <CmsField label="Amount">
+          <input
+            className="cc-input"
+            inputMode="numeric"
+            value={String(amount ?? "")}
+            onChange={(e) => setAmount(e.target.value)}
+            placeholder={String(c.amount)}
+          />
+        </CmsField>
+        <label className="flex items-center gap-2 text-sm">
+          <input
+            type="checkbox"
+            checked={excluded}
+            onChange={(e) => setExcluded(e.target.checked)}
+          />
+          Exclude this cost from public output (stays in the database, restorable)
+        </label>
+        {localError ? (
+          <p className="text-sm text-[var(--cc-danger)]" role="alert">
+            {localError}
+          </p>
+        ) : null}
+        <div className="flex flex-wrap justify-between gap-2">
+          <button
+            type="button"
+            className="cc-btn cc-btn-ghost cc-btn-sm"
+            disabled={props.busy}
+            onClick={() => props.onExclude(excluded)}
+          >
+            {excluded ? "Restore" : "Apply exclusion"}
+          </button>
+          <div className="flex gap-2">
+            <button type="button" className="cc-btn cc-btn-ghost cc-btn-sm" onClick={props.onClose}>
+              Cancel
+            </button>
+            <button
+              type="button"
+              className="cc-btn cc-btn-primary cc-btn-sm"
+              disabled={props.busy}
+              onClick={() => {
+                const a =
+                  String(amount).trim() === "" ? null : Number(String(amount).trim());
+                if (a !== null && (!Number.isInteger(a) || a < 0)) {
+                  setLocalError("Amount must be a whole number ≥ 0.");
+                  return;
+                }
+                props.onSave(a, excluded);
+              }}
+            >
+              {props.busy ? "Saving…" : "Save override"}
+            </button>
+          </div>
+        </div>
+      </div>
+    </CmsDialog>
+  );
+}
+
+function AddTierDialog(props: {
+  heroContentId: string;
+  busy: boolean;
+  onClose: () => void;
+  onSave: (input: {
+    heroContentId: string;
+    rarity: string;
+    tier: number;
+    powerMin?: number | null;
+    powerMax?: number | null;
+    levelMin?: number | null;
+    levelMax?: number | null;
+  }) => void;
+}) {
+  const [rarity, setRarity] = useState("common");
+  const [tier, setTier] = useState("1");
+  const [powerMin, setPowerMin] = useState("");
+  const [powerMax, setPowerMax] = useState("");
+  const [levelMin, setLevelMin] = useState("");
+  const [levelMax, setLevelMax] = useState("");
+  const [localError, setLocalError] = useState<string | null>(null);
+  return (
+    <CmsDialog open onClose={props.onClose} title="Add progression tier">
+      <div className="space-y-4">
+        <p className="text-xs opacity-70">
+          Creates an editor-owned tier (`data_source = 'editorial'`) that the reference
+          sync will not overwrite or recreate.
+        </p>
+        <div className="grid gap-3 sm:grid-cols-2">
+          <CmsField label="Rarity">
+            <CmsSelect
+              id="add-tier-rarity"
+              value={rarity}
+              onChange={setRarity}
+              width="full"
+              options={[
+                "common",
+                "uncommon",
+                "rare",
+                "epic",
+                "legendary",
+                "mythic",
+              ].map((r) => ({ value: r, label: r }))}
+            />
+          </CmsField>
+          <CmsField label="Tier" description="1-based; total rows are not tiers.">
+            <input
+              className="cc-input"
+              inputMode="numeric"
+              value={tier}
+              onChange={(e) => setTier(e.target.value)}
+            />
+          </CmsField>
+          <CmsField label="Power min (optional)">
+            <input
+              className="cc-input"
+              inputMode="numeric"
+              value={powerMin}
+              onChange={(e) => setPowerMin(e.target.value)}
+            />
+          </CmsField>
+          <CmsField label="Power max (optional)">
+            <input
+              className="cc-input"
+              inputMode="numeric"
+              value={powerMax}
+              onChange={(e) => setPowerMax(e.target.value)}
+            />
+          </CmsField>
+          <CmsField label="Level min (optional)">
+            <input
+              className="cc-input"
+              inputMode="numeric"
+              value={levelMin}
+              onChange={(e) => setLevelMin(e.target.value)}
+            />
+          </CmsField>
+          <CmsField label="Level max (optional)">
+            <input
+              className="cc-input"
+              inputMode="numeric"
+              value={levelMax}
+              onChange={(e) => setLevelMax(e.target.value)}
+            />
+          </CmsField>
+        </div>
+        {localError ? (
+          <p className="text-sm text-[var(--cc-danger)]" role="alert">
+            {localError}
+          </p>
+        ) : null}
+        <div className="flex justify-end gap-2">
+          <button type="button" className="cc-btn cc-btn-ghost cc-btn-sm" onClick={props.onClose}>
+            Cancel
+          </button>
+          <button
+            type="button"
+            className="cc-btn cc-btn-primary cc-btn-sm"
+            disabled={props.busy}
+            onClick={() => {
+              const n = Number(tier);
+              if (!Number.isInteger(n) || n < 1) {
+                setLocalError("Tier must be a whole number ≥ 1.");
+                return;
+              }
+              const opt = (v: string): number | undefined =>
+                v.trim() === "" ? undefined : Number(v.trim());
+              const nums = [opt(powerMin), opt(powerMax), opt(levelMin), opt(levelMax)];
+              if (nums.some((v) => v !== undefined && (!Number.isInteger(v) || v < 0))) {
+                setLocalError("Numeric fields must be whole numbers ≥ 0.");
+                return;
+              }
+              props.onSave({
+                heroContentId: props.heroContentId,
+                rarity,
+                tier: n,
+                powerMin: opt(powerMin),
+                powerMax: opt(powerMax),
+                levelMin: opt(levelMin),
+                levelMax: opt(levelMax),
+              });
+            }}
+          >
+            {props.busy ? "Adding…" : "Add tier"}
+          </button>
+        </div>
+      </div>
+    </CmsDialog>
+  );
+}
+
+function AddCostDialog(props: {
+  heroContentId: string;
+  busy: boolean;
+  onClose: () => void;
+  onSave: (input: {
+    heroContentId: string;
+    rarity: string;
+    scope: string;
+    tier: number;
+    kind: string;
+    resourceId: string;
+    amount: number;
+  }) => void;
+}) {
+  const [rarity, setRarity] = useState("common");
+  const [scope, setScope] = useState("tier");
+  const [tier, setTier] = useState("1");
+  const [kind, setKind] = useState("evolve");
+  const [resourceId, setResourceId] = useState("");
+  const [resources, setResources] = useState<
+    Awaited<ReturnType<typeof listAdminCatalogResources>>["items"]
+  >([]);
+  const [amount, setAmount] = useState("");
+  const [localError, setLocalError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    void listAdminCatalogResources({ data: { limit: 100, offset: 0 } })
+      .then((r) => {
+        if (!cancelled) {
+          setResources(r.items);
+          if (r.items.length > 0) setResourceId(r.items[0].id);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) setLocalError("Failed to load catalog items.");
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  return (
+    <CmsDialog open onClose={props.onClose} title="Add cost row">
+      <div className="space-y-4">
+        <p className="text-xs opacity-70">
+          Creates an editor-owned cost row (`data_source = 'editorial'`) that the
+          reference sync will not overwrite or recreate.
+        </p>
+        <div className="grid gap-3 sm:grid-cols-2">
+          <CmsField label="Rarity">
+            <CmsSelect
+              id="add-cost-rarity"
+              value={rarity}
+              onChange={setRarity}
+              width="full"
+              options={[
+                "common",
+                "uncommon",
+                "rare",
+                "epic",
+                "legendary",
+                "mythic",
+              ].map((r) => ({ value: r, label: r }))}
+            />
+          </CmsField>
+          <CmsField label="Scope">
+            <CmsSelect
+              id="add-cost-scope"
+              value={scope}
+              onChange={(v) => {
+                setScope(v);
+                setTier(v === "total" ? "0" : "1");
+              }}
+              width="full"
+              options={[
+                { value: "tier", label: "Tier (evolve into this tier)" },
+                { value: "total", label: "Total (tier 1 → max summary)" },
+              ]}
+            />
+          </CmsField>
+          {scope === "tier" ? (
+            <CmsField label="Tier" description="The tier being evolved into (1-based).">
+              <input
+                className="cc-input"
+                inputMode="numeric"
+                value={tier}
+                onChange={(e) => setTier(e.target.value)}
+              />
+            </CmsField>
+          ) : null}
+          <CmsField label="Kind">
+            <CmsSelect
+              id="add-cost-kind"
+              value={kind}
+              onChange={setKind}
+              width="full"
+              options={[
+                { value: "evolve", label: "Evolve" },
+                { value: "recycle", label: "Recycle" },
+                { value: "upgrade_rarity", label: "Upgrade rarity" },
+              ]}
+            />
+          </CmsField>
+          <CmsField label="Catalog item" description="Shared resource from the Game Item Catalog.">
+            <CmsSelect
+              id="add-cost-resource"
+              value={resourceId}
+              onChange={setResourceId}
+              width="full"
+              options={resources.map((r) => ({ value: r.id, label: r.effective_name }))}
+            />
+          </CmsField>
+          <CmsField label="Amount">
+            <input
+              className="cc-input"
+              inputMode="numeric"
+              value={amount}
+              onChange={(e) => setAmount(e.target.value)}
+              placeholder="0"
+            />
+          </CmsField>
+        </div>
+        {localError ? (
+          <p className="text-sm text-[var(--cc-danger)]" role="alert">
+            {localError}
+          </p>
+        ) : null}
+        <div className="flex justify-end gap-2">
+          <button type="button" className="cc-btn cc-btn-ghost cc-btn-sm" onClick={props.onClose}>
+            Cancel
+          </button>
+          <button
+            type="button"
+            className="cc-btn cc-btn-primary cc-btn-sm"
+            disabled={props.busy}
+            onClick={() => {
+              const a = Number(amount);
+              if (!Number.isInteger(a) || a < 0) {
+                setLocalError("Amount must be a whole number ≥ 0.");
+                return;
+              }
+              if (!resourceId) {
+                setLocalError("Choose a catalog item.");
+                return;
+              }
+              if (scope === "tier") {
+                const n = Number(tier);
+                if (!Number.isInteger(n) || n < 1) {
+                  setLocalError("Tier must be a whole number ≥ 1.");
+                  return;
+                }
+                props.onSave({
+                  heroContentId: props.heroContentId,
+                  rarity,
+                  scope,
+                  tier: n,
+                  kind,
+                  resourceId,
+                  amount: a,
+                });
+              } else {
+                props.onSave({
+                  heroContentId: props.heroContentId,
+                  rarity,
+                  scope,
+                  tier: 0,
+                  kind,
+                  resourceId,
+                  amount: a,
+                });
+              }
+            }}
+          >
+            {props.busy ? "Adding…" : "Add cost"}
+          </button>
+        </div>
+      </div>
+    </CmsDialog>
+  );
+}
+
 function ReferencePanel({ hero }: { hero: HeroDetail }) {
   const ref = hero.reference;
   const hasAny =

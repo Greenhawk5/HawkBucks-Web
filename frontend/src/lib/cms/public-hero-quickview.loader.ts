@@ -87,7 +87,7 @@ export const getHeroQuickView = createServerFn({ method: "GET" })
       readHeroPerks(db, [id], locale),
       readHeroAbilities(db, [id], locale),
       readHeroProgressionRows(db, [id]),
-      readHeroProgressionCosts(db, [id]),
+      readHeroProgressionCosts(db, [id], locale),
     ]);
 
     const progression: PublicHeroProgression | null = buildProgression(

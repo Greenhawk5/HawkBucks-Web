@@ -34,6 +34,7 @@ import { Route as AdminActivityRouteImport } from './routes/admin/activity'
 import { Route as AdminArticlesRouteImport } from './routes/admin/articles'
 import { Route as AdminHeroesRouteImport } from './routes/admin/heroes'
 import { Route as AdminInventoryRouteImport } from './routes/admin/inventory'
+import { Route as AdminItemsRouteImport } from './routes/admin/items'
 import { Route as AdminLoadoutsRouteImport } from './routes/admin/loadouts'
 import { Route as AdminMediaRouteImport } from './routes/admin/media'
 import { Route as AdminPublishingRouteImport } from './routes/admin/publishing'
@@ -183,6 +184,11 @@ const AdminHeroesRoute = AdminHeroesRouteImport.update({
 const AdminInventoryRoute = AdminInventoryRouteImport.update({
   id: '/admin/inventory',
   path: '/admin/inventory',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminItemsRoute = AdminItemsRouteImport.update({
+  id: '/admin/items',
+  path: '/admin/items',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AdminLoadoutsRoute = AdminLoadoutsRouteImport.update({
@@ -335,6 +341,7 @@ export interface FileRoutesByFullPath {
   '/admin/articles': typeof AdminArticlesRouteWithChildren
   '/admin/heroes': typeof AdminHeroesRouteWithChildren
   '/admin/inventory': typeof AdminInventoryRouteWithChildren
+  '/admin/items': typeof AdminItemsRoute
   '/admin/loadouts': typeof AdminLoadoutsRouteWithChildren
   '/admin/media': typeof AdminMediaRoute
   '/admin/publishing': typeof AdminPublishingRoute
@@ -387,6 +394,7 @@ export interface FileRoutesByTo {
   '/admin/articles': typeof AdminArticlesRouteWithChildren
   '/admin/heroes': typeof AdminHeroesRouteWithChildren
   '/admin/inventory': typeof AdminInventoryRouteWithChildren
+  '/admin/items': typeof AdminItemsRoute
   '/admin/loadouts': typeof AdminLoadoutsRouteWithChildren
   '/admin/media': typeof AdminMediaRoute
   '/admin/publishing': typeof AdminPublishingRoute
@@ -440,6 +448,7 @@ export interface FileRoutesById {
   '/admin/articles': typeof AdminArticlesRouteWithChildren
   '/admin/heroes': typeof AdminHeroesRouteWithChildren
   '/admin/inventory': typeof AdminInventoryRouteWithChildren
+  '/admin/items': typeof AdminItemsRoute
   '/admin/loadouts': typeof AdminLoadoutsRouteWithChildren
   '/admin/media': typeof AdminMediaRoute
   '/admin/publishing': typeof AdminPublishingRoute
@@ -494,6 +503,7 @@ export interface FileRouteTypes {
     | '/admin/articles'
     | '/admin/heroes'
     | '/admin/inventory'
+    | '/admin/items'
     | '/admin/loadouts'
     | '/admin/media'
     | '/admin/publishing'
@@ -546,6 +556,7 @@ export interface FileRouteTypes {
     | '/admin/articles'
     | '/admin/heroes'
     | '/admin/inventory'
+    | '/admin/items'
     | '/admin/loadouts'
     | '/admin/media'
     | '/admin/publishing'
@@ -598,6 +609,7 @@ export interface FileRouteTypes {
     | '/admin/articles'
     | '/admin/heroes'
     | '/admin/inventory'
+    | '/admin/items'
     | '/admin/loadouts'
     | '/admin/media'
     | '/admin/publishing'
@@ -651,6 +663,7 @@ export interface RootRouteChildren {
   AdminArticlesRoute: typeof AdminArticlesRouteWithChildren
   AdminHeroesRoute: typeof AdminHeroesRouteWithChildren
   AdminInventoryRoute: typeof AdminInventoryRouteWithChildren
+  AdminItemsRoute: typeof AdminItemsRoute
   AdminLoadoutsRoute: typeof AdminLoadoutsRouteWithChildren
   AdminMediaRoute: typeof AdminMediaRoute
   AdminPublishingRoute: typeof AdminPublishingRoute
@@ -835,6 +848,13 @@ declare module '@tanstack/react-router' {
       path: '/admin/inventory'
       fullPath: '/admin/inventory'
       preLoaderRoute: typeof AdminInventoryRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin/items': {
+      id: '/admin/items'
+      path: '/admin/items'
+      fullPath: '/admin/items'
+      preLoaderRoute: typeof AdminItemsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/admin/loadouts': {
@@ -1236,6 +1256,7 @@ const rootRouteChildren: RootRouteChildren = {
   AdminArticlesRoute: AdminArticlesRouteWithChildren,
   AdminHeroesRoute: AdminHeroesRouteWithChildren,
   AdminInventoryRoute: AdminInventoryRouteWithChildren,
+  AdminItemsRoute: AdminItemsRoute,
   AdminLoadoutsRoute: AdminLoadoutsRouteWithChildren,
   AdminMediaRoute: AdminMediaRoute,
   AdminPublishingRoute: AdminPublishingRoute,

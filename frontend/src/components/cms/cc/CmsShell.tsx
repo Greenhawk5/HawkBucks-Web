@@ -13,6 +13,7 @@ export type CmsSection =
   | "heroes"
   | "loadouts"
   | "inventory"
+  | "items"
   | "articles"
   | "media"
   | "publishing"
@@ -68,6 +69,12 @@ export const CMS_NAV_GROUPS: NavGroup[] = [
         to: "/admin/inventory",
         label: "Inventory",
         hint: "Weapons, traps, perks, schematics",
+      },
+      {
+        section: "items",
+        to: "/admin/items",
+        label: "Game Items",
+        hint: "Resources, abilities, perks",
       },
       { section: "articles", to: "/admin/articles", label: "Articles", hint: "Editorial content" },
       { section: "media", to: "/admin/media", label: "Media Library", hint: "R2-backed assets" },
@@ -447,6 +454,7 @@ export function CmsNavGlyph(props: { section: CmsSection; large?: boolean }) {
     heroes: "⚔",
     loadouts: "⛨",
     inventory: "▤",
+    items: "◈",
     articles: "✎",
     media: "◫",
     publishing: "⬆",

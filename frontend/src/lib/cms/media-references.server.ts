@@ -29,6 +29,7 @@ export type MediaReferenceSource =
   | "ability_definition_icon"
   | "hero_perk_icon"
   | "hero_perk_definition_icon"
+  | "catalog_item_icon"
   | "loadout_cover"
   | "weapon_icon"
   | "trap_icon"
@@ -93,6 +94,15 @@ const REFERENCE_QUERIES: readonly ReferenceQuery[] = [
     idColumn: "entity_id",
   },
   {
+    // The Game Item Catalog icon. A catalog item is shared by every hero whose
+    // evolution costs reference it, so replacing its image is safe (one row
+    // changes) while physically deleting the asset is blocked until the
+    // association is cleared — same rule as the other shared-definition icons.
+    source: "catalog_item_icon",
+    sql: "SELECT id AS entity_id FROM resources WHERE icon_asset_id = ?",
+    idColumn: "entity_id",
+  },
+  {
     source: "loadout_cover",
     sql: "SELECT content_id AS entity_id FROM loadout_records WHERE cover_asset_id = ?",
     idColumn: "entity_id",
@@ -142,6 +152,7 @@ export const MEDIA_REFERENCE_LABELS: Record<MediaReferenceSource, string> = {
   ability_definition_icon: "Ability icon (shared by every hero)",
   hero_perk_icon: "Hero perk icon",
   hero_perk_definition_icon: "Perk icon (shared by every hero)",
+  catalog_item_icon: "Catalog item icon (shared by evolution costs)",
   loadout_cover: "Loadout cover",
   weapon_icon: "Weapon icon",
   trap_icon: "Trap icon",

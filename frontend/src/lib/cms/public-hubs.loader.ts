@@ -186,7 +186,7 @@ export const listHubHeroes = createServerFn({ method: "GET" })
       }
       if (minPower !== null) {
         clauses.push(
-          "(SELECT MAX(pp.power_max) FROM hero_progression pp WHERE pp.hero_content_id = c.id) >= ?",
+          "(SELECT MAX(COALESCE(pp.editorial_power_max, pp.power_max)) FROM hero_progression pp WHERE pp.hero_content_id = c.id AND pp.editorial_excluded = 0) >= ?",
         );
         values.push(minPower);
       }
@@ -205,7 +205,7 @@ export const listHubHeroes = createServerFn({ method: "GET" })
       // ORDER BY; everything else sorts on already-selected columns.
       const orderBy =
         sort === "power"
-          ? "ORDER BY (SELECT MAX(pp.power_max) FROM hero_progression pp WHERE pp.hero_content_id = c.id) DESC, t.title ASC, c.id ASC"
+          ? "ORDER BY (SELECT MAX(COALESCE(pp.editorial_power_max, pp.power_max)) FROM hero_progression pp WHERE pp.hero_content_id = c.id AND pp.editorial_excluded = 0) DESC, t.title ASC, c.id ASC"
           : heroOrder(sort);
 
       const page = await pagedQuery<HubHeroRow>(db, {
