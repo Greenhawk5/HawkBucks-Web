@@ -438,7 +438,10 @@ test("no CMS editor is left with a bare free-text media id box", async () => {
   const expectations = [
     [
       "../src/routes/admin/heroes.$contentId.tsx",
-      2,
+      // Hero media: the two static fields plus one ability icon picker and one
+      // perk image picker, both rendered from a `.map()` so their labels are
+      // derived from the record rather than written twice in the source.
+      4,
       [
         ["Portrait asset id", "setPortraitAssetId"],
         ["Banner asset id", "setBannerAssetId"],
@@ -471,6 +474,17 @@ test("no CMS editor is left with a bare free-text media id box", async () => {
       `${p} must not keep the old free-text media field`,
     );
   }
+});
+
+test("dynamic media pickers are rendered from the record, not hardcoded", async () => {
+  const src = stripComments(await file("../src/routes/admin/heroes.$contentId.tsx"));
+  // The ability icon picker and the perk image picker each take their label
+  // from the row they edit, so a new ability or perk needs no editor change.
+  assert.match(src, /label=\{`\$\{ability\.abilityKey\} icon`\}/);
+  assert.match(src, /label=\{`\$\{perk\.slot\}: \$\{perk\.name\}`\}/);
+  // Both keep the same folder-scoped upload hint as the hero media fields.
+  assert.equal([...src.matchAll(/folder="abilities"/g)].length, 1);
+  assert.equal([...src.matchAll(/folder="perks"/g)].length, 1);
 });
 
 /* ================================================================== */

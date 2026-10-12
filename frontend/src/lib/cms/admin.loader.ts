@@ -1,5 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
-import { clampAdminPaging, requireNonEmptyString } from "./admin-inputs";
+import { asSearchFilter, clampAdminPaging, requireNonEmptyString } from "./admin-inputs";
 
 /**
  * Phase 11 — CMS admin server-function boundary.
@@ -259,6 +259,10 @@ export const sendTestPush = createServerFn({ method: "POST" })
 
 export interface AdminMediaListInput {
   status?: string;
+  /** Case-insensitive substring search over filename / alt text / title /
+   *  caption / R2 object key. Trimmed; "" means "no search", not "match
+   *  nothing". */
+  query?: string;
   limit?: number;
   offset?: number;
 }
@@ -266,6 +270,7 @@ export interface AdminMediaListInput {
 export interface AdminMediaItem {
   id: string;
   provider: string;
+  providerAssetId: string;
   deliveryUrl: string;
   originalFilename: string;
   mimeType: string;
@@ -273,11 +278,13 @@ export interface AdminMediaItem {
   width: number | null;
   height: number | null;
   altText: string;
+  title: string | null;
+  caption: string | null;
   status: string;
   createdAt: string;
 }
 
-/** Minimal media-library reader for the admin proof-of-concept screen. */
+/** Media-library reader: status filter, text search and paging in D1. */
 export const listAdminMedia = createServerFn({ method: "GET" })
   .validator((input: AdminMediaListInput) => {
     if (
@@ -289,7 +296,10 @@ export const listAdminMedia = createServerFn({ method: "GET" })
     ) {
       throw new Error("Invalid media status filter.");
     }
-    return { status: input.status, ...clampAdminPaging(input) };
+    // asSearchFilter returns undefined for "" / undefined so an empty search
+    // box is the unbounded listing, never a zero-result query.
+    const search = asSearchFilter(input.query);
+    return { query: search, status: input.status, ...clampAdminPaging(input) };
   })
   .handler(async ({ data }): Promise<{ items: AdminMediaItem[] }> => {
     const { resolveRequestCmsDb, listMediaAssets } = await import("./db.server");
@@ -311,23 +321,23 @@ export const listAdminMedia = createServerFn({ method: "GET" })
       data.status === "deleted"
         ? data.status
         : undefined;
+    const limit = typeof data.limit === "number" ? data.limit : 50;
+    const offset = typeof data.offset === "number" ? data.offset : 0;
     const rows = await listMediaAssets(
       db,
       status === undefined
-        ? {
-            limit: typeof data.limit === "number" ? data.limit : 50,
-            offset: typeof data.offset === "number" ? data.offset : 0,
-          }
-        : {
-            status,
-            limit: typeof data.limit === "number" ? data.limit : 50,
-            offset: typeof data.offset === "number" ? data.offset : 0,
-          },
+        ? { limit, offset, ...(data.query !== undefined ? { query: data.query } : {}) }
+        : { status, limit, offset, ...(data.query !== undefined ? { query: data.query } : {}) },
     );
     return {
       items: rows.map((row) => ({
         id: row.id,
         provider: row.provider,
+        // The storage identity of the row: the exact R2 object key for
+        // r2-provider rows. Surfaced so a picker can show it and so a search
+        // by key can be verified against the row it found, but content rows
+        // still reference `id` and never this value.
+        providerAssetId: row.provider_asset_id,
         deliveryUrl: row.delivery_url,
         originalFilename: row.original_filename,
         mimeType: row.mime_type,
@@ -335,6 +345,8 @@ export const listAdminMedia = createServerFn({ method: "GET" })
         width: row.width,
         height: row.height,
         altText: row.alt_text,
+        title: row.title,
+        caption: row.caption,
         status: row.status,
         createdAt: row.created_at,
       })),

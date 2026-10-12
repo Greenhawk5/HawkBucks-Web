@@ -43,9 +43,62 @@ export type MediaAssetStatus = (typeof MEDIA_ASSET_STATUSES)[number];
  */
 export const UNUSABLE_MEDIA_ASSET_STATUSES: readonly string[] = ["deleted", "failed"];
 
-/** True when a media asset row may be referenced by content. */
+/**
+ * True when a media asset row may be referenced by content.
+ */
 export function isUsableMediaStatus(status: string): boolean {
   return !UNUSABLE_MEDIA_ASSET_STATUSES.includes(status);
+}
+
+/* ---------------------------------------------------------------------------
+ * Media search (PURE).
+ *
+ * A search term is normalized once, here, so the caller can hand the SAME
+ * string to the SQL layer and to any client-side comparison. The escaping
+ * below matches `LIKE ? ESCAPE '\'`, which is the only way a `%` or `_` typed
+ * by an editor can be searched for literally instead of turning into a
+ * wildcard that silently widens the result set.
+ * ------------------------------------------------------------------------- */
+
+/** Hard cap on a media search term (same bound as the other admin searches). */
+export const MEDIA_SEARCH_MAX_LENGTH = 120;
+
+/** Every `media_assets` text column an editor may search by, in match order. */
+export const MEDIA_SEARCH_COLUMNS: readonly string[] = [
+  "original_filename",
+  "alt_text",
+  "title",
+  "caption",
+  "provider_asset_id",
+];
+
+/** Trim, collapse whitespace, lowercase, bounded. Never mutates the term. */
+export function normalizeMediaSearchQuery(
+  value: unknown,
+  max: number = MEDIA_SEARCH_MAX_LENGTH,
+): string {
+  if (typeof value !== "string") return "";
+  return value.replace(/\s+/g, " ").trim().toLowerCase().slice(0, max);
+}
+
+/** Escape the LIKE metacharacters so a term is matched literally. */
+export function escapeMediaSearchTerm(term: string): string {
+  return term.replace(/[\\%_]/g, (char) => `\\${char}`);
+}
+
+/**
+ * `%term%` ready to bind against `LIKE ? ESCAPE '\'`, or "" when there is
+ * nothing to search for. Returning "" rather than null lets a caller treat
+ * "no search" and "search for the empty string" identically, which is what the
+ * unbounded listing path needs.
+ */
+export function mediaSearchLikePattern(
+  value: unknown,
+  max: number = MEDIA_SEARCH_MAX_LENGTH,
+): string {
+  const term = normalizeMediaSearchQuery(value, max);
+  if (term === "") return "";
+  return `%${escapeMediaSearchTerm(term)}%`;
 }
 
 /** Provider-independent logical asset (what D1 stores, what UI renders). */

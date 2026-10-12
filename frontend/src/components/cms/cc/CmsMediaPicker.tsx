@@ -1,4 +1,4 @@
-﻿import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Image as ImageIcon, Loader2, Search, Upload } from "lucide-react";
 
 import {
@@ -7,18 +7,22 @@ import {
   searchR2MediaInventory,
 } from "@/lib/cms/media-admin.loader";
 import { listAdminMedia } from "@/lib/cms/admin.loader";
+import type { MediaRegistrationState } from "@/lib/cms/media-inventory";
+import { REGISTRATION_LABELS } from "@/components/cms/media/media-inventory-format";
 import { CmsDialog, CmsNotice, cmsToast } from "./CmsPrimitives";
 
 /**
  * Media picker dialog.
  *
- * Returns an opaque CMS ASSET ID â€” content rows reference `media_assets.id`, so
- * the picker never invents URLs and never stores one.
+ * Returns an opaque CMS ASSET ID. Content rows reference `media_assets.id`, so
+ * the picker never invents URLs and never stores one — `onPick(assetId,
+ * deliveryUrl)` hands back the row's id, and the URL is a preview convenience
+ * only.
  *
  * TWO SOURCES, ONE VALUE TYPE
  * ---------------------------
- *   * Registered assets â€” a D1 row already exists.
- *   * Stored objects â€” the file is already in the R2 bucket (typically uploaded
+ *   * Registered assets - a D1 row already exists.
+ *   * Stored objects - the file is already in the R2 bucket (typically uploaded
  *     straight from the Cloudflare dashboard) but has no CMS row.
  *
  * The second source exists so an editor never has to upload a duplicate of a
@@ -28,14 +32,37 @@ import { CmsDialog, CmsNotice, cmsToast } from "./CmsPrimitives";
  * Registration stays separate from selection rather than being implied, so the
  * distinction between "a file in storage" and "a CMS asset content can
  * reference" is visible in the UI rather than hidden behind a single click.
+ *
+ * SEARCH IS SERVER-SIDE
+ * ---------------------
+ * A submitted term is sent to D1 for the assets tab and to the bucket for the
+ * stored tab. The previous implementation fetched one fixed 50-row page and
+ * filtered it in the browser, which made any asset older than the most recent
+ * uploads unfindable no matter how precise the term was - the row was never in
+ * the response, so no client-side filter could match it. The term is now
+ * applied before ORDER BY/LIMIT, so the result set is the table's matches.
+ *
+ * Because the two tabs answer different questions, neither one claims to be the
+ * other's evidence: an assets search that returns nothing does not imply the
+ * bucket has nothing, so it runs one bounded key check before the empty state
+ * says "upload one".
  */
 type PickerTab = "assets" | "stored";
 
+/** Page size for both tabs. Matches the 1..100 paging clamp in the loader. */
+const PAGE_SIZE = 60;
+
+/** Folder choices shown for the stored tab (derived from the current result). */
 interface AssetOption {
   id: string;
   deliveryUrl: string;
+  /** The editorial title when the row has one, otherwise the original filename. */
   label: string;
+  /** Alt text when present, otherwise the exact R2 object key. */
   sublabel: string;
+  /** The exact R2 object key / provider asset id (empty when unknown). */
+  key: string;
+  status: string;
 }
 
 interface StoredOption {
@@ -43,8 +70,21 @@ interface StoredOption {
   deliveryUrl: string;
   label: string;
   sublabel: string;
-  registered: boolean;
+  registration: MediaRegistrationState;
+  /** Present when the object already has a D1 row. */
+  assetId: string | null;
 }
+
+/**
+ * The result of the storage cross-check shown when an assets search matches
+ * nothing, so the empty state can name the other tab truthfully.
+ */
+type StorageHint =
+  | { kind: "checking" }
+  | { kind: "none" }
+  | { kind: "unregistered"; key: string; filename: string }
+  | { kind: "registered"; key: string; filename: string }
+  | { kind: "unusable"; key: string; filename: string; registration: MediaRegistrationState };
 
 export function CmsMediaPicker(props: {
   open: boolean;
@@ -54,10 +94,14 @@ export function CmsMediaPicker(props: {
 }) {
   const [tab, setTab] = useState<PickerTab>("assets");
   const [assets, setAssets] = useState<AssetOption[] | null>(null);
+  const [assetsHasMore, setAssetsHasMore] = useState(false);
   const [stored, setStored] = useState<StoredOption[] | null>(null);
+  const [storedScanned, setStoredScanned] = useState<number | null>(null);
+  const [storedTruncated, setStoredTruncated] = useState(false);
   // `search` is the raw input value; `query` is the SUBMITTED term. Keeping
-  // them apart means a keystroke never triggers a bucket walk — the effect
-  // depends on `query`, so the request runs when the editor asks for it.
+  // them apart means a keystroke never triggers a request - the effect
+  // depends on `query`, so the fetch runs when the editor asks for it (Enter,
+  // the Search button, or a tab/scope change).
   const [search, setSearch] = useState("");
   const [query, setQuery] = useState("");
   const [scope, setScope] = useState("");
@@ -65,55 +109,89 @@ export function CmsMediaPicker(props: {
   const [pendingKey, setPendingKey] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [scopeOpen, setScopeOpen] = useState(false);
+  const [storageHint, setStorageHint] = useState<StorageHint | null>(null);
+  // How many asset rows are already loaded, kept in a ref so "load more" can
+  // pass the right offset without the loader being re-created on every page.
+  const loadedCount = useRef(0);
 
-  const loadAssets = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const { items } = await listAdminMedia({ data: {} });
-      setAssets(
-        items.map((item) => ({
-          id: item.id,
-          deliveryUrl: item.deliveryUrl,
-          label: item.originalFilename,
-          sublabel: item.altText === "" ? item.status : item.altText,
-        })),
-      );
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Could not load media assets.");
-      setAssets([]);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  const loadStored = useCallback(
-    async (query: string) => {
+  const assetsPage = useCallback(
+    async (mode: "reset" | "more") => {
       setLoading(true);
       setError(null);
       try {
-        // Unregistered objects only: a stored object that already has a CMS row
-        // belongs in the "assets" tab, and registering it again would be a no-op
-        // that reads as a failure.
+        const offset = mode === "more" ? loadedCount.current : 0;
+        const { items } = await listAdminMedia({
+          data: {
+            limit: PAGE_SIZE,
+            offset,
+            ...(query === "" ? {} : { query }),
+          },
+        });
+        const mapped: AssetOption[] = items.map((item) => {
+          // A row's filename can be empty only for rows imported by hand; the
+          // object key is then the only honest label.
+          const filename =
+            item.originalFilename.trim() !== "" ? item.originalFilename : item.providerAssetId;
+          return {
+            id: item.id,
+            deliveryUrl: item.deliveryUrl,
+            label: item.title !== null && item.title.trim() !== "" ? item.title : filename,
+            sublabel: item.altText.trim() !== "" ? item.altText : item.providerAssetId,
+            key: item.providerAssetId,
+            status: item.status,
+          };
+        });
+        loadedCount.current = offset + mapped.length;
+        setAssets((current) =>
+          mode === "more" && current !== null ? [...current, ...mapped] : mapped,
+        );
+        setAssetsHasMore(mapped.length === PAGE_SIZE);
+      } catch (e) {
+        setError(e instanceof Error ? e.message : "Could not load media assets.");
+        if (mode === "reset") setAssets([]);
+      } finally {
+        setLoading(false);
+      }
+    },
+    [query],
+  );
+
+  const storedPage = useCallback(
+    async (term: string) => {
+      setLoading(true);
+      setError(null);
+      try {
+        // The registered/unregistered split is already computed server-side
+        // from the derived inventory state, so a tombstone or a row whose bytes
+        // are gone can never be presented as a registerable object.
         const result =
-          query.trim() === ""
-            ? await listR2MediaInventory({ data: { prefix: scope, limit: 60 } })
-            : await searchR2MediaInventory({ data: { prefix: scope, query, limit: 60 } });
-        const entries = result.entries;
+          term.trim() === ""
+            ? await listR2MediaInventory({ data: { prefix: scope, limit: PAGE_SIZE } })
+            : await searchR2MediaInventory({
+                data: { prefix: scope, query: term.trim(), limit: PAGE_SIZE },
+              });
+        // `in` narrows the union: the search reports the objects it actually
+        // scanned, the page reports the objects it returned. Both are bounded
+        // server-side, and the empty state quotes whichever one ran.
+        const scanned = "scanned" in result ? result.scanned : result.objectCount;
+        const truncated = result.truncated;
+        setStoredScanned(scanned);
+        setStoredTruncated(truncated);
         setStored(
-          entries
-            .filter((entry) => entry.registration === "discovered")
-            .map((entry) => ({
-              key: entry.key,
-              deliveryUrl: entry.deliveryUrl,
-              label: entry.filename,
-              sublabel: entry.parentPath === "" ? "bucket root" : entry.parentPath,
-              registered: false,
-            })),
+          result.entries.map((entry) => ({
+            key: entry.key,
+            deliveryUrl: entry.deliveryUrl,
+            label: entry.filename,
+            sublabel: entry.parentPath === "" ? "bucket root" : entry.parentPath,
+            registration: entry.registration,
+            assetId: entry.row === null ? null : entry.row.id,
+          })),
         );
       } catch (e) {
         setError(e instanceof Error ? e.message : "Could not read the media inventory.");
         setStored([]);
+        setStoredScanned(null);
+        setStoredTruncated(false);
       } finally {
         setLoading(false);
       }
@@ -126,13 +204,107 @@ export function CmsMediaPicker(props: {
   useEffect(() => {
     if (!props.open) return;
     if (tab === "assets") {
-      void loadAssets();
+      void assetsPage("reset");
     } else {
-      void loadStored(query);
+      void storedPage(query);
     }
-  }, [props.open, tab, scope, query, loadAssets, loadStored]);
+    // `assetsPage` / `storedPage` are memoised on the inputs that change what
+    // they request (`query` and `scope` respectively), so this effect runs once
+    // per submitted term and once per tab/scope change.
+  }, [props.open, tab, query, assetsPage, storedPage]);
+
+  // Re-open from a clean slate: a stale page from a previous field would
+  // otherwise be presented as the current field's options.
+  useEffect(() => {
+    if (props.open) return;
+    setAssets(null);
+    setAssetsHasMore(false);
+    setStored(null);
+    setStoredScanned(null);
+    setStoredTruncated(false);
+    setStorageHint(null);
+    setSearch("");
+    setQuery("");
+    setScope("");
+    setError(null);
+    loadedCount.current = 0;
+  }, [props.open]);
+
+  /**
+   * The storage cross-check.
+   *
+   * Only runs when an assets search matched NOTHING, which is the sole case
+   * where the empty state would otherwise have to guess. The bucket walk is
+   * bounded by the search service, so this can never become an unbounded scan.
+   */
+  useEffect(() => {
+    if (!props.open || tab !== "assets") return;
+    const term = query.trim();
+    if (term === "") {
+      setStorageHint(null);
+      return;
+    }
+    if (assets === null || assets.length > 0 || loading) {
+      setStorageHint(null);
+      return;
+    }
+    let active = true;
+    setStorageHint({ kind: "checking" });
+    void searchR2MediaInventory({ data: { prefix: scope, query: term, limit: PAGE_SIZE } })
+      .then((result) => {
+        if (!active) return;
+        const match = result.entries.find((entry) =>
+          entry.key.toLowerCase().includes(term.toLowerCase()),
+        );
+        if (!match) {
+          setStorageHint({ kind: "none" });
+          return;
+        }
+        if (match.registration === "discovered") {
+          setStorageHint({ kind: "unregistered", key: match.key, filename: match.filename });
+          return;
+        }
+        if (match.registration === "registered") {
+          setStorageHint({
+            kind: "registered",
+            key: match.key,
+            filename: match.filename,
+          });
+          return;
+        }
+        setStorageHint({
+          kind: "unusable",
+          key: match.key,
+          filename: match.filename,
+          registration: match.registration,
+        });
+      })
+      .catch(() => {
+        if (active) setStorageHint(null);
+      });
+    return () => {
+      active = false;
+    };
+  }, [props.open, tab, query, assets, scope, loading]);
+
+  const submitSearch = useCallback(() => {
+    setQuery(search.trim());
+  }, [search]);
+
+  async function pickAsset(option: AssetOption) {
+    props.onPick(option.id, option.deliveryUrl);
+    props.onClose();
+  }
 
   async function pickStored(option: StoredOption) {
+    // An object that ALREADY has a row is not a registration candidate: the
+    // picker switches to the assets tab and selects the existing id, so no
+    // duplicate row is created and no alt text is overwritten.
+    if (option.assetId !== null) {
+      props.onPick(option.assetId, option.deliveryUrl);
+      props.onClose();
+      return;
+    }
     setPendingKey(option.key);
     setError(null);
     try {
@@ -141,8 +313,8 @@ export function CmsMediaPicker(props: {
       if (!created) {
         // Already registered by someone else between listing and click: fall
         // back to the registered assets so the editor is never stuck.
-        cmsToast("info", "That object was already registered. Refreshing assetsâ€¦");
-        await loadAssets();
+        cmsToast("info", "That object was already registered. Refreshing assets.");
+        await assetsPage("reset");
         setTab("assets");
         return;
       }
@@ -158,21 +330,11 @@ export function CmsMediaPicker(props: {
       setPendingKey(null);
     }
   }
-  const q = search.trim().toLowerCase();
-  const visibleAssets = (assets ?? []).filter(
-    (item) =>
-      q === "" || item.label.toLowerCase().includes(q) || item.sublabel.toLowerCase().includes(q),
-  );
-  // The stored tab filters by the SUBMITTED term, not the raw input: this list
-  // is the result of a bucket walk, so filtering it further with an unsubmitted
-  // keystroke would silently narrow a result set the editor never asked for.
-  const submitted = query.trim().toLowerCase();
-  const visibleStored = (stored ?? []).filter(
-    (item) =>
-      submitted === "" ||
-      item.label.toLowerCase().includes(submitted) ||
-      item.key.toLowerCase().includes(submitted),
-  );
+
+  const submitted = query.trim();
+  const scopeLabel = scope === "" ? "the whole bucket" : scope;
+  const storedOptions = stored ?? [];
+
   return (
     <CmsDialog open={props.open} onClose={props.onClose} title={props.title ?? "Choose media"} wide>
       <div className="space-y-3">
@@ -206,17 +368,29 @@ export function CmsMediaPicker(props: {
             </button>
           </div>
 
-          <label className="cc-search-field">
-            <span className="sr-only">Search media</span>
-            <Search aria-hidden="true" className="cc-search-field-icon" />
-            <input
-              className="cc-search-field-input"
-              type="search"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search filename or object keyâ€¦"
-            />
-          </label>
+          <form
+            className="flex min-w-56 flex-1 items-center gap-2"
+            onSubmit={(e) => {
+              // Enter submits the search on BOTH tabs. A plain input in a form
+              // is how an editor expects search to work; the picker used to
+              // swallow the keystroke on the assets tab.
+              e.preventDefault();
+              submitSearch();
+            }}
+          >
+            <label className="cc-search-field flex-1">
+              <span className="sr-only">Search media</span>
+              <Search aria-hidden="true" className="cc-search-field-icon" />
+              <input
+                className="cc-search-field-input"
+                type="search"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Filename, title, alt text or object key"
+                aria-label="Search media"
+              />
+            </label>
+          </form>
 
           {tab === "stored" ? (
             <button
@@ -233,10 +407,16 @@ export function CmsMediaPicker(props: {
             type="button"
             className="cc-btn cc-btn-outline cc-btn-sm"
             disabled={loading}
-            onClick={() => (tab === "assets" ? void loadAssets() : setQuery(search.trim()))}
+            onClick={() => {
+              if (tab === "assets") {
+                void assetsPage("reset");
+                return;
+              }
+              submitSearch();
+            }}
           >
             {loading ? <Loader2 aria-hidden="true" className="h-3.5 w-3.5 animate-spin" /> : null}
-            Refresh
+            {tab === "assets" && query.trim() !== search.trim() ? "Search" : "Refresh"}
           </button>
         </div>
 
@@ -275,71 +455,100 @@ export function CmsMediaPicker(props: {
           </div>
         ) : null}
 
+        {submitted !== "" ? (
+          <p className="text-xs leading-relaxed opacity-70">
+            {tab === "assets"
+              ? `Searching registered CMS assets for "${submitted}".`
+              : `Searching object keys in ${scopeLabel} for "${submitted}".`}
+          </p>
+        ) : null}
+
         {error ? <CmsNotice kind="error">{error}</CmsNotice> : null}
 
         {loading ? (
           <p className="flex items-center gap-2 text-sm opacity-70">
             <Loader2 aria-hidden="true" className="h-4 w-4 animate-spin" />
-            Loadingâ€¦
+            Loading
           </p>
         ) : tab === "assets" ? (
-          visibleAssets.length === 0 ? (
-            <p className="text-sm opacity-70">
-              {assets === null
-                ? "Loading the CMS assetsâ€¦"
-                : "No registered assets match. Upload one, or switch to â€œIn storageâ€ to use a file that is already in the bucket."}
-            </p>
+          assets !== null && assets.length === 0 ? (
+            <AssetsEmptyState query={submitted} hint={storageHint} scopeLabel={scopeLabel} />
           ) : (
-            <ul className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-              {visibleAssets.slice(0, 60).map((item) => (
-                <li key={item.id}>
+            <>
+              <ul className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+                {(assets ?? []).map((item) => (
+                  <li key={item.id}>
+                    <button
+                      type="button"
+                      className="cc-panel block w-full overflow-hidden text-left outline-none transition-colors hover:border-[var(--cc-accent)] focus-visible:ring-2 focus-visible:ring-[var(--cc-accent)]"
+                      style={{ padding: 0 }}
+                      onClick={() => void pickAsset(item)}
+                      title={`${item.label} (${item.id})`}
+                      aria-label={`Select ${item.label}, asset id ${item.id}`}
+                    >
+                      <span className="relative block aspect-square w-full">
+                        <img
+                          src={item.deliveryUrl}
+                          alt=""
+                          loading="lazy"
+                          className="h-full w-full object-contain"
+                          onError={(e) => {
+                            (e.target as HTMLImageElement).style.display = "none";
+                          }}
+                        />
+                        {item.status !== "ready" ? (
+                          <span className="absolute inset-x-0 bottom-0 bg-black/70 px-1.5 py-0.5 text-center font-mono text-[10px] uppercase tracking-wider text-[var(--cc-amber)]">
+                            {item.status}
+                          </span>
+                        ) : null}
+                      </span>
+                      <span className="block truncate px-2 py-1.5 text-xs">{item.label}</span>
+                      <span className="block truncate px-2 pb-1.5 font-mono text-[10px] opacity-55">
+                        {item.sublabel}
+                      </span>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+              {assetsHasMore ? (
+                <div className="flex justify-center">
                   <button
                     type="button"
-                    className="cc-panel block w-full overflow-hidden text-left outline-none transition-colors hover:border-[var(--cc-accent)] focus-visible:ring-2 focus-visible:ring-[var(--cc-accent)]"
-                    style={{ padding: 0 }}
-                    onClick={() => {
-                      props.onPick(item.id, item.deliveryUrl);
-                      props.onClose();
-                    }}
-                    title={`${item.label} (${item.id})`}
+                    className="cc-btn cc-btn-outline cc-btn-sm"
+                    disabled={loading}
+                    onClick={() => void assetsPage("more")}
                   >
-                    <img
-                      src={item.deliveryUrl}
-                      alt=""
-                      loading="lazy"
-                      className="aspect-square w-full object-contain"
-                      onError={(e) => {
-                        (e.target as HTMLImageElement).style.display = "none";
-                      }}
-                    />
-                    <span className="block truncate px-2 py-1.5 text-xs">{item.label}</span>
+                    Load more registered assets
                   </button>
-                </li>
-              ))}
-            </ul>
+                </div>
+              ) : null}
+            </>
           )
-        ) : visibleStored.length === 0 ? (
-          <p className="text-sm leading-relaxed opacity-70">
-            {stored === null
-              ? "Reading the bucketâ€¦"
-              : `No unregistered objects in ${scope === "" ? "the bucket" : scope}. Everything stored here is already a CMS asset.`}
-          </p>
+        ) : storedOptions.length === 0 ? (
+          <StoredEmptyState
+            query={submitted}
+            scopeLabel={scopeLabel}
+            scanned={storedScanned}
+            truncated={storedTruncated}
+          />
         ) : (
           <>
             <p className="text-xs leading-relaxed opacity-70">
-              These files are already in the bucket. Choosing one registers it (creates its CMS row
-              with empty alt text â€” no upload, no byte rewrite) and then you pick it.
+              These files are already in the bucket. Choosing an unregistered one registers it
+              (creates its CMS row with empty alt text, no upload, no byte rewrite) and then you
+              pick it. One that is already registered is selected directly.
             </p>
             <ul className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-              {visibleStored.slice(0, 60).map((item) => (
+              {storedOptions.map((item) => (
                 <li key={item.key}>
                   <button
                     type="button"
-                    className="cc-panel block w-full overflow-hidden text-left outline-none transition-colors hover:border-[var(--cc-accent)] focus-visible:ring-2 focus-visible:ring-[var(--cc-accent)]"
+                    className="cc-panel block w-full overflow-hidden text-left outline-none transition-colors hover:border-[var(--cc-accent)] focus-visible:ring-2 focus-visible:ring-[var(--cc-accent)] disabled:opacity-60"
                     style={{ padding: 0 }}
                     disabled={pendingKey === item.key}
                     onClick={() => void pickStored(item)}
                     title={item.key}
+                    aria-label={`Select ${item.label} from ${item.key}`}
                   >
                     <span className="relative block aspect-square w-full">
                       <img
@@ -358,11 +567,16 @@ export function CmsMediaPicker(props: {
                       ) : null}
                     </span>
                     <span className="flex items-center gap-1 px-2 py-1.5">
-                      <Upload aria-hidden="true" className="h-3 w-3 shrink-0 opacity-60" />
+                      {item.assetId === null ? (
+                        <Upload aria-hidden="true" className="h-3 w-3 shrink-0 opacity-60" />
+                      ) : null}
                       <span className="truncate text-xs">{item.label}</span>
                     </span>
                     <span className="block truncate px-2 pb-1.5 font-mono text-[10px] opacity-55">
                       {item.sublabel}
+                    </span>
+                    <span className="block px-2 pb-1.5 text-[10px] uppercase tracking-wider opacity-70">
+                      {REGISTRATION_LABELS[item.registration]}
                     </span>
                   </button>
                 </li>
@@ -373,10 +587,90 @@ export function CmsMediaPicker(props: {
 
         <p className="flex items-center gap-1.5 text-xs opacity-60">
           <ImageIcon aria-hidden="true" className="h-3.5 w-3.5" />
-          This picker stores Media Asset ids only â€” never a URL.
+          This picker stores Media Asset ids only, never a URL.
         </p>
       </div>
     </CmsDialog>
+  );
+}
+
+/**
+ * The assets-tab empty state.
+ *
+ * Each branch names the evidence it actually has. The "upload one" advice only
+ * appears when the bounded bucket check also found nothing - suggesting an
+ * upload while the file already sits in R2 is what made this dialog read as
+ * broken.
+ */
+function AssetsEmptyState(props: { query: string; hint: StorageHint | null; scopeLabel: string }) {
+  if (props.query === "") {
+    return (
+      <p className="text-sm leading-relaxed opacity-70">
+        No registered CMS assets yet. Upload a file, or switch to the In storage tab to use one that
+        is already in the bucket.
+      </p>
+    );
+  }
+  return (
+    <div className="space-y-1.5 text-sm leading-relaxed opacity-70">
+      <p>No registered CMS asset matches &ldquo;{props.query}&rdquo;.</p>
+      {props.hint === null || props.hint.kind === "checking" ? (
+        <p className="text-xs">Checking whether the file is in storage&hellip;</p>
+      ) : props.hint.kind === "unregistered" ? (
+        <p className="text-xs">
+          A file named <span className="font-mono">{props.hint.filename}</span> is already in
+          storage but has no CMS row. Switch to the In storage tab to register and select it.
+        </p>
+      ) : props.hint.kind === "registered" ? (
+        <p className="text-xs">
+          <span className="font-mono">{props.hint.filename}</span> is registered, but its row does
+          not match that term. Search by a filename, title, alt text or object key.
+        </p>
+      ) : props.hint.kind === "unusable" ? (
+        <p className="text-xs">
+          <span className="font-mono">{props.hint.filename}</span> is in storage, but its CMS row is{" "}
+          {REGISTRATION_LABELS[props.hint.registration].toLowerCase()} - not eligible media.
+        </p>
+      ) : (
+        <p className="text-xs">
+          No object in {props.scopeLabel} has that key either, so there is nothing to register.
+          Upload the file, or try another term.
+        </p>
+      )}
+    </div>
+  );
+}
+
+/** The storage-tab empty state. Distinguishes "nothing matches the term" from
+ *  "everything here is already registered". */
+function StoredEmptyState(props: {
+  query: string;
+  scopeLabel: string;
+  scanned: number | null;
+  truncated: boolean;
+}) {
+  if (props.query === "") {
+    return (
+      <p className="text-sm leading-relaxed opacity-70">
+        Every object in {props.scopeLabel} is already a registered CMS asset.
+      </p>
+    );
+  }
+  return (
+    <div className="space-y-1.5 text-sm leading-relaxed opacity-70">
+      <p>
+        No object key in {props.scopeLabel} matches &ldquo;{props.query}&rdquo;.
+      </p>
+      <p className="text-xs">
+        {props.scanned === null
+          ? "The bucket key scan was not able to complete."
+          : `Scanned ${props.scanned} object key${props.scanned === 1 ? "" : "s"}${
+              props.truncated
+                ? " before hitting the scan limit, so older keys were not searched. Narrow the folder to search deeper."
+                : " across the whole scope."
+            }`}
+      </p>
+    </div>
   );
 }
 

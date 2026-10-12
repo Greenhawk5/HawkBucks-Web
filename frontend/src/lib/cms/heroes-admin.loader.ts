@@ -51,12 +51,27 @@ export interface HeroAdminDetail extends HeroAdminItem {
    * No admin mutation writes to hero_perks / hero_progression /
    * hero_progression_costs / hero_perk_defs / ability_defs, so a reference-only
    * rollback stays safe.
+   *
+   * The one exception is `hero_perks.icon_asset_id` (migration 0015): it is
+   * editorial media metadata on the PER-HERO join row, not reference text, and
+   * it is written only by `upsertAdminHeroPerkIcon`. The reference sync never
+   * touches that row's icon, so a re-sync cannot clobber an editor's choice.
    */
   dataSource: string;
   dataSnapshotAt: string | null;
   stwRefSlug: string | null;
   reference: {
-    perks: Array<{ slot: string; name: string; key: string }>;
+    /** Perks this hero carries, with the join-row id the icon editor needs. */
+    perks: Array<{
+      id: string;
+      slot: string;
+      name: string;
+      key: string;
+      /** This hero's own override, when one is set. */
+      iconAssetId: string | null;
+      /** The shared perk-definition icon, when one is set. */
+      defIconAssetId: string | null;
+    }>;
     rarities: Array<{ rarity: string; tiers: number; maxPower: number | null }>;
     costRows: number;
   };
@@ -170,12 +185,20 @@ export const getAdminHero = createServerFn({ method: "GET" })
     const [refPerks, refProg, refCosts] = await Promise.all([
       db
         .prepare(
-          `SELECT d.slot AS slot, d.display_name AS name, d.perk_key AS perk_key
+          `SELECT p.id AS id, d.slot AS slot, d.display_name AS name, d.perk_key AS perk_key,
+                  p.icon_asset_id AS hero_icon_asset_id, d.icon_asset_id AS def_icon_asset_id
              FROM hero_perks p JOIN hero_perk_defs d ON d.id = p.hero_perk_def_id
             WHERE p.hero_content_id = ? ORDER BY p.slot_order ASC`,
         )
         .bind(data.contentId)
-        .all<{ slot: string; name: string; perk_key: string }>(),
+        .all<{
+          id: string;
+          slot: string;
+          name: string;
+          perk_key: string;
+          hero_icon_asset_id: string | null;
+          def_icon_asset_id: string | null;
+        }>(),
       db
         .prepare(
           `SELECT rarity, COUNT(*) AS tiers, MAX(power_max) AS max_power
@@ -209,7 +232,14 @@ export const getAdminHero = createServerFn({ method: "GET" })
       dataSnapshotAt: record.data_snapshot_at ?? null,
       stwRefSlug: record.stw_ref_slug ?? null,
       reference: {
-        perks: refPerks.results.map((r) => ({ slot: r.slot, name: r.name, key: r.perk_key })),
+        perks: refPerks.results.map((r) => ({
+          id: r.id,
+          slot: r.slot,
+          name: r.name,
+          key: r.perk_key,
+          iconAssetId: r.hero_icon_asset_id ?? null,
+          defIconAssetId: r.def_icon_asset_id ?? null,
+        })),
         rarities: refProg.results.map((r) => ({
           rarity: r.rarity,
           tiers: Number(r.tiers) || 0,
@@ -336,6 +366,39 @@ export const deleteAdminAbility = createServerFn({ method: "POST" })
       id: session.user.id,
       username: session.user.username,
     });
+    return { ok: true as const };
+  });
+/**
+ * Set or clear the perk icon for ONE hero.
+ *
+ * `iconAssetId` is a media_assets.id, validated server-side by
+ * `assertMediaUsable` (the asset must exist and not be tombstoned) — the
+ * browser never gets to choose what counts as eligible media.
+ *
+ * `heroPerkId` is the `hero_perks` row id, NOT the perk definition id: the
+ * definition is shared by many heroes, and the identity of the hero the row
+ * belongs to is re-checked inside the domain service so a forged pair cannot
+ * write to another hero's perk. Only that one column changes; the perk's name,
+ * description, slot, slot_order and translations are never read or written.
+ */
+export const upsertAdminHeroPerkIcon = createServerFn({ method: "POST" })
+  .validator((i: { contentId: string; heroPerkId: string; iconAssetId?: string | null }) => ({
+    contentId: requireContentId(i.contentId),
+    heroPerkId: requireNonEmptyString(i.heroPerkId, "heroPerkId"),
+    iconAssetId: asOptionalStringOrNull(i.iconAssetId),
+  }))
+  .handler(async ({ data }) => {
+    const { db, session } = await requireHeroSession("cms.write", true);
+    const { setHeroPerkIcon } = await import("./heroes-loadouts.server");
+    await setHeroPerkIcon(
+      db,
+      {
+        heroContentId: data.contentId,
+        heroPerkId: data.heroPerkId,
+        iconAssetId: data.iconAssetId ?? null,
+      },
+      { id: session.user.id, username: session.user.username },
+    );
     return { ok: true as const };
   });
 export const publishAdminContent = createServerFn({ method: "POST" })

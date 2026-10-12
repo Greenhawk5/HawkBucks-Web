@@ -329,6 +329,14 @@ export const setAdminLoadoutSchematics = createServerFn({ method: "POST" })
     });
     return { ok: true as const };
   });
+/**
+ * Ability write boundary.
+ *
+ * Every field is OPTIONAL and "absent" means "leave the stored value alone",
+ * so a caller that only wants to pick an icon does not have to re-supply the
+ * ability's order, name or description. The domain layer turns that into a
+ * single-column UPDATE; see `upsertAbility` in heroes-loadouts.server.ts.
+ */
 export const upsertAdminAbility = createServerFn({ method: "POST" })
   .validator(
     (i: {
@@ -358,8 +366,8 @@ export const upsertAdminAbility = createServerFn({ method: "POST" })
       data.heroContentId,
       {
         abilityKey: data.abilityKey,
-        sortOrder: data.sortOrder ?? 0,
-        iconAssetId: data.iconAssetId ?? null,
+        ...(data.sortOrder !== undefined ? { sortOrder: data.sortOrder } : {}),
+        ...(data.iconAssetId !== undefined ? { iconAssetId: data.iconAssetId } : {}),
       },
       actor,
     );

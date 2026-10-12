@@ -10,7 +10,6 @@ import { readFile, readdir } from "node:fs/promises";
 const FRONTEND = new URL("../", import.meta.url);
 const MIGRATIONS = new URL("../worker/migrations/", FRONTEND);
 const M14 = "0014_hero_reference_model.sql";
-
 // ---------------------------------------------------------------------------
 // Migration shape
 // ---------------------------------------------------------------------------
@@ -88,13 +87,25 @@ test("0014 progression + cost constraints enforce uniqueness and scope", async (
   assert.match(sql, /CHECK \(slot IN \('standard', 'commander'\)\)/);
 });
 
-test("0014 is the newest migration and the chain stays ordered", async () => {
+test("the migration chain stays ordered with 0015 as the newest", async () => {
   const names = (await readdir(MIGRATIONS)).filter((n) => n.endsWith(".sql")).sort();
-  assert.equal(names[names.length - 1], M14);
-  // 0001-0013 are immutable history.
-  for (let i = 1; i <= 13; i += 1) {
+  // 0014 was the newest migration until the hero media associations landed in
+  // 0015. The chain is still strictly ordered, and nothing was inserted between
+  // the earlier files, which is what makes them immutable history.
+  assert.equal(names[names.length - 1], "0015_hero_media_associations.sql");
+  assert.equal(names[names.indexOf(M14)], M14, "0014 stays where it is in the chain");
+  for (let i = 1; i <= 15; i += 1) {
     assert.match(names[i - 1], new RegExp(`^${String(i).padStart(4, "0")}_`));
   }
+});
+
+test("0015 only adds the per-hero perk icon column", async () => {
+  const sql = await readFile(new URL("0015_hero_media_associations.sql", MIGRATIONS), "utf8");
+  // The reference model's perk tables are untouched: a re-sync cannot clobber
+  // an editor's perk image, because the sync never writes this column.
+  assert.match(sql, /ALTER TABLE hero_perks ADD COLUMN icon_asset_id TEXT/);
+  assert.doesNotMatch(sql, /ALTER TABLE hero_perk_defs/);
+  assert.doesNotMatch(sql, /CREATE TABLE/);
 });
 
 // ---------------------------------------------------------------------------

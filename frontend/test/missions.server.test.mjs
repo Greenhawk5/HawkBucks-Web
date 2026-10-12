@@ -1,5 +1,5 @@
-﻿// Focused tests for the SERVER-ONLY HAWKBUCKS_API transport
-// (src/services/missions.server.ts) â€” Phase 1 internal communication.
+// Focused tests for the SERVER-ONLY HAWKBUCKS_API transport
+// (src/services/missions.server.ts) — Phase 1 internal communication.
 // The existing public browser transport is untouched; these tests use a
 // fake Service Binding and never hit the network.
 import assert from "node:assert/strict";
@@ -12,7 +12,7 @@ const {
   fetchDailyQuoteServer,
 } = await import("../src/services/missions.server.ts");
 
-// TanStack Start's request-scoped accessor â€” the same mechanism the
+// TanStack Start's request-scoped accessor — the same mechanism the
 // production Nitro/Cloudflare Pages runtime uses to expose `env` to
 // server code.
 const { withHawkbucksRequest } = await import("../src/services/hawkbucks-request.ts");

@@ -1,5 +1,5 @@
-﻿/**
- * Media inventory reconciliation â€” PURE LOGIC (server- and test-safe).
+/**
+ * Media inventory reconciliation — PURE LOGIC (server- and test-safe).
  *
  * SOURCE OF TRUTH CONTRACT
  * -----------------------
@@ -7,7 +7,7 @@
  * CMS metadata, editorial text and content relationships. This module is the
  * single place where those two worlds are compared, and it deliberately holds
  * no I/O: the server module feeds it real R2 listing pages plus real D1 rows,
- * and every classification below is derived from that data â€” never invented.
+ * and every classification below is derived from that data — never invented.
  *
  * The six states below are DERIVED, not stored. Adding a status column to
  * media_assets to represent them would duplicate a value that is computable
@@ -80,7 +80,7 @@ export function isTombstonedMediaStatus(status: unknown): boolean {
  * `object === null` means "R2 says this key does not exist". `row === null`
  * means "D1 has no media_assets row for this key". Both are nullable on
  * purpose so callers can classify a bucket object without a row AND a D1 row
- * without an object â€” which is exactly the reconciliation problem.
+ * without an object — which is exactly the reconciliation problem.
  */
 export function classifyMediaEntry(input: {
   key: string;
@@ -107,7 +107,7 @@ export function classifyMediaEntry(input: {
 
 /**
  * A live row is metadata-incomplete when the fields the editor is expected to
- * have filled are missing. Only ever evaluated for rows whose object EXISTS â€”
+ * have filled are missing. Only ever evaluated for rows whose object EXISTS —
  * a missing object is `registered_missing`, which is a different problem.
  */
 export function isMediaMetadataIncomplete(row: InventoryRow | null): boolean {
@@ -234,8 +234,8 @@ export function mediaObjectDeliveryUrl(baseUrl: string, key: string): string {
  * Validate and normalise a user-supplied prefix.
  *
  * Accepts "" (bucket root) or "heroes/abilities/". Rejects anything that could
- * escape the intended scope â€” leading slashes, traversal segments, backslashes,
- * schemes, control characters â€” so a hostile `prefix` can never widen the
+ * escape the intended scope — leading slashes, traversal segments, backslashes,
+ * schemes, control characters — so a hostile `prefix` can never widen the
  * listing to the whole bucket or reach another route's inputs.
  *
  * `heroes/` and `heroestest/` therefore stay distinct prefixes, exactly like
@@ -281,7 +281,7 @@ export function objectIsDirectChild(key: string, prefix: string): boolean {
   return key.slice(prefix.length).indexOf("/") === -1;
 }
 
-/** Last path segment of a key â€” the human-visible filename. */
+/** Last path segment of a key — the human-visible filename. */
 export function mediaKeyFilename(key: string): string {
   const segments = key.split("/");
   return segments[segments.length - 1] ?? key;
@@ -396,7 +396,7 @@ export function planReconciliation(input: {
  *
  * Registration is how a discovered object becomes a CMS asset: a metadata row
  * is created for an object that ALREADY EXISTS in R2. It never uploads, never
- * rewrites bytes, and never invents alt text â€” `alt_text` starts empty and the
+ * rewrites bytes, and never invents alt text — `alt_text` starts empty and the
  * editor fills it in.
  *
  * Idempotency is structural: the unique index on (provider, provider_asset_id)

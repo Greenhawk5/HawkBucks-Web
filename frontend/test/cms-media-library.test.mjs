@@ -144,7 +144,7 @@ function documentStub({ execResult = true, throws = false } = {}) {
 const ASSET_ID = "media_58713eb5-2c6e-46ab-9f87-b3d38170fd2e";
 const DELIVERY_URL = "https://media.hawkbucks.com/heroes/1/lynx.png";
 /* ================================================================== */
-/* 1. Clipboard behaviour â€” the real function, driven for real         */
+/* 1. Clipboard behaviour — the real function, driven for real         */
 /* ================================================================== */
 
 test("copy writes the EXACT asset id: no trimming, no shortening, no derivation", async () => {
@@ -405,7 +405,7 @@ function copyButtonValues(source) {
 
 // --- Object card -----------------------------------------------------------
 
-test("card: copies the exact object key â€” the storage identity, not the filename", () => {
+test("card: copies the exact object key — the storage identity, not the filename", () => {
   const values = copyButtonValues(cardSource);
   assert.equal(values.length, 1, "the grid card has exactly one copy affordance");
   assert.equal(values[0], "entry.key");
@@ -437,7 +437,7 @@ test("card: a copy press can never open the detail panel", () => {
 
 test("card: every stored object renders, whatever its registration state", () => {
   // Discovered (unregistered) objects have no asset id at all, so the grid
-  // must render them from the object entry alone â€” no "id required" branch.
+  // must render them from the object entry alone — no "id required" branch.
   assert.match(cardSource, /\{entry\.filename\}/);
   assert.match(cardSource, /\{entry\.key\}/);
   assert.match(cardSource, /\{entry\.parentPath\}/);

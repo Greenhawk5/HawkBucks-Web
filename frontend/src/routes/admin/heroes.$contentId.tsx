@@ -7,6 +7,7 @@ import {
   getAdminHero,
   publishAdminContent,
   updateAdminHero,
+  upsertAdminHeroPerkIcon,
   upsertAdminTranslation,
 } from "@/lib/cms/heroes-admin.loader";
 import { upsertAdminAbility } from "@/lib/cms/loadouts-admin.loader";
@@ -164,6 +165,12 @@ function HeroEditor() {
         run={editor.run}
         pending={editor.pending}
       />
+      <PerkMediaForm
+        hero={currentHero}
+        disabled={!canWrite}
+        run={editor.run}
+        pending={editor.pending}
+      />
       <ReferencePanel hero={currentHero} />
     </CmsEditorFrame>
   );
@@ -178,6 +185,10 @@ type HeroDetail = Awaited<ReturnType<typeof getAdminHero>>["hero"];
  * scripts/sync-heroes-reference.mjs, so exposing them as editable fields would
  * let an editor change data that the next sync would silently overwrite - and
  * would break the reference-only rollback this separation makes possible.
+ *
+ * The one editable column in this namespace is `hero_perks.icon_asset_id`,
+ * which lives in PerkMediaForm above: it is media metadata on the per-hero
+ * join row, the sync never writes it, and it does not appear in this list.
  *
  * Editorial fields (identity, media, translations, SEO) live in the forms above.
  */
@@ -581,6 +592,18 @@ function TranslationForm(props: {
   );
 }
 
+/**
+ * Abilities for this hero: key, per-locale translations, and the per-hero icon
+ * override (migration 0007 column, read by the public loaders since this
+ * screen gained the picker).
+ *
+ * The icon is saved through `upsertAdminAbility` with ONLY `iconAssetId`
+ * supplied. That is deliberate: the mutation is a partial update, so picking an
+ * icon cannot reset the ability's ordering, and the ability's name/description
+ * translations live in a different table that this path never writes. Leaving
+ * the icon empty is valid — the shared `ability_defs.icon_asset_id` then
+ * decides what the public page shows.
+ */
 function AbilitiesForm(props: {
   hero: HeroDetail;
   disabled: boolean;
@@ -599,34 +622,58 @@ function AbilitiesForm(props: {
       {hero.abilities.length === 0 ? (
         <p className="text-sm opacity-70">No abilities yet.</p>
       ) : (
-        <ul className="divide-y divide-white/5">
+        <ul className="divide-y divide-white/5" data-testid="hero-abilities-editor">
           {hero.abilities.map((ability) => (
-            <li key={ability.id} className="flex flex-wrap items-center gap-2 py-2">
-              <span className="font-mono text-xs">{ability.abilityKey}</span>
-              <span className="text-xs opacity-60">
-                {ability.translations.map((t) => `${t.locale}:${t.name}`).join(" · ") ||
-                  "untranslated"}
-              </span>
-              <button
-                type="button"
-                className="cc-btn cc-btn-ghost cc-btn-sm ms-auto"
-                disabled={props.disabled || props.pending}
-                onClick={() => {
-                  if (
-                    window.confirm(
-                      `Remove ability ${ability.abilityKey}? Its translations go with it; this cannot be undone.`,
-                    )
-                  ) {
-                    void props.run(async () => {
-                      await deleteAdminAbility({ data: { abilityId: ability.id } });
-                      window.location.reload();
-                      return "Ability removed.";
+            <li key={ability.id} className="space-y-2 py-3">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="font-mono text-xs">{ability.abilityKey}</span>
+                <span className="text-xs opacity-60">
+                  {ability.translations.map((t) => `${t.locale}:${t.name}`).join(" · ") ||
+                    "untranslated"}
+                </span>
+                <button
+                  type="button"
+                  className="cc-btn cc-btn-ghost cc-btn-sm ms-auto"
+                  disabled={props.disabled || props.pending}
+                  onClick={() => {
+                    if (
+                      window.confirm(
+                        `Remove ability ${ability.abilityKey}? Its translations go with it; this cannot be undone.`,
+                      )
+                    ) {
+                      void props.run(async () => {
+                        await deleteAdminAbility({ data: { abilityId: ability.id } });
+                        window.location.reload();
+                        return "Ability removed.";
+                      });
+                    }
+                  }}
+                >
+                  Remove
+                </button>
+              </div>
+              <CmsMediaField
+                label={`${ability.abilityKey} icon`}
+                description="Per-hero override. Leave empty to use the shared icon for this ability."
+                value={ability.iconAssetId ?? ""}
+                onChange={(value) => {
+                  const next = value.trim() === "" ? null : value.trim();
+                  void props.run(async () => {
+                    await upsertAdminAbility({
+                      data: {
+                        heroContentId: hero.contentId,
+                        abilityKey: ability.abilityKey,
+                        iconAssetId: next,
+                      },
                     });
-                  }
+                    window.location.reload();
+                    return next === null ? "Ability icon cleared." : "Ability icon saved.";
+                  });
                 }}
-              >
-                Remove
-              </button>
+                disabled={props.disabled || props.pending}
+                folder="abilities"
+                previewClassName="h-12 w-12"
+              />
             </li>
           ))}
         </ul>
@@ -676,6 +723,82 @@ function AbilitiesForm(props: {
           Add ability
         </button>
       </div>
+    </CmsFormSection>
+  );
+}
+
+/**
+ * Perk icons for this hero.
+ *
+ * The value written is `hero_perks.icon_asset_id` — the PER-HERO join row's
+ * own column (migration 0015). The perk definition is shared across the whole
+ * game, so forking `hero_perk_defs` to give one hero a different image is not
+ * an option, and the shared definition icon is already used as the fallback.
+ *
+ * A perk with no override is NOT an empty field: the panel states which icon
+ * the public page will actually show, so an editor can tell "nothing set"
+ * apart from "using the shared icon".
+ */
+function PerkMediaForm(props: {
+  hero: HeroDetail;
+  disabled: boolean;
+  pending: boolean;
+  run: (action: () => Promise<string>) => Promise<boolean>;
+}) {
+  const hero = props.hero;
+  const perks = hero.reference.perks;
+  if (perks.length === 0) {
+    return (
+      <CmsFormSection
+        title="Perk images"
+        description="Per-hero imagery travels with the hero's own perk rows."
+      >
+        <p className="text-sm opacity-70">
+          This hero has no synced perks yet, so there are no perk rows to attach an image to.
+        </p>
+      </CmsFormSection>
+    );
+  }
+  return (
+    <CmsFormSection
+      title={`Perk images (${perks.length})`}
+      description="Set an image for a perk on this hero. Leave it empty to use the shared icon for that perk."
+      data-testid="hero-perk-media-editor"
+    >
+      <ul className="grid gap-3 sm:grid-cols-2">
+        {perks.map((perk) => (
+          <li key={perk.id}>
+            <CmsMediaField
+              label={`${perk.slot}: ${perk.name}`}
+              description={
+                perk.iconAssetId === null && perk.defIconAssetId === null
+                  ? "No image on this hero and none shared by the perk itself."
+                  : perk.iconAssetId === null
+                    ? "This hero uses the perk's shared image. Setting one here overrides it only for this hero."
+                    : "This hero's own image for this perk."
+              }
+              value={perk.iconAssetId ?? ""}
+              onChange={(value) => {
+                const next = value.trim() === "" ? null : value.trim();
+                void props.run(async () => {
+                  await upsertAdminHeroPerkIcon({
+                    data: {
+                      contentId: hero.contentId,
+                      heroPerkId: perk.id,
+                      iconAssetId: next,
+                    },
+                  });
+                  window.location.reload();
+                  return next === null ? "Perk image cleared." : "Perk image saved.";
+                });
+              }}
+              disabled={props.disabled || props.pending}
+              folder="perks"
+              previewClassName="h-12 w-12"
+            />
+          </li>
+        ))}
+      </ul>
     </CmsFormSection>
   );
 }

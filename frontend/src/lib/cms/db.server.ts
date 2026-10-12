@@ -27,7 +27,13 @@ import { buildAuditEvent, type AuditAction, type AuditActor, type AuditEvent } f
 import { normalizeSlug, resolveSlugCollision, isValidSlug } from "./slugs";
 import { canTransitionStatus, isContentStatus, type ContentStatus } from "./publish";
 import { CmsAuthError } from "./auth.server";
-import { isUsableMediaStatus, type MediaAssetStatus, type MediaProviderId } from "./media-provider";
+import {
+  isUsableMediaStatus,
+  MEDIA_SEARCH_COLUMNS,
+  mediaSearchLikePattern,
+  type MediaAssetStatus,
+  type MediaProviderId,
+} from "./media-provider";
 
 /** Minimal structural D1 surface (real binding or test double). */
 export interface D1Result<T> {
@@ -367,6 +373,8 @@ export async function listMediaAssets(
   options: {
     status?: MediaAssetStatus;
     provider?: string;
+    /** Case-insensitive substring match over the searchable text columns. */
+    query?: string;
     limit?: number;
     offset?: number;
   } = {},
@@ -385,6 +393,30 @@ export async function listMediaAssets(
   if (options.provider !== undefined) {
     clauses.push("provider = ?");
     values.push(options.provider);
+  }
+  // SEARCH RUNS IN D1, NOT IN JS.
+  //
+  // This reader is what the media picker uses, and its page is capped at 100
+  // rows ordered newest-first. Filtering that page in the browser made a search
+  // term for anything older than the most recent 50 uploads invisible: the row
+  // was never returned, so no client filter could find it. Matching here means
+  // the term is applied before ORDER BY/LIMIT, so the result set is the whole
+  // table's matches, not the current page's.
+  //
+  // `provider_asset_id` is included because that is the R2 object key for
+  // r2-provider rows ("heroes/lynx.png"), and an editor who knows the key
+  // must be able to find the row by it. Every value is bound; the wildcards in
+  // the pattern are the only interpolated characters and they are produced by
+  // `mediaSearchLikePattern`, which escapes the term first.
+  const pattern = mediaSearchLikePattern(options.query);
+  if (pattern !== "") {
+    const like = MEDIA_SEARCH_COLUMNS.map((column) =>
+      column === "title" || column === "caption"
+        ? `LOWER(COALESCE(${column}, '')) LIKE ? ESCAPE '\\'`
+        : `LOWER(${column}) LIKE ? ESCAPE '\\'`,
+    ).join(" OR ");
+    clauses.push(`(${like})`);
+    values.push(...MEDIA_SEARCH_COLUMNS.map(() => pattern));
   }
   const where = clauses.length > 0 ? `WHERE ${clauses.join(" AND ")}` : "";
   const { results } = await db

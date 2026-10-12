@@ -299,6 +299,22 @@ export async function listHeroRecords(
     .all<HeroRecordRow>();
   return results;
 }
+/**
+ * Insert or update the EDITORIAL columns of one hero ability row.
+ *
+ * PARTIAL UPDATE, DELIBERATELY.
+ *
+ * `sortOrder` and `iconAssetId` are each optional, and "absent" means "leave
+ * the stored value alone" - NOT "write the default". The previous version
+ * always wrote `sort_order = input.sortOrder ?? 0` on the update path, so an
+ * editor who only wanted to pick an icon silently reset that ability's position
+ * in the abilities list. The columns actually supplied are the only columns
+ * touched, which is what makes "update the icon" a one-column change.
+ *
+ * The ability's names, descriptions and translations live in
+ * hero_ability_translations and are never read or written here, so no path in
+ * this function can touch editorial copy.
+ */
 export async function upsertAbility(
   db: D1Database,
   heroContentId: string,
@@ -307,8 +323,9 @@ export async function upsertAbility(
 ): Promise<AbilityRow> {
   await assertHeroContent(db, heroContentId);
   if (!isValidAbilityKey(input.abilityKey)) throw new Error("Invalid ability_key.");
-  const sortOrder = input.sortOrder ?? 0;
-  if (!isValidSortOrder(sortOrder)) throw new Error("Invalid sort_order.");
+  if (input.sortOrder !== undefined && !isValidSortOrder(input.sortOrder)) {
+    throw new Error("Invalid sort_order.");
+  }
   await assertMediaUsable(db, input.iconAssetId ?? null);
   const existing = await db
     .prepare("SELECT * FROM hero_abilities WHERE hero_content_id = ? AND ability_key = ?")
@@ -324,18 +341,28 @@ export async function upsertAbility(
         newId("ability"),
         heroContentId,
         input.abilityKey,
-        sortOrder,
+        input.sortOrder ?? 0,
         input.iconAssetId ?? null,
         ts,
         ts,
       )
       .run();
-  } else {
+  } else if (input.sortOrder !== undefined || input.iconAssetId !== undefined) {
+    const sets: string[] = [];
+    const values: unknown[] = [];
+    if (input.sortOrder !== undefined) {
+      sets.push("sort_order = ?");
+      values.push(input.sortOrder);
+    }
+    if (input.iconAssetId !== undefined) {
+      sets.push("icon_asset_id = ?");
+      values.push(input.iconAssetId);
+    }
+    sets.push("updated_at = ?");
+    values.push(ts, existing.id);
     await db
-      .prepare(
-        "UPDATE hero_abilities SET sort_order = ?, icon_asset_id = ?, updated_at = ? WHERE id = ?",
-      )
-      .bind(sortOrder, input.iconAssetId ?? existing.icon_asset_id, ts, existing.id)
+      .prepare(`UPDATE hero_abilities SET ${sets.join(", ")} WHERE id = ?`)
+      .bind(...values)
       .run();
   }
   await recordAuditEvent(
@@ -354,6 +381,60 @@ export async function upsertAbility(
     .first<AbilityRow>();
   if (!row) throw new Error("Failed to read back ability.");
   return row;
+}
+
+/**
+ * Set (or clear) ONE hero-perk icon.
+ *
+ * The row addressed is the per-Hero join row (`hero_perks.id`), NOT the perk
+ * definition. That distinction is the whole point of migration 0015: the same
+ * perk definition is shared by many heroes, so an editor must be able to give
+ * ONE hero a different image without forking `hero_perk_defs` and without
+ * touching the perk's name, description, slot or translations.
+ *
+ * `heroContentId` is asserted to match the row, so a forged heroPerkId cannot
+ * write to another hero's perk. The definition row is read for the audit
+ * metadata only.
+ */
+export async function setHeroPerkIcon(
+  db: D1Database,
+  input: { heroContentId: string; heroPerkId: string; iconAssetId: string | null },
+  actor: AuditActor,
+): Promise<void> {
+  await assertHeroContent(db, input.heroContentId);
+  const row = await db
+    .prepare(
+      `SELECT p.id AS id, p.hero_content_id AS hero_content_id, d.perk_key AS perk_key
+         FROM hero_perks p JOIN hero_perk_defs d ON d.id = p.hero_perk_def_id
+        WHERE p.id = ?`,
+    )
+    .bind(input.heroPerkId)
+    .first<{ id: string; hero_content_id: string; perk_key: string }>();
+  if (!row) throw new Error("Hero perk not found.");
+  if (row.hero_content_id !== input.heroContentId) {
+    throw new Error("That perk does not belong to this hero.");
+  }
+  await assertMediaUsable(db, input.iconAssetId);
+  // hero_perks carries no updated_at (migration 0014 defined it without one),
+  // so this is a single-column write. Nothing else on the row changes.
+  await db
+    .prepare("UPDATE hero_perks SET icon_asset_id = ? WHERE id = ?")
+    .bind(input.iconAssetId, input.heroPerkId)
+    .run();
+  await recordAuditEvent(
+    db,
+    buildAuditEvent({
+      actor,
+      action: "content.update",
+      entityType: HERO_ENTITY_TYPE,
+      entityId: input.heroContentId,
+      metadata: {
+        op: "perk.icon",
+        perkKey: row.perk_key,
+        assetId: input.iconAssetId,
+      },
+    }),
+  );
 }
 export async function deleteAbility(
   db: D1Database,

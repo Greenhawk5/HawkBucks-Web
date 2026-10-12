@@ -108,6 +108,12 @@ const asStr = (v: unknown): string => (v === null || v === undefined ? "" : Stri
  * Perks for many heroes in two queries total (rows + nothing else needed).
  * The translation LEFT JOIN is locale-parameterized and falls back to the 'en'
  * row via COALESCE, so a missing locale never hides a perk.
+ *
+ * ICON RESOLUTION: `COALESCE(p.icon_asset_id, d.icon_asset_id)`. The per-hero
+ * column is an editorial override; the definition column is the shared icon.
+ * Both are ordinary `media_assets` FKs, so one join to media_assets with the
+ * `status = 'ready'` guard is the whole story - a tombstoned or missing asset
+ * resolves to no icon rather than to a broken image.
  */
 export async function readHeroPerks(
   db: D1Database,
@@ -131,7 +137,8 @@ export async function readHeroPerks(
            JOIN hero_perk_defs d ON d.id = p.hero_perk_def_id
            LEFT JOIN hero_perk_def_translations t
                   ON t.hero_perk_def_id = d.id AND t.locale = ?
-           LEFT JOIN media_assets m ON m.id = d.icon_asset_id AND m.status = 'ready'
+           LEFT JOIN media_assets m
+                  ON m.id = COALESCE(p.icon_asset_id, d.icon_asset_id) AND m.status = 'ready'
           WHERE p.hero_content_id IN (${placeholders(ids.length)})
           ORDER BY p.slot_order ASC, d.display_name ASC`,
       )
@@ -161,6 +168,12 @@ export async function readHeroPerks(
  * sub-select is locale-filtered AND locale-ordered, which also fixes the
  * previous non-deterministic `?? translations[0]` fallback (that query had no
  * ORDER BY, so the fallback locale was arbitrary).
+ *
+ * ICON RESOLUTION: `COALESCE(a.icon_asset_id, d.icon_asset_id)`. The per-hero
+ * column has been writable by the CMS since migration 0007 but was never read,
+ * so an editor who picked an ability icon saw it silently ignored. The shared
+ * definition icon remains the fallback, so nothing that already resolved keeps
+ * working.
  */
 export async function readHeroAbilities(
   db: D1Database,
@@ -187,7 +200,8 @@ export async function readHeroAbilities(
            FROM hero_abilities a
            LEFT JOIN ability_defs d ON d.id = a.ability_def_id
            LEFT JOIN ability_def_translations t ON t.ability_def_id = d.id AND t.locale = ?
-           LEFT JOIN media_assets m ON m.id = d.icon_asset_id AND m.status = 'ready'
+           LEFT JOIN media_assets m
+                  ON m.id = COALESCE(a.icon_asset_id, d.icon_asset_id) AND m.status = 'ready'
           WHERE a.hero_content_id IN (${placeholders(ids.length)})
           ORDER BY a.sort_order ASC, a.ability_key ASC`,
       )

@@ -129,18 +129,7 @@ export function ResourceCostChip({
       )}
       title={`${cost.name}: ${formatNumber(locale, cost.amount)}`}
     >
-      {cost.iconUrl ? (
-        <img
-          src={cost.iconUrl}
-          alt=""
-          aria-hidden="true"
-          className="h-3.5 w-3.5 object-contain"
-          loading="lazy"
-          decoding="async"
-        />
-      ) : (
-        <span aria-hidden="true" className="h-1.5 w-1.5 rounded-full bg-muted-foreground/50" />
-      )}
+      <MediaIcon url={cost.iconUrl} sizeClass="h-3.5 w-3.5" />
       <span className="tabular-nums font-semibold">{formatNumber(locale, cost.amount)}</span>
       <span className="text-muted-foreground">{cost.name}</span>
     </span>
@@ -172,7 +161,8 @@ export function ResourceCostList({
   );
 }
 
-/** Icon-only ability chip with a native tooltip; falls back to the short name. */
+/**
+ * Icon-only ability chip with a native tooltip; falls back to the short name. */
 export function AbilityChip({
   locale,
   ability,
@@ -189,28 +179,74 @@ export function AbilityChip({
       title={ability.description ? `${ability.name} — ${ability.description}` : ability.name}
       className="inline-flex items-center gap-1.5"
     >
-      {ability.iconUrl ? (
-        <img
-          src={ability.iconUrl}
-          alt=""
-          aria-hidden="true"
-          className={cn(dim, "rounded-sm object-contain")}
-          loading="lazy"
-          decoding="async"
-        />
-      ) : (
-        <span
-          aria-hidden="true"
-          className={cn(
-            dim,
-            "grid place-items-center rounded-sm border border-panel-border/70 text-[9px] font-bold uppercase text-muted-foreground",
-          )}
-        >
-          {ability.name.slice(0, 2)}
-        </span>
-      )}
+      <MediaIcon
+        url={ability.iconUrl}
+        sizeClass={dim}
+        fallbackText={ability.name.slice(0, 2)}
+        labelled={false}
+      />
       {size === "md" ? <span className="text-sm">{ability.name}</span> : null}
       {size === "md" ? <span className="sr-only">{locale}</span> : null}
+    </span>
+  );
+}
+
+/**
+ * One icon slot for the reference UI: the managed image when there is one, a
+ * bordered placeholder otherwise.
+ *
+ * Why the fallback is stateful: an icon only appears when a CMS asset is
+ * referenced AND that asset is `status = 'ready'`, so a missing `url` means
+ * "no media was ever associated". A url that still fails to load is a different
+ * fact - the asset row is live but its bytes are gone (`registered_missing`),
+ * which happens when an object is removed from the bucket outside the CMS.
+ * Rendering the browser's broken-image glyph for that would look like a bug in
+ * the page, so the ERROR path swaps to the same placeholder and hides the
+ * failed request instead.
+ *
+ * The slot keeps fixed dimensions either way, so swapping never shifts layout.
+ * The image is decorative: the adjacent text already names the entity, so the
+ * icon is hidden from assistive technology.
+ */
+export function MediaIcon(props: {
+  url: string | null | undefined;
+  sizeClass: string;
+  /** Optional text shown in the placeholder when there is no usable image. */
+  fallbackText?: string;
+  labelled?: boolean;
+}) {
+  const [failed, setFailed] = React.useState(false);
+  // A different url is a different image: forget the previous failure.
+  React.useEffect(() => {
+    setFailed(false);
+  }, [props.url]);
+  const showImage = typeof props.url === "string" && props.url !== "" && !failed;
+  if (showImage) {
+    return (
+      <img
+        src={props.url as string}
+        alt=""
+        aria-hidden={props.labelled === true ? undefined : "true"}
+        className={cn(props.sizeClass, "shrink-0 rounded-sm object-contain")}
+        loading="lazy"
+        decoding="async"
+        onError={() => setFailed(true)}
+      />
+    );
+  }
+  return (
+    <span
+      aria-hidden="true"
+      data-placeholder="true"
+      className={cn(
+        props.sizeClass,
+        "grid shrink-0 place-items-center rounded-sm border border-panel-border/70 bg-background/40",
+        props.fallbackText !== undefined && props.fallbackText !== ""
+          ? "text-[9px] font-bold uppercase text-muted-foreground"
+          : "",
+      )}
+    >
+      {props.fallbackText ?? ""}
     </span>
   );
 }
@@ -233,21 +269,7 @@ export function PerkRow({
       data-slot={perk.slot}
       className="flex gap-2.5 border-t border-panel-border/50 py-2.5 first:border-t-0 first:pt-0 last:pb-0"
     >
-      {perk.iconUrl ? (
-        <img
-          src={perk.iconUrl}
-          alt=""
-          aria-hidden="true"
-          className="mt-0.5 h-8 w-8 shrink-0 rounded-sm object-contain"
-          loading="lazy"
-          decoding="async"
-        />
-      ) : (
-        <span
-          aria-hidden="true"
-          className="mt-0.5 h-8 w-8 shrink-0 rounded-sm border border-panel-border/70 bg-background/40"
-        />
-      )}
+      <MediaIcon url={perk.iconUrl} sizeClass="mt-0.5 h-8 w-8" />
       <div className="min-w-0">
         <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
           <span className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
@@ -286,21 +308,7 @@ export function AbilityRow({
         className,
       )}
     >
-      {ability.iconUrl ? (
-        <img
-          src={ability.iconUrl}
-          alt=""
-          aria-hidden="true"
-          className="mt-0.5 h-7 w-7 shrink-0 rounded-sm object-contain"
-          loading="lazy"
-          decoding="async"
-        />
-      ) : (
-        <span
-          aria-hidden="true"
-          className="mt-0.5 h-7 w-7 shrink-0 rounded-sm border border-panel-border/70 bg-background/40"
-        />
-      )}
+      <MediaIcon url={ability.iconUrl} sizeClass="mt-0.5 h-7 w-7" />
       <div className="min-w-0">
         <p className="font-display text-sm font-bold">{ability.name}</p>
         {ability.description ? (

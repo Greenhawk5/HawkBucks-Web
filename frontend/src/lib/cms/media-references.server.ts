@@ -26,6 +26,9 @@ export type MediaReferenceSource =
   | "hero_portrait"
   | "hero_banner"
   | "hero_ability_icon"
+  | "ability_definition_icon"
+  | "hero_perk_icon"
+  | "hero_perk_definition_icon"
   | "loadout_cover"
   | "weapon_icon"
   | "trap_icon"
@@ -69,6 +72,24 @@ const REFERENCE_QUERIES: readonly ReferenceQuery[] = [
   {
     source: "hero_ability_icon",
     sql: "SELECT id AS entity_id FROM hero_abilities WHERE icon_asset_id = ?",
+    idColumn: "entity_id",
+  },
+  {
+    // The SHARED per-ability icon. Distinct from hero_ability_icon so the UI
+    // can tell an editor that one asset is the canonical icon for an ability
+    // used by every hero, rather than a single hero's override.
+    source: "ability_definition_icon",
+    sql: "SELECT id AS entity_id FROM ability_defs WHERE icon_asset_id = ?",
+    idColumn: "entity_id",
+  },
+  {
+    source: "hero_perk_icon",
+    sql: "SELECT id AS entity_id FROM hero_perks WHERE icon_asset_id = ?",
+    idColumn: "entity_id",
+  },
+  {
+    source: "hero_perk_definition_icon",
+    sql: "SELECT id AS entity_id FROM hero_perk_defs WHERE icon_asset_id = ?",
     idColumn: "entity_id",
   },
   {
@@ -118,6 +139,9 @@ export const MEDIA_REFERENCE_LABELS: Record<MediaReferenceSource, string> = {
   hero_portrait: "Hero portrait",
   hero_banner: "Hero banner",
   hero_ability_icon: "Hero ability icon",
+  ability_definition_icon: "Ability icon (shared by every hero)",
+  hero_perk_icon: "Hero perk icon",
+  hero_perk_definition_icon: "Perk icon (shared by every hero)",
   loadout_cover: "Loadout cover",
   weapon_icon: "Weapon icon",
   trap_icon: "Trap icon",
