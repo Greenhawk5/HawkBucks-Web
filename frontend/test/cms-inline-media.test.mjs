@@ -481,7 +481,9 @@ test("dynamic media pickers are rendered from the record, not hardcoded", async 
   // The ability icon picker and the perk image picker each take their label
   // from the row they edit, so a new ability or perk needs no editor change.
   assert.match(src, /label=\{`\$\{ability\.abilityKey\} icon`\}/);
-  assert.match(src, /label=\{`\$\{perk\.slot\}: \$\{perk\.name\}`\}/);
+  // W6 slot cards label the image from the slot definition + assigned perk.
+  assert.match(src, /label=\{`\$\{props\.label\} image`\}/);
+  assert.equal(src.includes("assigned.name"), true, "the assigned perk name is shown");
   // Both keep the same folder-scoped upload hint as the hero media fields.
   assert.equal([...src.matchAll(/folder="abilities"/g)].length, 1);
   assert.equal([...src.matchAll(/folder="perks"/g)].length, 1);

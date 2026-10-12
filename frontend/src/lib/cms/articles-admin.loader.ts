@@ -6,14 +6,12 @@ import { createServerFn } from "@tanstack/react-start";
 import {
   asOptionalString,
   asOptionalStringOrNull,
-  asSearchFilter,
-  asStatusFilter,
-  clampAdminPaging,
   requireArticleLocale,
   requireContentId,
   requireNonEmptyString,
   requireTitle,
 } from "./admin-inputs";
+import { parseAdminListSearch, type AdminPageMeta, type AdminStatusCounts } from "./admin-list";
 
 async function requireArticleSession(
   cap: "cms.read" | "cms.write" | "cms.publish",
@@ -39,47 +37,37 @@ export interface ArticleAdminItem {
   locales: string[];
 }
 
+export interface ArticleAdminListResult {
+  items: ArticleAdminItem[];
+  total: number;
+  counts: AdminStatusCounts;
+  meta: AdminPageMeta;
+}
+
 export const listAdminArticles = createServerFn({ method: "GET" })
-  .validator((i: { status?: string; search?: string; limit?: number; offset?: number }) => {
-    const status = asStatusFilter(i.status);
-    const search = asSearchFilter(i.search);
-    const { limit, offset } = clampAdminPaging(i);
-    return { status, search, limit, offset };
-  })
-  .handler(async ({ data }): Promise<{ items: ArticleAdminItem[] }> => {
+  .validator((i: Record<string, unknown>) => parseAdminListSearch(i))
+  .handler(async ({ data }): Promise<ArticleAdminListResult> => {
     const { db } = await requireArticleSession("cms.read");
-    const { results } = await db
-      .prepare(
-        `SELECT c.id AS content_id, c.status AS status, c.default_locale AS default_locale,
-                c.updated_at AS updated_at
-         FROM cms_contents c WHERE c.entity_type = 'article'
-         ORDER BY c.updated_at DESC LIMIT ? OFFSET ?`,
-      )
-      .bind(data.limit, data.offset)
-      .all<{ content_id: string; status: string; default_locale: string; updated_at: string }>();
-    const items: ArticleAdminItem[] = [];
-    for (const row of results) {
-      if (data.status && row.status !== data.status) continue;
-      const { results: translations } = await db
-        .prepare("SELECT locale, title FROM cms_content_translations WHERE content_id = ?")
-        .bind(row.content_id)
-        .all<{ locale: string; title: string }>();
-      const title =
-        translations.find((entry) => entry.locale === row.default_locale)?.title ??
-        translations[0]?.title ??
-        null;
-      if (data.search && title && !title.toLowerCase().includes(data.search.toLowerCase()))
-        continue;
-      items.push({
-        contentId: row.content_id,
-        status: row.status,
-        defaultLocale: row.default_locale,
-        updatedAt: row.updated_at,
-        title,
-        locales: translations.map((entry) => entry.locale),
-      });
-    }
-    return { items };
+    // Same fix as heroes: search + status in the WHERE, not after the LIMIT,
+    // a real COUNT for the total and tabs, and batched title/locale lookups.
+    const { queryEntityAdminList } = await import("./admin-list.server");
+    return queryEntityAdminList<
+      {
+        content_id: string;
+        status: string;
+        default_locale: string;
+        updated_at: string;
+        entity_type: string;
+      },
+      ArticleAdminItem
+    >(db, "article", data, (row, ctx) => ({
+      contentId: row.content_id,
+      status: row.status,
+      defaultLocale: row.default_locale,
+      updatedAt: row.updated_at,
+      title: ctx.titles.get(row.content_id) ?? null,
+      locales: ctx.locales.get(row.content_id) ?? [],
+    }));
   });
 
 export const createAdminArticle = createServerFn({ method: "POST" })

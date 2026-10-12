@@ -1,18 +1,28 @@
-import { useState } from "react";
-import { createFileRoute } from "@tanstack/react-router";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { createFileRoute, useRouter } from "@tanstack/react-router";
 
 import { getAdminSession } from "@/lib/cms/admin.loader";
 import {
+  assignAdminHeroPerk,
   deleteAdminAbility,
   getAdminHero,
+  listAdminHeroPerkDefinitions,
   publishAdminContent,
   updateAdminHero,
   upsertAdminHeroPerkIcon,
   upsertAdminTranslation,
+  type HeroAdminDetail,
 } from "@/lib/cms/heroes-admin.loader";
 import { upsertAdminAbility } from "@/lib/cms/loadouts-admin.loader";
+import { HERO_SUMMARY_MAX_LENGTH } from "@/lib/cms/heroes-loadouts.server";
 import { CmsRouteErrorStandalone, CmsRoutePending } from "@/components/cms/cc/CmsAuth";
 import { CmsCard, CmsField, CmsNotice } from "@/components/cms/cc/CmsPrimitives";
+import {
+  CmsConfirmDialog,
+  CmsDataTable,
+  CmsDialog,
+  CmsMenu,
+} from "@/components/cms/cc/CmsPrimitives";
 import { CmsMediaField } from "@/components/cms/media/CmsMediaField";
 import { CmsMediaSection } from "@/components/cms/cc/CmsMediaSection";
 import { CmsSelect } from "@/components/cms/cc/CmsSelect";
@@ -55,6 +65,7 @@ function HeroEditor() {
     hero: Awaited<ReturnType<typeof getAdminHero>>["hero"] | null;
   };
   const editor = useCmsEditorState();
+  const refreshHero = useHeroEditorRefresh();
   const [publishPending, setPublishPending] = useState(false);
 
   if (!hero || !session.user) {
@@ -165,11 +176,12 @@ function HeroEditor() {
         run={editor.run}
         pending={editor.pending}
       />
-      <PerkMediaForm
+      <PerkSlotPanel
         hero={currentHero}
         disabled={!canWrite}
-        run={editor.run}
         pending={editor.pending}
+        run={editor.run}
+        refresh={refreshHero}
       />
       <ReferencePanel hero={currentHero} />
     </CmsEditorFrame>
@@ -186,9 +198,11 @@ type HeroDetail = Awaited<ReturnType<typeof getAdminHero>>["hero"];
  * let an editor change data that the next sync would silently overwrite - and
  * would break the reference-only rollback this separation makes possible.
  *
- * The one editable column in this namespace is `hero_perks.icon_asset_id`,
- * which lives in PerkMediaForm above: it is media metadata on the per-hero
- * join row, the sync never writes it, and it does not appear in this list.
+ * The two editable things in this namespace now live in PerkSlotPanel above:
+ * `hero_perks.icon_asset_id` (media metadata on the per-hero join row, which
+ * the sync never writes) and the join rows themselves, which is how a hero
+ * gains a standard/commander perk even when the reference sync produced none.
+ * Neither appears in this list, and neither touches the shared definitions.
  *
  * Editorial fields (identity, media, translations, SEO) live in the forms above.
  */
@@ -256,23 +270,160 @@ function ReferencePanel({ hero }: { hero: HeroDetail }) {
       ) : null}
 
       {ref.rarities.length > 0 ? (
-        <div className="mt-4">
-          <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-            Progression
-          </p>
-          <ul className="mt-1.5 space-y-0.5">
-            {ref.rarities.map((r) => (
-              <li key={r.rarity} className="text-sm">
-                <span className="font-medium capitalize">{r.rarity}</span>{" "}
-                <span className="tabular-nums text-muted-foreground">
-                  {r.tiers} tiers · max power {r.maxPower ?? "—"}
-                </span>
-              </li>
-            ))}
-          </ul>
-        </div>
-      ) : null}
+        <HeroEditorEvolutionSection progression={ref.progression} hero={hero} />
+      ) : (
+        // An explicit unknown-vs-zero distinction. No rows is a DATA fact (this
+        // hero has no synced progression), not a zero cost — and the panel must
+        // say which it is rather than leave the editor guessing.
+        <CmsNotice kind="info">
+          No evolution data synced for this hero. The public page shows an empty progression section
+          rather than invented costs.
+        </CmsNotice>
+      )}
     </CmsFormSection>
+  );
+}
+
+/**
+ * Read-only evolution inspection for the hero editor (W7).
+ *
+ * This is the same `progression` object the public pages render — folded by the
+ * same `buildProgression` — so what an editor sees here IS what a player will
+ * see. Nothing here is a form field; normal hero saves never touch
+ * `hero_progression`/`hero_progression_costs`, so saving an identity or an
+ * image cannot overwrite synced costs.
+ *
+ * A tier with no `evolve` entries is the TOP tier (no further evolution), which
+ * the table states explicitly rather than leaving a blank cell. A tier whose
+ * power range is null shows an em-dash: the source has no value there, which is
+ * a different fact from a zero.
+ */
+function HeroEditorEvolutionSection(props: {
+  progression: HeroDetail["reference"]["progression"];
+  hero: HeroDetail;
+}) {
+  const { progression, hero } = props;
+  if (progression === null) {
+    return (
+      <CmsNotice kind="info">
+        No evolution data synced for this hero. The public page shows an empty progression section
+        rather than invented costs.
+      </CmsNotice>
+    );
+  }
+  return (
+    <div className="mt-4 space-y-4">
+      {progression.rarities.map((rarity) => (
+        <div
+          key={rarity.rarity}
+          className="cc-panel p-3"
+          data-testid={`hero-evolution-${rarity.rarity}`}
+        >
+          <div className="flex flex-wrap items-baseline justify-between gap-2">
+            <h3 className="text-sm font-semibold capitalize">{rarity.rarity}</h3>
+            <p className="text-xs tabular-nums opacity-60">
+              {rarity.tiers.length} tiers · max power {rarity.tiers.at(-1)?.powerMax ?? "—"}
+            </p>
+          </div>
+
+          <table className="cc-table mt-2 w-full">
+            <thead>
+              <tr>
+                <th scope="col">Tier</th>
+                <th scope="col">Power</th>
+                <th scope="col">Level</th>
+                <th scope="col">Evolve to next</th>
+              </tr>
+            </thead>
+            <tbody>
+              {rarity.tiers.map((tier) => {
+                const isTop = tier.tier === rarity.tiers.at(-1)?.tier;
+                return (
+                  <tr key={tier.tier}>
+                    <td className="tabular-nums font-semibold">{tier.tier}</td>
+                    <td className="tabular-nums">
+                      {tier.powerMin === null && tier.powerMax === null
+                        ? "—"
+                        : `${tier.powerMin ?? "—"}–${tier.powerMax ?? "—"}`}
+                    </td>
+                    <td className="tabular-nums">
+                      {tier.levelMin === null && tier.levelMax === null
+                        ? "—"
+                        : `${tier.levelMin ?? "—"}–${tier.levelMax ?? "—"}`}
+                    </td>
+                    <td>
+                      {tier.evolve.length === 0 ? (
+                        <span className="text-xs opacity-60">
+                          {isTop ? "Final tier — no further evolution." : "—"}
+                        </span>
+                      ) : (
+                        <ul className="flex flex-wrap gap-1">
+                          {tier.evolve.map((cost) => (
+                            <li
+                              key={cost.resourceKey}
+                              className="inline-flex items-center gap-1 rounded border px-1.5 py-0.5 text-xs tabular-nums cc-hairline"
+                            >
+                              <span className="font-semibold">
+                                {cost.amount.toLocaleString("en-US")}
+                              </span>
+                              <span className="opacity-80">{cost.name}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      )}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+
+          {rarity.total.length > 0 ? (
+            <div className="mt-2 rounded-md border p-2.5 cc-hairline">
+              <p className="text-[11px] font-bold uppercase tracking-[0.14em] opacity-60">
+                Total to max
+              </p>
+              <ul className="mt-1.5 flex flex-wrap gap-1.5">
+                {rarity.total.map((cost) => (
+                  <li
+                    key={cost.resourceKey}
+                    className="inline-flex items-center gap-1.5 rounded border px-2 py-1 text-[13px] tabular-nums cc-hairline"
+                  >
+                    <span className="font-semibold">{cost.amount.toLocaleString("en-US")}</span>
+                    <span className="opacity-80">{cost.name}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
+
+          {rarity.recycle.length > 0 ? (
+            <div className="mt-2 rounded-md border p-2.5 cc-hairline">
+              <p className="text-[11px] font-bold uppercase tracking-[0.14em] opacity-60">
+                Recycling returns
+              </p>
+              <ul className="mt-1.5 flex flex-wrap gap-1.5">
+                {rarity.recycle.map((cost) => (
+                  <li
+                    key={`${cost.resourceKey}-${cost.amount}`}
+                    className="inline-flex items-center gap-1.5 rounded border px-2 py-1 text-[13px] tabular-nums cc-hairline"
+                  >
+                    <span className="font-semibold">{cost.amount.toLocaleString("en-US")}</span>
+                    <span className="opacity-80">{cost.name}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
+
+          <p className="mt-2 text-xs opacity-55">
+            Synced reference data — snapshot{" "}
+            <span className="font-mono">{hero.dataSnapshotAt?.slice(0, 10) ?? "unknown"}</span>.
+            Saving this hero never modifies these costs.
+          </p>
+        </div>
+      ))}
+    </div>
   );
 }
 
@@ -290,6 +441,20 @@ function IdentityForm(props: {
   const [sortOrder, setSortOrder] = useState(String(hero.sortOrder));
   const [summary, setSummary] = useState(hero.summary ?? "");
 
+  /**
+   * The optimistic-concurrency token, held in state so a successful save can
+   * replace it with the token the server just wrote.
+   *
+   * This is the fix for the reported "Save identity doesn't stick" behaviour.
+   * Every update re-stamps `hero_records.updated_at`, but the previous code
+   * sent the RENDER-time token forever. So save #1 succeeded, save #2 threw
+   * "This hero was changed by another editor while you were editing" — even
+   * though the editor was the only one who had changed anything — and the
+   * Summary they had just retyped was never written. A refresh then showed the
+   * save-#1 value, which reads exactly like "the field does not persist".
+   */
+  const [concurrencyToken, setConcurrencyToken] = useState<string | null>(hero.recordUpdatedAt);
+
   return (
     <CmsFormSection
       title="Identity"
@@ -301,7 +466,7 @@ function IdentityForm(props: {
           disabled={props.disabled || props.pending}
           onClick={() =>
             props.run(async () => {
-              await updateAdminHero({
+              const result = await updateAdminHero({
                 data: {
                   contentId: hero.contentId,
                   heroClass,
@@ -309,13 +474,18 @@ function IdentityForm(props: {
                   rarity: rarity === "" ? null : rarity,
                   popularity: Number(popularity),
                   sortOrder: Number(sortOrder),
-                  summary: summary.trim() === "" ? null : summary.trim(),
+                  // The server owns normalization (trim, empty -> null, length
+                  // cap). Sending null explicitly is what CLEARS a stored
+                  // summary; omitting the field would preserve the old one.
+                  summary,
                   // Optimistic concurrency: reject the write if another editor
-                  // changed this record since the page was rendered, instead of
-                  // silently overwriting their work.
-                  expectedUpdatedAt: hero.recordUpdatedAt,
+                  // changed this record since the last successful save.
+                  expectedUpdatedAt: concurrencyToken,
                 },
               });
+              // Adopt the server's fresh token so the next save from this same
+              // page is compared against what is actually in the database.
+              setConcurrencyToken(result.recordUpdatedAt);
               return "Identity saved.";
             })
           }
@@ -324,10 +494,18 @@ function IdentityForm(props: {
         </button>
       }
     >
+      {/*
+        Layout: the Summary helper used to wrap to three lines, which pushed its
+        input far below the Class control beside it. The row now aligns on a
+        single description band for every field (`alignControl` reserves one
+        line), and no field carries a second paragraph under its input — that
+        per-field extra text is what made the heights unequal again.
+      */}
       <div className="grid gap-4 sm:grid-cols-2">
         <CmsField
           label="Summary"
-          description="One short line (about 160 characters) shown on cards and in Quick View. Leave empty to show no summary — the long description is never truncated into this slot."
+          alignControl
+          description="One short line for cards and Quick View."
         >
           <input
             id="hero-summary"
@@ -335,10 +513,10 @@ function IdentityForm(props: {
             value={summary}
             onChange={(e) => setSummary(e.currentTarget.value)}
             disabled={props.disabled}
-            maxLength={240}
+            maxLength={HERO_SUMMARY_MAX_LENGTH}
           />
         </CmsField>
-        <CmsField label="Class" description="Soldier, constructor, ninja, or outlander.">
+        <CmsField label="Class" alignControl description="Soldier, constructor, ninja, outlander.">
           <CmsSelect
             id="hero-class"
             value={heroClass}
@@ -353,7 +531,7 @@ function IdentityForm(props: {
             ]}
           />
         </CmsField>
-        <CmsField label="Category" description="Gameplay role used by public filters.">
+        <CmsField label="Category" alignControl description="Gameplay role used by public filters.">
           <CmsSelect
             id="hero-category"
             value={category}
@@ -370,10 +548,7 @@ function IdentityForm(props: {
             ]}
           />
         </CmsField>
-        <CmsField
-          label="Rarity"
-          description="Editorial rarity (drives public filters + card accents)."
-        >
+        <CmsField label="Rarity" alignControl description="Editorial rarity for public filters.">
           <CmsSelect
             id="hero-rarity"
             value={rarity}
@@ -391,7 +566,7 @@ function IdentityForm(props: {
             ]}
           />
         </CmsField>
-        <CmsField label="Popularity" description="Higher ranks first inside public listings.">
+        <CmsField label="Popularity" alignControl description="Higher ranks first in listings.">
           <input
             className="cc-input"
             value={popularity}
@@ -400,12 +575,12 @@ function IdentityForm(props: {
             disabled={props.disabled}
           />
         </CmsField>
-        <CmsField label="Sort order" description="Tie-breaker within the same popularity.">
+        <CmsField label="Sort order" alignControl description="Tie-breaker within a popularity.">
           <input
             className="cc-input"
             value={sortOrder}
             inputMode="numeric"
-            onChange={(e) => setSortOrder(e.target.value)}
+            onChange={(e) => setSortOrder(e.currentTarget.value)}
             disabled={props.disabled}
           />
         </CmsField>
@@ -727,78 +902,441 @@ function AbilitiesForm(props: {
   );
 }
 
+function PerkSlotCard(props: {
+  slot: "standard" | "commander";
+  label: string;
+  description: string;
+  hero: HeroDetail;
+  assigned: PerkSlotAssignment;
+  disabled: boolean;
+  pending: boolean;
+  run: (action: () => Promise<string>) => Promise<boolean>;
+  refresh: () => Promise<void>;
+}) {
+  const { slot } = props;
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const [createOpen, setCreateOpen] = useState(false);
+  const [createName, setCreateName] = useState("");
+  const [createDescription, setCreateDescription] = useState("");
+  const [createLocale, setCreateLocale] = useState("en");
+  const [confirmClear, setConfirmClear] = useState(false);
+
+  const assigned = props.assigned;
+
+  return (
+    <div className="cc-panel p-3" data-testid={`hero-perk-slot-${slot}`}>
+      <div className="flex items-start justify-between gap-2">
+        <div className="min-w-0">
+          <h3 className="text-sm font-semibold">{props.label}</h3>
+          <p className="mt-0.5 text-xs leading-relaxed opacity-65">{props.description}</p>
+        </div>
+      </div>
+
+      {assigned === null ? (
+        /*
+          THE FIX for the dead end. This is the state the old panel left with no
+          way out; it is now the primary call to action, not a shrug.
+        */
+        <div className="mt-3 space-y-2">
+          <p className="text-sm opacity-70">No perk assigned to this slot.</p>
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              className="cc-btn cc-btn-outline cc-btn-sm"
+              disabled={props.disabled || props.pending}
+              onClick={() => setPickerOpen(true)}
+            >
+              Assign a perk…
+            </button>
+            <button
+              type="button"
+              className="cc-btn cc-btn-ghost cc-btn-sm"
+              disabled={props.disabled || props.pending}
+              onClick={() => setCreateOpen(true)}
+            >
+              Create new…
+            </button>
+          </div>
+        </div>
+      ) : (
+        <div className="mt-3 space-y-3">
+          <dl className="space-y-1 text-[13px]">
+            <div className="flex gap-2">
+              <dt className="shrink-0 opacity-60">Assigned</dt>
+              <dd className="min-w-0 font-medium">{assigned.name}</dd>
+            </div>
+            <div className="flex gap-2">
+              <dt className="shrink-0 opacity-60">Key</dt>
+              <dd className="min-w-0 font-mono text-xs break-all">{assigned.key}</dd>
+            </div>
+            {/*
+              SHARED BY EVERY HERO using this definition. The premise is that a
+              definition is game-wide, so editing its text affects all of them.
+            */}
+            <div className="flex gap-2">
+              <dt className="shrink-0 opacity-60">Scope</dt>
+              <dd className="text-xs opacity-80">
+                Shared definition — editing its name or description affects every hero using it.
+              </dd>
+            </div>
+          </dl>
+
+          <CmsMediaField
+            label={`${props.label} image`}
+            description={(() => {
+              if (assigned.iconAssetId !== null) {
+                return "This hero's own image for this perk.";
+              }
+              if (assigned.defIconAssetId !== null) {
+                return "This hero uses the perk's shared image. Setting one here overrides it only for this hero.";
+              }
+              return "No image on this hero and none shared by the perk itself.";
+            })()}
+            value={assigned.iconAssetId ?? ""}
+            onChange={(value) => {
+              const next = value.trim() === "" ? null : value.trim();
+              void props.run(async () => {
+                await upsertAdminHeroPerkIcon({
+                  data: {
+                    contentId: props.hero.contentId,
+                    heroPerkId: assigned.id,
+                    iconAssetId: next,
+                  },
+                });
+                await props.refresh();
+                return next === null ? "Perk image cleared." : "Perk image saved.";
+              });
+            }}
+            disabled={props.disabled || props.pending}
+            folder="perks"
+            previewClassName="h-12 w-12"
+          />
+
+          <div className="flex flex-wrap gap-2 pt-1">
+            <button
+              type="button"
+              className="cc-btn cc-btn-outline cc-btn-sm"
+              disabled={props.disabled || props.pending}
+              onClick={() => setPickerOpen(true)}
+            >
+              Replace…
+            </button>
+            <button
+              type="button"
+              className="cc-btn cc-btn-danger-outline cc-btn-sm"
+              disabled={props.disabled || props.pending}
+              onClick={() => setConfirmClear(true)}
+            >
+              Clear slot
+            </button>
+          </div>
+        </div>
+      )}
+
+      <CmsDialog
+        open={pickerOpen}
+        onClose={() => setPickerOpen(false)}
+        title={`Assign a ${slot} perk`}
+        size="lg"
+      >
+        <HeroPerkDefinitionPicker
+          slot={slot}
+          disabled={props.disabled}
+          onSelect={(perkDefId, name) => {
+            void props.run(async () => {
+              await assignAdminHeroPerk({
+                data: {
+                  contentId: props.hero.contentId,
+                  slot,
+                  perkDefId,
+                  replace: true,
+                },
+              });
+              await props.refresh();
+              return `${name} assigned as the ${slot} perk.`;
+            });
+            setPickerOpen(false);
+          }}
+        />
+      </CmsDialog>
+
+      <CmsDialog
+        open={createOpen}
+        onClose={() => setCreateOpen(false)}
+        title={`Create a new ${slot} perk definition`}
+      >
+        <div className="space-y-4">
+          <CmsField label="Name" description="Shown on cards and the public hero page.">
+            <input
+              className="cc-input"
+              value={createName}
+              onChange={(e) => setCreateName(e.currentTarget.value)}
+              placeholder="Perk name"
+            />
+          </CmsField>
+          <CmsField label="Description" description="Optional. Plain text for the quick view.">
+            <textarea
+              className="cc-input min-h-24"
+              value={createDescription}
+              onChange={(e) => setCreateDescription(e.currentTarget.value)}
+            />
+          </CmsField>
+          <CmsField label="Locale" description="Which language this text is written in.">
+            <CmsSelect
+              id={`perk-create-locale-${slot}`}
+              value={createLocale}
+              onChange={setCreateLocale}
+              width="full"
+              options={LOCALES.map((l) => ({ value: l, label: l }))}
+            />
+          </CmsField>
+          <div className="flex justify-end gap-2">
+            <button
+              type="button"
+              className="cc-btn cc-btn-ghost cc-btn-sm"
+              onClick={() => setCreateOpen(false)}
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              className="cc-btn cc-btn-primary cc-btn-sm"
+              disabled={props.disabled || props.pending}
+              onClick={() => {
+                void props.run(async () => {
+                  await assignAdminHeroPerk({
+                    data: {
+                      contentId: props.hero.contentId,
+                      slot,
+                      create: {
+                        displayName: createName,
+                        description: createDescription,
+                        descriptionLocale: createLocale,
+                      },
+                      replace: true,
+                    },
+                  });
+                  await props.refresh();
+                  return `Created and assigned the ${slot} perk.`;
+                });
+                setCreateOpen(false);
+              }}
+            >
+              Create and assign
+            </button>
+          </div>
+        </div>
+      </CmsDialog>
+
+      <CmsConfirmDialog
+        open={confirmClear}
+        onClose={() => setConfirmClear(false)}
+        onConfirm={() => {
+          void props.run(async () => {
+            await assignAdminHeroPerk({
+              data: { contentId: props.hero.contentId, slot, clear: true },
+            });
+            await props.refresh();
+            return `${props.label} cleared.`;
+          });
+          setConfirmClear(false);
+        }}
+        pending={props.pending}
+        tone="danger"
+        title={`Clear the ${slot} perk?`}
+        body={`This hero will no longer carry a ${slot} perk. The shared perk definition itself stays available to other heroes.`}
+        confirmLabel="Clear slot"
+      />
+    </div>
+  );
+}
+
+/** One assignment surfaced to a slot card. */
+type PerkSlotAssignment = NonNullable<HeroDetail["reference"]["perks"][number]> | null;
+
+const PERK_SLOTS: ReadonlyArray<{
+  slot: "standard" | "commander";
+  label: string;
+  description: string;
+}> = [
+  {
+    slot: "standard",
+    label: "Standard perk",
+    description: "The hero's base perk, earned at rarity one.",
+  },
+  {
+    slot: "commander",
+    label: "Commander perk",
+    description: "The stronger perk unlocked at maximum rarity.",
+  },
+];
+
 /**
- * Perk icons for this hero.
+ * The two-slot perk editor.
  *
- * The value written is `hero_perks.icon_asset_id` — the PER-HERO join row's
- * own column (migration 0015). The perk definition is shared across the whole
- * game, so forking `hero_perk_defs` to give one hero a different image is not
- * an option, and the shared definition icon is already used as the fallback.
- *
- * A perk with no override is NOT an empty field: the panel states which icon
- * the public page will actually show, so an editor can tell "nothing set"
- * apart from "using the shared icon".
+ * Each slot is an independent card so "assign a standard perk" can never be
+ * confused with "assign a commander perk": the slot travels with every mutation
+ * and is re-verified server-side against the definition's own slot.
  */
-function PerkMediaForm(props: {
+function PerkSlotPanel(props: {
   hero: HeroDetail;
   disabled: boolean;
   pending: boolean;
   run: (action: () => Promise<string>) => Promise<boolean>;
+  refresh: () => Promise<void>;
 }) {
-  const hero = props.hero;
-  const perks = hero.reference.perks;
-  if (perks.length === 0) {
-    return (
-      <CmsFormSection
-        title="Perk images"
-        description="Per-hero imagery travels with the hero's own perk rows."
-      >
-        <p className="text-sm opacity-70">
-          This hero has no synced perks yet, so there are no perk rows to attach an image to.
-        </p>
-      </CmsFormSection>
-    );
-  }
   return (
-    <CmsFormSection
-      title={`Perk images (${perks.length})`}
-      description="Set an image for a perk on this hero. Leave it empty to use the shared icon for that perk."
-      data-testid="hero-perk-media-editor"
-    >
-      <ul className="grid gap-3 sm:grid-cols-2">
-        {perks.map((perk) => (
-          <li key={perk.id}>
-            <CmsMediaField
-              label={`${perk.slot}: ${perk.name}`}
-              description={
-                perk.iconAssetId === null && perk.defIconAssetId === null
-                  ? "No image on this hero and none shared by the perk itself."
-                  : perk.iconAssetId === null
-                    ? "This hero uses the perk's shared image. Setting one here overrides it only for this hero."
-                    : "This hero's own image for this perk."
-              }
-              value={perk.iconAssetId ?? ""}
-              onChange={(value) => {
-                const next = value.trim() === "" ? null : value.trim();
-                void props.run(async () => {
-                  await upsertAdminHeroPerkIcon({
-                    data: {
-                      contentId: hero.contentId,
-                      heroPerkId: perk.id,
-                      iconAssetId: next,
-                    },
-                  });
-                  window.location.reload();
-                  return next === null ? "Perk image cleared." : "Perk image saved.";
-                });
-              }}
-              disabled={props.disabled || props.pending}
-              folder="perks"
-              previewClassName="h-12 w-12"
-            />
-          </li>
-        ))}
-      </ul>
-    </CmsFormSection>
+    <div className="grid gap-4 sm:grid-cols-2">
+      {PERK_SLOTS.map((slotDef) => (
+        <PerkSlotCard
+          key={slotDef.slot}
+          slot={slotDef.slot}
+          label={slotDef.label}
+          description={slotDef.description}
+          hero={props.hero}
+          assigned={props.hero.reference.perks.find((p) => p.slot === slotDef.slot) ?? null}
+          disabled={props.disabled}
+          pending={props.pending}
+          run={props.run}
+          refresh={props.refresh}
+        />
+      ))}
+    </div>
   );
+}
+
+/**
+ * Definition picker for one slot.
+ *
+ * Loads the shared definitions of the right slot on open — never a full table
+ * dump — and reports how many exist so an editor can tell "none exists yet"
+ * (create one) from "I just cannot see it" (search).
+ *
+ * Only definitions whose own `slot` matches the requested slot can ever be
+ * returned: the query itself is scoped by slot, and the server re-verifies the
+ * pair on submission.
+ */
+function HeroPerkDefinitionPicker(props: {
+  slot: "standard" | "commander";
+  disabled: boolean;
+  onSelect: (perkDefId: string, displayName: string) => void;
+}) {
+  const [items, setItems] = useState<
+    Array<{
+      id: string;
+      perkKey: string;
+      displayName: string;
+      hasTranslation: boolean;
+    }>
+  >([]);
+  const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState("");
+  const [loadError, setLoadError] = useState<string | null>(null);
+
+  const load = useCallback(
+    async (term: string) => {
+      setLoading(true);
+      setLoadError(null);
+      try {
+        const result = await listAdminHeroPerkDefinitions({
+          data: { slot: props.slot, search: term },
+        });
+        setItems(result.items);
+        if (result.items.length === 0 && term.trim() !== "") {
+          setLoadError(`No ${props.slot} perk matches “${term}”.`);
+        }
+      } catch (e) {
+        setLoadError(e instanceof Error ? e.message : "Could not load perk definitions.");
+      } finally {
+        setLoading(false);
+      }
+    },
+    [props.slot],
+  );
+
+  useEffect(() => {
+    void load("");
+  }, [load]);
+
+  return (
+    <div className="space-y-3">
+      <form
+        onSubmit={(event) => {
+          event.preventDefault();
+          void load(search);
+        }}
+      >
+        <label className="sr-only" htmlFor="perk-picker-search">
+          Search {props.slot} perks
+        </label>
+        <input
+          id="perk-picker-search"
+          className="cc-input"
+          type="search"
+          value={search}
+          onChange={(e) => setSearch(e.currentTarget.value)}
+          placeholder={`Search ${props.slot} perks…`}
+        />
+      </form>
+
+      {loading ? (
+        <p className="text-sm opacity-70">Loading definitions…</p>
+      ) : items.length === 0 ? (
+        <CmsNotice kind="info">
+          No {props.slot} perk definitions exist for this hero's slot yet. Use{" "}
+          <strong>Create new…</strong> to add one — it is shared by every hero that uses it.
+        </CmsNotice>
+      ) : (
+        <CmsDataTable
+          columns={[
+            {
+              key: "name",
+              header: "Perk",
+              render: (row) => (
+                <div className="min-w-0">
+                  <p className="font-medium">{row.displayName}</p>
+                  <p className="font-mono text-xs truncate opacity-60">{row.perkKey}</p>
+                </div>
+              ),
+            },
+            {
+              key: "assign",
+              header: "Assign",
+              label: "Assign",
+              render: (row) => (
+                <button
+                  type="button"
+                  className="cc-btn cc-btn-primary cc-btn-sm"
+                  disabled={props.disabled}
+                  onClick={() => props.onSelect(row.id, row.displayName)}
+                >
+                  Assign
+                </button>
+              ),
+            },
+          ]}
+          rows={items}
+          emptyTitle="No perks"
+          emptyDescription="Nothing matches this search."
+        />
+      )}
+
+      {loadError !== null ? <CmsNotice kind="warning">{loadError}</CmsNotice> : null}
+    </div>
+  );
+}
+
+/**
+ * Re-render the editor from the database after a mutation.
+ *
+ * The old perk-image path called `window.location.reload()`. Re-invalidating
+ * the route loader is equivalent for correctness (the whole editor is rendered
+ * from `getAdminHero`) but keeps the navigation stack, the scroll position,
+ * and the shell's own state.
+ */
+function useHeroEditorRefresh() {
+  const router = useRouter();
+  return useCallback(async () => {
+    await router.invalidate();
+  }, [router]);
 }

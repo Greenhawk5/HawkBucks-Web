@@ -330,6 +330,10 @@ export const zh: TranslationDictionary = {
   errors: {
     notFoundTitle: "页面未找到",
     notFoundDesc: "您要查找的页面不存在或已被移动。",
+    notFoundKicker: "迷失的远征",
+    backToSafety: "返回安全区",
+    browseHeroes: "浏览英雄",
+    notFoundFooter: "HawkBucks – Save the World 参考",
     loadFailTitle: "页面加载失败",
     loadFailDesc: "我们这边出了点问题。您可以尝试刷新或返回首页。",
     goHome: "返回首页",

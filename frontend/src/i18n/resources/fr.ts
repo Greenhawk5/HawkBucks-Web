@@ -351,6 +351,10 @@ export const fr: TranslationDictionary = {
   errors: {
     notFoundTitle: "Page introuvable",
     notFoundDesc: "La page que vous cherchez n'existe pas ou a été déplacée.",
+    notFoundKicker: "Expédition perdue",
+    backToSafety: "Retour en lieu sûr",
+    browseHeroes: "Voir les héros",
+    notFoundFooter: "HawkBucks – référence Save the World",
     loadFailTitle: "Cette page ne s'est pas chargée",
     loadFailDesc:
       "Un problème est survenu de notre côté. Vous pouvez réessayer ou revenir à l'accueil.",

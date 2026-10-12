@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { createFileRoute, Outlet, useChildMatches } from "@tanstack/react-router";
+import { useCallback, useState } from "react";
+import { createFileRoute, Outlet, useChildMatches, useNavigate } from "@tanstack/react-router";
 
 import { getAdminSession } from "@/lib/cms/admin.loader";
 import {
@@ -8,33 +8,43 @@ import {
   publishAdminArticle,
   type ArticleAdminItem,
 } from "@/lib/cms/articles-admin.loader";
+import { getAdminDraftDeletability } from "@/lib/cms/bulk-admin.loader";
 import { CmsShell } from "@/components/cms/cc/CmsShell";
 import {
   CmsRouteErrorStandalone,
   CmsRoutePending,
   CmsSignInRequired,
 } from "@/components/cms/cc/CmsAuth";
+import { CmsDialog, CmsField } from "@/components/cms/cc/CmsPrimitives";
+import { CmsEntityList, cmsEntitySearch } from "@/components/cms/cc/CmsEntityList";
 import { CmsImportDialog } from "@/components/cms/cc/CmsImportDialog";
-import {
-  CmsActionMenu,
-  CmsConfirmDialog,
-  CmsDataTable,
-  CmsDialog,
-  CmsField,
-  CmsLifecycleBadge,
-  CmsNotice,
-  CmsPageHeader,
-  CmsStatusTabs,
-  cmsToast,
-  relativeTime,
-} from "@/components/cms/cc/CmsPrimitives";
 
 export const Route = createFileRoute("/admin/articles")({
-  loader: async () => {
+  validateSearch: cmsEntitySearch,
+  loaderDeps: ({ search }) => search,
+  loader: async ({ deps }) => {
     const session = await getAdminSession();
-    if (!session.authenticated) return { session, items: [] as ArticleAdminItem[] };
-    const { items } = await listAdminArticles({ data: {} });
-    return { session, items };
+    if (!session.authenticated) {
+      return { session, page: null, deletable: {} as Record<string, boolean> };
+    }
+    const result = await listAdminArticles({ data: deps });
+
+    const deletable: Record<string, boolean> = {};
+    await Promise.all(
+      result.items.map(async (row) => {
+        if (row.status === "published") return;
+        try {
+          const { assessment } = await getAdminDraftDeletability({
+            data: { contentId: row.contentId },
+          });
+          deletable[row.contentId] = assessment.eligible;
+        } catch {
+          deletable[row.contentId] = false;
+        }
+      }),
+    );
+
+    return { session, page: result, deletable };
   },
   head: () => ({
     meta: [
@@ -50,277 +60,117 @@ export const Route = createFileRoute("/admin/articles")({
 });
 
 function ArticlesAdmin() {
-  const { session, items } = Route.useLoaderData();
-  // Nested child (editor) or standalone list? `useChildMatches` reads the
-  // matches BELOW this route: non-empty only when the $contentId child is
-  // active. List hidden while editing so the editor owns the content area;
-  // <Outlet /> always rendered so the child match paints either way.
-  // Declared before the early return — hook order must stay stable.
+  const { session, page, deletable } = Route.useLoaderData();
   const hasChild = useChildMatches({ select: (m) => m.length > 0 });
+  const navigate = useNavigate({ from: "/admin/articles" });
+  const [createOpen, setCreateOpen] = useState(false);
+  const [importOpen, setImportOpen] = useState(false);
+  const search = Route.useSearch();
+
+  // All hooks stay above the auth early-return so hook order is stable.
+  const setParams = useCallback(
+    (
+      next: { page?: number; pageSize?: number; q?: string; status?: string; heroClass?: string },
+      options?: { replace?: boolean },
+    ) => {
+      void navigate({
+        search: (prev) => ({ ...prev, ...next, page: next.page ?? 1 }),
+        ...(options?.replace === true ? { replace: true } : {}),
+      });
+    },
+    [navigate],
+  );
+  const refresh = useCallback(async () => {
+    await navigate({ search: (prev) => ({ ...prev }) });
+  }, [navigate]);
+
   if (!session.authenticated || !session.user) return <CmsSignInRequired title="Articles" />;
+  const canWrite = session.user.role === "editor" || session.user.role === "admin";
+  const canPublish = session.user.role === "admin";
+
   return (
     <CmsShell active="articles" sessionUser={session.user} expiresAt={session.expiresAt}>
-      {hasChild ? null : (
-        <ArticlesBody
-          items={items}
-          canWrite={session.user.role === "editor" || session.user.role === "admin"}
+      {hasChild || page === null ? null : (
+        <CmsEntityList<ArticleAdminItem>
+          entityType="article"
+          noun="articles"
+          singular="Article"
+          page={page}
+          deletable={deletable}
+          canWrite={canWrite}
+          canPublish={canPublish}
+          search={search}
+          setParams={setParams}
+          refresh={refresh}
+          rowTo={(row) => `/admin/articles/${row.contentId}`}
+          header={{
+            eyebrow: "Content · Articles",
+            title: "Articles",
+            description:
+              "Editorial guides and articles: structured blocks, categories, tags, entity references, and per-locale bodies. Only published articles appear publicly.",
+          }}
+          newButtonLabel="+ New article"
+          onNew={() => setCreateOpen(true)}
+          importDialog={
+            <CmsImportDialog
+              open={importOpen}
+              kind="article"
+              canWrite={canWrite}
+              onClose={() => setImportOpen(false)}
+              onImported={() => void refresh()}
+            />
+          }
+          emptyForNew="No articles yet"
+          searchExtras={
+            canWrite
+              ? () => (
+                  <button
+                    type="button"
+                    className="cc-btn cc-btn-outline cc-btn-sm"
+                    onClick={() => setImportOpen(true)}
+                  >
+                    Import JSON
+                  </button>
+                )
+              : undefined
+          }
+          columns={[
+            {
+              key: "title",
+              header: "Article",
+              render: (r) => <span className="font-medium">{r.title ?? r.contentId}</span>,
+            },
+          ]}
+          onTransition={(contentId, to) =>
+            publishAdminArticle({ data: { contentId, to } }).then(() => undefined)
+          }
         />
       )}
-      {/* Child editor route (/admin/articles/$contentId) renders here.
-          Without this Outlet the child match never paints, so opening any
-          draft showed only the list with no editor and no error. */}
       <Outlet />
+
+      <CmsDialog open={createOpen} onClose={() => setCreateOpen(false)} title="New article draft">
+        <CreateArticleForm
+          onCancel={() => setCreateOpen(false)}
+          onCreate={(title) =>
+            createAdminArticle({ data: { title } })
+              .then(() => undefined)
+              .then(() => {
+                void refresh();
+              })
+          }
+        />
+      </CmsDialog>
     </CmsShell>
   );
 }
 
-function ArticlesBody(props: { items: ArticleAdminItem[]; canWrite: boolean }) {
-  const [search, setSearch] = useState("");
-  const [status, setStatus] = useState("");
-  const [createOpen, setCreateOpen] = useState(false);
-  const [importOpen, setImportOpen] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [pending, setPending] = useState(false);
-  const [confirm, setConfirm] = useState<{
-    contentId: string;
-    title: string;
-    to: "published" | "draft" | "archived";
-  } | null>(null);
-
-  const q = search.trim().toLowerCase();
-  const visible = props.items.filter(
-    (i) =>
-      (status === "" || i.status === status) &&
-      (q === "" ||
-        (i.title ?? "").toLowerCase().includes(q) ||
-        i.contentId.toLowerCase().includes(q)),
-  );
-
-  async function mutate(action: () => Promise<unknown>, okMessage: string) {
-    setPending(true);
-    setError(null);
-    try {
-      await action();
-      cmsToast("success", okMessage);
-      window.location.reload();
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Operation failed.");
-    } finally {
-      setPending(false);
-      setConfirm(null);
-    }
-  }
-
-  return (
-    <div className="space-y-5">
-      <CmsPageHeader
-        eyebrow="Content · Articles"
-        title="Articles"
-        description="Editorial guides and articles: structured blocks, categories, tags, entity references, and per-locale bodies. Only published articles appear publicly."
-        action={
-          props.canWrite ? (
-            <div className="flex flex-wrap items-center gap-2">
-              <button
-                type="button"
-                className="cc-btn cc-btn-primary cc-btn-sm"
-                onClick={() => setCreateOpen(true)}
-              >
-                + New article
-              </button>
-              <button
-                type="button"
-                className="cc-btn cc-btn-outline cc-btn-sm"
-                onClick={() => setImportOpen(true)}
-              >
-                Import JSON
-              </button>
-            </div>
-          ) : undefined
-        }
-      />
-      {error ? <CmsNotice kind="error">{error}</CmsNotice> : null}
-      <div className="flex flex-col gap-3">
-        <div className="flex flex-wrap items-center gap-2">
-          <label className="min-w-52 flex-1 sm:max-w-xs">
-            <span className="sr-only">Search articles</span>
-            <input
-              className="cc-input"
-              type="search"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search articles…"
-            />
-          </label>
-          <button
-            type="button"
-            className="cc-btn cc-btn-ghost cc-btn-sm"
-            onClick={() => window.location.reload()}
-          >
-            Refresh
-          </button>
-        </div>
-        <CmsStatusTabs
-          value={status}
-          onChange={setStatus}
-          options={[
-            { value: "", label: "All", count: props.items.length },
-            {
-              value: "published",
-              label: "Published",
-              count: props.items.filter((i) => i.status === "published").length,
-            },
-            {
-              value: "draft",
-              label: "Draft",
-              count: props.items.filter((i) => i.status === "draft").length,
-            },
-            {
-              value: "archived",
-              label: "Archived",
-              count: props.items.filter((i) => i.status === "archived").length,
-            },
-          ]}
-        />
-        <p className="text-xs opacity-60" role="status">
-          Showing {visible.length} of {props.items.length}. Drafts never appear publicly.
-        </p>
-      </div>
-
-      <CmsDataTable
-        columns={[
-          {
-            key: "title",
-            header: "Article",
-            render: (r) => <span className="font-medium">{r.title ?? r.contentId}</span>,
-          },
-          {
-            key: "status",
-            header: "Status",
-            label: "Status",
-            render: (r) => <CmsLifecycleBadge status={r.status} />,
-          },
-          {
-            key: "locales",
-            header: "Locales",
-            label: "Locales",
-            render: (r) => (
-              <span className="font-mono text-xs">{r.locales.join(", ") || "none"}</span>
-            ),
-          },
-          {
-            key: "updated",
-            header: "Updated",
-            label: "Updated",
-            render: (r) => <span title={r.updatedAt}>{relativeTime(r.updatedAt)}</span>,
-          },
-          {
-            key: "actions",
-            header: "Actions",
-            label: "Actions",
-            render: (r) => (
-              <CmsActionMenu
-                items={[
-                  {
-                    label: "Publish",
-                    onSelect: () =>
-                      setConfirm({
-                        contentId: r.contentId,
-                        title: r.title ?? r.contentId,
-                        to: "published",
-                      }),
-                  },
-                  {
-                    label: "Move to draft",
-                    onSelect: () =>
-                      setConfirm({
-                        contentId: r.contentId,
-                        title: r.title ?? r.contentId,
-                        to: "draft",
-                      }),
-                  },
-                  {
-                    label: "Archive",
-                    danger: true,
-                    onSelect: () =>
-                      setConfirm({
-                        contentId: r.contentId,
-                        title: r.title ?? r.contentId,
-                        to: "archived",
-                      }),
-                  },
-                ]}
-              />
-            ),
-          },
-        ]}
-        rows={visible}
-        rowTo={(r) => `/admin/articles/${r.contentId}`}
-        emptyTitle={props.items.length === 0 ? "No articles yet" : "No matches"}
-        emptyDescription={
-          props.items.length === 0
-            ? "Create the first article draft. Structured body, taxonomy, and SEO live in the editor."
-            : "Try clearing the search or choosing a different status tab."
-        }
-      />
-
-      <CmsImportDialog
-        open={importOpen}
-        kind="article"
-        canWrite={props.canWrite}
-        onClose={() => setImportOpen(false)}
-        onImported={() => window.location.reload()}
-      />
-
-      <CmsDialog open={createOpen} onClose={() => setCreateOpen(false)} title="New article draft">
-        <CreateArticleForm
-          pending={pending}
-          onCancel={() => setCreateOpen(false)}
-          onCreate={(title) =>
-            mutate(
-              () => createAdminArticle({ data: { title } }).then(() => undefined),
-              "Article draft created.",
-            )
-          }
-        />
-      </CmsDialog>
-      <CmsConfirmDialog
-        open={confirm !== null}
-        onClose={() => setConfirm(null)}
-        onConfirm={() =>
-          confirm &&
-          mutate(
-            () => publishAdminArticle({ data: { contentId: confirm.contentId, to: confirm.to } }),
-            "Article status updated.",
-          )
-        }
-        pending={pending}
-        title={confirm ? `Confirm: ${confirm.to} “${confirm.title}”` : "Confirm"}
-        body={
-          confirm?.to === "published"
-            ? "Publishing makes this article publicly visible. Continue?"
-            : confirm?.to === "archived"
-              ? "Archiving retires this article from the public site (never hard-deleted). Continue?"
-              : "Moving back to draft hides this article from the public site. Continue?"
-        }
-        confirmLabel={
-          confirm?.to === "published"
-            ? "Publish"
-            : confirm?.to === "archived"
-              ? "Archive"
-              : "Move to draft"
-        }
-      />
-    </div>
-  );
-}
-
 function CreateArticleForm(props: {
-  pending: boolean;
   onCancel: () => void;
   onCreate: (title: string) => Promise<void>;
 }) {
   const [title, setTitle] = useState("");
   const [localError, setLocalError] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
   return (
     <div className="space-y-4">
       <CmsField label="Title" description="Working title for the default (English) translation.">
@@ -343,17 +193,21 @@ function CreateArticleForm(props: {
         <button
           type="button"
           className="cc-btn cc-btn-primary cc-btn-sm"
-          disabled={props.pending}
+          disabled={busy}
           onClick={() => {
             if (title.trim() === "") {
               setLocalError("Title is required.");
               return;
             }
             setLocalError(null);
-            void props.onCreate(title.trim());
+            setBusy(true);
+            void props
+              .onCreate(title.trim())
+              .catch((e) => setLocalError(e instanceof Error ? e.message : "Create failed."))
+              .finally(() => setBusy(false));
           }}
         >
-          {props.pending ? "Creating…" : "Create draft"}
+          {busy ? "Creating…" : "Create draft"}
         </button>
       </div>
       <p className="text-xs opacity-60">

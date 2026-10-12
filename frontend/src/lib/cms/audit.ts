@@ -23,6 +23,13 @@ export const AUDIT_ACTIONS = [
   "content.publish",
   "content.unpublish",
   "content.archive",
+  /**
+   * Permanent hard delete of a draft record. Registered (rather than passed as a
+   * free-form string) because it is the only action that destroys editorial
+   * rows, so it must stay visible to the audit-trail filters.
+   */
+  "content.delete",
+  "content.bulk_status",
   "translation.upsert",
   "slug.reserve",
   "media.upload",

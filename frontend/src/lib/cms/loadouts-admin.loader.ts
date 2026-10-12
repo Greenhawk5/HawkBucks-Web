@@ -3,14 +3,12 @@ import {
   asOptionalNumber,
   asOptionalString,
   asOptionalStringOrNull,
-  asSearchFilter,
-  asStatusFilter,
-  clampAdminPaging,
   requireContentId,
   requireNonEmptyString,
   requireTitle,
   stripUndefined,
 } from "./admin-inputs";
+import { parseAdminListSearch, type AdminPageMeta, type AdminStatusCounts } from "./admin-list";
 async function requireLoadoutSession(cap: "cms.read" | "cms.write", mutate = false) {
   const { resolveRequestCmsDb } = await import("./db.server");
   const { resolveRequestSession, hasCapability, CmsAuthError, assertSameOriginForMutation } =
@@ -21,15 +19,6 @@ async function requireLoadoutSession(cap: "cms.read" | "cms.write", mutate = fal
   if (!session) throw new CmsAuthError(401, "CMS authentication required.");
   if (!hasCapability(session.user.role, cap)) throw new CmsAuthError(403, "Forbidden.");
   return { db, session };
-}
-function clampLoadoutPaging(input: { limit?: number; offset?: number }): {
-  limit: number;
-  offset: number;
-} {
-  return {
-    limit: Math.max(1, Math.min(100, Math.floor(input.limit ?? 50))),
-    offset: Math.max(0, Math.floor(input.offset ?? 0)),
-  };
 }
 export interface LoadoutAdminItem {
   contentId: string;
@@ -58,58 +47,64 @@ export interface LoadoutAdminDetail extends LoadoutAdminItem {
   }>;
   heroes: Array<{ contentId: string; slotOrder: number; title: string | null; status: string }>;
 }
+export interface LoadoutAdminListResult {
+  items: LoadoutAdminItem[];
+  total: number;
+  counts: AdminStatusCounts;
+  meta: AdminPageMeta;
+}
+
 export const listAdminLoadouts = createServerFn({ method: "GET" })
-  .validator((i: { status?: string; search?: string; limit?: number; offset?: number }) => {
-    const status = asStatusFilter(i.status);
-    const search = asSearchFilter(i.search);
-    const { limit, offset } = clampAdminPaging(i);
-    return { status, search, limit, offset };
+  .validator((i: Record<string, unknown>) => {
+    const base = parseAdminListSearch(i);
+    const loadoutType = asOptionalString(i["loadoutType"]);
+    return { ...base, loadoutType };
   })
-  .handler(async ({ data }): Promise<{ items: LoadoutAdminItem[] }> => {
+  .handler(async ({ data }): Promise<LoadoutAdminListResult> => {
     const { db } = await requireLoadoutSession("cms.read");
-    const { limit, offset } = clampLoadoutPaging(data);
-    const { results } = await db
-      .prepare(
-        "SELECT l.*, c.status AS c_status, c.default_locale AS c_default, c.updated_at AS c_updated FROM loadout_records l JOIN cms_contents c ON c.id = l.content_id ORDER BY l.sort_order ASC, l.popularity DESC LIMIT ? OFFSET ?",
-      )
-      .bind(limit, offset)
-      .all<{
+    // Same fix as heroes, plus the per-row `loadout_heroes` count is batched
+    // into one COUNT(*) ... GROUP BY instead of N queries.
+    const { queryEntityAdminList } = await import("./admin-list.server");
+    const list = await queryEntityAdminList<
+      {
         content_id: string;
+        status: string;
         loadout_type: string;
         popularity: number;
         sort_order: number;
-        c_status: string;
-        c_default: string;
-        c_updated: string;
-      }>();
-    const items: LoadoutAdminItem[] = [];
-    for (const r of results) {
-      if (data.status && r.c_status !== data.status) continue;
-      const { results: trs } = await db
-        .prepare("SELECT locale, title FROM cms_content_translations WHERE content_id = ?")
-        .bind(r.content_id)
-        .all<{ locale: string; title: string }>();
-      const t = trs.find((x) => x.locale === r.c_default)?.title ?? trs[0]?.title ?? null;
-      if (data.search && t && !t.toLowerCase().includes(String(data.search).toLowerCase()))
-        continue;
-      const count = await db
-        .prepare("SELECT id FROM loadout_heroes WHERE loadout_content_id = ?")
-        .bind(r.content_id)
-        .all<{ id: string }>();
-      items.push({
-        contentId: r.content_id,
-        status: r.c_status,
-        loadoutType: r.loadout_type,
-        popularity: r.popularity,
-        sortOrder: r.sort_order,
-        defaultLocale: r.c_default,
-        updatedAt: r.c_updated,
-        title: t,
-        locales: trs.map((x) => x.locale),
-        heroCount: count.results.length,
-      });
+        default_locale: string;
+        updated_at: string;
+        entity_type: string;
+      },
+      LoadoutAdminItem
+    >(db, "loadout", data, (row, ctx) => ({
+      contentId: row.content_id,
+      status: row.status,
+      loadoutType: row.loadout_type,
+      popularity: row.popularity,
+      sortOrder: row.sort_order,
+      defaultLocale: row.default_locale,
+      updatedAt: row.updated_at,
+      title: ctx.titles.get(row.content_id) ?? null,
+      locales: ctx.locales.get(row.content_id) ?? [],
+      heroCount: 0,
+    }));
+    // Batch the roster counts for this page in one query.
+    if (list.items.length > 0) {
+      const placeholders = list.items.map(() => "?").join(", ");
+      const { results } = await db
+        .prepare(
+          `SELECT loadout_content_id AS loadout_content_id, COUNT(*) AS n
+             FROM loadout_heroes
+            WHERE loadout_content_id IN (${placeholders})
+            GROUP BY loadout_content_id`,
+        )
+        .bind(...list.items.map((item) => item.contentId))
+        .all<{ loadout_content_id: string; n: number }>();
+      const byLoadout = new Map(results.map((row) => [row.loadout_content_id, Number(row.n) || 0]));
+      for (const item of list.items) item.heroCount = byLoadout.get(item.contentId) ?? 0;
     }
-    return { items };
+    return list;
   });
 export const getAdminLoadout = createServerFn({ method: "GET" })
   .validator((i: { contentId: string }) => ({ contentId: requireContentId(i.contentId) }))

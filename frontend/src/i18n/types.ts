@@ -330,6 +330,10 @@ export interface TranslationDictionary {
   errors: {
     notFoundTitle: string;
     notFoundDesc: string;
+    notFoundKicker: string;
+    backToSafety: string;
+    browseHeroes: string;
+    notFoundFooter: string;
     loadFailTitle: string;
     loadFailDesc: string;
     goHome: string;

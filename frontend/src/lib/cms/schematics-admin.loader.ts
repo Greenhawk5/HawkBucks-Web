@@ -3,12 +3,17 @@ import {
   asOptionalNumber,
   asOptionalString,
   asOptionalStringOrNull,
-  clampAdminPaging,
   requireContentId,
   requireNonEmptyString,
   requireTitle,
   stripUndefined,
 } from "./admin-inputs";
+import {
+  parseAdminListSearch,
+  type AdminListSearchBase,
+  type AdminPageMeta,
+  type AdminStatusCounts,
+} from "./admin-list";
 async function requireInventorySession(
   cap: "cms.read" | "cms.write" | "cms.publish",
   mutate = false,
@@ -23,15 +28,6 @@ async function requireInventorySession(
   if (!hasCapability(session.user.role, cap)) throw new CmsAuthError(403, "Forbidden.");
   return { db, session };
 }
-function clampPaging(input: { limit?: number; offset?: number }): {
-  limit: number;
-  offset: number;
-} {
-  return {
-    limit: Math.max(1, Math.min(100, Math.floor(input.limit ?? 50))),
-    offset: Math.max(0, Math.floor(input.offset ?? 0)),
-  };
-}
 export interface InventoryAdminItem {
   contentId: string;
   status: string;
@@ -43,63 +39,68 @@ export interface InventoryAdminItem {
   title: string | null;
   locales: string[];
 }
-async function adminListFor(
+export interface InventoryAdminListResult {
+  items: InventoryAdminItem[];
+  total: number;
+  counts: AdminStatusCounts;
+  meta: AdminPageMeta;
+}
+
+async function inventoryListFor(
   db: Awaited<ReturnType<typeof requireInventorySession>>["db"],
-  table: "weapon_records" | "trap_records" | "perk_records" | "schematic_records",
-  subtypeCol: string | null,
-): Promise<InventoryAdminItem[]> {
-  const { results } = await db
-    .prepare(
-      `SELECT r.*, c.status AS c_status, c.default_locale AS c_default, c.updated_at AS c_updated
-       FROM ${table} r JOIN cms_contents c ON c.id = r.content_id
-       ORDER BY r.sort_order ASC, r.popularity DESC LIMIT 100`,
-    )
-    .all<Record<string, string | number | null>>();
-  const items: InventoryAdminItem[] = [];
-  for (const r of results) {
-    const cid = String(r["content_id"]);
-    const { results: trs } = await db
-      .prepare("SELECT locale, title FROM cms_content_translations WHERE content_id = ?")
-      .bind(cid)
-      .all<{ locale: string; title: string }>();
-    const t = trs.find((x) => x.locale === String(r["c_default"]))?.title ?? trs[0]?.title ?? null;
-    items.push({
-      contentId: cid,
-      status: String(r["c_status"]),
-      popularity: Number(r["popularity"] ?? 0),
-      sortOrder: Number(r["sort_order"] ?? 0),
-      subtype: subtypeCol ? String(r[subtypeCol] ?? null) : null,
-      defaultLocale: String(r["c_default"]),
-      updatedAt: String(r["c_updated"]),
-      title: t,
-      locales: trs.map((x) => x.locale),
-    });
-  }
-  return items;
+  kind: "weapon" | "trap" | "perk" | "schematic",
+  input: AdminListSearchBase,
+): Promise<InventoryAdminListResult> {
+  // The `LIMIT 100`-with-no-OFFSET ceiling that silently hid every record past
+  // the first hundred is gone; this is now the same honest paging as heroes.
+  const { queryEntityAdminList } = await import("./admin-list.server");
+  return queryEntityAdminList<
+    {
+      content_id: string;
+      status: string;
+      popularity: number;
+      sort_order: number;
+      subtype: string | null;
+      default_locale: string;
+      updated_at: string;
+      entity_type: string;
+    },
+    InventoryAdminItem
+  >(db, kind, input, (row, ctx) => ({
+    contentId: row.content_id,
+    status: row.status,
+    popularity: row.popularity,
+    sortOrder: row.sort_order,
+    subtype: row.subtype ?? null,
+    defaultLocale: row.default_locale,
+    updatedAt: row.updated_at,
+    title: ctx.titles.get(row.content_id) ?? null,
+    locales: ctx.locales.get(row.content_id) ?? [],
+  }));
 }
 export const listAdminWeapons = createServerFn({ method: "GET" })
-  .validator((i: { limit?: number; offset?: number }) => clampAdminPaging(i))
-  .handler(async (): Promise<{ items: InventoryAdminItem[] }> => {
+  .validator((i: Record<string, unknown>) => parseAdminListSearch(i))
+  .handler(async ({ data }): Promise<InventoryAdminListResult> => {
     const { db } = await requireInventorySession("cms.read");
-    return { items: await adminListFor(db, "weapon_records", "weapon_subtype") };
+    return inventoryListFor(db, "weapon", data);
   });
 export const listAdminTraps = createServerFn({ method: "GET" })
-  .validator((i: { limit?: number; offset?: number }) => clampAdminPaging(i))
-  .handler(async (): Promise<{ items: InventoryAdminItem[] }> => {
+  .validator((i: Record<string, unknown>) => parseAdminListSearch(i))
+  .handler(async ({ data }): Promise<InventoryAdminListResult> => {
     const { db } = await requireInventorySession("cms.read");
-    return { items: await adminListFor(db, "trap_records", "trap_subtype") };
+    return inventoryListFor(db, "trap", data);
   });
 export const listAdminPerks = createServerFn({ method: "GET" })
-  .validator((i: { limit?: number; offset?: number }) => clampAdminPaging(i))
-  .handler(async (): Promise<{ items: InventoryAdminItem[] }> => {
+  .validator((i: Record<string, unknown>) => parseAdminListSearch(i))
+  .handler(async ({ data }): Promise<InventoryAdminListResult> => {
     const { db } = await requireInventorySession("cms.read");
-    return { items: await adminListFor(db, "perk_records", "perk_type") };
+    return inventoryListFor(db, "perk", data);
   });
 export const listAdminSchematics = createServerFn({ method: "GET" })
-  .validator((i: { limit?: number; offset?: number }) => clampAdminPaging(i))
-  .handler(async (): Promise<{ items: InventoryAdminItem[] }> => {
+  .validator((i: Record<string, unknown>) => parseAdminListSearch(i))
+  .handler(async ({ data }): Promise<InventoryAdminListResult> => {
     const { db } = await requireInventorySession("cms.read");
-    return { items: await adminListFor(db, "schematic_records", null) };
+    return inventoryListFor(db, "schematic", data);
   });
 export const createAdminWeapon = createServerFn({ method: "POST" })
   .validator(

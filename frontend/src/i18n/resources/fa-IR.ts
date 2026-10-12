@@ -341,6 +341,10 @@ export const faIR: TranslationDictionary = {
   errors: {
     notFoundTitle: "صفحه یافت نشد",
     notFoundDesc: "صفحه‌ای که به دنبال آن هستید وجود ندارد یا منتقل شده است.",
+    notFoundKicker: "گشت گمشده",
+    backToSafety: "بازگشت به نقطه امن",
+    browseHeroes: "مشاهده قهرمانان",
+    notFoundFooter: "HawkBucks – مرجع Save the World",
     loadFailTitle: "این صفحه بارگذاری نشد",
     loadFailDesc: "مشکلی از سمت ما پیش آمد. می‌توانید دوباره تلاش کنید یا به خانه برگردید.",
     goHome: "بازگشت به خانه",

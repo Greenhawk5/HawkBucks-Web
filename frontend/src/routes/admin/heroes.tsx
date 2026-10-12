@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { createFileRoute, Outlet, useChildMatches } from "@tanstack/react-router";
+import { useCallback, useState } from "react";
+import { createFileRoute, Outlet, useChildMatches, useNavigate } from "@tanstack/react-router";
 
 import { getAdminSession } from "@/lib/cms/admin.loader";
 import {
@@ -8,34 +8,46 @@ import {
   publishAdminContent,
   type HeroAdminItem,
 } from "@/lib/cms/heroes-admin.loader";
+import { getAdminDraftDeletability } from "@/lib/cms/bulk-admin.loader";
 import { CmsShell } from "@/components/cms/cc/CmsShell";
 import {
   CmsRouteErrorStandalone,
   CmsRoutePending,
   CmsSignInRequired,
 } from "@/components/cms/cc/CmsAuth";
-import {
-  CmsActionMenu,
-  CmsConfirmDialog,
-  CmsDataTable,
-  CmsDialog,
-  CmsField,
-  CmsLifecycleBadge,
-  CmsNotice,
-  CmsPageHeader,
-  CmsStatusTabs,
-  cmsToast,
-  relativeTime,
-} from "@/components/cms/cc/CmsPrimitives";
+import { CmsDialog, CmsField } from "@/components/cms/cc/CmsPrimitives";
+import { CmsEntityList, cmsEntitySearch } from "@/components/cms/cc/CmsEntityList";
 import { CmsSelect } from "@/components/cms/cc/CmsSelect";
 import { CmsImportDialog } from "@/components/cms/cc/CmsImportDialog";
 
 export const Route = createFileRoute("/admin/heroes")({
-  loader: async () => {
+  validateSearch: cmsEntitySearch,
+  loaderDeps: ({ search }) => search,
+  loader: async ({ deps }) => {
     const session = await getAdminSession();
-    if (!session.authenticated) return { session, items: [] as HeroAdminItem[] };
-    const { items } = await listAdminHeroes({ data: {} });
-    return { session, items };
+    if (!session.authenticated) {
+      return { session, page: null, deletable: {} as Record<string, boolean> };
+    }
+    const result = await listAdminHeroes({ data: deps });
+
+    // Probe deletability for the rows on this page so the Delete action is only
+    // offered where it would actually succeed.
+    const deletable: Record<string, boolean> = {};
+    await Promise.all(
+      result.items.map(async (row) => {
+        if (row.status === "published") return;
+        try {
+          const { assessment } = await getAdminDraftDeletability({
+            data: { contentId: row.contentId },
+          });
+          deletable[row.contentId] = assessment.eligible;
+        } catch {
+          deletable[row.contentId] = false;
+        }
+      }),
+    );
+
+    return { session, page: result, deletable };
   },
   head: () => ({
     meta: [{ title: "Heroes — Control Center" }, { name: "robots", content: "noindex, nofollow" }],
@@ -50,87 +62,90 @@ export const Route = createFileRoute("/admin/heroes")({
 const HERO_CLASSES = ["soldier", "constructor", "ninja", "outlander"] as const;
 
 function HeroesAdmin() {
-  const { session, items } = Route.useLoaderData();
-  // List body hides while the $contentId child editor is active (same
-  // pattern as articles) — the editor then owns the shell's content area.
-  // Declared before the early return — hook order must stay stable.
+  const { session, page, deletable } = Route.useLoaderData();
   const hasChild = useChildMatches({ select: (m) => m.length > 0 });
-  if (!session.authenticated || !session.user) return <CmsSignInRequired title="Heroes" />;
-  return (
-    <CmsShell active="heroes" sessionUser={session.user} expiresAt={session.expiresAt}>
-      {hasChild ? null : (
-        <HeroesBody
-          items={items}
-          canWrite={session.user.role === "editor" || session.user.role === "admin"}
-        />
-      )}
-      {/* Child editor route renders here - without this Outlet the editor match never paints. */}
-      <Outlet />
-    </CmsShell>
-  );
-}
-
-function HeroesBody(props: { items: HeroAdminItem[]; canWrite: boolean }) {
-  const [search, setSearch] = useState("");
-  const [status, setStatus] = useState("");
-  const [classFilter, setClassFilter] = useState("");
+  const navigate = useNavigate({ from: "/admin/heroes" });
   const [createOpen, setCreateOpen] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [pending, setPending] = useState(false);
-  const [confirm, setConfirm] = useState<{
-    contentId: string;
-    title: string;
-    to: "published" | "draft" | "archived";
-  } | null>(null);
+  const search = Route.useSearch();
 
-  const counts = {
-    all: props.items.length,
-    draft: props.items.filter((i) => i.status === "draft").length,
-    published: props.items.filter((i) => i.status === "published").length,
-    archived: props.items.filter((i) => i.status === "archived").length,
-  };
-  const q = search.trim().toLowerCase();
-  const visible = props.items.filter(
-    (i) =>
-      (status === "" || i.status === status) &&
-      (classFilter === "" || i.heroClass === classFilter) &&
-      (q === "" ||
-        (i.title ?? "").toLowerCase().includes(q) ||
-        i.contentId.toLowerCase().includes(q)),
+  // All hooks stay above the auth early-return so hook order is stable.
+  // Route-owned navigation (the shared list body cannot name this route's
+  // literal id type, so it does not call `useNavigate` itself).
+  const setParams = useCallback(
+    (
+      next: { page?: number; pageSize?: number; q?: string; status?: string; heroClass?: string },
+      options?: { replace?: boolean },
+    ) => {
+      void navigate({
+        search: (prev) => ({
+          ...prev,
+          ...next,
+          // Any filter change must return to page 1, or the editor lands on a
+          // page that no longer exists under the new filter.
+          page: next.page ?? 1,
+        }),
+        ...(options?.replace === true ? { replace: true } : {}),
+      });
+    },
+    [navigate],
   );
+  const refresh = useCallback(async () => {
+    await navigate({ search: (prev) => ({ ...prev }) });
+  }, [navigate]);
 
-  async function mutate(action: () => Promise<unknown>, okMessage: string) {
-    setPending(true);
-    setError(null);
-    try {
-      await action();
-      cmsToast("success", okMessage);
-      window.location.reload();
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Operation failed.");
-    } finally {
-      setPending(false);
-      setConfirm(null);
-    }
-  }
+  if (!session.authenticated || !session.user) return <CmsSignInRequired title="Heroes" />;
+  const canWrite = session.user.role === "editor" || session.user.role === "admin";
+  const canPublish = session.user.role === "admin";
 
   return (
-    <div className="space-y-5">
-      <CmsPageHeader
-        eyebrow="Content · Heroes"
-        title="Heroes"
-        description="Playable heroes: class, category, abilities, translations, lifecycle. Only published heroes appear publicly."
-        action={
-          props.canWrite ? (
-            <div className="flex flex-wrap items-center gap-2">
-              <button
-                type="button"
-                className="cc-btn cc-btn-primary cc-btn-sm"
-                onClick={() => setCreateOpen(true)}
-              >
-                + New hero
-              </button>
+    <CmsShell active="heroes" sessionUser={session.user} expiresAt={session.expiresAt}>
+      {hasChild || page === null ? null : (
+        <CmsEntityList<HeroAdminItem>
+          entityType="hero"
+          noun="heroes"
+          singular="Hero"
+          selectedNoun="heroes"
+          page={page}
+          deletable={deletable}
+          canWrite={canWrite}
+          canPublish={canPublish}
+          search={search}
+          setParams={setParams}
+          refresh={refresh}
+          rowTo={(row) => `/admin/heroes/${row.contentId}`}
+          header={{
+            eyebrow: "Content · Heroes",
+            title: "Heroes",
+            description:
+              "Playable heroes: class, category, abilities, translations, lifecycle. Only published heroes appear publicly.",
+          }}
+          newButtonLabel="+ New hero"
+          onNew={() => setCreateOpen(true)}
+          importDialog={
+            <CmsImportDialog
+              open={importOpen}
+              kind="hero"
+              canWrite={canWrite}
+              onClose={() => setImportOpen(false)}
+              onImported={() => void navigate({ search: (prev) => ({ ...prev }) })}
+            />
+          }
+          emptyForNew="No heroes yet"
+          searchExtras={({ search: s, setParams }) => (
+            <>
+              <label className="flex items-center gap-2 text-sm" htmlFor="heroes-class-filter">
+                <span className="text-xs opacity-70">Class</span>
+                <CmsSelect
+                  id="heroes-class-filter"
+                  value={s.heroClass ?? ""}
+                  onChange={(value) => setParams({ heroClass: value })}
+                  options={[
+                    { value: "", label: "All classes" },
+                    ...HERO_CLASSES.map((c) => ({ value: c, label: c })),
+                  ]}
+                />
+              </label>
               <button
                 type="button"
                 className="cc-btn cc-btn-outline cc-btn-sm"
@@ -138,205 +153,58 @@ function HeroesBody(props: { items: HeroAdminItem[]; canWrite: boolean }) {
               >
                 Import JSON
               </button>
-            </div>
-          ) : undefined
-        }
-      />
-      {error ? <CmsNotice kind="error">{error}</CmsNotice> : null}
-      <div className="flex flex-col gap-3">
-        <div className="flex flex-wrap items-center gap-2">
-          <label className="min-w-52 flex-1 sm:max-w-xs">
-            <span className="sr-only">Search heroes</span>
-            <input
-              className="cc-input"
-              type="search"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search heroes…"
-            />
-          </label>
-          <label className="flex items-center gap-2 text-sm" htmlFor="heroes-class-filter">
-            <span className="text-xs opacity-70">Class</span>
-            <CmsSelect
-              id="heroes-class-filter"
-              value={classFilter}
-              onChange={setClassFilter}
-              options={[
-                { value: "", label: "All classes" },
-                ...HERO_CLASSES.map((c) => ({ value: c, label: c })),
-              ]}
-            />
-          </label>
-          <button
-            type="button"
-            className="cc-btn cc-btn-ghost cc-btn-sm"
-            onClick={() => window.location.reload()}
-          >
-            Refresh
-          </button>
-        </div>
-        <CmsStatusTabs
-          value={status}
-          onChange={setStatus}
-          options={[
-            { value: "", label: "All", count: counts.all },
-            { value: "published", label: "Published", count: counts.published },
-            { value: "draft", label: "Draft", count: counts.draft },
-            { value: "archived", label: "Archived", count: counts.archived },
+            </>
+          )}
+          columns={[
+            {
+              key: "title",
+              header: "Hero",
+              render: (r) => <span className="font-medium">{r.title ?? r.contentId}</span>,
+            },
+            {
+              key: "class",
+              header: "Class",
+              label: "Class",
+              render: (r) => <span className="font-mono text-xs">{r.heroClass}</span>,
+            },
+            {
+              key: "category",
+              header: "Category",
+              label: "Category",
+              render: (r) => r.category ?? "—",
+            },
           ]}
+          onTransition={(contentId, to) =>
+            publishAdminContent({ data: { contentId, to } }).then(() => undefined)
+          }
         />
-        <p className="text-xs opacity-60" role="status">
-          Showing {visible.length} of {props.items.length}. Drafts never appear publicly.
-        </p>
-      </div>
-
-      <CmsDataTable
-        columns={[
-          {
-            key: "title",
-            header: "Hero",
-            render: (r) => <span className="font-medium">{r.title ?? r.contentId}</span>,
-          },
-          {
-            key: "class",
-            header: "Class",
-            label: "Class",
-            render: (r) => <span className="font-mono text-xs">{r.heroClass}</span>,
-          },
-          {
-            key: "category",
-            header: "Category",
-            label: "Category",
-            render: (r) => r.category ?? "—",
-          },
-          {
-            key: "status",
-            header: "Status",
-            label: "Status",
-            render: (r) => <CmsLifecycleBadge status={r.status} />,
-          },
-          {
-            key: "locales",
-            header: "Locales",
-            label: "Locales",
-            render: (r) => (
-              <span className="font-mono text-xs">{r.locales.join(", ") || "none"}</span>
-            ),
-          },
-          {
-            key: "updated",
-            header: "Updated",
-            label: "Updated",
-            render: (r) => <span title={r.updatedAt}>{relativeTime(r.updatedAt)}</span>,
-          },
-          {
-            key: "actions",
-            header: "Actions",
-            label: "Actions",
-            render: (r) => (
-              <CmsActionMenu
-                items={[
-                  {
-                    label: "Publish",
-                    onSelect: () =>
-                      setConfirm({
-                        contentId: r.contentId,
-                        title: r.title ?? r.contentId,
-                        to: "published",
-                      }),
-                  },
-                  {
-                    label: "Move to draft",
-                    onSelect: () =>
-                      setConfirm({
-                        contentId: r.contentId,
-                        title: r.title ?? r.contentId,
-                        to: "draft",
-                      }),
-                  },
-                  {
-                    label: "Archive",
-                    danger: true,
-                    onSelect: () =>
-                      setConfirm({
-                        contentId: r.contentId,
-                        title: r.title ?? r.contentId,
-                        to: "archived",
-                      }),
-                  },
-                ]}
-              />
-            ),
-          },
-        ]}
-        rows={visible}
-        rowTo={(r) => `/admin/heroes/${r.contentId}`}
-        emptyTitle={props.items.length === 0 ? "No heroes yet" : "No matches"}
-        emptyDescription={
-          props.items.length === 0
-            ? "Create the first hero draft. Drafts stay hidden until published."
-            : "Try clearing the search or choosing a different status tab."
-        }
-      />
+      )}
+      <Outlet />
 
       <CreateHeroDialog
         open={createOpen}
-        pending={pending}
         onClose={() => setCreateOpen(false)}
         onCreate={(input) =>
-          mutate(
-            () => createAdminHero({ data: input }).then(() => undefined),
-            "Hero draft created.",
-          )
+          createAdminHero({ data: input })
+            .then(() => undefined)
+            .then(() => {
+              void navigate({ search: (prev) => ({ ...prev }) });
+            })
         }
       />
-      <CmsImportDialog
-        open={importOpen}
-        kind="hero"
-        canWrite={props.canWrite}
-        onClose={() => setImportOpen(false)}
-        onImported={() => window.location.reload()}
-      />
-      <CmsConfirmDialog
-        open={confirm !== null}
-        onClose={() => setConfirm(null)}
-        onConfirm={() =>
-          confirm &&
-          mutate(
-            () => publishAdminContent({ data: { contentId: confirm.contentId, to: confirm.to } }),
-            "Hero status updated.",
-          )
-        }
-        pending={pending}
-        title={confirm ? `Confirm: ${confirm.to} “${confirm.title}”` : "Confirm"}
-        body={
-          confirm?.to === "published"
-            ? "Publishing makes this hero publicly visible. Continue?"
-            : confirm?.to === "archived"
-              ? "Archiving retires this hero from the public site (never hard-deleted). Continue?"
-              : "Moving back to draft hides this hero from the public site. Continue?"
-        }
-        confirmLabel={
-          confirm?.to === "published"
-            ? "Publish"
-            : confirm?.to === "archived"
-              ? "Archive"
-              : "Move to draft"
-        }
-      />
-    </div>
+    </CmsShell>
   );
 }
 
 function CreateHeroDialog(props: {
   open: boolean;
-  pending: boolean;
   onClose: () => void;
   onCreate: (input: { heroClass: string; title: string; body?: string }) => Promise<void>;
 }) {
   const [heroClass, setHeroClass] = useState("soldier");
   const [title, setTitle] = useState("");
   const [localError, setLocalError] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
   return (
     <CmsDialog open={props.open} onClose={props.onClose} title="New hero draft">
       <div className="space-y-4">
@@ -372,17 +240,21 @@ function CreateHeroDialog(props: {
           <button
             type="button"
             className="cc-btn cc-btn-primary cc-btn-sm"
-            disabled={props.pending}
+            disabled={busy}
             onClick={() => {
               if (title.trim() === "") {
                 setLocalError("Title is required.");
                 return;
               }
               setLocalError(null);
-              void props.onCreate({ heroClass, title: title.trim() });
+              setBusy(true);
+              void props
+                .onCreate({ heroClass, title: title.trim() })
+                .catch((e) => setLocalError(e instanceof Error ? e.message : "Create failed."))
+                .finally(() => setBusy(false));
             }}
           >
-            {props.pending ? "Creating…" : "Create draft"}
+            {busy ? "Creating…" : "Create draft"}
           </button>
         </div>
         <p className="text-xs opacity-60">

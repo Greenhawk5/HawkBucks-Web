@@ -118,12 +118,45 @@ export interface HeroInput {
    */
   expectedUpdatedAt?: string | null;
 }
+/**
+ * Server-side contract for `hero_records.summary`.
+ *
+ * The editor's `maxLength={240}` is client-only decoration, so before this a
+ * crafted call could persist an unbounded string (or an empty one) straight
+ * into a column the public cards and Quick View render. The server is now the
+ * only authority:
+ *
+ *   * `""` / whitespace-only => NULL. An empty summary is a real state ("no
+ *     summary"), so saving an empty field must CLEAR the stored value rather
+ *     than leave the previous text in place.
+ *   * Surrounded by trimming, so pasted whitespace does not shift the layout
+ *     of every card that renders it.
+ *   * Capped at HERO_SUMMARY_MAX_LENGTH. Rejecting is deliberate: silently
+ *     truncating editorial copy is worse than telling the caller it is wrong.
+ *
+ * Unicode length is measured in code points, not UTF-16 units, so a summary
+ * full of emoji or CJK is measured the way an editor would count it.
+ */
+export const HERO_SUMMARY_MAX_LENGTH = 240;
+
+export function normalizeHeroSummary(value: string | null | undefined): string | null {
+  if (value === undefined || value === null) return null;
+  if (typeof value !== "string") throw new Error("Invalid summary.");
+  const trimmed = value.trim();
+  if (trimmed === "") return null;
+  if ([...trimmed].length > HERO_SUMMARY_MAX_LENGTH) {
+    throw new Error(`Summary must be ${HERO_SUMMARY_MAX_LENGTH} characters or fewer.`);
+  }
+  return trimmed;
+}
+
 function validateHeroInput(i: HeroInput): {
   heroClass: string;
   category: string | null;
   rarity: string | null;
   popularity: number;
   sortOrder: number;
+  summary: string | null;
 } {
   if (!isHeroClass(i.heroClass)) throw new Error("Invalid hero_class.");
   const category = normalizeHeroCategory(i.category ?? null);
@@ -139,7 +172,8 @@ function validateHeroInput(i: HeroInput): {
   const sortOrder = i.sortOrder ?? 0;
   if (!isValidPopularity(popularity)) throw new Error("Invalid popularity.");
   if (!isValidSortOrder(sortOrder)) throw new Error("Invalid sort_order.");
-  return { heroClass: i.heroClass, category, rarity, popularity, sortOrder };
+  const summary = normalizeHeroSummary(i.summary ?? null);
+  return { heroClass: i.heroClass, category, rarity, popularity, sortOrder, summary };
 }
 export async function createHeroRecord(
   db: D1Database,
@@ -222,9 +256,12 @@ export async function updateHeroRecord(
     bannerAssetId: input.bannerAssetId !== undefined ? input.bannerAssetId : cur.banner_asset_id,
     summary: input.summary !== undefined ? input.summary : ((cur.summary as string | null) ?? null),
   };
+  // `v.summary` is the SERVER-normalized value: whitespace-only collapses to
+  // NULL and the length cap is enforced here, not by the client's maxLength.
   const v = validateHeroInput(merged);
   await assertMediaUsable(db, merged.portraitAssetId ?? null);
   await assertMediaUsable(db, merged.bannerAssetId ?? null);
+  const timestamp = utcNow();
   await db
     .prepare(
       "UPDATE hero_records SET hero_class = ?, category = ?, rarity = ?, popularity = ?, sort_order = ?, portrait_asset_id = ?, banner_asset_id = ?, summary = ?, updated_at = ? WHERE content_id = ?",
@@ -237,8 +274,8 @@ export async function updateHeroRecord(
       v.sortOrder,
       merged.portraitAssetId ?? null,
       merged.bannerAssetId ?? null,
-      merged.summary ?? null,
-      utcNow(),
+      v.summary,
+      timestamp,
       contentId,
     )
     .run();
@@ -436,6 +473,340 @@ export async function setHeroPerkIcon(
     }),
   );
 }
+/* ------------------------------------------------------------------ */
+/* Hero perk assignment (editorial join rows)                         */
+/* ------------------------------------------------------------------ */
+
+/** A perk definition offered by the assignment picker. */
+export interface HeroPerkDefinitionOption {
+  id: string;
+  perkKey: string;
+  slot: "standard" | "commander";
+  displayName: string;
+  hasTranslation: boolean;
+}
+
+/**
+ * The two slots a hero can carry. Mirrors `hero_perk_defs.slot`'s CHECK, which
+ * is the ONLY authoritative place the distinction lives — `hero_perks` itself
+ * has no slot/tier/commander column (migration 0014).
+ */
+export const HERO_PERK_SLOTS = ["standard", "commander"] as const;
+export type HeroPerkSlot = (typeof HERO_PERK_SLOTS)[number];
+
+export function isHeroPerkSlot(value: unknown): value is HeroPerkSlot {
+  return value === "standard" || value === "commander";
+}
+
+/** Stable, deterministic id for a per-hero perk JOIN row. */
+function heroPerkJoinId(heroContentId: string, defId: string): string {
+  return `hp_${heroContentId}_${defId}`.slice(0, 128);
+}
+
+/**
+ * Assign a perk definition to a hero in one slot.
+ *
+ * WHY A JOIN ROW, NOT A COLUMN
+ * ---------------------------
+ * `hero_perk_defs` is a game-wide namespace (416 definitions shared by every
+ * hero) and `hero_perks` is the per-hero join that says which ones THIS hero
+ * carries. One hero therefore has exactly one `standard` join row and one
+ * `commander` join row. Assigning is `INSERT OR REPLACE` on
+ * `(hero_content_id, hero_perk_def_id)` — the table's UNIQUE — so the same
+ * hero+definition pair can never produce two rows, and re-assigning is
+ * naturally idempotent.
+ *
+ * SLOT SAFETY: the slot is not stored on `hero_perks`, so it is re-derived from
+ * the definition and VERIFIED to match the requested slot. Assigning a
+ * `commander` definition to the `standard` slot is rejected, so an editor cannot
+ * silently create an inconsistent hero.
+ *
+ * SHARED DATA SAFETY: only the join row and its per-hero icon are touched.
+ * `hero_perk_defs`, `hero_perk_def_translations` and every other hero's join
+ * rows are never written — which is what stops one hero's rewrite from leaking
+ * into another.
+ *
+ * ORDER: `slot_order` places standard before commander (0/1) so the public
+ * read path, which orders by `slot_order`, renders them in game order.
+ */
+export async function assignHeroPerk(
+  db: D1Database,
+  input: {
+    heroContentId: string;
+    /** The hero_perks row slot: "standard" or "commander". */
+    slot: HeroPerkSlot;
+    /** Existing shared definition to attach. Mutually exclusive with `create`. */
+    perkDefId?: string | null;
+    /** Create a new definition when no suitable one exists. */
+    create?: {
+      displayName: string;
+      description?: string;
+      descriptionLocale?: string;
+      iconAssetId?: string | null;
+    } | null;
+    /** Replaces any existing assignment in this slot. */
+    replace?: boolean;
+    /** Clears the slot. */
+    clear?: boolean;
+  },
+  actor: AuditActor,
+): Promise<{
+  slot: HeroPerkSlot;
+  heroPerkId: string | null;
+  perkDefId: string | null;
+  createdDef: boolean;
+}> {
+  await assertHeroContent(db, input.heroContentId);
+  if (!isHeroPerkSlot(input.slot)) throw new Error("Invalid perk slot.");
+
+  if (input.clear === true) {
+    const existing = await listHeroPerkJoinRows(db, input.heroContentId);
+    const target = existing.find((row) => row.slot === input.slot) ?? null;
+    if (target === null) {
+      return { slot: input.slot, heroPerkId: null, perkDefId: null, createdDef: false };
+    }
+    await db.prepare("DELETE FROM hero_perks WHERE id = ?").bind(target.id).run();
+    await recordAuditEvent(
+      db,
+      buildAuditEvent({
+        actor,
+        action: "content.update",
+        entityType: HERO_ENTITY_TYPE,
+        entityId: input.heroContentId,
+        metadata: { op: "perk.unassign", slot: input.slot, perkKey: target.perkKey },
+      }),
+    );
+    return { slot: input.slot, heroPerkId: null, perkDefId: null, createdDef: false };
+  }
+
+  let perkDefId = input.perkDefId ?? null;
+  let createdDef = false;
+
+  if (input.create !== null && input.create !== undefined) {
+    perkDefId = await createHeroPerkDef(db, input.slot, input.create);
+    createdDef = true;
+  }
+
+  if (typeof perkDefId !== "string" || perkDefId.trim() === "") {
+    throw new Error("Select a perk definition, or create one.");
+  }
+
+  // Verify the definition exists AND carries the requested slot, so a forged
+  // id cannot attach a commander perk to a hero's standard slot.
+  const def = await db
+    .prepare("SELECT id, slot, perk_key FROM hero_perk_defs WHERE id = ?")
+    .bind(perkDefId)
+    .first<{ id: string; slot: string; perk_key: string }>();
+  if (def === null) throw new Error("Perk definition not found.");
+  if (def.slot !== input.slot) {
+    throw new Error(
+      `That perk is a "${def.slot}" perk and cannot be assigned to the ${input.slot} slot.`,
+    );
+  }
+
+  const existing = await listHeroPerkJoinRows(db, input.heroContentId);
+  const target = existing.find((row) => row.slot === input.slot) ?? null;
+  const alreadyAttached = existing.find((row) => row.defId === def.id && row.slot === input.slot);
+
+  if (alreadyAttached !== undefined) {
+    return {
+      slot: input.slot,
+      heroPerkId: alreadyAttached.id,
+      perkDefId: def.id,
+      createdDef,
+    };
+  }
+
+  if (target !== null) {
+    if (input.replace !== true) {
+      throw new Error(
+        `This hero already has a ${input.slot} perk (${target.perkKey}). Confirm replacing it.`,
+      );
+    }
+    // A slot holds exactly one perk, so the previous assignment goes first.
+    await db.prepare("DELETE FROM hero_perks WHERE id = ?").bind(target.id).run();
+  }
+
+  const id = heroPerkJoinId(input.heroContentId, def.id);
+  const ts = utcNow();
+  await db
+    .prepare(
+      `INSERT INTO hero_perks (id, hero_content_id, hero_perk_def_id, slot_order, created_at)
+       VALUES (?, ?, ?, ?, ?)
+       ON CONFLICT(hero_content_id, hero_perk_def_id) DO UPDATE SET slot_order = excluded.slot_order`,
+    )
+    .bind(id, input.heroContentId, def.id, input.slot === "commander" ? 1 : 0, ts)
+    .run();
+
+  await recordAuditEvent(
+    db,
+    buildAuditEvent({
+      actor,
+      action: "content.update",
+      entityType: HERO_ENTITY_TYPE,
+      entityId: input.heroContentId,
+      metadata: {
+        op: "perk.assign",
+        slot: input.slot,
+        perkKey: def.perk_key,
+        perkDefId: def.id,
+        createdDefinition: createdDef,
+      },
+    }),
+  );
+
+  return { slot: input.slot, heroPerkId: id, perkDefId: def.id, createdDef };
+}
+
+interface HeroPerkJoinRow {
+  id: string;
+  slot: string;
+  defId: string;
+  perkKey: string;
+  slotOrder: number;
+}
+
+/** The hero's perk join rows, enriched with each definition's slot. */
+export async function listHeroPerkJoinRows(
+  db: D1Database,
+  heroContentId: string,
+): Promise<HeroPerkJoinRow[]> {
+  const { results } = await db
+    .prepare(
+      `SELECT p.id AS id, d.slot AS slot, d.id AS def_id, d.perk_key AS perk_key, p.slot_order AS slot_order
+         FROM hero_perks p JOIN hero_perk_defs d ON d.id = p.hero_perk_def_id
+        WHERE p.hero_content_id = ?
+        ORDER BY p.slot_order ASC, d.display_name ASC`,
+    )
+    .bind(heroContentId)
+    .all<{ id: string; slot: string; def_id: string; perk_key: string; slot_order: number }>();
+  return results.map((row) => ({
+    id: row.id,
+    slot: row.slot,
+    defId: row.def_id,
+    perkKey: row.perk_key,
+    slotOrder: Number(row.slot_order) || 0,
+  }));
+}
+
+/**
+ * Create a shared perk definition.
+ *
+ * `perk_key` is SLOT-SCOPED (`standard/<slug>` vs `commander/<slug>`) — the
+ * exact convention the reference sync uses (migration 0014 DECISION 2). A naive
+ * slug collides for every perk in the game because the source's "+" suffix is
+ * stripped, so the slot prefix is what keeps standard and commander distinct.
+ *
+ * The `en` translation is written alongside the definition, in the same call, so
+ * a definition can never exist without a name.
+ */
+export async function createHeroPerkDef(
+  db: D1Database,
+  slot: HeroPerkSlot,
+  input: {
+    displayName: string;
+    description?: string;
+    descriptionLocale?: string;
+    iconAssetId?: string | null;
+  },
+): Promise<string> {
+  const name = typeof input.displayName === "string" ? input.displayName.trim() : "";
+  if (name === "") throw new Error("A perk name is required.");
+  if (!isHeroPerkSlot(slot)) throw new Error("Invalid perk slot.");
+  const key = `${slot}/${slugifyPerkName(name)}`;
+  if (key.length > 200) throw new Error("That perk name is too long to produce a stable key.");
+
+  await assertMediaUsable(db, input.iconAssetId ?? null);
+
+  const id = newId("hpd");
+  const ts = utcNow();
+  await db
+    .prepare(
+      `INSERT INTO hero_perk_defs (id, perk_key, slot, display_name, icon_asset_id, sort_order, data_source, data_snapshot_at, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, 'editorial', NULL, ?, ?)`,
+    )
+    .bind(
+      id,
+      key,
+      slot,
+      name,
+      input.iconAssetId ?? null,
+      // Keep editor-created definitions after the reference-synced ones.
+      1_000_000,
+      ts,
+      ts,
+    )
+    .run();
+
+  const requestedLocale = input.descriptionLocale ?? "en";
+  const locale = isCmsContentLocale(requestedLocale) ? requestedLocale : "en";
+  await db
+    .prepare(
+      `INSERT INTO hero_perk_def_translations (id, hero_perk_def_id, locale, name, description, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?)
+       ON CONFLICT(hero_perk_def_id, locale) DO UPDATE SET name = excluded.name, description = excluded.description, updated_at = excluded.updated_at`,
+    )
+    .bind(newId("hpdtr"), id, locale, name, (input.description ?? "").trim(), ts, ts)
+    .run();
+
+  return id;
+}
+
+/** Same slug rule the reference sync uses (see scripts/sync-heroes-reference.mjs). */
+function slugifyPerkName(name: string): string {
+  return name
+    .toLowerCase()
+    .replace(/\s*\+\s*$/, "")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
+/**
+ * Definitions available to the picker for one slot.
+ *
+ * `hasTranslation` distinguishes a definition that has localized text from one
+ * that only has the reference `display_name`, so the editor knows whether
+ * editing it will touch localization.
+ */
+export async function listHeroPerkDefinitions(
+  db: D1Database,
+  slot: HeroPerkSlot,
+  options: { search?: string; limit?: number } = {},
+): Promise<HeroPerkDefinitionOption[]> {
+  const { results } = await db
+    .prepare(
+      `SELECT id, perk_key, slot, display_name,
+              EXISTS (SELECT 1 FROM hero_perk_def_translations t
+                       WHERE t.hero_perk_def_id = hero_perk_defs.id) AS has_translation
+         FROM hero_perk_defs
+        WHERE slot = ?
+        ORDER BY sort_order ASC, display_name ASC
+        LIMIT 400`,
+    )
+    .bind(slot)
+    .all<{
+      id: string;
+      perk_key: string;
+      slot: string;
+      display_name: string;
+      has_translation: number;
+    }>();
+  const term = (options.search ?? "").trim().toLowerCase();
+  return results
+    .filter(
+      (row) =>
+        term === "" || row.display_name.toLowerCase().includes(term) || row.perk_key.includes(term),
+    )
+    .slice(0, Math.max(1, Math.min(400, options.limit ?? 400)))
+    .map((row) => ({
+      id: row.id,
+      perkKey: row.perk_key,
+      slot: row.slot === "commander" ? ("commander" as const) : ("standard" as const),
+      displayName: row.display_name,
+      hasTranslation: Number(row.has_translation) === 1,
+    }));
+}
+
 export async function deleteAbility(
   db: D1Database,
   abilityId: string,

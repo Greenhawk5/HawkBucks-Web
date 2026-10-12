@@ -356,25 +356,32 @@ test("the hero editor exposes a media picker for every ability icon", async () =
 
 test("the hero editor exposes a media picker for every perk icon", async () => {
   const text = await repo("src/routes/admin/heroes.$contentId.tsx");
-  const perks = /function PerkMediaForm\([\s\S]*?\n}\n/;
-  const body = perks.exec(text);
-  assert.ok(body, "PerkMediaForm must exist");
+  // W6 replaced the image-only PerkMediaForm with per-slot cards that also
+  // assign/create perks; the icon save path is unchanged and still targeted by
+  // the join-row id.
+  const cards = /function PerkSlotCard\([\s\S]*?\n}\n/;
+  const body = cards.exec(text);
+  assert.ok(body, "PerkSlotCard must exist");
   assert.equal(body[0].includes("upsertAdminHeroPerkIcon({"), true);
-  assert.equal(body[0].includes("heroPerkId: perk.id"), true, "the join-row id, not the def id");
+  assert.equal(
+    body[0].includes("heroPerkId: assigned.id"),
+    true,
+    "the join-row id, not the def id",
+  );
   assert.equal(body[0].includes('folder="perks"'), true, "new uploads land in perks/");
-  // The perk's identity and text are never re-sent by this form.
-  assert.equal(body[0].includes("perk_key"), false);
-  assert.equal(body[0].includes("slot_order"), false);
   // Both levels are described, so "nothing set" is never confused with "broken".
-  assert.equal(body[0].includes("perk.defIconAssetId"), true);
+  assert.equal(body[0].includes("assigned.iconAssetId"), true);
+  assert.equal(body[0].includes("assigned.defIconAssetId"), true);
 });
 
 test("the perk form has an explicit empty state", async () => {
   const text = await repo("src/routes/admin/heroes.$contentId.tsx");
-  assert.match(
-    text,
-    /This hero has no synced perks yet, so there are no perk rows to attach an image to\./,
-  );
+  // W6 turned the dead end into the primary call to action: an empty slot
+  // offers assignment AND creation rather than stating that nothing can be done.
+  assert.match(text, /No perk assigned to this slot\./);
+  assert.match(text, /Assign a perk…/);
+  assert.match(text, /Create new…/);
+  assert.match(text, /assignAdminHeroPerk\(\{/);
 });
 
 test("the media section still stores asset ids, never URLs", async () => {

@@ -26,6 +26,17 @@ export interface CmsMutationInventoryEntry {
 
 export const CMS_MUTATION_INVENTORY: CmsMutationInventoryEntry[] = [
   {
+    file: "../src/lib/cms/bulk-admin.loader.ts",
+    mutations: ["bulkSetContentStatus", "deleteAdminDraftContent"],
+    families: [
+      "bulk lifecycle transitions",
+      "bounded cross-page id resolution",
+      "per-record outcome reporting",
+      "permanent draft deletion",
+      "deletability policy enforcement",
+    ],
+  },
+  {
     file: "../src/lib/cms/articles-admin.loader.ts",
     mutations: [
       "createAdminArticle",
@@ -57,6 +68,7 @@ export const CMS_MUTATION_INVENTORY: CmsMutationInventoryEntry[] = [
       "upsertAdminHeroPerkIcon",
       "publishAdminContent",
       "upsertAdminTranslation",
+      "assignAdminHeroPerk",
     ],
     families: [
       "create",

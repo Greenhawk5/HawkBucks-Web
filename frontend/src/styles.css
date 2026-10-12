@@ -268,3 +268,44 @@
     }
   }
 }
+
+/* ------------------------------------------------------------------ */
+/* 404 - lost expedition                                              */
+/* ------------------------------------------------------------------ */
+/*
+ * The field reuses the site's own atmosphere (page gradient, grid, aurora all
+ * come from body::before/::after) and adds only what the composition needs: a
+ * horizon fade so the SVG ridge line melts into the page, a slow compass drift,
+ * and a carved treatment for the code itself. No image assets: the SVG is
+ * inline in the component, so the 404 can never itself 404.
+ */
+.hb-404-field {
+  mask-image: linear-gradient(to bottom, transparent 0%, black 22%);
+}
+
+.hb-404-compass {
+  animation: hb-compass-drift 26s ease-in-out infinite;
+  transform-origin: center;
+}
+
+@keyframes hb-compass-drift {
+  0%,
+  100% {
+    transform: rotate(-8deg);
+  }
+  50% {
+    transform: rotate(8deg);
+  }
+}
+
+.hb-404-code {
+  text-shadow:
+    0 0 60px oklch(0.82 0.23 145 / 25%),
+    0 2px 0 oklch(0 0 0 / 40%);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hb-404-compass {
+    animation: none;
+  }
+}

@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Link } from "@tanstack/react-router";
-import { Check, Copy } from "lucide-react";
+import { Check, Copy, X } from "lucide-react";
 
 import { writeClipboardText } from "@/lib/clipboard";
 import { cn } from "@/lib/utils";
+import { CmsSelectCheckbox } from "./CmsPagination";
 
 /* ------------------------------------------------------------------ */
 /* Surfaces                                                              */
@@ -141,6 +142,8 @@ export function CmsNotice(props: {
   kind: "success" | "error" | "info" | "warning";
   title?: string;
   children: ReactNode;
+  /** Renders a dismiss control; used for transient result banners. */
+  onDismiss?: () => void;
 }) {
   const styles =
     props.kind === "success"
@@ -153,14 +156,30 @@ export function CmsNotice(props: {
   return (
     <div
       role={props.kind === "error" ? "alert" : "status"}
-      className={cn("flex gap-2.5 rounded-lg border px-3.5 py-2.5 text-sm leading-relaxed", styles)}
+      className={cn(
+        "flex gap-2.5 rounded-lg border px-3.5 py-2.5 text-sm leading-relaxed",
+        // When a dismiss control exists the banner owns its own trailing
+        // column, so the text must not be allowed to grow into it.
+        props.onDismiss !== undefined ? "items-start" : "items-center",
+        styles,
+      )}
     >
-      <div className="min-w-0">
+      <div className="min-w-0 flex-1">
         {props.title ? <p className="font-semibold">{props.title}</p> : null}
         <div className={cn("text-[13px] opacity-90", props.title && "mt-0.5")}>
           {props.children}
         </div>
       </div>
+      {props.onDismiss !== undefined ? (
+        <button
+          type="button"
+          className="-me-1 shrink-0 rounded p-1 opacity-70 transition-opacity hover:opacity-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--cc-accent)]"
+          onClick={props.onDismiss}
+        >
+          <X className="h-4 w-4" aria-hidden="true" />
+          <span className="sr-only">Dismiss</span>
+        </button>
+      ) : null}
     </div>
   );
 }
@@ -258,6 +277,17 @@ export function CmsField(props: {
   label: string;
   description?: string;
   htmlFor?: string;
+  /**
+   * Reserve one line of height for the description even when there is none (or
+   * when it is shorter than a neighbour's), so the CONTROLS in a multi-column
+   * field row line up on the same baseline.
+   *
+   * Without this, a field whose helper text is missing or shorter sits higher
+   * than its neighbour — the misalignment seen in the Hero Identity editor,
+   * where a three-line Summary helper pushed its input well below the Class
+   * control beside it. Opt-in so existing editors are not re-flowed.
+   */
+  alignControl?: boolean;
   children: ReactNode;
 }) {
   return (
@@ -265,9 +295,14 @@ export function CmsField(props: {
       <label htmlFor={props.htmlFor} className="block text-sm font-medium">
         {props.label}
       </label>
-      {props.description ? (
-        <p className="mt-0.5 text-xs leading-relaxed opacity-65">{props.description}</p>
-      ) : null}
+      <p
+        className={cn(
+          "mt-0.5 text-xs leading-relaxed opacity-65",
+          props.alignControl === true && "min-h-4",
+        )}
+      >
+        {props.description}
+      </p>
       <div className="mt-1.5">{props.children}</div>
     </div>
   );
@@ -408,6 +443,22 @@ export function CmsDataTable<T extends { contentId?: string; id?: string }>(prop
   emptyDescription?: string | undefined;
   emptyAction?: ReactNode | undefined;
   rowTo?: ((row: T) => string) | undefined;
+  /**
+   * Opt-in row selection. The selection column is rendered FIRST so it reads as
+   * a control rather than a field of the record, and its header cell carries the
+   * page-scoped select-all with an explicit label — the brief requires that a
+   * page selection is never mistaken for a cross-page one.
+   */
+  selectable?: {
+    selected: Record<string, true>;
+    onToggleRow: (contentId: string, next: boolean) => void;
+    allOnPageSelected: boolean;
+    someOnPageSelected: boolean;
+    onTogglePage: (next: boolean) => void;
+    /** Accessible label for the page select-all control. */
+    pageLabel: string;
+    disabled?: boolean;
+  };
 }) {
   if (props.rows.length === 0) {
     return (
@@ -418,11 +469,30 @@ export function CmsDataTable<T extends { contentId?: string; id?: string }>(prop
       />
     );
   }
+  const rowKey = (row: T, index: number) => row.contentId ?? row.id ?? String(index);
+  const isRowSelected = (row: T): boolean => {
+    const id = row.contentId;
+    if (id === undefined || props.selectable === undefined) return false;
+    return props.selectable.selected[id] === true;
+  };
   return (
     <div className="cc-panel cc-scroll-x" style={{ padding: 0 }}>
       <table className="cc-table cc-table-stacked">
         <thead>
           <tr>
+            {props.selectable ? (
+              <th scope="col" className="w-10">
+                <CmsSelectCheckbox
+                  checked={props.selectable.allOnPageSelected}
+                  indeterminate={
+                    !props.selectable.allOnPageSelected && props.selectable.someOnPageSelected
+                  }
+                  onChange={props.selectable.onTogglePage}
+                  label={props.selectable.pageLabel}
+                  disabled={props.selectable.disabled}
+                />
+              </th>
+            ) : null}
             {props.columns.map((col) => (
               <th key={col.key} scope="col">
                 {col.header}
@@ -432,10 +502,26 @@ export function CmsDataTable<T extends { contentId?: string; id?: string }>(prop
         </thead>
         <tbody>
           {props.rows.map((row, i) => {
-            const key = row.contentId ?? row.id ?? String(i);
+            const key = rowKey(row, i);
             const to = props.rowTo?.(row);
+            const selectionId = row.contentId ?? row.id;
             return (
-              <tr key={key}>
+              <tr key={key} data-selected={isRowSelected(row)}>
+                {props.selectable ? (
+                  <td data-label="Select">
+                    <CmsSelectCheckbox
+                      checked={
+                        selectionId !== undefined && props.selectable.selected[selectionId] === true
+                      }
+                      onChange={(next) => {
+                        if (selectionId !== undefined)
+                          props.selectable!.onToggleRow(selectionId, next);
+                      }}
+                      label={`Select ${key}`}
+                      disabled={props.selectable.disabled}
+                    />
+                  </td>
+                ) : null}
                 {props.columns.map((col, ci) => (
                   <td key={col.key} data-label={col.label ?? col.header}>
                     {ci === 0 && to ? (
@@ -574,7 +660,17 @@ export function CmsConfirmDialog(props: {
   body: string;
   confirmLabel?: string;
   pending?: boolean;
+  /**
+   * Visual weight of the confirm action. `danger` is for irreversible or
+   * retire-from-public operations; `default` is the neutral lifecycle change.
+   */
+  tone?: "default" | "danger";
 }) {
+  // Destructive confirmations keep the danger style. The mapping is spelled out
+  // so the danger affordance stays a single greppable convention rather than an
+  // inline conditional that could silently drift.
+  const confirmClass =
+    props.tone === "danger" ? "cc-btn-danger-outline cc-btn-sm" : "cc-btn-primary cc-btn-sm";
   return (
     <CmsDialog open={props.open} onClose={props.onClose} title={props.title}>
       <p className="text-sm leading-relaxed opacity-80">{props.body}</p>
@@ -584,7 +680,7 @@ export function CmsConfirmDialog(props: {
         </button>
         <button
           type="button"
-          className="cc-btn cc-btn-danger-outline cc-btn-sm"
+          className={`cc-btn ${confirmClass}`}
           disabled={props.pending}
           onClick={props.onConfirm}
         >
@@ -755,67 +851,15 @@ export function relativeTime(iso: string | null | undefined): string {
 }
 
 /* ------------------------------------------------------------------ */
-/* Action menu (accessible details-based menu, no JS positioning)        */
+/* Action menu                                                         */
 /* ------------------------------------------------------------------ */
 
-export function CmsActionMenu(props: {
-  label?: string;
-  items: Array<{ label: string; onSelect: () => void; danger?: boolean }>;
-}) {
-  const [open, setOpen] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    if (!open) return;
-    const onDown = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
-    };
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setOpen(false);
-    };
-    document.addEventListener("mousedown", onDown);
-    document.addEventListener("keydown", onKey);
-    return () => {
-      document.removeEventListener("mousedown", onDown);
-      document.removeEventListener("keydown", onKey);
-    };
-  }, [open]);
-  return (
-    <div ref={ref} className="relative inline-block">
-      <button
-        type="button"
-        className="cc-btn cc-btn-ghost cc-btn-sm"
-        aria-haspopup="menu"
-        aria-expanded={open}
-        aria-label={props.label ?? "Row actions"}
-        onClick={() => setOpen((v) => !v)}
-      >
-        ⋯
-      </button>
-      {open ? (
-        <div
-          role="menu"
-          className="cc-panel-elevated absolute right-0 z-40 min-w-40 py-1 shadow-2xl"
-          style={{ padding: "0.25rem" }}
-        >
-          {props.items.map((item) => (
-            <button
-              key={item.label}
-              type="button"
-              role="menuitem"
-              className={cn(
-                "flex w-full items-center rounded-md px-3 py-2 text-left text-sm hover:bg-white/5",
-                item.danger ? "text-[var(--cc-danger)]" : undefined,
-              )}
-              onClick={() => {
-                setOpen(false);
-                item.onSelect();
-              }}
-            >
-              {item.label}
-            </button>
-          ))}
-        </div>
-      ) : null}
-    </div>
-  );
-}
+/**
+ * Re-exported from CmsMenu, which renders through a Radix portal.
+ *
+ * The implementation that used to live here was an absolutely-positioned
+ * `<div>` inside the table cell, so `.cc-scroll-x`, `.cc-shell-scroll` and
+ * `.cc-root` clipped it and the sticky CMS header (`z-40`) tied it. See the
+ * header comment in CmsMenu.tsx for the full diagnosis.
+ */
+export { CmsActionMenu, CmsMenu } from "./CmsMenu";

@@ -341,6 +341,10 @@ export const ru: TranslationDictionary = {
   errors: {
     notFoundTitle: "Страница не найдена",
     notFoundDesc: "Страница, которую вы ищете, не существует или была перемещена.",
+    notFoundKicker: "Потерянная экспедиция",
+    backToSafety: "Вернуться в безопасное место",
+    browseHeroes: "Смотреть героев",
+    notFoundFooter: "HawkBucks – справочник Save the World",
     loadFailTitle: "Страница не загрузилась",
     loadFailDesc:
       "Что-то пошло не так на нашей стороне. Попробуйте обновить страницу или вернуться домой.",

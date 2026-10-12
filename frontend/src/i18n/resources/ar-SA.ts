@@ -338,6 +338,10 @@ export const arSA: TranslationDictionary = {
   errors: {
     notFoundTitle: "الصفحة غير موجودة",
     notFoundDesc: "الصفحة التي تبحث عنها غير موجودة أو تم نقلها.",
+    notFoundKicker: "بعثة ضائعة",
+    backToSafety: "العودة إلى بر الأمان",
+    browseHeroes: "تصفح الأبطال",
+    notFoundFooter: "HawkBucks – مرجع Save the World",
     loadFailTitle: "تعذر تحميل هذه الصفحة",
     loadFailDesc: "حدث خطأ من جهتنا. يمكنك محاولة التحديث أو العودة إلى الرئيسية.",
     goHome: "العودة للرئيسية",

@@ -17,6 +17,7 @@ import { reportLovableError } from "../lib/lovable-error-reporting";
 import { jsonLdScript } from "../lib/seo";
 import { BRAND_NAME, SITE_URL } from "../lib/site";
 import { BackToTop } from "../components/hawkbucks/BackToTop";
+import { HawkbucksNotFound } from "../components/hawkbucks/HawkbucksNotFound";
 import { AppShell } from "../components/hawkbucks/AppShell";
 import { Toaster } from "../components/ui/sonner";
 import { I18nProvider } from "../i18n/context";
@@ -28,31 +29,14 @@ import { ogLocaleFor, splitLocalePath } from "../lib/locale-urls";
 import { serverPreferencesQueryOptions } from "../lib/preferences.loader";
 import { FALLBACK_SERVER_PREFERENCES } from "../hooks/use-preferences";
 
-// Boundary components render outside the provider tree, so they translate
-// directly against the safe default (English). Rare edge cases where showing
-// English is acceptable; Phase 6 owns localized routing/SEO.
+// Boundary components render outside the provider tree.
+// `HawkbucksNotFound` is a standalone full-viewport shell (no AppShell, no
+// content frame), and it resolves its own locale from the URL path so the
+// copy is localized even though no i18n provider is mounted above it.
+// The HTTP status is untouched: the ROUTER sets 404 for unmatched URLs and
+// `notFound()` throws, and this component never interferes with that.
 function NotFoundComponent() {
-  return (
-    <div className="flex min-h-screen items-center justify-center bg-background px-4">
-      <div className="max-w-md text-center">
-        <h1 className="text-7xl font-bold text-foreground">404</h1>
-        <h2 className="mt-4 text-xl font-semibold text-foreground">
-          {translate("errors.notFoundTitle", DEFAULT_LANGUAGE)}
-        </h2>
-        <p className="mt-2 text-sm text-muted-foreground">
-          {translate("errors.notFoundDesc", DEFAULT_LANGUAGE)}
-        </p>
-        <div className="mt-6">
-          <Link
-            to="/"
-            className="inline-flex min-h-[48px] items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
-          >
-            {translate("errors.goHome", DEFAULT_LANGUAGE)}
-          </Link>
-        </div>
-      </div>
-    </div>
-  );
+  return <HawkbucksNotFound />;
 }
 
 function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
