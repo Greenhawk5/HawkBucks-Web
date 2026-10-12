@@ -41,14 +41,18 @@ jobs:
       - name: Lint
         run: npm run lint --if-present
 
+      # Build BEFORE tests: cloudflare-pages-runtime + csp-phase23 exercise
+      # the real production bundle (.output/server/index.mjs) and skip when
+      # it is absent. Building first keeps that end-to-end proof running in
+      # CI instead of silently skipping on every run.
+      - name: Build
+        run: npm run build
+
       - name: Test
         run: npm run test:server --if-present
 
       - name: Type check
         run: npx tsc --noEmit
-
-      - name: Build
-        run: npm run build
 
   worker:
     name: Worker validation

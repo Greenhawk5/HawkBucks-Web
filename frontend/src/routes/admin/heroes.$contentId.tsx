@@ -698,10 +698,19 @@ function TierOverrideDialog(props: {
   onExclude: (excluded: boolean) => void;
 }) {
   const t = props.tier;
-  const [powerMin, setPowerMin] = useState(t.editorial_power_min ?? t.power_min ?? "");
-  const [powerMax, setPowerMax] = useState(t.editorial_power_max ?? t.power_max ?? "");
-  const [levelMin, setLevelMin] = useState(t.editorial_level_min ?? t.level_min ?? "");
-  const [levelMax, setLevelMax] = useState(t.editorial_level_max ?? t.level_max ?? "");
+  // String while editing ("" = cleared); parsed + validated on save.
+  const [powerMin, setPowerMin] = useState<string>(
+    String(t.editorial_power_min ?? t.power_min ?? ""),
+  );
+  const [powerMax, setPowerMax] = useState<string>(
+    String(t.editorial_power_max ?? t.power_max ?? ""),
+  );
+  const [levelMin, setLevelMin] = useState<string>(
+    String(t.editorial_level_min ?? t.level_min ?? ""),
+  );
+  const [levelMax, setLevelMax] = useState<string>(
+    String(t.editorial_level_max ?? t.level_max ?? ""),
+  );
   const [excluded, setExcluded] = useState(t.editorial_excluded === 1);
   const [localError, setLocalError] = useState<string | null>(null);
   const num = (v: string): number | null => (v.trim() === "" ? null : Number(v.trim()));
@@ -782,10 +791,10 @@ function TierOverrideDialog(props: {
               className="cc-btn cc-btn-primary cc-btn-sm"
               disabled={props.busy}
               onClick={() => {
-                const pMin = num(powerMin as string);
-                const pMax = num(powerMax as string);
-                const lMin = num(levelMin as string);
-                const lMax = num(levelMax as string);
+                const pMin = num(powerMin);
+                const pMax = num(powerMax);
+                const lMin = num(levelMin);
+                const lMax = num(levelMax);
                 for (const [label, v] of [
                   ["Power min", pMin],
                   ["Power max", pMax],
@@ -833,7 +842,9 @@ function CostOverrideDialog(props: {
   onExclude: (excluded: boolean) => void;
 }) {
   const c = props.cost;
-  const [amount, setAmount] = useState(c.editorial_amount ?? c.amount ?? "");
+  // String while editing ("" = cleared); parsed + validated on save so NaN
+  // can never reach the persistence payload.
+  const [amount, setAmount] = useState<string>(String(c.editorial_amount ?? c.amount ?? ""));
   const [excluded, setExcluded] = useState(c.editorial_excluded === 1);
   const [localError, setLocalError] = useState<string | null>(null);
   return (
@@ -848,7 +859,7 @@ function CostOverrideDialog(props: {
           <input
             className="cc-input"
             inputMode="numeric"
-            value={String(amount ?? "")}
+            value={amount}
             onChange={(e) => setAmount(e.target.value)}
             placeholder={String(c.amount)}
           />
@@ -884,8 +895,9 @@ function CostOverrideDialog(props: {
               className="cc-btn cc-btn-primary cc-btn-sm"
               disabled={props.busy}
               onClick={() => {
-                const a = String(amount).trim() === "" ? null : Number(String(amount).trim());
-                if (a !== null && (!Number.isInteger(a) || a < 0)) {
+                const trimmed = amount.trim();
+                const a = trimmed === "" ? null : Number(trimmed);
+                if (a !== null && (!Number.isInteger(a) || a < 0 || !Number.isFinite(a))) {
                   setLocalError("Amount must be a whole number ≥ 0.");
                   return;
                 }
@@ -998,14 +1010,15 @@ function AddTierDialog(props: {
             disabled={props.busy}
             onClick={() => {
               const n = Number(tier);
-              if (!Number.isInteger(n) || n < 1) {
+              if (!Number.isInteger(n) || n < 1 || !Number.isFinite(n)) {
                 setLocalError("Tier must be a whole number ≥ 1.");
                 return;
               }
-              const opt = (v: string): number | undefined =>
-                v.trim() === "" ? undefined : Number(v.trim());
+              // Server contract uses `number | null` (null = no value);
+              // undefined would violate exactOptionalPropertyTypes.
+              const opt = (v: string): number | null => (v.trim() === "" ? null : Number(v.trim()));
               const nums = [opt(powerMin), opt(powerMax), opt(levelMin), opt(levelMax)];
-              if (nums.some((v) => v !== undefined && (!Number.isInteger(v) || v < 0))) {
+              if (nums.some((v) => v !== null && (!Number.isInteger(v) || v < 0))) {
                 setLocalError("Numeric fields must be whole numbers ≥ 0.");
                 return;
               }
@@ -1059,7 +1072,8 @@ function AddCostDialog(props: {
       .then((r) => {
         if (!cancelled) {
           setResources(r.items);
-          if (r.items.length > 0) setResourceId(r.items[0].id);
+          const first = r.items[0];
+          if (r.items.length > 0 && first) setResourceId(first.id);
         }
       })
       .catch(() => {

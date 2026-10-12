@@ -390,23 +390,23 @@ export async function updateCatalogResource(
   if (!row) throw new Error("Catalog item not found.");
   const patch: Record<string, unknown> = {};
   const editorialName = normalizeOverrideText(input.editorialName);
-  if (editorialName !== undefined) patch.editorial_name = editorialName;
+  if (editorialName !== undefined) patch["editorial_name"] = editorialName;
   if (input.category !== undefined) {
     if (!isValidCatalogCategory(input.category)) throw new Error("Invalid category.");
-    patch.category = input.category;
+    patch["category"] = input.category;
   }
   if (input.status !== undefined) {
     if (!isValidCatalogStatus(input.status)) throw new Error("Invalid status.");
-    patch.status = input.status;
+    patch["status"] = input.status;
   }
   if (input.iconAssetId !== undefined) {
     await assertMediaUsable(db, input.iconAssetId);
-    patch.icon_asset_id = input.iconAssetId;
+    patch["icon_asset_id"] = input.iconAssetId;
   }
   if (input.sortOrder !== undefined) {
     const n = requireNonNegativeInt(input.sortOrder, "Sort order");
     if (!isValidSortOrder(n)) throw new Error("Invalid sort order.");
-    patch.sort_order = n;
+    patch["sort_order"] = n;
   }
   if (Object.keys(patch).length === 0) throw new Error("Nothing to update.");
   const now = utcNow();
@@ -612,10 +612,10 @@ async function updateDefOverride(
   if (!row) throw new Error("Definition not found.");
   const patch: Record<string, unknown> = {};
   const editorialName = normalizeOverrideText(input.editorialName);
-  if (editorialName !== undefined) patch.editorial_name = editorialName;
+  if (editorialName !== undefined) patch["editorial_name"] = editorialName;
   if (input.iconAssetId !== undefined) {
     await assertMediaUsable(db, input.iconAssetId);
-    patch.icon_asset_id = input.iconAssetId;
+    patch["icon_asset_id"] = input.iconAssetId;
   }
   if (Object.keys(patch).length === 0) throw new Error("Nothing to update.");
   const now = utcNow();
@@ -895,11 +895,11 @@ export async function setProgressionOverride(
   const powerMax = optionalNonNegativeInt(input.editorialPowerMax, "Power max");
   const levelMin = optionalNonNegativeInt(input.editorialLevelMin, "Level min");
   const levelMax = optionalNonNegativeInt(input.editorialLevelMax, "Level max");
-  if (powerMin !== undefined) patch.editorial_power_min = powerMin;
-  if (powerMax !== undefined) patch.editorial_power_max = powerMax;
-  if (levelMin !== undefined) patch.editorial_level_min = levelMin;
-  if (levelMax !== undefined) patch.editorial_level_max = levelMax;
-  if (input.excluded !== undefined) patch.editorial_excluded = input.excluded ? 1 : 0;
+  if (powerMin !== undefined) patch["editorial_power_min"] = powerMin;
+  if (powerMax !== undefined) patch["editorial_power_max"] = powerMax;
+  if (levelMin !== undefined) patch["editorial_level_min"] = levelMin;
+  if (levelMax !== undefined) patch["editorial_level_max"] = levelMax;
+  if (input.excluded !== undefined) patch["editorial_excluded"] = input.excluded ? 1 : 0;
   if (Object.keys(patch).length === 0) throw new Error("Nothing to update.");
   const now = utcNow();
   await db
@@ -939,8 +939,8 @@ export async function setCostOverride(
   if (!row) throw new Error("Cost row not found.");
   const patch: Record<string, unknown> = {};
   const amount = optionalNonNegativeInt(input.editorialAmount, "Amount");
-  if (amount !== undefined) patch.editorial_amount = amount;
-  if (input.excluded !== undefined) patch.editorial_excluded = input.excluded ? 1 : 0;
+  if (amount !== undefined) patch["editorial_amount"] = amount;
+  if (input.excluded !== undefined) patch["editorial_excluded"] = input.excluded ? 1 : 0;
   if (Object.keys(patch).length === 0) throw new Error("Nothing to update.");
   const now = utcNow();
   await db

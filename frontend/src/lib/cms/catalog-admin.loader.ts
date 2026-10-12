@@ -67,14 +67,23 @@ export const getAdminCatalogResource = createServerFn({ method: "GET" })
 
 export const listAdminCatalogDefs = createServerFn({ method: "GET" })
   .validator((i: Record<string, unknown>) => {
-    const kind = i["kind"];
-    if (kind !== "ability" && kind !== "perk") throw new Error("Invalid definition kind.");
+    const rawKind: unknown = i["kind"];
+    if (rawKind !== "ability" && rawKind !== "perk") throw new Error("Invalid definition kind.");
+    // Narrowed by the guard above; the explicit annotation preserves the
+    // literal union. Optional fields use conditional spreads (not
+    // stripUndefined, whose Partial<T> return reintroduces `| undefined`
+    // and violates exactOptionalPropertyTypes) so absent keys stay absent.
+    const kind: "ability" | "perk" = rawKind;
+    const search = asOptionalString(i["search"]);
+    const slot = asOptionalString(i["slot"]);
+    const limit = asOptionalNumber(i["limit"]);
+    const offset = asOptionalNumber(i["offset"]);
     return {
       kind,
-      search: asOptionalString(i["search"]),
-      slot: asOptionalString(i["slot"]),
-      limit: asOptionalNumber(i["limit"]),
-      offset: asOptionalNumber(i["offset"]),
+      ...(search !== undefined ? { search } : {}),
+      ...(slot !== undefined ? { slot } : {}),
+      ...(limit !== undefined ? { limit } : {}),
+      ...(offset !== undefined ? { offset } : {}),
     };
   })
   .handler(async ({ data }) => {
@@ -173,13 +182,18 @@ export const deleteAdminCatalogResource = createServerFn({ method: "POST" })
 // ---------------------------------------------------------------------------
 
 export const updateAdminAbilityDef = createServerFn({ method: "POST" })
-  .validator((i: { id: string; editorialName?: string | null; iconAssetId?: string | null }) =>
-    stripUndefined({
-      id: requireNonEmptyString(i.id, "id"),
-      editorialName: asOptionalStringOrNull(i.editorialName),
-      iconAssetId: asOptionalStringOrNull(i.iconAssetId),
-    }),
-  )
+  .validator((i: { id: string; editorialName?: string | null; iconAssetId?: string | null }) => {
+    const id = requireNonEmptyString(i.id, "id");
+    // requireNonEmptyString throws on empty input, so id is a valid string
+    // here; it is spread back in because stripUndefined returns Partial<T>.
+    return {
+      id,
+      ...stripUndefined({
+        editorialName: asOptionalStringOrNull(i.editorialName),
+        iconAssetId: asOptionalStringOrNull(i.iconAssetId),
+      }),
+    };
+  })
   .handler(async ({ data }) => {
     const { db, session } = await requireCatalogSession("cms.write", true);
     const { updateAbilityDef } = await import("./catalog.server");
@@ -187,13 +201,18 @@ export const updateAdminAbilityDef = createServerFn({ method: "POST" })
   });
 
 export const updateAdminPerkDef = createServerFn({ method: "POST" })
-  .validator((i: { id: string; editorialName?: string | null; iconAssetId?: string | null }) =>
-    stripUndefined({
-      id: requireNonEmptyString(i.id, "id"),
-      editorialName: asOptionalStringOrNull(i.editorialName),
-      iconAssetId: asOptionalStringOrNull(i.iconAssetId),
-    }),
-  )
+  .validator((i: { id: string; editorialName?: string | null; iconAssetId?: string | null }) => {
+    const id = requireNonEmptyString(i.id, "id");
+    // requireNonEmptyString throws on empty input, so id is a valid string
+    // here; it is spread back in because stripUndefined returns Partial<T>.
+    return {
+      id,
+      ...stripUndefined({
+        editorialName: asOptionalStringOrNull(i.editorialName),
+        iconAssetId: asOptionalStringOrNull(i.iconAssetId),
+      }),
+    };
+  })
   .handler(async ({ data }) => {
     const { db, session } = await requireCatalogSession("cms.write", true);
     const { updatePerkDef } = await import("./catalog.server");
@@ -276,13 +295,13 @@ export const setAdminProgressionOverride = createServerFn({ method: "POST" })
         editorialLevelMin: asOptionalNumber(i.editorialLevelMin),
         editorialLevelMax: asOptionalNumber(i.editorialLevelMax),
       }) as Record<string, unknown>;
-      if (i.editorialPowerMin === null) out.editorialPowerMin = null;
-      if (i.editorialPowerMax === null) out.editorialPowerMax = null;
-      if (i.editorialLevelMin === null) out.editorialLevelMin = null;
-      if (i.editorialLevelMax === null) out.editorialLevelMax = null;
+      if (i.editorialPowerMin === null) out["editorialPowerMin"] = null;
+      if (i.editorialPowerMax === null) out["editorialPowerMax"] = null;
+      if (i.editorialLevelMin === null) out["editorialLevelMin"] = null;
+      if (i.editorialLevelMax === null) out["editorialLevelMax"] = null;
       if (i.excluded !== undefined) {
         if (typeof i.excluded !== "boolean") throw new Error("Invalid input: expected boolean.");
-        out.excluded = i.excluded;
+        out["excluded"] = i.excluded;
       }
       return out as Parameters<typeof import("./catalog.server").setProgressionOverride>[1] & {
         id: string;
@@ -301,10 +320,10 @@ export const setAdminCostOverride = createServerFn({ method: "POST" })
       id: requireNonEmptyString(i.id, "id"),
       editorialAmount: asOptionalNumber(i.editorialAmount),
     }) as Record<string, unknown>;
-    if (i.editorialAmount === null) out.editorialAmount = null;
+    if (i.editorialAmount === null) out["editorialAmount"] = null;
     if (i.excluded !== undefined) {
       if (typeof i.excluded !== "boolean") throw new Error("Invalid input: expected boolean.");
-      out.excluded = i.excluded;
+      out["excluded"] = i.excluded;
     }
     return out as Parameters<typeof import("./catalog.server").setCostOverride>[1] & { id: string };
   })
@@ -369,10 +388,10 @@ export const addAdminProgressionTier = createServerFn({ method: "POST" })
         levelMin: asOptionalNumber(i.levelMin),
         levelMax: asOptionalNumber(i.levelMax),
       }) as Record<string, unknown>;
-      if (i.powerMin === null) out.powerMin = null;
-      if (i.powerMax === null) out.powerMax = null;
-      if (i.levelMin === null) out.levelMin = null;
-      if (i.levelMax === null) out.levelMax = null;
+      if (i.powerMin === null) out["powerMin"] = null;
+      if (i.powerMax === null) out["powerMax"] = null;
+      if (i.levelMin === null) out["levelMin"] = null;
+      if (i.levelMax === null) out["levelMax"] = null;
       return out as Parameters<typeof import("./catalog.server").addProgressionTier>[1];
     },
   )

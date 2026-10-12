@@ -45,5 +45,6 @@ export function gameItemInitials(name: string): string {
   const first = parts[0] ?? "";
   const second = parts[1] ?? "";
   if (parts.length <= 1) return first.slice(0, 2).toUpperCase();
-  return (first[0] + second[0]).toUpperCase();
+  // charAt (not [0]) because noUncheckedIndexedAccess types index access as possibly undefined.
+  return (first.charAt(0) + second.charAt(0)).toUpperCase();
 }
