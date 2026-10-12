@@ -193,11 +193,7 @@ function HeroEditor() {
         run={editor.run}
         refresh={refreshHero}
       />
-      <EvolutionEditor
-        hero={currentHero}
-        canWrite={canWrite}
-        refreshHero={refreshHero}
-      />
+      <EvolutionEditor hero={currentHero} canWrite={canWrite} refreshHero={refreshHero} />
       <ReferencePanel hero={currentHero} />
     </CmsEditorFrame>
   );
@@ -241,9 +237,7 @@ function EvolutionEditor(props: {
   refreshHero: () => Promise<void>;
 }) {
   const { hero, canWrite } = props;
-  const [data, setData] = useState<Awaited<
-    ReturnType<typeof getAdminHeroEvolution>
-  > | null>(null);
+  const [data, setData] = useState<Awaited<ReturnType<typeof getAdminHeroEvolution>> | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -360,8 +354,7 @@ function EvolutionEditor(props: {
                   </thead>
                   <tbody>
                     {rarityTiers.map((tier) => {
-                      const top =
-                        tier.tier === rarityTiers[rarityTiers.length - 1]?.tier;
+                      const top = tier.tier === rarityTiers[rarityTiers.length - 1]?.tier;
                       const tierCosts = rarityCosts.filter(
                         (c) => c.scope === "tier" && c.tier === tier.tier && c.kind === "evolve",
                       );
@@ -371,10 +364,7 @@ function EvolutionEditor(props: {
                         tier.editorial_level_min !== null ||
                         tier.editorial_level_max !== null;
                       return (
-                        <tr
-                          key={tier.id}
-                          className={tier.editorial_excluded ? "opacity-50" : ""}
-                        >
+                        <tr key={tier.id} className={tier.editorial_excluded ? "opacity-50" : ""}>
                           <td className="tabular-nums font-semibold">
                             {tier.tier}
                             {tier.editorial_excluded ? (
@@ -387,7 +377,8 @@ function EvolutionEditor(props: {
                             {fmtRange(tier.power_min, tier.power_max)}
                             {overridden ? (
                               <span className="ms-1 text-xs text-[var(--cc-accent)]">
-                                → {fmtRange(
+                                →{" "}
+                                {fmtRange(
                                   tier.editorial_power_min ?? tier.power_min,
                                   tier.editorial_power_max ?? tier.power_max,
                                 )}
@@ -399,7 +390,8 @@ function EvolutionEditor(props: {
                             {(tier.editorial_level_min !== null ||
                               tier.editorial_level_max !== null) && (
                               <span className="ms-1 text-xs text-[var(--cc-accent)]">
-                                → {fmtRange(
+                                →{" "}
+                                {fmtRange(
                                   tier.editorial_level_min ?? tier.level_min,
                                   tier.editorial_level_max ?? tier.level_max,
                                 )}
@@ -579,13 +571,11 @@ function EvolutionEditor(props: {
             );
           })}
           <p className="text-xs opacity-55">
-            * marks an editorial override — the reference value is preserved and restorable.
-            Synced snapshot{" "}
+            * marks an editorial override — the reference value is preserved and restorable. Synced
+            snapshot{" "}
             <span className="font-mono">{hero.dataSnapshotAt?.slice(0, 10) ?? "unknown"}</span>.
           </p>
-          {error ? (
-            <CmsNotice kind="error">{error}</CmsNotice>
-          ) : null}
+          {error ? <CmsNotice kind="error">{error}</CmsNotice> : null}
           {message ? <CmsNotice kind="success">{message}</CmsNotice> : null}
         </div>
       )}
@@ -619,7 +609,10 @@ function EvolutionEditor(props: {
           onClose={() => setCostTarget(null)}
           onSave={(amount, excluded) =>
             run(
-              () => setAdminCostOverride({ data: { id: costTarget.id, editorialAmount: amount, excluded } }),
+              () =>
+                setAdminCostOverride({
+                  data: { id: costTarget.id, editorialAmount: amount, excluded },
+                }),
               "Cost override saved.",
             )
           }
@@ -636,9 +629,7 @@ function EvolutionEditor(props: {
           heroContentId={hero.contentId}
           busy={busy}
           onClose={() => setAddTierOpen(false)}
-          onSave={(input) =>
-            run(() => addAdminProgressionTier({ data: input }), "Tier added.")
-          }
+          onSave={(input) => run(() => addAdminProgressionTier({ data: input }), "Tier added.")}
         />
       ) : null}
       {addCostOpen ? (
@@ -656,10 +647,7 @@ function EvolutionEditor(props: {
           onConfirm={() => {
             const tier = confirmDeleteTier;
             setConfirmDeleteTier(null);
-            void run(
-              () => deleteAdminProgressionTier({ data: { id: tier.id } }),
-              "Tier deleted.",
-            );
+            void run(() => deleteAdminProgressionTier({ data: { id: tier.id } }), "Tier deleted.");
           }}
           title="Delete editor-created tier?"
           body={`Tier ${confirmDeleteTier.tier} (${confirmDeleteTier.rarity}) was created in the CMS, so it is safe to delete. Synced tiers must be excluded instead — the sync would recreate them.`}
@@ -674,10 +662,7 @@ function EvolutionEditor(props: {
           onConfirm={() => {
             const cost = confirmDeleteCost;
             setConfirmDeleteCost(null);
-            void run(
-              () => deleteAdminCostRow({ data: { id: cost.id } }),
-              "Cost row deleted.",
-            );
+            void run(() => deleteAdminCostRow({ data: { id: cost.id } }), "Cost row deleted.");
           }}
           title="Delete editor-created cost?"
           body={`This cost row was created in the CMS, so it is safe to delete. Synced costs must be excluded instead — the sync would recreate them.`}
@@ -719,18 +704,17 @@ function TierOverrideDialog(props: {
   const [levelMax, setLevelMax] = useState(t.editorial_level_max ?? t.level_max ?? "");
   const [excluded, setExcluded] = useState(t.editorial_excluded === 1);
   const [localError, setLocalError] = useState<string | null>(null);
-  const num = (v: string): number | null =>
-    v.trim() === "" ? null : Number(v.trim());
+  const num = (v: string): number | null => (v.trim() === "" ? null : Number(v.trim()));
   return (
     <CmsDialog open onClose={props.onClose} title={`Override tier ${t.tier} (${t.rarity})`}>
       <div className="space-y-4">
         <p className="text-xs opacity-70">
           Reference: power {fmtRange(t.power_min, t.power_max)} · level{" "}
-          {fmtRange(t.level_min, t.level_max)}. Leave a field empty to clear its override
-          and restore the reference value.
+          {fmtRange(t.level_min, t.level_max)}. Leave a field empty to clear its override and
+          restore the reference value.
         </p>
         <div className="grid gap-3 sm:grid-cols-2">
-          <CmsField label="Power min" description="Reference: " >
+          <CmsField label="Power min" description="Reference: ">
             <input
               className="cc-input"
               inputMode="numeric"
@@ -853,16 +837,12 @@ function CostOverrideDialog(props: {
   const [excluded, setExcluded] = useState(c.editorial_excluded === 1);
   const [localError, setLocalError] = useState<string | null>(null);
   return (
-    <CmsDialog
-      open
-      onClose={props.onClose}
-      title={`Override ${c.resource_name} (${c.kind})`}
-    >
+    <CmsDialog open onClose={props.onClose} title={`Override ${c.resource_name} (${c.kind})`}>
       <div className="space-y-4">
         <p className="text-xs opacity-70">
-          {c.rarity} · {c.scope === "total" ? "total to max" : `tier ${c.tier}`} ·{" "}
-          {c.kind}. Reference amount: {c.amount.toLocaleString("en-US")}. Leave empty to
-          clear the override and restore the reference value.
+          {c.rarity} · {c.scope === "total" ? "total to max" : `tier ${c.tier}`} · {c.kind}.
+          Reference amount: {c.amount.toLocaleString("en-US")}. Leave empty to clear the override
+          and restore the reference value.
         </p>
         <CmsField label="Amount">
           <input
@@ -904,8 +884,7 @@ function CostOverrideDialog(props: {
               className="cc-btn cc-btn-primary cc-btn-sm"
               disabled={props.busy}
               onClick={() => {
-                const a =
-                  String(amount).trim() === "" ? null : Number(String(amount).trim());
+                const a = String(amount).trim() === "" ? null : Number(String(amount).trim());
                 if (a !== null && (!Number.isInteger(a) || a < 0)) {
                   setLocalError("Amount must be a whole number ≥ 0.");
                   return;
@@ -947,8 +926,8 @@ function AddTierDialog(props: {
     <CmsDialog open onClose={props.onClose} title="Add progression tier">
       <div className="space-y-4">
         <p className="text-xs opacity-70">
-          Creates an editor-owned tier (`data_source = 'editorial'`) that the reference
-          sync will not overwrite or recreate.
+          Creates an editor-owned tier (`data_source = 'editorial'`) that the reference sync will
+          not overwrite or recreate.
         </p>
         <div className="grid gap-3 sm:grid-cols-2">
           <CmsField label="Rarity">
@@ -957,14 +936,10 @@ function AddTierDialog(props: {
               value={rarity}
               onChange={setRarity}
               width="full"
-              options={[
-                "common",
-                "uncommon",
-                "rare",
-                "epic",
-                "legendary",
-                "mythic",
-              ].map((r) => ({ value: r, label: r }))}
+              options={["common", "uncommon", "rare", "epic", "legendary", "mythic"].map((r) => ({
+                value: r,
+                label: r,
+              }))}
             />
           </CmsField>
           <CmsField label="Tier" description="1-based; total rows are not tiers.">
@@ -1099,8 +1074,8 @@ function AddCostDialog(props: {
     <CmsDialog open onClose={props.onClose} title="Add cost row">
       <div className="space-y-4">
         <p className="text-xs opacity-70">
-          Creates an editor-owned cost row (`data_source = 'editorial'`) that the
-          reference sync will not overwrite or recreate.
+          Creates an editor-owned cost row (`data_source = 'editorial'`) that the reference sync
+          will not overwrite or recreate.
         </p>
         <div className="grid gap-3 sm:grid-cols-2">
           <CmsField label="Rarity">
@@ -1109,14 +1084,10 @@ function AddCostDialog(props: {
               value={rarity}
               onChange={setRarity}
               width="full"
-              options={[
-                "common",
-                "uncommon",
-                "rare",
-                "epic",
-                "legendary",
-                "mythic",
-              ].map((r) => ({ value: r, label: r }))}
+              options={["common", "uncommon", "rare", "epic", "legendary", "mythic"].map((r) => ({
+                value: r,
+                label: r,
+              }))}
             />
           </CmsField>
           <CmsField label="Scope">

@@ -22,7 +22,12 @@ import {
   CmsRoutePending,
   CmsSignInRequired,
 } from "@/components/cms/cc/CmsAuth";
-import { CmsConfirmDialog, CmsDialog, CmsField, CmsNotice } from "@/components/cms/cc/CmsPrimitives";
+import {
+  CmsConfirmDialog,
+  CmsDialog,
+  CmsField,
+  CmsNotice,
+} from "@/components/cms/cc/CmsPrimitives";
 import { CmsMediaPicker } from "@/components/cms/cc/CmsMediaPicker";
 import { CmsSelect } from "@/components/cms/cc/CmsSelect";
 import { GameItemIcon } from "@/components/cms/GameItemIcon";
@@ -153,7 +158,9 @@ function GameItemsAdmin() {
               type="button"
               role="tab"
               aria-selected={t === tab}
-              className={t === tab ? "cc-btn cc-btn-primary cc-btn-sm" : "cc-btn cc-btn-ghost cc-btn-sm"}
+              className={
+                t === tab ? "cc-btn cc-btn-primary cc-btn-sm" : "cc-btn cc-btn-ghost cc-btn-sm"
+              }
               onClick={() => setParams({ tab: t, q: undefined, offset: 0 })}
             >
               {label}
@@ -219,7 +226,8 @@ function ResourcesTab(props: {
           key={search.q ?? ""}
           aria-label="Search catalog items"
           onKeyDown={(e) => {
-            if (e.key === "Enter") setParams({ q: (e.target as HTMLInputElement).value, offset: 0 });
+            if (e.key === "Enter")
+              setParams({ q: (e.target as HTMLInputElement).value, offset: 0 });
           }}
         />
         <CmsSelect
@@ -256,7 +264,11 @@ function ResourcesTab(props: {
                 className="flex w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-white/5"
                 onClick={() => setEditingId(row.id)}
               >
-                <GameItemIcon iconUrl={row.icon_url} name={row.effective_name} sizeClass="h-9 w-9" />
+                <GameItemIcon
+                  iconUrl={row.icon_url}
+                  name={row.effective_name}
+                  sizeClass="h-9 w-9"
+                />
                 <span className="min-w-0 flex-1">
                   <span className="block truncate font-medium">{row.effective_name}</span>
                   <span className="block truncate font-mono text-xs opacity-60">
@@ -337,9 +349,9 @@ function EditResourceDialog(props: {
   onClose: () => void;
   onSaved: () => void;
 }) {
-  const [detail, setDetail] = useState<Awaited<
-    ReturnType<typeof getAdminCatalogResource>
-  >["resource"] | null>(null);
+  const [detail, setDetail] = useState<
+    Awaited<ReturnType<typeof getAdminCatalogResource>>["resource"] | null
+  >(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [overrideName, setOverrideName] = useState<string | null>(null);
   const [category, setCategory] = useState<string | null>(null);
@@ -415,11 +427,7 @@ function EditResourceDialog(props: {
       ) : (
         <div className="space-y-4">
           <div className="flex items-center gap-3">
-            <GameItemIcon
-              iconUrl={iconUrl}
-              name={detail.effectiveName}
-              sizeClass="h-12 w-12"
-            />
+            <GameItemIcon iconUrl={iconUrl} name={detail.effectiveName} sizeClass="h-12 w-12" />
             <div className="min-w-0">
               <p className="font-mono text-xs opacity-60">{detail.resourceKey}</p>
               <p className="text-sm">
@@ -556,7 +564,12 @@ function EditResourceDialog(props: {
                   setTrBusy(true);
                   setTrError(null);
                   void setAdminResourceTranslation({
-                    data: { resourceId: detail.id, locale: trLocale, name: trName, description: trDesc },
+                    data: {
+                      resourceId: detail.id,
+                      locale: trLocale,
+                      name: trName,
+                      description: trDesc,
+                    },
                   })
                     .then(() => getAdminCatalogResource({ data: { id: detail.id } }))
                     .then((r) => setDetail(r.resource))
@@ -570,7 +583,10 @@ function EditResourceDialog(props: {
           </CmsField>
 
           {detail.usedByHeroes.length > 0 ? (
-            <CmsField label="Used by" description="Capped sample — the catalog row is shared, never copied.">
+            <CmsField
+              label="Used by"
+              description="Capped sample — the catalog row is shared, never copied."
+            >
               <ul className="max-h-28 space-y-0.5 overflow-y-auto font-mono text-xs opacity-80">
                 {detail.usedByHeroes.map((u) => (
                   <li key={u.heroContentId}>
@@ -596,7 +612,11 @@ function EditResourceDialog(props: {
               Delete…
             </button>
             <div className="flex gap-2">
-              <button type="button" className="cc-btn cc-btn-ghost cc-btn-sm" onClick={props.onClose}>
+              <button
+                type="button"
+                className="cc-btn cc-btn-ghost cc-btn-sm"
+                onClick={props.onClose}
+              >
                 Cancel
               </button>
               <button
@@ -669,7 +689,11 @@ function EditResourceDialog(props: {
   );
 }
 
-function CreateResourceDialog(props: { open: boolean; onClose: () => void; onCreated: () => void }) {
+function CreateResourceDialog(props: {
+  open: boolean;
+  onClose: () => void;
+  onCreated: () => void;
+}) {
   const [key, setKey] = useState("");
   const [name, setName] = useState("");
   const [category, setCategory] = useState("material");
@@ -690,7 +714,10 @@ function CreateResourceDialog(props: { open: boolean; onClose: () => void; onCre
             placeholder="storm-shard"
           />
         </CmsField>
-        <CmsField label="Display name" description="Reference name; overridable later without losing it.">
+        <CmsField
+          label="Display name"
+          description="Reference name; overridable later without losing it."
+        >
           <input
             className="cc-input"
             value={name}
@@ -705,7 +732,10 @@ function CreateResourceDialog(props: { open: boolean; onClose: () => void; onCre
             onChange={(e) => setCategory(e.target.value)}
           />
         </CmsField>
-        <CmsField label="Icon (optional)" description="Associate now or later — no duplicate entity.">
+        <CmsField
+          label="Icon (optional)"
+          description="Associate now or later — no duplicate entity."
+        >
           <div className="flex items-center gap-2">
             <GameItemIcon iconUrl={iconUrl} name={name || key || "new item"} sizeClass="h-9 w-9" />
             <button
@@ -805,7 +835,8 @@ function DefsTab(props: {
           key={search.q ?? ""}
           aria-label={`Search ${singular} definitions`}
           onKeyDown={(e) => {
-            if (e.key === "Enter") setParams({ q: (e.target as HTMLInputElement).value, offset: 0 });
+            if (e.key === "Enter")
+              setParams({ q: (e.target as HTMLInputElement).value, offset: 0 });
           }}
         />
         {kind === "perks" ? (
@@ -840,7 +871,11 @@ function DefsTab(props: {
                 className="flex w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-white/5"
                 onClick={() => setEditing(row)}
               >
-                <GameItemIcon iconUrl={row.icon_url} name={row.effective_name} sizeClass="h-9 w-9" />
+                <GameItemIcon
+                  iconUrl={row.icon_url}
+                  name={row.effective_name}
+                  sizeClass="h-9 w-9"
+                />
                 <span className="min-w-0 flex-1">
                   <span className="block truncate font-medium">{row.effective_name}</span>
                   <span className="block truncate font-mono text-xs opacity-60">
@@ -912,7 +947,12 @@ function EditDefDialog(props: {
   };
 
   return (
-    <CmsDialog open onClose={props.onClose} title={`Edit ${props.kind === "abilities" ? "ability" : "perk"}`} size="md">
+    <CmsDialog
+      open
+      onClose={props.onClose}
+      title={`Edit ${props.kind === "abilities" ? "ability" : "perk"}`}
+      size="md"
+    >
       <div className="space-y-4">
         <div className="flex items-center gap-3">
           <GameItemIcon iconUrl={iconUrl} name={row.effective_name} sizeClass="h-12 w-12" />
@@ -922,7 +962,8 @@ function EditDefDialog(props: {
               Reference name: <span className="font-medium">{row.display_name}</span>
             </p>
             <p className="text-xs opacity-60">
-              Shared by {row.hero_count} hero{row.hero_count === 1 ? "" : "s"} · source {row.data_source}
+              Shared by {row.hero_count} hero{row.hero_count === 1 ? "" : "s"} · source{" "}
+              {row.data_source}
             </p>
           </div>
         </div>

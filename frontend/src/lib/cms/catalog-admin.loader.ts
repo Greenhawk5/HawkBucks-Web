@@ -18,7 +18,10 @@ import {
  * a separate, `cms.publish` action.
  */
 
-async function requireCatalogSession(cap: "cms.read" | "cms.write" | "cms.publish", mutate = false) {
+async function requireCatalogSession(
+  cap: "cms.read" | "cms.write" | "cms.publish",
+  mutate = false,
+) {
   const { resolveRequestCmsDb } = await import("./db.server");
   const { resolveRequestSession, hasCapability, CmsAuthError, assertSameOriginForMutation } =
     await import("./auth.server");
@@ -106,7 +109,11 @@ export const createAdminCatalogResource = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     const { db, session } = await requireCatalogSession("cms.write", true);
     const { createCatalogResource } = await import("./catalog.server");
-    return createCatalogResource(db, data as Parameters<typeof createCatalogResource>[1], actorOf(session));
+    return createCatalogResource(
+      db,
+      data as Parameters<typeof createCatalogResource>[1],
+      actorOf(session),
+    );
   });
 
 export const updateAdminCatalogResource = createServerFn({ method: "POST" })
@@ -277,9 +284,9 @@ export const setAdminProgressionOverride = createServerFn({ method: "POST" })
         if (typeof i.excluded !== "boolean") throw new Error("Invalid input: expected boolean.");
         out.excluded = i.excluded;
       }
-      return out as Parameters<
-        typeof import("./catalog.server").setProgressionOverride
-      >[1] & { id: string };
+      return out as Parameters<typeof import("./catalog.server").setProgressionOverride>[1] & {
+        id: string;
+      };
     },
   )
   .handler(async ({ data }) => {

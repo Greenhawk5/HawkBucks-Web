@@ -38,7 +38,9 @@ export function GameItemIcon({
 }) {
   const url =
     iconUrl !== undefined
-      ? (typeof iconUrl === "string" && iconUrl.trim() !== "" ? iconUrl : null)
+      ? typeof iconUrl === "string" && iconUrl.trim() !== ""
+        ? iconUrl
+        : null
       : resolveGameItemIconUrl({ overrideUrl, catalogUrl, definitionUrl });
   return (
     <span className={cn("inline-flex shrink-0", className)} title={name}>

@@ -5,12 +5,12 @@ localStorage logic per component.
 
 ## What exists
 
-| Preference | Type | Default | Persisted in | Server-readable |
-| --- | --- | --- | --- | --- |
-| `language` | `LanguageCode` (`en`…`fa-IR`) | `en` | cookie `hawkbucks_language` | yes |
-| `sidebar.state` | `expanded` \| `collapsed` | `expanded` | cookie `hawkbucks_sidebar_state` (values `open` \| `closed`, Phase 2 format kept) | yes |
-| `welcome.completed` | `boolean` | `false` | localStorage `hawkbucks.welcome.completed` | no |
-| `notifications.enabled` | `boolean` | `false` | localStorage `hawkbucks.notifications.enabled` | no |
+| Preference              | Type                          | Default    | Persisted in                                                                      | Server-readable |
+| ----------------------- | ----------------------------- | ---------- | --------------------------------------------------------------------------------- | --------------- |
+| `language`              | `LanguageCode` (`en`…`fa-IR`) | `en`       | cookie `hawkbucks_language`                                                       | yes             |
+| `sidebar.state`         | `expanded` \| `collapsed`     | `expanded` | cookie `hawkbucks_sidebar_state` (values `open` \| `closed`, Phase 2 format kept) | yes             |
+| `welcome.completed`     | `boolean`                     | `false`    | localStorage `hawkbucks.welcome.completed`                                        | no              |
+| `notifications.enabled` | `boolean`                     | `false`    | localStorage `hawkbucks.notifications.enabled`                                    | no              |
 
 Contracts only for language / welcome / notifications — no selector, modal,
 permission prompt, service worker, or push code in this phase.

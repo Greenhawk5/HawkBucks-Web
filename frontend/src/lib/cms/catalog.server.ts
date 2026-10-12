@@ -145,9 +145,7 @@ function clampPaging(limit: unknown, offset: unknown): { limit: number; offset: 
         ? Math.max(1, Math.min(100, Math.floor(limit)))
         : 50,
     offset:
-      typeof offset === "number" && Number.isFinite(offset)
-        ? Math.max(0, Math.floor(offset))
-        : 0,
+      typeof offset === "number" && Number.isFinite(offset) ? Math.max(0, Math.floor(offset)) : 0,
   };
 }
 
@@ -275,7 +273,10 @@ export async function getCatalogResource(
     resourceKey: String(r.resource_key),
     displayName: String(r.display_name),
     editorialName: (r.editorial_name as string | null) ?? null,
-    effectiveName: effectiveText(String(r.display_name), (r.editorial_name as string | null) ?? null),
+    effectiveName: effectiveText(
+      String(r.display_name),
+      (r.editorial_name as string | null) ?? null,
+    ),
     category: String(r.category ?? "material"),
     status: String(r.status ?? "active"),
     upstreamRef: (r.upstream_ref as string | null) ?? null,
@@ -332,7 +333,9 @@ export async function createCatalogResource(
     .bind(key)
     .first<{ id: string }>();
   if (existing) {
-    throw new Error(`A catalog item with key "${key}" already exists. Edit it instead of duplicating.`);
+    throw new Error(
+      `A catalog item with key "${key}" already exists. Edit it instead of duplicating.`,
+    );
   }
   const now = utcNow();
   const id = newId("res");
@@ -429,7 +432,12 @@ export async function updateCatalogResource(
 
 export async function setResourceTranslation(
   db: D1Database,
-  input: { resourceId: string; locale: string; name?: string | undefined; description?: string | undefined },
+  input: {
+    resourceId: string;
+    locale: string;
+    name?: string | undefined;
+    description?: string | undefined;
+  },
   actor: AuditActor,
 ): Promise<void> {
   if (!isCmsContentLocale(input.locale)) throw new Error("Unsupported locale.");
@@ -450,7 +458,9 @@ export async function setResourceTranslation(
     .first<{ id: string }>();
   if (existing) {
     await db
-      .prepare("UPDATE resource_translations SET name = ?, description = ?, updated_at = ? WHERE id = ?")
+      .prepare(
+        "UPDATE resource_translations SET name = ?, description = ?, updated_at = ? WHERE id = ?",
+      )
       .bind(name, description, now, existing.id)
       .run();
   } else {
@@ -494,7 +504,9 @@ export async function deleteCatalogResource(
     .bind(input.id)
     .first<{ n: number }>();
   if (Number(used?.n ?? 0) > 0) {
-    throw new Error("This item is used by evolution costs and cannot be deleted. Retire it instead.");
+    throw new Error(
+      "This item is used by evolution costs and cannot be deleted. Retire it instead.",
+    );
   }
   await db.prepare("DELETE FROM resource_translations WHERE resource_id = ?").bind(input.id).run();
   await db.prepare("DELETE FROM resources WHERE id = ?").bind(input.id).run();
@@ -549,7 +561,8 @@ export async function listCatalogDefs(
     params.push(like, like, like);
   }
   if (!isAbility && query.slot !== undefined && query.slot !== "") {
-    if (query.slot !== "standard" && query.slot !== "commander") throw new Error("Invalid slot filter.");
+    if (query.slot !== "standard" && query.slot !== "commander")
+      throw new Error("Invalid slot filter.");
     conditions.push("d.slot = ?");
     params.push(query.slot);
   }
@@ -584,7 +597,11 @@ async function updateDefOverride(
   db: D1Database,
   table: "ability_defs" | "hero_perk_defs",
   entityType: string,
-  input: { id: string; editorialName?: string | null | undefined; iconAssetId?: string | null | undefined },
+  input: {
+    id: string;
+    editorialName?: string | null | undefined;
+    iconAssetId?: string | null | undefined;
+  },
   actor: AuditActor,
 ): Promise<{ updatedAt: string }> {
   const keyCol = table === "ability_defs" ? "ability_key" : "perk_key";
@@ -625,7 +642,11 @@ async function updateDefOverride(
 
 export async function updateAbilityDef(
   db: D1Database,
-  input: { id: string; editorialName?: string | null | undefined; iconAssetId?: string | null | undefined },
+  input: {
+    id: string;
+    editorialName?: string | null | undefined;
+    iconAssetId?: string | null | undefined;
+  },
   actor: AuditActor,
 ): Promise<{ updatedAt: string }> {
   return updateDefOverride(db, "ability_defs", "ability_def", input, actor);
@@ -633,7 +654,11 @@ export async function updateAbilityDef(
 
 export async function updatePerkDef(
   db: D1Database,
-  input: { id: string; editorialName?: string | null | undefined; iconAssetId?: string | null | undefined },
+  input: {
+    id: string;
+    editorialName?: string | null | undefined;
+    iconAssetId?: string | null | undefined;
+  },
   actor: AuditActor,
 ): Promise<{ updatedAt: string }> {
   return updateDefOverride(db, "hero_perk_defs", "hero_perk_def", input, actor);
@@ -654,7 +679,10 @@ async function setDefTranslationOverride(
   actor: AuditActor,
 ): Promise<void> {
   if (!isCmsContentLocale(input.locale)) throw new Error("Unsupported locale.");
-  const def = await db.prepare(`SELECT id FROM ${defTable} WHERE id = ?`).bind(input.defId).first<{ id: string }>();
+  const def = await db
+    .prepare(`SELECT id FROM ${defTable} WHERE id = ?`)
+    .bind(input.defId)
+    .first<{ id: string }>();
   if (!def) throw new Error("Definition not found.");
   const editorialName = normalizeOverrideText(input.editorialName);
   const editorialDescription = normalizeOverrideText(input.editorialDescription);
@@ -684,7 +712,14 @@ async function setDefTranslationOverride(
   } else {
     // Editors extend locales the sync never seeded: base text stays empty and
     // readers fall back through the definition name. Only editorial_* is set.
-    const cols = [defIdCol, "locale", "name", "description", "editorial_name", "editorial_description"];
+    const cols = [
+      defIdCol,
+      "locale",
+      "name",
+      "description",
+      "editorial_name",
+      "editorial_description",
+    ];
     await db
       .prepare(
         `INSERT INTO ${table} (id, ${cols.join(", ")}, created_at, updated_at)
@@ -890,7 +925,11 @@ export async function setProgressionOverride(
 
 export async function setCostOverride(
   db: D1Database,
-  input: { id: string; editorialAmount?: number | null | undefined; excluded?: boolean | undefined },
+  input: {
+    id: string;
+    editorialAmount?: number | null | undefined;
+    excluded?: boolean | undefined;
+  },
   actor: AuditActor,
 ): Promise<{ updatedAt: string }> {
   const row = await db
@@ -976,7 +1015,18 @@ export async function addCostRow(
           editorial_amount, editorial_excluded, data_source, created_at, updated_at)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, NULL, 0, 'editorial', ?, ?)`,
     )
-    .bind(id, input.heroContentId, input.rarity, input.scope, tier, input.kind, input.resourceId, amount, now, now)
+    .bind(
+      id,
+      input.heroContentId,
+      input.rarity,
+      input.scope,
+      tier,
+      input.kind,
+      input.resourceId,
+      amount,
+      now,
+      now,
+    )
     .run();
   await recordAuditEvent(
     db,
@@ -1004,9 +1054,7 @@ export async function deleteCostRow(
   actor: AuditActor,
 ): Promise<void> {
   const row = await db
-    .prepare(
-      "SELECT id, hero_content_id, data_source FROM hero_progression_costs WHERE id = ?",
-    )
+    .prepare("SELECT id, hero_content_id, data_source FROM hero_progression_costs WHERE id = ?")
     .bind(input.id)
     .first<{ id: string; hero_content_id: string; data_source: string }>();
   if (!row) throw new Error("Cost row not found.");
@@ -1056,7 +1104,9 @@ export async function addProgressionTier(
     if (v !== undefined && v !== null) requireNonNegativeInt(v, label);
   }
   const clash = await db
-    .prepare("SELECT id FROM hero_progression WHERE hero_content_id = ? AND rarity = ? AND tier = ?")
+    .prepare(
+      "SELECT id FROM hero_progression WHERE hero_content_id = ? AND rarity = ? AND tier = ?",
+    )
     .bind(input.heroContentId, input.rarity, tier)
     .first<{ id: string }>();
   if (clash) {
@@ -1131,9 +1181,7 @@ export async function deleteProgressionTier(
     .bind(row.hero_content_id, row.rarity, row.tier)
     .first<{ n: number }>();
   if (Number(costs?.n ?? 0) > 0) {
-    throw new Error(
-      `This tier still has ${costs?.n} cost row(s). Remove or reassign them first.`,
-    );
+    throw new Error(`This tier still has ${costs?.n} cost row(s). Remove or reassign them first.`);
   }
   await db.prepare("DELETE FROM hero_progression WHERE id = ?").bind(input.id).run();
   await recordAuditEvent(
