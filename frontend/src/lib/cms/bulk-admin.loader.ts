@@ -17,6 +17,7 @@
 import { createServerFn } from "@tanstack/react-start";
 
 import { requireContentId, requireNonEmptyString } from "./admin-inputs";
+import { MAX_BULK_RECORDS } from "./admin-list";
 import { isContentStatus, type ContentStatus } from "./publish";
 
 async function requireLifecycleSession(capability: "cms.write" | "cms.publish", mutate = false) {
@@ -32,7 +33,7 @@ async function requireLifecycleSession(capability: "cms.write" | "cms.publish", 
 }
 
 /** Hard cap enforced here as well as in the service, at the transport edge. */
-const MAX_SELECTED = 200;
+const MAX_SELECTED = MAX_BULK_RECORDS;
 
 export interface BulkStatusRequest {
   /** Explicit page selection. Mutually exclusive with `allMatching`. */
@@ -177,8 +178,10 @@ export const deleteAdminDraftContent = createServerFn({ method: "POST" })
   });
 
 /**
- * Read-only deletability probe, so the UI can hide the Delete action entirely
- * for content that could never be deleted instead of offering a dead control.
+ * Read-only deletability probe, so the UI can offer Delete where it would
+ * succeed and explain WHY elsewhere — instead of silently hiding the action
+ * for records that could never be deleted. Advisory only: the destructive
+ * paths always re-assess at execution time.
  */
 export const getAdminDraftDeletability = createServerFn({ method: "GET" })
   .validator((i: { contentId: string }) => ({ contentId: requireContentId(i.contentId) }))
@@ -186,4 +189,60 @@ export const getAdminDraftDeletability = createServerFn({ method: "GET" })
     const { db } = await requireLifecycleSession("cms.write");
     const { assessContentDeletability } = await import("./content-delete.server");
     return { assessment: await assessContentDeletability(db, data.contentId) };
+  });
+
+/**
+ * Batched deletability probe for a list page: one round trip for the whole
+ * visible id set, with identical verdicts to the single probe (tested
+ * parity). Returns reason codes + user-safe messages, never reference holder
+ * ids.
+ */
+export const getAdminDraftDeletabilityMany = createServerFn({ method: "GET" })
+  .validator((i: { contentIds: unknown }) => {
+    const raw = Array.isArray(i.contentIds) ? i.contentIds : [];
+    if (raw.length > MAX_SELECTED) {
+      throw new Error(`Too many records selected (max ${MAX_SELECTED}).`);
+    }
+    return { contentIds: raw.map((id) => requireContentId(id)) };
+  })
+  .handler(async ({ data }) => {
+    const { db } = await requireLifecycleSession("cms.write");
+    const { assessManyContentDeletability } = await import("./content-delete.server");
+    const full = await assessManyContentDeletability(db, data.contentIds);
+    const eligibilities: Record<
+      string,
+      { eligible: boolean; reasons: Array<{ reason: string; message: string }> }
+    > = {};
+    for (const [id, assessment] of Object.entries(full)) {
+      eligibilities[id] = { eligible: assessment.eligible, reasons: assessment.reasons };
+    }
+    return { eligibilities };
+  });
+
+/**
+ * Bulk permanent delete.
+ *
+ * Reuses `bulkDeleteCmsDrafts`, which routes every record through the SAME
+ * `deleteCmsDraft` single-record path (re-assessed eligibility + per-record
+ * audit) — there is no weaker bulk-only deletion path. Bounded at the
+ * transport edge; larger selections must arrive as multiple bounded chunks.
+ */
+export const bulkDeleteDraftContent = createServerFn({ method: "POST" })
+  .validator((i: { contentIds: unknown }) => {
+    const raw = Array.isArray(i.contentIds) ? i.contentIds : [];
+    if (raw.length === 0) throw new Error("Select at least one record.");
+    if (raw.length > MAX_SELECTED) {
+      throw new Error(
+        `Too many records selected for one delete request (max ${MAX_SELECTED}). Split the selection into smaller chunks.`,
+      );
+    }
+    return { contentIds: raw.map((id) => requireContentId(id)) };
+  })
+  .handler(async ({ data }) => {
+    const { db, session } = await requireLifecycleSession("cms.write", true);
+    const { bulkDeleteCmsDrafts } = await import("./bulk-actions.server");
+    return bulkDeleteCmsDrafts(db, data.contentIds, {
+      id: session.user.id,
+      username: session.user.username,
+    });
   });

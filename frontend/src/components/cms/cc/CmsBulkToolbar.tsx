@@ -13,7 +13,7 @@
  * to exactly the ids the editor ticked.
  */
 
-import { X } from "lucide-react";
+import { Trash2, X } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import { CmsMenu, type CmsMenuItem } from "./CmsMenu";
@@ -30,6 +30,19 @@ export interface CmsBulkToolbarProps {
     onSelect: () => void;
     danger?: boolean;
   }>;
+  /**
+   * Destructive review-gated action (bulk permanent delete). Rendered as its
+   * own danger-outlined button AFTER Clear — never inside the status menu —
+   * so the three operations (change status / clear selection / delete) cannot
+   * be confused. The handler must open a confirmation dialog; the toolbar
+   * itself never deletes.
+   */
+  destructive?:
+    | {
+        label: string;
+        onSelect: () => void;
+      }
+    | undefined;
   /** Rendered between the count and the actions (e.g. a select-all control). */
   extra?: React.ReactNode;
 }
@@ -65,7 +78,14 @@ export function CmsBulkToolbar(props: CmsBulkToolbarProps) {
 
       {props.extra}
 
-      <div className="ms-auto flex flex-wrap items-center gap-2">
+      {/*
+        Actions group: wraps independently of the count so narrow widths stack
+        the controls under the count instead of colliding. `shrink-0` on every
+        control keeps buttons from squeezing into each other; the status menu
+        trigger sizes to its own label (see CmsMenu), so it can never overflow
+        into Clear.
+      */}
+      <div className="ms-auto flex min-w-0 flex-wrap items-center gap-2">
         {items.length > 0 ? (
           <CmsMenu
             label="Bulk status actions"
@@ -84,7 +104,7 @@ export function CmsBulkToolbar(props: CmsBulkToolbarProps) {
 
         <button
           type="button"
-          className="cc-btn cc-btn-ghost cc-btn-sm"
+          className="cc-btn cc-btn-ghost cc-btn-sm shrink-0"
           onClick={props.onClear}
           disabled={props.disabled === true}
         >
@@ -92,6 +112,18 @@ export function CmsBulkToolbar(props: CmsBulkToolbarProps) {
           Clear
           <span className="sr-only"> selection</span>
         </button>
+
+        {props.destructive !== undefined ? (
+          <button
+            type="button"
+            className="cc-btn cc-btn-danger-outline cc-btn-sm shrink-0"
+            onClick={props.destructive.onSelect}
+            disabled={props.disabled === true}
+          >
+            <Trash2 className="h-3.5 w-3.5" aria-hidden="true" />
+            {props.destructive.label}
+          </button>
+        ) : null}
       </div>
     </div>
   );

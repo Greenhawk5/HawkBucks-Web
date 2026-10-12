@@ -27,14 +27,16 @@ import { canTransitionStatus } from "./publish";
 import type { D1Database } from "./db.server";
 import { runAdminStatusCounts } from "./admin-list.server";
 import type { AdminStatusCounts } from "./admin-list";
+import { MAX_BULK_RECORDS } from "./admin-list";
 
 /**
  * Hard cap on how many records one bulk request may touch.
  *
- * Chosen to comfortably cover a full 100-row page plus headroom, while keeping
- * a single request's D1 cost bounded and predictable.
+ * Client-safe single source in `admin-list.ts` (re-exported here so existing
+ * import sites keep working): the list UI chunks through it, the server
+ * enforces it.
  */
-export const MAX_BULK_RECORDS = 200;
+export { MAX_BULK_RECORDS };
 
 /** Cap on how many matching ids a cross-page "select all" may expand to. */
 export const MAX_BULK_MATCHING_RECORDS = 1000;
@@ -276,6 +278,107 @@ export async function recountStatuses(
   base: { from: string; where: string; values: readonly unknown[] },
 ): Promise<AdminStatusCounts> {
   return runAdminStatusCounts(db, base);
+}
+
+/* ================================================================== */
+/* Bulk permanent delete                                               */
+/*                                                                     */
+/* DESIGN RULE (same as status changes): this module never decides what */
+/* is deletable. Every record goes through the SAME `deleteCmsDraft`    */
+/* single-record path the row action menu uses — which re-assesses      */
+/* eligibility at execution time and audits each deletion — so a bulk   */
+/* delete cannot bypass the published / reference-data / inbound-       */
+/* reference policy, and there is no second, weaker deletion path.      */
+/*                                                                     */
+/* Independent per-record writes (no cross-record transaction), for the */
+/* same D1 reason documented above: one blocked record must be reported */
+/* as skipped without abandoning the rest of the batch. Over-limit      */
+/* batches are REFUSED, never silently trimmed: the UI chunks larger    */
+/* selections through `chunkBulkIds` so every record is accounted for.  */
+/* Repeated submissions are safe: an already-deleted id assesses as     */
+/* not-found and is reported as skipped.                               */
+/* ================================================================== */
+
+export type BulkDeleteOutcome = "deleted" | "skipped" | "failed";
+
+export interface BulkDeleteRecordResult {
+  contentId: string;
+  outcome: BulkDeleteOutcome;
+  entityType?: string | null;
+  /** Machine-readable blocker reason for skips (`published`, `referenced`, …). */
+  reason?: string;
+  /** User-safe explanation for skips and failures. */
+  message?: string;
+}
+
+export interface BulkDeleteReport {
+  requested: number;
+  deleted: number;
+  skipped: number;
+  failed: number;
+  results: BulkDeleteRecordResult[];
+}
+
+/**
+ * Split an id list into bounded slices that each fit one server request.
+ *
+ * Re-exported from the client-safe `admin-list` module so the UI chunks
+ * exactly the way the server cap enforces.
+ */
+export { chunkBulkIds } from "./admin-list";
+
+export async function bulkDeleteCmsDrafts(
+  db: D1Database,
+  contentIds: readonly string[],
+  actor: { id: string; username: string },
+): Promise<BulkDeleteReport> {
+  const seen = new Set<string>();
+  for (const raw of contentIds) {
+    if (typeof raw !== "string") continue;
+    const id = raw.trim();
+    if (id === "" || id.length > 128) continue;
+    seen.add(id);
+  }
+  const ids = [...seen];
+  if (ids.length > MAX_BULK_RECORDS) {
+    throw new Error(
+      `Too many records selected for one delete request (max ${MAX_BULK_RECORDS}). Split the selection into smaller chunks.`,
+    );
+  }
+  const { deleteCmsDraft } = await import("./content-delete.server");
+  const report: BulkDeleteReport = {
+    requested: ids.length,
+    deleted: 0,
+    skipped: 0,
+    failed: 0,
+    results: [],
+  };
+  for (const contentId of ids) {
+    try {
+      const result = await deleteCmsDraft(db, { contentId }, actor);
+      if (result.deleted) {
+        report.deleted += 1;
+        report.results.push({ contentId, outcome: "deleted", entityType: result.entityType });
+      } else {
+        const first = result.blockers?.[0];
+        report.skipped += 1;
+        report.results.push({
+          contentId,
+          outcome: "skipped",
+          entityType: result.entityType,
+          ...(first !== undefined ? { reason: first.reason, message: first.message } : {}),
+        });
+      }
+    } catch (e) {
+      report.failed += 1;
+      report.results.push({
+        contentId,
+        outcome: "failed",
+        message: e instanceof Error ? e.message : "Delete failed.",
+      });
+    }
+  }
+  return report;
 }
 
 export { BULK_ENTITY_TYPES };

@@ -128,6 +128,16 @@ export interface DeleteAssessment {
   blockers: DeleteBlocker[];
 }
 
+/**
+ * The list-safe view of an assessment: reason codes + user-safe messages, but
+ * NEVER the `references` holder ids. The list UI needs to explain WHY, not to
+ * name which other records point at this one.
+ */
+export interface DeleteEligibility {
+  eligible: boolean;
+  reasons: Array<{ reason: DeleteBlocker["reason"]; message: string }>;
+}
+
 /** Find every record that references this content id. */
 export async function findInboundReferences(
   db: D1Database,
@@ -151,71 +161,203 @@ export async function findInboundReferences(
 /**
  * Decide whether a record may be permanently deleted, and explain why not.
  *
- * Read-only and side-effect free, so the UI can call it to decide whether to
- * offer a Delete action at all — the destructive control is simply absent for
- * records that could never be deleted.
+ * Read-only and side-effect free. The UI uses the verdict ADVISORILY — to
+ * offer Delete where it would succeed and to explain why not elsewhere —
+ * while the destructive path (`deleteCmsDraft`, single and bulk) always
+ * re-assesses at execution time, so a client verdict can never authorize a
+ * delete the server would refuse.
  */
 export async function assessContentDeletability(
   db: D1Database,
   contentId: string,
 ): Promise<DeleteAssessment> {
-  const row = await db
-    .prepare("SELECT entity_type, status FROM cms_contents WHERE id = ?")
-    .bind(contentId)
-    .first<{ entity_type: string; status: string }>();
-
-  if (row === null || !isContentStatus(row.status)) {
+  const byId = await assessManyContentDeletability(db, [contentId]);
+  const found = byId[contentId];
+  if (found === undefined) {
     return {
       contentId,
-      entityType: row?.entity_type ?? null,
+      entityType: null,
       status: null,
       eligible: false,
       blockers: [{ reason: "not-found", message: "This record no longer exists." }],
     };
   }
+  return {
+    contentId,
+    entityType: found.entityType,
+    status: found.status,
+    eligible: found.eligible,
+    blockers: found.blockers,
+  };
+}
 
-  const blockers: DeleteBlocker[] = [];
+interface BatchAssessment extends DeleteEligibility {
+  entityType: string | null;
+  status: ContentStatus | null;
+  blockers: DeleteBlocker[];
+}
 
-  if (row.status === "published") {
-    blockers.push({
-      reason: "published",
-      message:
-        "This record is published and has a live public URL. Unpublish it to draft, or archive it, before deleting.",
-    });
+/**
+ * Batched deletability assessment for a list page.
+ *
+ * One status query + one hero-provenance query + one query per reference edge
+ * for the WHOLE id set, instead of N per-row round trips. The verdicts and
+ * messages are identical to the single-record path by construction — both are
+ * built from the same rules below, and the parity is tested.
+ */
+export async function assessManyContentDeletability(
+  db: D1Database,
+  contentIds: readonly string[],
+): Promise<Record<string, BatchAssessment>> {
+  const unique = [...new Set(contentIds.filter((id) => typeof id === "string" && id !== ""))];
+  const out: Record<string, BatchAssessment> = {};
+  if (unique.length === 0) return out;
+
+  const placeholders = unique.map(() => "?").join(",");
+  const rows = await db
+    .prepare(`SELECT id, entity_type, status FROM cms_contents WHERE id IN (${placeholders})`)
+    .bind(...unique)
+    .all<{ id: string; entity_type: string; status: string }>();
+  const byId = new Map(rows.results.map((row) => [row.id, row]));
+
+  const heroSources = await db
+    .prepare(
+      `SELECT content_id, data_source FROM hero_records WHERE content_id IN (${placeholders})`,
+    )
+    .bind(...unique)
+    .all<{ content_id: string; data_source: string | null }>();
+  const sourceByHero = new Map(heroSources.results.map((row) => [row.content_id, row.data_source]));
+
+  // Inbound references, batched per edge: which targets (of our id set) are
+  // referenced, and by which holder rows (kept server-side for the message).
+  const referencedBy = new Map<string, InboundReference[]>();
+  const batchSpecs: Array<{
+    label: string;
+    table: string;
+    holder: string;
+    target: string;
+    restrict: boolean;
+  }> = [
+    {
+      label: "schematic weapon slot",
+      table: "schematic_records",
+      holder: "content_id",
+      target: "weapon_content_id",
+      restrict: true,
+    },
+    {
+      label: "schematic trap slot",
+      table: "schematic_records",
+      holder: "content_id",
+      target: "trap_content_id",
+      restrict: true,
+    },
+    {
+      label: "loadout team perk",
+      table: "loadout_records",
+      holder: "content_id",
+      target: "team_perk_content_id",
+      restrict: true,
+    },
+    {
+      label: "loadout schematic slot",
+      table: "loadout_schematics",
+      holder: "loadout_content_id",
+      target: "schematic_content_id",
+      restrict: true,
+    },
+    {
+      label: "loadout hero roster",
+      table: "loadout_heroes",
+      holder: "loadout_content_id",
+      target: "hero_content_id",
+      restrict: false,
+    },
+    {
+      label: "article entity reference",
+      table: "article_entity_refs",
+      holder: "article_content_id",
+      target: "target_content_id",
+      restrict: false,
+    },
+    {
+      label: "related article",
+      table: "article_related",
+      holder: "article_content_id",
+      target: "related_content_id",
+      restrict: false,
+    },
+    {
+      label: "curated related hero",
+      table: "hero_related_heroes",
+      holder: "hero_content_id",
+      target: "related_content_id",
+      restrict: false,
+    },
+  ];
+  for (const spec of batchSpecs) {
+    const hits = await db
+      .prepare(
+        `SELECT ${spec.target} AS target, ${spec.holder} AS entity FROM ${spec.table} WHERE ${spec.target} IN (${placeholders}) LIMIT 200`,
+      )
+      .bind(...unique)
+      .all<{ target: string; entity: string }>();
+    for (const hit of hits.results) {
+      if (typeof hit.target !== "string" || typeof hit.entity !== "string") continue;
+      const list = referencedBy.get(hit.target) ?? [];
+      list.push({ label: spec.label, entityId: hit.entity, restrict: spec.restrict });
+      referencedBy.set(hit.target, list);
+    }
   }
 
-  // Reference-synced rows are game data, not editorial scratch space.
-  if (row.entity_type === "hero") {
-    const source = await db
-      .prepare("SELECT data_source FROM hero_records WHERE content_id = ?")
-      .bind(contentId)
-      .first<{ data_source: string | null }>();
-    if ((source?.data_source ?? null) === "stw-sync") {
+  for (const contentId of unique) {
+    const row = byId.get(contentId);
+    if (row === undefined || !isContentStatus(row.status)) {
+      out[contentId] = {
+        eligible: false,
+        entityType: row?.entity_type ?? null,
+        status: null,
+        blockers: [{ reason: "not-found", message: "This record no longer exists." }],
+        reasons: [{ reason: "not-found", message: "This record no longer exists." }],
+      };
+      continue;
+    }
+
+    const blockers: DeleteBlocker[] = [];
+    if (row.status === "published") {
+      blockers.push({
+        reason: "published",
+        message:
+          "This record is published and has a live public URL. Unpublish it to draft, or archive it, before deleting.",
+      });
+    }
+    // Reference-synced rows are game data, not editorial scratch space.
+    if (row.entity_type === "hero" && (sourceByHero.get(contentId) ?? null) === "stw-sync") {
       blockers.push({
         reason: "reference-data",
         message:
           "This hero is reference-synced data (data_source = 'stw-sync'). Deleting it would be undone by the next reference sync.",
       });
     }
-  }
+    const references = referencedBy.get(contentId) ?? [];
+    if (references.length > 0) {
+      const labels = [...new Set(references.map((r) => r.label))];
+      blockers.push({
+        reason: "referenced",
+        message: `Still referenced by ${references.length} record(s): ${labels.join(", ")}. Remove those references first.`,
+        references,
+      });
+    }
 
-  const references = await findInboundReferences(db, contentId);
-  if (references.length > 0) {
-    const labels = [...new Set(references.map((r) => r.label))];
-    blockers.push({
-      reason: "referenced",
-      message: `Still referenced by ${references.length} record(s): ${labels.join(", ")}. Remove those references first.`,
-      references,
-    });
+    out[contentId] = {
+      eligible: blockers.length === 0,
+      entityType: row.entity_type,
+      status: row.status,
+      blockers,
+      reasons: blockers.map((b) => ({ reason: b.reason, message: b.message })),
+    };
   }
-
-  return {
-    contentId,
-    entityType: row.entity_type,
-    status: row.status,
-    eligible: blockers.length === 0,
-    blockers,
-  };
+  return out;
 }
 
 export interface DeleteDraftResult {

@@ -5,6 +5,7 @@ import {
   createRootRouteWithContext,
   useLocation,
   useRouter,
+  useRouterState,
   HeadContent,
   Scripts,
 } from "@tanstack/react-router";
@@ -18,6 +19,7 @@ import { jsonLdScript } from "../lib/seo";
 import { BRAND_NAME, SITE_URL } from "../lib/site";
 import { BackToTop } from "../components/hawkbucks/BackToTop";
 import { HawkbucksNotFound } from "../components/hawkbucks/HawkbucksNotFound";
+import { HawkbucksErrorState } from "../components/hawkbucks/HawkbucksErrorState";
 import { AppShell } from "../components/hawkbucks/AppShell";
 import { Toaster } from "../components/ui/sonner";
 import { I18nProvider } from "../i18n/context";
@@ -46,34 +48,17 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
     reportLovableError(error, { boundary: "tanstack_root_error_component" });
   }, [error]);
 
+  // A genuine load/server failure is NOT a 404: distinct branded state with
+  // the same viewport contract, a retry that revalidates + resets, and a
+  // locale-aware home link. The boundary replaces RootComponent, so no
+  // AppShell is mounted above this by construction.
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background px-4">
-      <div className="max-w-md text-center">
-        <h1 className="text-xl font-semibold tracking-tight text-foreground">
-          {translate("errors.loadFailTitle", DEFAULT_LANGUAGE)}
-        </h1>
-        <p className="mt-2 text-sm text-muted-foreground">
-          {translate("errors.loadFailDesc", DEFAULT_LANGUAGE)}
-        </p>
-        <div className="mt-6 flex flex-wrap justify-center gap-2">
-          <button
-            onClick={() => {
-              router.invalidate();
-              reset();
-            }}
-            className="inline-flex min-h-[48px] items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
-          >
-            {translate("errors.tryAgain", DEFAULT_LANGUAGE)}
-          </button>
-          <a
-            href="/"
-            className="inline-flex min-h-[48px] items-center justify-center rounded-md border border-input bg-background px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-accent"
-          >
-            {translate("errors.goHome", DEFAULT_LANGUAGE)}
-          </a>
-        </div>
-      </div>
-    </div>
+    <HawkbucksErrorState
+      onRetry={() => {
+        void router.invalidate();
+        reset();
+      }}
+    />
   );
 }
 
@@ -246,7 +231,22 @@ function RootComponent() {
   // Standalone surfaces (Control Center + draft preview) keep the shared
   // runtime providers but skip the public AppShell entirely — no public
   // sidebar, footer, welcome dialog, BackToTop, or page container.
-  if (isStandaloneSurface) {
+  //
+  // Not-found matches take the SAME branch, and this is the actual fix for
+  // the "404 trapped in the content column" defect: TanStack renders the
+  // root `notFoundComponent` through this component's `<Outlet/>`, so as long
+  // as the Outlet sits inside AppShell, no CSS on the 404 can escape the
+  // sidebar/header/`max-w-[1100px]` ancestors. The predicate mirrors the
+  // router's own `hasNotFoundMatch` — a loader-level `notFound()` throw
+  // (`status === "notFound"`) or an unmatched URL (`globalNotFound`) — so
+  // unknown slugs and unknown paths share one full-viewport boundary.
+  // Genuine errors (`status === "error"`) never take this path: they render
+  // through `errorComponent`, which replaces this component outright.
+  const isNotFoundMatch = useRouterState({
+    select: (state) =>
+      state.matches.some((match) => match.status === "notFound" || match.globalNotFound === true),
+  });
+  if (isStandaloneSurface || isNotFoundMatch) {
     return (
       <QueryClientProvider client={queryClient}>
         <I18nProvider initialLanguage={DEFAULT_LANGUAGE} fixedLanguage={DEFAULT_LANGUAGE}>

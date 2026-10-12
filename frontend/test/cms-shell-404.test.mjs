@@ -44,8 +44,13 @@ test("CmsMenu: portal rendering with edge-aware positioning", async () => {
   // focus and focus restore are Radix's, not reimplemented here.
   assert.equal(/addEventListener\("keydown"/.test(code), false);
   assert.equal(/addEventListener\("mousedown"/.test(code), false);
-  // CMS visual identity, not the public-site popover tokens.
-  assert.match(code, /cc-panel-elevated/);
+  // CMS visual identity, not the public-site popover tokens — on a dedicated
+  // portal-safe surface: `cc-panel-elevated` is intentionally NOT used here
+  // because its var()/color-mix background resolves to transparent outside
+  // .cc-root (the "missing background" defect). `cc-menu-content` repeats the
+  // same panel value as hard oklch literals, following `.cc-select-content`.
+  assert.match(code, /cc-menu-content/);
+  assert.equal(code.includes("cc-panel-elevated"), false);
   assert.equal(code.includes("bg-popover"), false);
 });
 

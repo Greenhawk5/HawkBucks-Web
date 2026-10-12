@@ -8,7 +8,7 @@ import {
   publishAdminArticle,
   type ArticleAdminItem,
 } from "@/lib/cms/articles-admin.loader";
-import { getAdminDraftDeletability } from "@/lib/cms/bulk-admin.loader";
+import { getAdminDraftDeletabilityMany } from "@/lib/cms/bulk-admin.loader";
 import { CmsShell } from "@/components/cms/cc/CmsShell";
 import {
   CmsRouteErrorStandalone,
@@ -16,7 +16,11 @@ import {
   CmsSignInRequired,
 } from "@/components/cms/cc/CmsAuth";
 import { CmsDialog, CmsField } from "@/components/cms/cc/CmsPrimitives";
-import { CmsEntityList, cmsEntitySearch } from "@/components/cms/cc/CmsEntityList";
+import {
+  CmsEntityList,
+  cmsEntitySearch,
+  type CmsDeletabilityMap,
+} from "@/components/cms/cc/CmsEntityList";
 import { CmsImportDialog } from "@/components/cms/cc/CmsImportDialog";
 
 export const Route = createFileRoute("/admin/articles")({
@@ -25,24 +29,22 @@ export const Route = createFileRoute("/admin/articles")({
   loader: async ({ deps }) => {
     const session = await getAdminSession();
     if (!session.authenticated) {
-      return { session, page: null, deletable: {} as Record<string, boolean> };
+      return { session, page: null, deletable: {} as CmsDeletabilityMap };
     }
     const result = await listAdminArticles({ data: deps });
 
-    const deletable: Record<string, boolean> = {};
-    await Promise.all(
-      result.items.map(async (row) => {
-        if (row.status === "published") return;
-        try {
-          const { assessment } = await getAdminDraftDeletability({
-            data: { contentId: row.contentId },
-          });
-          deletable[row.contentId] = assessment.eligible;
-        } catch {
-          deletable[row.contentId] = false;
-        }
-      }),
-    );
+    // One batched deletability probe for the visible rows: identical verdicts
+    // to the single probe, without N round trips. Advisory only — the server
+    // re-assesses at execution time.
+    let deletable: CmsDeletabilityMap = {};
+    try {
+      const { eligibilities } = await getAdminDraftDeletabilityMany({
+        data: { contentIds: result.items.map((row) => row.contentId) },
+      });
+      deletable = eligibilities;
+    } catch {
+      deletable = {};
+    }
 
     return { session, page: result, deletable };
   },

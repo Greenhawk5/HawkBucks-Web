@@ -44,6 +44,32 @@ export const ADMIN_MAX_PAGES = 1000;
 /** Page size options offered in the UI. */
 export const ADMIN_PAGE_SIZE_OPTIONS = [25, 50, 100] as const;
 
+/**
+ * Hard cap on how many records one bulk request may touch (status changes
+ * and permanent deletes alike).
+ *
+ * Client-safe on purpose: the CMS list UI chunks larger selections through
+ * `chunkBulkIds` below, so client and server share one cap. Chosen to cover
+ * a full 100-row page plus headroom while keeping a single request's cost
+ * bounded and predictable.
+ */
+export const MAX_BULK_RECORDS = 200;
+
+/**
+ * Split an id list into bounded slices that each fit one bulk server request.
+ *
+ * Pure and client-safe, so the CMS list UI and the server share the exact
+ * chunking the bulk cap enforces (see `MAX_BULK_RECORDS`): a 250-record
+ * cleanup arrives as bounded chunks, never as one unbounded request and
+ * never silently trimmed.
+ */
+export function chunkBulkIds(ids: readonly string[], maxSize: number): string[][] {
+  const size = Math.max(1, Math.floor(maxSize));
+  const chunks: string[][] = [];
+  for (let i = 0; i < ids.length; i += size) chunks.push(ids.slice(i, i + size));
+  return chunks;
+}
+
 export interface AdminListSearchBase {
   /** 1-based page number. */
   page: number;

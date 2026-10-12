@@ -26,8 +26,14 @@
 import { useEffect, useMemo, useState } from "react";
 import { Trash2 } from "lucide-react";
 
-import { bulkSetContentStatus, deleteAdminDraftContent } from "@/lib/cms/bulk-admin.loader";
 import {
+  bulkDeleteDraftContent,
+  bulkSetContentStatus,
+  deleteAdminDraftContent,
+} from "@/lib/cms/bulk-admin.loader";
+import {
+  chunkBulkIds,
+  MAX_BULK_RECORDS,
   parseAdminListSearch,
   type AdminListSearchBase,
   type AdminPageMeta,
@@ -98,6 +104,19 @@ export interface CmsEntityListRow {
   updatedAt: string;
 }
 
+/**
+ * Advisory per-row deletability for the visible page, from the batched server
+ * probe. DISPLAY ONLY: the destructive paths always re-assess at execution
+ * time, so this map can never authorize a delete. A missing entry (probe
+ * failed for that row) is treated as ineligible with a generic explanation.
+ */
+export interface CmsDeleteReason {
+  reason: string;
+  message: string;
+}
+
+export type CmsDeletabilityMap = Record<string, { eligible: boolean; reasons: CmsDeleteReason[] }>;
+
 export interface CmsEntityListPage<TItem extends CmsEntityListRow> {
   items: TItem[];
   total: number;
@@ -114,7 +133,8 @@ export interface CmsEntityListProps<TItem extends CmsEntityListRow> {
   /** Plural used in the toolbar count ("heroes" for the irregular case). */
   selectedNoun?: string | undefined;
   page: CmsEntityListPage<TItem>;
-  deletable: Record<string, boolean>;
+  /** Advisory deletability map for the visible rows (see `CmsDeletabilityMap`). */
+  deletable: CmsDeletabilityMap;
   canWrite: boolean;
   canPublish: boolean;
   search: CmsEntitySearchParams;
@@ -181,6 +201,22 @@ function bulkTransitionOptions(
   );
 }
 
+/** Short faithful nouns for server blocker codes (the full message ships separately). */
+function shortBlockerNoun(code: string): string {
+  switch (code) {
+    case "published":
+      return "published";
+    case "reference-data":
+      return "reference-synced";
+    case "referenced":
+      return "referenced by other content";
+    case "not-found":
+      return "already removed";
+    default:
+      return "blocked";
+  }
+}
+
 export function CmsEntityList<TItem extends CmsEntityListRow>(props: CmsEntityListProps<TItem>) {
   const { search } = props;
   const setParams = props.setParams;
@@ -202,6 +238,8 @@ export function CmsEntityList<TItem extends CmsEntityListRow>(props: CmsEntityLi
   const [deleteTarget, setDeleteTarget] = useState<{ contentId: string; title: string } | null>(
     null,
   );
+  const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false);
+  const [bulkDeleteProgress, setBulkDeleteProgress] = useState<string | null>(null);
   const [selected, setSelected] = useState<Record<string, true>>({});
 
   const { items, counts, meta, total } = props.page;
@@ -282,6 +320,83 @@ export function CmsEntityList<TItem extends CmsEntityListRow>(props: CmsEntityLi
     }
   }
 
+  // Advisory eligibility for the current selection, from the server's batched
+  // probe. Decides only what the confirm dialog PREDICTS; execution
+  // re-evaluates every record server-side, so a stale prediction can never
+  // authorize (or silently widen) a delete.
+  const selectedEligibility = useMemo(
+    () =>
+      selectedIds.map((id) => ({
+        id,
+        verdict: props.deletable[id],
+      })),
+    [selectedIds, props.deletable],
+  );
+  const eligibleSelectedIds = useMemo(
+    () =>
+      selectedEligibility
+        .filter((s) => s.verdict !== undefined && s.verdict.eligible)
+        .map((s) => s.id),
+    [selectedEligibility],
+  );
+  const blockedSelected = useMemo(
+    () => selectedEligibility.filter((s) => s.verdict === undefined || !s.verdict.eligible),
+    [selectedEligibility],
+  );
+  const blockedByReason = useMemo(() => {
+    const groups = new Map<string, number>();
+    for (const s of blockedSelected) {
+      const code = s.verdict?.reasons[0]?.reason ?? "unknown";
+      groups.set(code, (groups.get(code) ?? 0) + 1);
+    }
+    return [...groups.entries()];
+  }, [blockedSelected]);
+
+  async function runBulkDelete() {
+    // Bounded chunks through the shared helper: a 250-record cleanup arrives
+    // as two requests, each re-evaluating eligibility server-side.
+    const chunks = chunkBulkIds(selectedIds, MAX_BULK_RECORDS);
+    setPending(true);
+    setError(null);
+    try {
+      let deleted = 0;
+      let skipped = 0;
+      let failed = 0;
+      const skipNotes: string[] = [];
+      for (let i = 0; i < chunks.length; i++) {
+        const slice = chunks[i];
+        if (slice === undefined || slice.length === 0) continue;
+        if (chunks.length > 1)
+          setBulkDeleteProgress(`Deleting chunk ${i + 1} of ${chunks.length}…`);
+        const report = await bulkDeleteDraftContent({ data: { contentIds: slice } });
+        deleted += report.deleted;
+        skipped += report.skipped;
+        failed += report.failed;
+        for (const r of report.results) {
+          if (r.outcome === "skipped" && r.message) skipNotes.push(`${r.contentId}: ${r.message}`);
+        }
+      }
+      const parts = [`${deleted} permanently deleted`];
+      if (skipped > 0) parts.push(`${skipped} skipped`);
+      if (failed > 0) parts.push(`${failed} failed`);
+      setBulkResult(
+        parts.join(", ") + (skipNotes.length > 0 ? `. ${skipNotes.slice(0, 3).join(" ")}` : ""),
+      );
+      if (deleted > 0) cmsToast("success", `Bulk delete: ${parts.join(", ")}.`);
+      if (failed > 0 && deleted === 0 && skipped === 0) {
+        setError("Bulk delete failed. No records were changed.");
+      }
+      setSelected({});
+      await refresh();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Bulk delete failed.");
+    } finally {
+      setPending(false);
+      setBulkDeleteOpen(false);
+      setBulkDeleteProgress(null);
+    }
+  }
+
   const hasActiveFilters =
     (search.q ?? "") !== "" ||
     (search.status ?? "") !== "" ||
@@ -298,6 +413,21 @@ export function CmsEntityList<TItem extends CmsEntityListRow>(props: CmsEntityLi
       props.confirmCopy?.draft ??
       `Moving back to draft hides this ${props.singular} from the public site. Continue?`,
   };
+
+  // Bulk-delete review text: exact scope (current page selection), the
+  // advisory eligible/blocked split, and the permanence warning. The server
+  // re-evaluates every record at execution, so this is a prediction, stated
+  // as one.
+  const bulkDeleteScope = `${selectedIds.length} selected on this page`;
+  const bulkDeleteBody =
+    eligibleSelectedIds.length === 0
+      ? `None of the ${bulkDeleteScope} look eligible for permanent deletion right now (${blockedSummary()}). No records will be changed.`
+      : `${eligibleSelectedIds.length} of the ${bulkDeleteScope} look eligible for permanent deletion${blockedSelected.length > 0 ? `; ${blockedSelected.length} will be skipped (${blockedSummary()})` : ""}. Eligible records, their translations and child rows will be permanently removed. This cannot be undone. Media assets and R2 objects are not deleted. Eligibility is re-checked on the server before anything is removed.`;
+
+  function blockedSummary(): string {
+    if (blockedByReason.length === 0) return "no blockers reported";
+    return blockedByReason.map(([code, n]) => `${n} ${shortBlockerNoun(code)}`).join(", ");
+  }
 
   const fullColumns: Array<CmsColumn<TItem>> = [
     ...props.columns,
@@ -359,10 +489,16 @@ export function CmsEntityList<TItem extends CmsEntityListRow>(props: CmsEntityLi
               }),
           },
         ];
-        if (props.deletable[row.contentId] === true) {
-          menuItems.push(
-            { kind: "separator" as const },
-            {
+        // The Delete entry is STRUCTURAL: every row a writer can see carries
+        // it, so menus never silently differ. Eligible rows get the action;
+        // ineligible rows get a disabled entry showing the SERVER's reason
+        // (never a client verdict that could authorize anything). Viewers
+        // without write access see no delete entry at all.
+        if (props.canWrite) {
+          menuItems.push({ kind: "separator" as const });
+          const verdict = props.deletable[row.contentId];
+          if (verdict !== undefined && verdict.eligible) {
+            menuItems.push({
               label: (
                 <>
                   <Trash2 className="h-3.5 w-3.5" aria-hidden="true" />
@@ -372,8 +508,27 @@ export function CmsEntityList<TItem extends CmsEntityListRow>(props: CmsEntityLi
               danger: true,
               onSelect: () =>
                 setDeleteTarget({ contentId: row.contentId, title: row.title ?? row.contentId }),
-            },
-          );
+            });
+          } else {
+            const reason =
+              verdict?.reasons[0]?.message ?? "Deletion eligibility could not be checked.";
+            menuItems.push({
+              label: (
+                <span>
+                  <span className="flex items-center gap-2">
+                    <Trash2 className="h-3.5 w-3.5" aria-hidden="true" />
+                    Delete permanently…
+                  </span>
+                  <span className="cc-menu-item-reason mt-0.5 max-w-56 whitespace-normal break-words">
+                    {reason}
+                  </span>
+                </span>
+              ),
+              disabled: true,
+              disabledReason: reason,
+              onSelect: () => {},
+            });
+          }
         }
         return <CmsMenu label={`Actions for ${row.title ?? row.contentId}`} items={menuItems} />;
       },
@@ -476,6 +631,10 @@ export function CmsEntityList<TItem extends CmsEntityListRow>(props: CmsEntityLi
               danger: action.to === "archived",
               onSelect: () => setBulkConfirm({ ...action }),
             }))}
+          destructive={{
+            label: "Delete selected…",
+            onSelect: () => setBulkDeleteOpen(true),
+          }}
         />
       ) : null}
 
@@ -591,6 +750,23 @@ export function CmsEntityList<TItem extends CmsEntityListRow>(props: CmsEntityLi
             : ""
         }
         confirmLabel="Delete permanently"
+      />
+
+      <CmsConfirmDialog
+        open={bulkDeleteOpen}
+        onClose={() => {
+          if (!pending) setBulkDeleteOpen(false);
+        }}
+        onConfirm={() => void runBulkDelete()}
+        pending={pending}
+        tone="danger"
+        title={`Delete ${selectedIds.length} selected ${props.selectedNoun ?? props.noun}?`}
+        body={bulkDeleteProgress ?? bulkDeleteBody}
+        confirmLabel={
+          eligibleSelectedIds.length === 0
+            ? "Nothing eligible — close"
+            : "Delete eligible permanently"
+        }
       />
     </div>
   );

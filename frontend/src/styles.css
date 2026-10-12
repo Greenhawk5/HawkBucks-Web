@@ -304,6 +304,15 @@
     0 2px 0 oklch(0 0 0 / 40%);
 }
 
+/* Error-state field: the same horizon fade as the 404 so the two boundaries
+   feel related, without reusing the 404's ridge/compass artwork (an error is
+   not a missing page). No animation: nothing to disable under
+   prefers-reduced-motion. */
+.hb-error-field {
+  mask-image: linear-gradient(to bottom, transparent 0%, black 30%);
+  opacity: 0.7;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .hb-404-compass {
     animation: none;

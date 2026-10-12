@@ -27,12 +27,13 @@ export interface CmsMutationInventoryEntry {
 export const CMS_MUTATION_INVENTORY: CmsMutationInventoryEntry[] = [
   {
     file: "../src/lib/cms/bulk-admin.loader.ts",
-    mutations: ["bulkSetContentStatus", "deleteAdminDraftContent"],
+    mutations: ["bulkSetContentStatus", "deleteAdminDraftContent", "bulkDeleteDraftContent"],
     families: [
       "bulk lifecycle transitions",
       "bounded cross-page id resolution",
       "per-record outcome reporting",
       "permanent draft deletion",
+      "bulk permanent deletion",
       "deletability policy enforcement",
     ],
   },

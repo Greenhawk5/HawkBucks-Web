@@ -28,9 +28,12 @@
  * roving focus, typeahead, Home/End, focus restore to the trigger on close, and
  * `aria-expanded`/`role=menu`/`role=menuitem` wiring.
  *
- * SCOPE NOTE: the CMS shell also renders its own `.cc-root`-scoped tokens, so
- * this surface deliberately styles off the `cc-*` variables rather than the
- * public-site `bg-popover` tokens used by `components/ui/dropdown-menu.tsx`.
+ * SCOPE NOTE: the portal content styles off dedicated `cc-menu-*` classes in
+ * cms.css — hard oklch literals, never `var(--cc-*)` — because the portal
+ * renders into document.body OUTSIDE `.cc-root`, where those vars are
+ * undefined. (The same lesson as `.cc-select-content`: a var()/color-mix
+ * surface in the portal resolves to transparent and page content bleeds
+ * through.) The public-site `bg-popover` tokens are never used here.
  */
 
 import * as React from "react";
@@ -81,6 +84,10 @@ export function CmsMenu(props: CmsMenuProps) {
     disabled = false,
     onOpenChange,
   } = props;
+  // The glyph-only default trigger is a fixed 2rem square; a caller-supplied
+  // TEXT trigger ("Change status ▾") must size to its label instead — forcing
+  // it into the glyph box overflows the text over neighbouring controls.
+  const isGlyphTrigger = trigger === undefined;
 
   return (
     // Radix's own types do not allow `| undefined` on `onOpenChange`, so the
@@ -90,9 +97,8 @@ export function CmsMenu(props: CmsMenuProps) {
         <button
           type="button"
           className={cn(
-            "cc-btn cc-btn-ghost cc-btn-sm",
-            // The glyph-only trigger must stay a real, comfortable target.
-            "h-8 w-8 shrink-0 px-0",
+            "cc-btn cc-btn-ghost cc-btn-sm shrink-0",
+            isGlyphTrigger ? "h-8 w-8 px-0" : "h-8 min-w-0 px-2.5",
             className,
           )}
           aria-label={label}
@@ -111,20 +117,20 @@ export function CmsMenu(props: CmsMenuProps) {
           avoidCollisions
           className={cn(
             MENU_Z,
-            "cc-panel-elevated min-w-44 overflow-hidden p-1 shadow-2xl",
+            // Portal-safe solid surface (hard literals in cms.css): never
+            // `cc-panel-elevated`, whose var()/color-mix background is
+            // transparent outside .cc-root.
+            "cc-menu-content min-w-44 overflow-hidden",
             "max-h-[var(--radix-dropdown-menu-content-available-height)]",
             "overscroll-contain",
           )}
-          // Long menus scroll instead of overflowing the viewport.
-          style={{ backgroundColor: "color-mix(in oklch, var(--cc-panel-2) 98%, transparent)" }}
         >
           {items.map((item, index) => {
             if (item.kind === "separator") {
               return (
                 <DropdownMenuPrimitive.Separator
                   key={item.key ?? `sep-${index}`}
-                  className="-mx-1 my-1 h-px"
-                  style={{ backgroundColor: "var(--cc-edge-2)" }}
+                  className="cc-menu-separator"
                 />
               );
             }
@@ -132,7 +138,7 @@ export function CmsMenu(props: CmsMenuProps) {
               return (
                 <DropdownMenuPrimitive.Label
                   key={item.key ?? `label-${index}`}
-                  className="cc-eyebrow px-3 py-1.5"
+                  className="cc-menu-label"
                 >
                   {item.label}
                 </DropdownMenuPrimitive.Label>
@@ -151,11 +157,8 @@ export function CmsMenu(props: CmsMenuProps) {
                   item.onSelect?.();
                 }}
                 className={cn(
-                  "flex cursor-pointer select-none items-center gap-2 rounded-md px-3 py-2 text-left text-sm",
-                  "outline-none transition-colors",
-                  "focus:bg-white/8 data-[highlighted]:bg-white/8",
-                  "data-[disabled]:pointer-events-none data-[disabled]:opacity-45",
-                  item.danger === true ? "text-[var(--cc-danger)]" : undefined,
+                  "cc-menu-item",
+                  item.danger === true ? "cc-menu-item-danger" : undefined,
                 )}
               >
                 {item.label}

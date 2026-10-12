@@ -14,7 +14,7 @@ import {
   publishAdminInventoryContent,
   type InventoryAdminItem,
 } from "@/lib/cms/schematics-admin.loader";
-import { getAdminDraftDeletability } from "@/lib/cms/bulk-admin.loader";
+import { getAdminDraftDeletabilityMany } from "@/lib/cms/bulk-admin.loader";
 import { CmsShell } from "@/components/cms/cc/CmsShell";
 import {
   CmsRouteErrorStandalone,
@@ -22,7 +22,11 @@ import {
   CmsSignInRequired,
 } from "@/components/cms/cc/CmsAuth";
 import { CmsDialog, CmsField } from "@/components/cms/cc/CmsPrimitives";
-import { CmsEntityList, cmsEntitySearch } from "@/components/cms/cc/CmsEntityList";
+import {
+  CmsEntityList,
+  cmsEntitySearch,
+  type CmsDeletabilityMap,
+} from "@/components/cms/cc/CmsEntityList";
 import { CmsSelect } from "@/components/cms/cc/CmsSelect";
 import { CmsImportDialog } from "@/components/cms/cc/CmsImportDialog";
 
@@ -70,7 +74,7 @@ export const Route = createFileRoute("/admin/inventory")({
         session,
         page: null,
         kind: "weapon" as Kind,
-        deletable: {} as Record<string, boolean>,
+        deletable: {} as CmsDeletabilityMap,
       };
     }
     const kind = isKind(deps.kind) ? deps.kind : "weapon";
@@ -84,20 +88,18 @@ export const Route = createFileRoute("/admin/inventory")({
             ? await listAdminPerks({ data: params })
             : await listAdminSchematics({ data: params });
 
-    const deletable: Record<string, boolean> = {};
-    await Promise.all(
-      result.items.map(async (row) => {
-        if (row.status === "published") return;
-        try {
-          const { assessment } = await getAdminDraftDeletability({
-            data: { contentId: row.contentId },
-          });
-          deletable[row.contentId] = assessment.eligible;
-        } catch {
-          deletable[row.contentId] = false;
-        }
-      }),
-    );
+    // One batched deletability probe for the visible rows: identical verdicts
+    // to the single probe, without N round trips. Advisory only — the server
+    // re-assesses at execution time.
+    let deletable: CmsDeletabilityMap = {};
+    try {
+      const { eligibilities } = await getAdminDraftDeletabilityMany({
+        data: { contentIds: result.items.map((row) => row.contentId) },
+      });
+      deletable = eligibilities;
+    } catch {
+      deletable = {};
+    }
 
     return { session, page: result, kind, deletable };
   },
