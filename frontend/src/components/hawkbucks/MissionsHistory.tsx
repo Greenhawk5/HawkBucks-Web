@@ -16,10 +16,10 @@ const periods: Array<{
   { key: "thisYear", labelKey: "missions.periodYear" },
 ];
 
-function formatComparison(period: HistoryPeriod) {
-  if (!period.comparison) return "—";
-  const sign = period.comparison.percent > 0 ? "+" : "";
-  return `${sign}${period.comparison.percent}%`;
+function formatComparison(comparison: HistoryPeriod["comparison"]) {
+  if (!comparison) return "—";
+  const sign = comparison.percent > 0 ? "+" : "";
+  return `${sign}${comparison.percent}%`;
 }
 
 export function MissionsHistory() {
@@ -60,8 +60,15 @@ export function MissionsHistory() {
         <div className="grid min-w-0 grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-5">
           {periods.map(({ key, labelKey }) => {
             const period = data[key];
-            const hasData = period.daysWithData > 0 && period.totalVbucks !== null;
-
+            // The history query is best-effort (the route loader swallows its
+            // failure so a history outage never 500s the missions page), and
+            // test harnesses may mock only /api/missions. A missing period
+            // renders as "no data", never a render-time TypeError.
+            const hasData =
+              period !== undefined && period.daysWithData > 0 && period.totalVbucks !== null;
+            const totalVbucks = period?.totalVbucks ?? null;
+            const missionCount = period?.missionCount ?? null;
+            const comparison = period?.comparison ?? null;
             return (
               <article
                 key={key}
@@ -73,32 +80,32 @@ export function MissionsHistory() {
                 <div className="mt-3 flex min-w-0 items-center gap-2">
                   <VbucksIcon className="h-7 w-7 shrink-0" />
                   <p className="min-w-0 break-words font-display text-2xl font-extrabold tabular-nums text-primary">
-                    {hasData ? period.totalVbucks : "—"}
+                    {hasData ? totalVbucks : "—"}
                   </p>
                 </div>
                 <p className="mt-1 break-words text-xs text-muted-foreground">
-                  {hasData && period.missionCount !== null
-                    ? `${period.missionCount} ${t(period.missionCount === 1 ? "common.missionOne" : "common.missionOther")}`
+                  {hasData && missionCount !== null
+                    ? `${missionCount} ${t(missionCount === 1 ? "common.missionOne" : "common.missionOther")}`
                     : t("common.noRecordedData")}
                 </p>
                 {
                   <p className="mt-3 break-words text-xs font-semibold text-foreground/80">
                     <span
                       className={
-                        !period.comparison
+                        !comparison
                           ? "text-muted-foreground"
-                          : period.comparison.percent > 0
+                          : comparison.percent > 0
                             ? "text-primary"
-                            : period.comparison.percent < 0
+                            : comparison.percent < 0
                               ? "text-destructive"
                               : "text-muted-foreground"
                       }
                     >
-                      {formatComparison(period)}
+                      {formatComparison(comparison)}
                     </span>{" "}
                     <span className="font-normal text-muted-foreground">
                       {t("common.vsPreviousPeriod")}
-                      {period.comparison && ` · ${period.comparison.baselineTotalVbucks} V-Bucks`}
+                      {comparison && ` · ${comparison.baselineTotalVbucks} V-Bucks`}
                     </span>
                   </p>
                 }

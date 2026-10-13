@@ -1,10 +1,10 @@
-// Icon registry (migration 0017) â€” schema, key vocabulary, resolver and safety.
+// Icon registry (migration 0017) — schema, key vocabulary, resolver and safety.
 //
 // WHAT THIS PINS
 // ---------------
 //   * 0017 is additive: it creates ONE table and drops/alters nothing, and the
 //     rolling-index test in hero-media.test.mjs now expects it as the newest
-//   * an entry is a POINTER, not a copy â€” the registry holds an
+//   * an entry is a POINTER, not a copy — the registry holds an
 //     `icon_asset_id` FK and never a URL, never an upload path
 //   * semantic identity is exact and prefix-checked, so a key cannot be filed
 //     under a category it does not name
@@ -49,7 +49,7 @@ async function freshDb() {
  * The service is written against D1 (`prepare().bind().first()/.all()/.run()`),
  * and `node:sqlite` exposes `.get()/.all()/.run()` with positional args, so the
  * four D1 verbs are mapped straight through. Only what this service actually
- * calls is implemented â€” this is a test seam, not a D1 reimplementation.
+ * calls is implemented — this is a test seam, not a D1 reimplementation.
  */
 function d1Like(db) {
   return {
@@ -109,7 +109,7 @@ test("0017 references canonical media instead of duplicating files", async () =>
   // THE point of the design: an entry points at the Media Library's own row, so
   // no second copy of the bytes can exist and no second storage path is needed.
   assert.match(sql, /media_asset_id TEXT REFERENCES media_assets \(id\) ON DELETE SET NULL/);
-  // No URL/blob column anywhere â€” a stored URL would drift from the asset row.
+  // No URL/blob column anywhere — a stored URL would drift from the asset row.
   assert.doesNotMatch(stripComments(sql), /icon_url|blob|provider_asset_id/i);
   assert.match(
     sql,
@@ -215,7 +215,7 @@ test("semantic keys are exact, prefix-checked and never fuzzy-matched", async ()
     assert.equal(parseIconSemanticKey(bad), null, `must reject: ${bad}`);
   }
 
-  // One class, one key â€” the same value feeds the card and the class filter.
+  // One class, one key — the same value feeds the card and the class filter.
   assert.equal(heroClassIconKey("soldier"), "hero-class:soldier");
 });
 
@@ -253,7 +253,7 @@ test("the service round trip works against the real migration chain", async () =
   seedAsset(raw);
   const srv = await import("../src/lib/cms/icon-registry.server.ts");
 
-  // Registering an EXISTING asset â€” no upload path exists in this service.
+  // Registering an EXISTING asset — no upload path exists in this service.
   const created = await srv.createIconRegistryEntry(db, {
     semanticKey: "hero-class:soldier",
     displayName: "Soldier",
@@ -325,7 +325,7 @@ test("the service round trip works against the real migration chain", async () =
     ["ability:ninja-slash", "hero-class:guardian", "hero-class:soldier", "standard-perk:hang-time"],
   );
 
-  // The semantic key is IMMUTABLE â€” renaming it would repoint every consumer.
+  // The semantic key is IMMUTABLE — renaming it would repoint every consumer.
   await srv.updateIconRegistryEntry(db, { id: created.id, displayName: "Soldier (icon)" });
   const renamed = await srv.getIconRegistryEntry(db, created.id);
   assert.equal(renamed.semanticKey, "hero-class:soldier");
@@ -418,7 +418,7 @@ test("removing an entry is a pointer delete and cannot touch the object", async 
   const src = await repo("lib/cms/icon-registry.server.ts");
   const fn = src.slice(src.indexOf("export async function deleteIconRegistryEntry"));
   // Exactly one DELETE, against the registry only. No bucket call, no R2, no
-  // `media_assets` delete â€” the file is not this layer's to delete.
+  // `media_assets` delete — the file is not this layer's to delete.
   assert.match(fn, /DELETE FROM icon_registry WHERE id = \?/);
   assert.doesNotMatch(fn, /deleteObject|bucket|DELETE FROM media_assets/i);
 });
