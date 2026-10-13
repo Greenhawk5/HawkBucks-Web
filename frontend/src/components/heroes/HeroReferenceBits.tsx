@@ -136,6 +136,50 @@ export function ResourceCostChip({
   );
 }
 
+/**
+ * Evolution cost summary grid for Quick View (total-to-max only).
+ *
+ * A structured codex table rather than inline chips: each cell carries the
+ * real icon, the exact locale-formatted quantity (prominent) and the display
+ * name (secondary, wraps naturally). The caller passes the loader's
+ * `totalCosts` array untouched — no recalculation, no filtering, canonical
+ * order preserved.
+ */
+export function ResourceCostGrid({
+  locale,
+  costs,
+  className,
+}: {
+  locale: string;
+  costs: readonly PublicResourceCost[];
+  className?: string;
+}) {
+  return (
+    <ul
+      className={cn("grid grid-cols-1 gap-1.5 min-[420px]:grid-cols-2 sm:grid-cols-3", className)}
+    >
+      {costs.map((c) => (
+        <li
+          key={c.resourceKey}
+          data-testid="hero-resource-cost"
+          title={`${c.name}: ${formatNumber(locale, c.amount)}`}
+          className="flex min-w-0 items-center gap-2.5 rounded-lg border border-panel-border/60 bg-background/50 px-2.5 py-2"
+        >
+          <MediaIcon url={c.iconUrl} sizeClass="h-8 w-8" />
+          <span className="min-w-0">
+            <span className="block text-sm font-bold tabular-nums leading-tight">
+              {formatNumber(locale, c.amount)}
+            </span>
+            <span className="block min-w-0 break-words text-xs leading-snug text-muted-foreground">
+              {c.name}
+            </span>
+          </span>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
 export function ResourceCostList({
   locale,
   costs,

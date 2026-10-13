@@ -26,7 +26,7 @@ import {
   type HeroFacetOption,
 } from "@/components/heroes/HeroFilterPanel";
 import { HeroCard, heroRowToItem, heroDetailHref, type HeroCardData } from "./HeroCard";
-import { HeroPreviewDialog } from "./HeroPreviewDialog";
+import { HeroPreviewDialog, type HeroPreviewSeed } from "./HeroPreviewDialog";
 import {
   parseHeroClassParam,
   parsePageParam,
@@ -138,7 +138,7 @@ export function HeroesPage({
   const q = parseSearchParam(search["q"]) ?? "";
 
   const [draft, setDraft] = React.useState(q);
-  const [preview, setPreview] = React.useState<HeroCardData | null>(null);
+  const [preview, setPreview] = React.useState<HeroPreviewSeed | null>(null);
   const [advancedOpen, setAdvancedOpen] = React.useState(false);
   const advancedTriggerRef = React.useRef<HTMLButtonElement | null>(null);
 
@@ -559,7 +559,17 @@ export function HeroesPage({
                   hero={h}
                   locale={locale}
                   priority={i < 4}
-                  onPreview={(hero) => setPreview(hero)}
+                  onPreview={(hero) =>
+                    setPreview({
+                      slug: hero.slug,
+                      title: hero.title,
+                      heroClass: hero.heroClass,
+                      category: hero.category ?? null,
+                      rarity: hero.rarity ?? null,
+                      classIconUrl: hero.classIconUrl ?? null,
+                      imageUrl: hero.imageUrl ?? null,
+                    })
+                  }
                 />
               </li>
             ))}

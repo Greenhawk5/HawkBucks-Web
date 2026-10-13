@@ -9,13 +9,15 @@ import {
   tierCountLabel,
   powerRangeLabelText,
 } from "@/lib/cms/hero-labels";
+import { rarityToken } from "@/lib/cms/rarity-tokens";
 import { getHeroQuickView, type PublicHeroQuickView } from "@/lib/cms/public-hero-quickview.loader";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import {
-  HeroClassification,
+  RarityPill,
   PerkRow,
   AbilityRow,
-  ResourceCostChip,
+  ResourceCostGrid,
+  MediaIcon,
   EmptyNote,
 } from "@/components/heroes/HeroReferenceBits";
 import { heroDetailHref } from "./HeroCard";
@@ -28,6 +30,9 @@ export interface HeroPreviewSeed {
   heroClass: string;
   category?: string | null;
   rarity?: string | null;
+  /** Registered class glyph resolved by the listing loader; null = text fallback. */
+  classIconUrl?: string | null;
+  imageUrl?: string | null;
 }
 
 /**
@@ -86,6 +91,10 @@ export function HeroPreviewDialog({
   const heroClass = data?.heroClass ?? hero?.heroClass ?? "";
   const category = data?.category ?? hero?.category ?? null;
   const title = data?.title ?? hero?.title ?? "";
+  const token = rarityToken(rarity);
+  const classIconUrl = data?.classIconUrl ?? hero?.classIconUrl ?? null;
+  const portraitUrl = data?.imageUrl ?? hero?.imageUrl ?? null;
+  const catText = categoryLabel(locale, category);
 
   return (
     <Dialog
@@ -95,122 +104,149 @@ export function HeroPreviewDialog({
       }}
     >
       <DialogContent
-        className="max-h-[90vh] max-w-2xl overflow-y-auto"
+        className={cn(
+          "flex max-h-[90dvh] w-[calc(100vw-2rem)] max-w-2xl flex-col gap-0 overflow-hidden p-0 pb-[env(safe-area-inset-bottom)] sm:w-full",
+        )}
         data-testid="hero-preview-dialog"
         aria-describedby="hero-preview-summary"
       >
-        <DialogTitle className="font-display text-xl font-bold">{title}</DialogTitle>
-        <DialogDescription id="hero-preview-summary" className="text-xs text-muted-foreground">
-          {s.classNameLabel}: {heroClassLabel(locale, heroClass)}
-          {categoryLabel(locale, category) ? ` · ${categoryLabel(locale, category)}` : ""}
-        </DialogDescription>
-
-        {state === "loading" ? (
-          <div
-            className="flex items-center justify-center gap-2 py-10 text-sm text-muted-foreground"
-            role="status"
-            aria-live="polite"
+        <div
+          className="shrink-0 border-b border-panel-border/60 px-4 pt-4 pb-4 pe-12 sm:px-6 sm:pt-5"
+          style={token ? { borderTop: `3px solid ${token.accent}` } : undefined}
+        >
+          <DialogTitle className="font-display text-xl font-extrabold tracking-tight text-balance sm:text-2xl">
+            {title}
+          </DialogTitle>
+          <DialogDescription
+            id="hero-preview-summary"
+            className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground"
           >
-            <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
-            {l.loading}
-          </div>
-        ) : null}
-
-        {state === "error" ? (
-          <div className="mt-4">
-            <EmptyNote>{l.loadError}</EmptyNote>
-            <QuickViewFooter locale={locale} slug={hero?.slug ?? ""} label={s.viewDetails} />
-          </div>
-        ) : null}
-
-        {state === "ready" && data ? (
-          <div className="mt-4 space-y-4">
-            {/* Identity strip */}
-            <div className="flex gap-3">
-              {data.imageUrl ? (
+            <span className="inline-flex min-w-0 items-center gap-1.5">
+              {classIconUrl ? (
                 <img
-                  src={data.imageUrl}
-                  alt={data.title}
-                  className="h-24 w-24 shrink-0 rounded-lg border border-panel-border/60 object-cover object-top"
-                  decoding="async"
-                />
-              ) : (
-                <div
+                  src={classIconUrl}
+                  alt=""
                   aria-hidden="true"
-                  className="grid h-24 w-24 shrink-0 place-items-center rounded-lg border border-panel-border/60 bg-muted/30 text-muted-foreground/40"
-                >
-                  <Shield className="h-6 w-6" />
-                </div>
-              )}
-              <div className="min-w-0 space-y-2">
-                <HeroClassification
-                  locale={locale}
-                  heroClass={data.heroClass}
-                  category={data.category}
+                  loading="lazy"
+                  decoding="async"
+                  className="h-4 w-4 shrink-0 rounded-sm object-contain"
+                  onError={(e) => {
+                    e.currentTarget.style.display = "none";
+                  }}
                 />
-                {data.summary ? (
-                  <p className="line-clamp-3 text-sm leading-relaxed text-muted-foreground">
-                    {data.summary}
-                  </p>
-                ) : null}
-                {data.tierCount || data.maxPower ? (
-                  <p className="text-[11px] tabular-nums text-muted-foreground">
-                    {tierCountLabel(locale, data.tierCount) ?? ""}
-                    {data.maxPower !== null
-                      ? ` · ${powerRangeLabelText(locale, data.maxPower, data.maxPower) ?? ""}`
-                      : ""}
-                  </p>
-                ) : null}
-              </div>
+              ) : null}
+              <span className="font-medium text-foreground/90">
+                {heroClassLabel(locale, heroClass)}
+              </span>
+            </span>
+            {catText ? (
+              <span aria-hidden="true" className="opacity-50">
+                ·
+              </span>
+            ) : null}
+            {catText ? <span>{catText}</span> : null}
+            {rarity ? <RarityPill locale={locale} rarity={rarity} className="ms-1" /> : null}
+          </DialogDescription>
+        </div>
+        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-4 sm:px-6 sm:py-5">
+          {state === "loading" ? (
+            <div
+              className="flex items-center justify-center gap-2 py-10 text-sm text-muted-foreground"
+              role="status"
+              aria-live="polite"
+            >
+              <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+              {l.loading}
             </div>
+          ) : null}
 
-            {/* Perks — the defining trait, full text */}
-            <section aria-label={l.perks}>
-              <h3 className="mb-1 text-[11px] font-bold uppercase tracking-[0.14em] text-muted-foreground">
-                {l.perks}
-              </h3>
-              {data.perks.length > 0 ? (
-                <ul>
-                  {data.perks.map((p) => (
-                    <PerkRow key={p.key} locale={locale} perk={p} />
-                  ))}
-                </ul>
-              ) : (
-                <EmptyNote>{l.progressionEmpty}</EmptyNote>
-              )}
-            </section>
+          {state === "error" ? (
+            <div>
+              <EmptyNote>{l.loadError}</EmptyNote>
+            </div>
+          ) : null}
 
-            {/* Ability kit */}
-            {data.abilities.length > 0 ? (
-              <section aria-label={l.abilities}>
-                <h3 className="mb-1 text-[11px] font-bold uppercase tracking-[0.14em] text-muted-foreground">
-                  {l.abilities}
+          {state === "ready" && data ? (
+            <div className="space-y-6">
+              <div className="flex gap-3.5 sm:gap-4">
+                {portraitUrl ? (
+                  <img
+                    src={portraitUrl}
+                    alt={data.title}
+                    className="h-24 w-24 shrink-0 rounded-xl border border-panel-border/60 bg-background/40 object-cover object-top sm:h-28 sm:w-28"
+                    decoding="async"
+                    onError={(e) => {
+                      e.currentTarget.style.display = "none";
+                    }}
+                  />
+                ) : (
+                  <div
+                    aria-hidden="true"
+                    className="grid h-24 w-24 shrink-0 place-items-center rounded-xl border border-panel-border/60 bg-muted/30 text-muted-foreground/40 sm:h-28 sm:w-28"
+                  >
+                    <Shield className="h-6 w-6" />
+                  </div>
+                )}
+                <div className="min-w-0 flex-1">
+                  {data.summary ? (
+                    <p className="text-sm leading-relaxed text-muted-foreground [display:-webkit-box] [-webkit-box-orient:vertical] [-webkit-line-clamp:4] overflow-hidden">
+                      {data.summary}
+                    </p>
+                  ) : null}
+                  {data.tierCount || data.maxPower ? (
+                    <p className="mt-1.5 text-[11px] tabular-nums text-muted-foreground">
+                      {tierCountLabel(locale, data.tierCount) ?? ""}
+                      {data.maxPower !== null
+                        ? ` · ${powerRangeLabelText(locale, data.maxPower, data.maxPower) ?? ""}`
+                        : ""}
+                    </p>
+                  ) : null}
+                </div>
+              </div>
+
+              <section aria-label={l.perks}>
+                <h3 className="mb-2 text-[11px] font-bold uppercase tracking-[0.14em] text-muted-foreground">
+                  {l.perks}
                 </h3>
-                <ul>
-                  {data.abilities.map((a) => (
-                    <AbilityRow key={a.key} ability={a} />
-                  ))}
-                </ul>
+                {data.perks.length > 0 ? (
+                  <ul className="rounded-xl border border-panel-border/60 bg-background/40 px-3 py-1">
+                    {data.perks.map((p) => (
+                      <PerkRow key={p.key} locale={locale} perk={p} />
+                    ))}
+                  </ul>
+                ) : (
+                  <EmptyNote>{l.progressionEmpty}</EmptyNote>
+                )}
               </section>
-            ) : null}
 
-            {/* tier 1 -> max costs */}
-            {data.totalCosts.length > 0 ? (
-              <section aria-label={l.totalToMax}>
-                <h3 className="mb-1.5 text-[11px] font-bold uppercase tracking-[0.14em] text-muted-foreground">
-                  {l.totalToMax}
-                </h3>
-                <ul className="flex flex-wrap gap-1.5">
-                  {data.totalCosts.map((c) => (
-                    <li key={c.resourceKey}>
-                      <ResourceCostChip locale={locale} cost={c} />
-                    </li>
-                  ))}
-                </ul>
-              </section>
-            ) : null}
-          </div>
-        ) : null}
+              {data.abilities.length > 0 ? (
+                <section aria-label={l.abilities}>
+                  <h3 className="mb-2 text-[11px] font-bold uppercase tracking-[0.14em] text-muted-foreground">
+                    {l.abilities}
+                  </h3>
+                  <ul className="rounded-xl border border-panel-border/60 bg-background/40 px-3 py-1">
+                    {data.abilities.map((a) => (
+                      <AbilityRow key={a.key} ability={a} />
+                    ))}
+                  </ul>
+                </section>
+              ) : null}
+
+              {data.totalCosts.length > 0 ? (
+                <section
+                  aria-label={l.totalToMax}
+                  className="border-t-2 border-panel-border/70 pt-5"
+                >
+                  <h3 className="mb-1 text-[11px] font-bold uppercase tracking-[0.14em] text-muted-foreground">
+                    {l.totalToMax}
+                  </h3>
+                  <p className="mb-2.5 text-xs text-muted-foreground">{l.evolveToMax}</p>
+                  <ResourceCostGrid locale={locale} costs={data.totalCosts} />
+                </section>
+              ) : null}
+            </div>
+          ) : null}
+        </div>
 
         {state !== "loading" ? (
           <QuickViewFooter locale={locale} slug={hero?.slug ?? ""} label={s.viewDetails} />
@@ -223,11 +259,16 @@ export function HeroPreviewDialog({
 function QuickViewFooter({ locale, slug, label }: { locale: string; slug: string; label: string }) {
   if (!slug) return null;
   return (
-    <div className={cn("mt-5 flex justify-end border-t border-panel-border/60 pt-4")}>
+    <div
+      className={cn(
+        "shrink-0 border-t border-panel-border/60 bg-background px-4 py-3 sm:px-6 sm:py-4",
+        "pb-[max(0.75rem,env(safe-area-inset-bottom))]",
+      )}
+    >
       <Link
         to={heroDetailHref(locale, slug)}
         data-testid="hero-preview-cta"
-        className="inline-flex h-9 items-center rounded-lg bg-primary px-4 text-xs font-bold text-primary-foreground outline-none transition-colors hover:bg-primary/90 focus-visible:ring-2 focus-visible:ring-ring"
+        className="inline-flex h-10 w-full items-center justify-center rounded-lg bg-primary px-4 text-xs font-bold text-primary-foreground outline-none transition-colors hover:bg-primary/90 focus-visible:ring-2 focus-visible:ring-ring sm:w-auto sm:min-w-36"
       >
         {label}
       </Link>

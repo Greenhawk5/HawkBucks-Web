@@ -7,7 +7,8 @@
  * only what is shown keeps the dialog fast on mobile data and avoids fetching
  * data that is immediately discarded.
  *
- * Query count is fixed at 4 regardless of how many perks or abilities a hero has.
+ * Query count is fixed (identity + 4 batched reference reads + 1 cached
+ * icon-registry lookup) regardless of how many perks or abilities a hero has.
  */
 
 import { createServerFn } from "@tanstack/react-start";
@@ -22,6 +23,8 @@ export interface PublicHeroQuickView {
   category: string | null;
   rarity: string | null;
   imageUrl: string | null;
+  /** Registered class glyph resolved via the icon registry; null = text fallback. */
+  classIconUrl: string | null;
   perks: PublicHeroPerk[];
   abilities: PublicHeroAbility[];
   /** Headline only: best rarity, tier count and top power. */
@@ -83,11 +86,15 @@ export const getHeroQuickView = createServerFn({ method: "GET" })
     const id = ident.content_id;
 
     // 2-5. one batched read each; four queries total, no per-item loops.
-    const [perks, abilities, progRows, costRows] = await Promise.all([
+    const { heroClassIconKey } = await import("@/lib/icon-registry");
+    const { resolveIconUrls } = await import("./icon-registry.server");
+    const classKey = heroClassIconKey(ident.hero_class);
+    const [perks, abilities, progRows, costRows, classIconUrls] = await Promise.all([
       readHeroPerks(db, [id], locale),
       readHeroAbilities(db, [id], locale),
       readHeroProgressionRows(db, [id]),
       readHeroProgressionCosts(db, [id], locale),
+      classKey ? resolveIconUrls(db, [classKey]) : Promise.resolve(new Map<string, string>()),
     ]);
 
     const progression: PublicHeroProgression | null = buildProgression(
@@ -113,6 +120,7 @@ export const getHeroQuickView = createServerFn({ method: "GET" })
         category: ident.category,
         rarity: ident.rarity,
         imageUrl: ident.image_url,
+        classIconUrl: classKey ? (classIconUrls.get(classKey) ?? null) : null,
         perks: perks.get(id) ?? [],
         abilities: abilities.get(id) ?? [],
         maxPower: progression?.maxPower ?? null,
