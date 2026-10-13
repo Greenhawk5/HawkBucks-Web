@@ -96,7 +96,7 @@ export function HeroCard({
       rarity={rarity}
       testId="hero-card"
       accent="none"
-      className="h-full transition-[transform,border-color,box-shadow] duration-200 ease-out motion-reduce:transition-none"
+      className="h-full w-full transition-[transform,border-color,box-shadow] duration-200 ease-out motion-reduce:transition-none"
     >
       {/* Artwork is the primary visual element. `object-top` keeps a bust
           render from being cropped through the face. The 4:5 ratio is capped at

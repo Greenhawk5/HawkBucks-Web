@@ -160,10 +160,12 @@ export function FilterChipRow({
         </p>
         <ul
           className={cn(
-            "-mx-1 flex snap-x gap-1 overflow-x-auto rounded-lg border border-panel-border/60 bg-background/40 p-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:mx-0 sm:flex-wrap sm:overflow-visible sm:px-1",
+            "-mx-1 flex w-fit max-w-full flex-wrap gap-1 rounded-lg border border-panel-border/60 bg-background/40 p-1 sm:mx-0 sm:flex-nowrap sm:overflow-x-auto sm:px-1 sm:[scrollbar-width:none] sm:[&::-webkit-scrollbar]:hidden",
             // Hug the segments so a short facet set does not read as one long
-            // empty bar; `max-w-full` keeps it scrollable when the set is long.
-            "w-fit max-w-full",
+            // empty bar; `max-w-full` keeps the wrap bounded. Wrap on mobile
+            // so every option stays reachable with no horizontal scroll and
+            // no clipped final chip; the single-line scroll strip returns
+            // from `sm` up.
           )}
           aria-label={label}
         >
@@ -327,12 +329,16 @@ export function ContentDiscoveryBar({
             `stackControls` is for a hub that also supplies `actions` — below
             `sm` the controls become deliberate full-width lines (search / sort
             / advanced + view mode) instead of reflowing into a ragged wrap or
-            overflowing the viewport. Opt-in so the other hubs are untouched.
+            overflowing the viewport. The `actions` group is one of those
+            lines, so it must be allowed to wrap internally (trigger +
+            segmented switch side by side when they fit, stacked when they
+            don't) rather than forcing a fixed row that clips. Opt-in so the
+            other hubs are untouched.
           */}
         <div
           className={cn(
-            "flex items-center gap-2",
-            stackControls && "flex-col items-stretch sm:flex-row sm:flex-wrap sm:items-center",
+            "flex min-w-0 flex-wrap items-center gap-2",
+            stackControls && "flex-col items-stretch sm:flex-row sm:items-center",
           )}
         >
           {hasGroups && !hideToggle ? (
@@ -373,7 +379,7 @@ export function ContentDiscoveryBar({
             // `min-w-0` so this group can shrink with the row; without it the
             // group is unshrinkable and pushes the toolbar — and therefore the
             // page — into horizontal overflow.
-            <div className="flex min-w-0 items-center justify-end gap-2">{actions}</div>
+            <div className="flex min-w-0 flex-wrap items-center justify-end gap-2">{actions}</div>
           ) : null}
         </div>
       </div>

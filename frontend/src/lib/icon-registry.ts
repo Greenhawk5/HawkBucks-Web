@@ -159,6 +159,19 @@ export function heroClassIconKey(heroClass: string): string | null {
   return iconSemanticKey("hero-class", heroClass);
 }
 
+/**
+ * Canonical key for the generic Heroes collection mark.
+ *
+ * This is a REAL registered entry (`hero-class:hero-classes`, display name
+ * "Hero Classes"), the sibling of the four per-class glyphs in the same R2
+ * folder. The public class filter's `All` option and the CMS sidebar's Heroes
+ * entry both resolve through this key, so neither hardcodes an asset URL and
+ * the two can never drift apart. When the entry (or its media) is missing the
+ * resolver returns nothing and callers fall back to text — never to an
+ * unrelated glyph.
+ */
+export const HERO_COLLECTION_ICON_KEY = "hero-class:hero-classes";
+
 /** Human label for a category key, for CMS chrome. Not translated: admin-only. */
 export const ICON_CATEGORY_LABELS: Record<IconCategory, string> = {
   "hero-class": "Hero classes",

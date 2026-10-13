@@ -68,6 +68,31 @@ export const getTurnstileSiteKey = createServerFn({ method: "GET" }).handler(
   },
 );
 
+/**
+ * CMS chrome reader: the canonical Heroes collection mark for the sidebar nav.
+ *
+ * The shell renders on EVERY admin route, so this resolves the single
+ * `hero-class:hero-classes` key — the same entry the public `All` filter
+ * reads — through the existing `resolveIconUrls` batch. `cms.read`-gated like
+ * every other admin reader: the glyph is a public CDN URL, but the resolution
+ * path touches the registry table. `null` when unregistered or unusable; the
+ * shell then falls back to text, never to an unrelated glyph.
+ */
+export const getHeroCollectionIcon = createServerFn({ method: "GET" }).handler(
+  async (): Promise<{ iconUrl: string | null }> => {
+    const { resolveRequestCmsDb } = await import("./db.server");
+    const { resolveRequestSession, hasCapability, CmsAuthError } = await import("./auth.server");
+    const { db } = await resolveRequestCmsDb();
+    const session = await resolveRequestSession(db);
+    if (!session) throw new CmsAuthError(401, "CMS authentication required.");
+    if (!hasCapability(session.user.role, "cms.read")) throw new CmsAuthError(403, "Forbidden.");
+    const { HERO_COLLECTION_ICON_KEY } = await import("@/lib/icon-registry");
+    const { resolveIconUrls } = await import("./icon-registry.server");
+    const urls = await resolveIconUrls(db, [HERO_COLLECTION_ICON_KEY]);
+    return { iconUrl: urls.get(HERO_COLLECTION_ICON_KEY) ?? null };
+  },
+);
+
 export const adminLogin = createServerFn({ method: "POST" })
   .validator((input: AdminLoginInput) => ({
     username: requireNonEmptyString(input.username, "username").trim(),

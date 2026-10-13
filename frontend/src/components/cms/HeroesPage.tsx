@@ -1,6 +1,6 @@
 import * as React from "react";
 import { Link, useNavigate } from "@tanstack/react-router";
-import { SlidersHorizontal, Swords, Users, X } from "lucide-react";
+import { SlidersHorizontal, Users, X } from "lucide-react";
 
 import { getPublicStrings, heroClassLabel } from "@/lib/cms/public-strings";
 import {
@@ -406,11 +406,13 @@ export function HeroesPage({
             hrefFor: (v) => qs({ class: v === null || v === "" ? undefined : v, page: undefined }),
             options: classOptions,
             variant: "segmented" as const,
-            // Same registered glyph the cards use — one asset, one source.
-            // `All` has no registry entry, so it falls back to the Swords
-            // Lucide mark — the same convention as the CMS Heroes nav icon.
+            // Same registered glyphs the cards use — one asset, one source.
+            // `All` resolves through the canonical `hero-class:hero-classes`
+            // entry (the `""` key in the loader's classIcons map), so the
+            // filter and the CMS Heroes nav icon can never drift apart. When
+            // the entry is missing the label stands alone — never an
+            // unrelated fallback glyph.
             iconUrlFor: (v: string) => classIcons[v] ?? null,
-            fallbackIconFor: (v: string) => (v === "" ? Swords : null),
           },
           {
             label: l.rarity,
@@ -443,8 +445,8 @@ export function HeroesPage({
             } as never),
         }}
         actions={
-          <div className="relative" data-hero-advanced-root>
-            <div className="flex min-w-0 items-center justify-end gap-2">
+          <div className="relative min-w-0 flex-1" data-hero-advanced-root>
+            <div className="flex min-w-0 flex-wrap items-center justify-end gap-2">
               <button
                 ref={advancedTriggerRef}
                 type="button"
@@ -551,10 +553,10 @@ export function HeroesPage({
         ) : view.mode === "compact" ? (
           <ul
             data-testid="hero-grid"
-            className="grid list-none grid-cols-[repeat(auto-fill,minmax(min(100%,15rem),1fr))] gap-4 sm:gap-5"
+            className="grid list-none grid-cols-[repeat(auto-fill,minmax(min(100%,15rem),1fr))] justify-items-center gap-4 sm:gap-5"
           >
             {items.map((h, i) => (
-              <li key={h.contentId} className="flex">
+              <li key={h.contentId} className="flex w-full max-w-md justify-center sm:max-w-none">
                 <HeroCard
                   hero={h}
                   locale={locale}

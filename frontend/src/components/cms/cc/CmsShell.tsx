@@ -1,11 +1,11 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { Link, useLocation } from "@tanstack/react-router";
-import { PanelLeftClose, PanelLeftOpen, Swords } from "lucide-react";
+import { PanelLeftClose, PanelLeftOpen } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import { ASSETS } from "@/lib/assets";
 import { BRAND_NAME } from "@/lib/site";
-import { adminLogout } from "@/lib/cms/admin.loader";
+import { adminLogout, getHeroCollectionIcon } from "@/lib/cms/admin.loader";
 import { CmsToastHost } from "./CmsPrimitives";
 
 export type CmsSection =
@@ -449,18 +449,56 @@ export function CmsShell(props: {
 }
 
 export function CmsNavGlyph(props: { section: CmsSection; large?: boolean }) {
-  // Heroes uses the Swords Lucide mark — the same convention as the public
-  // class filter's `All` fallback. Every other section keeps its glyph.
-  if (props.section === "heroes") {
+  // The Heroes glyph is the registered collection mark (`hero-class:
+  // hero-classes`) — the same canonical entry the public `All` class filter
+  // resolves. Hooks stay unconditional (this component early-returns for
+  // other sections below); the fetch fires only for heroes. The fixed box
+  // reserves the slot so a late arrival never reflows the row. When the
+  // entry (or its media) is missing the row falls back to the label alone —
+  // never to an unrelated Lucide mark. Every other section keeps its glyph.
+  const isHeroes = props.section === "heroes";
+  const [heroesIcon, setHeroesIcon] = useState<string | null>(null);
+  useEffect(() => {
+    if (!isHeroes) return;
+    let live = true;
+    getHeroCollectionIcon()
+      .then((r) => {
+        if (live) setHeroesIcon(r.iconUrl);
+      })
+      .catch(() => {
+        if (live) setHeroesIcon(null);
+      });
+    return () => {
+      live = false;
+    };
+  }, [isHeroes]);
+  if (isHeroes) {
     return (
       <span
         aria-hidden="true"
         className={cn(
-          "cc-nav-glyph grid place-items-center leading-none",
+          "cc-nav-glyph grid shrink-0 place-items-center overflow-hidden leading-none",
           props.large ? "h-7 w-7" : "h-[22px] w-[22px]",
         )}
       >
-        <Swords aria-hidden="true" className={props.large ? "h-5 w-5" : "h-4 w-4"} />
+        {heroesIcon ? (
+          <img
+            src={heroesIcon}
+            alt=""
+            aria-hidden="true"
+            draggable={false}
+            loading="lazy"
+            decoding="async"
+            className={
+              props.large
+                ? "h-6 w-6 rounded object-contain"
+                : "h-[18px] w-[18px] rounded object-contain"
+            }
+            onError={(e) => {
+              e.currentTarget.style.display = "none";
+            }}
+          />
+        ) : null}
       </span>
     );
   }
