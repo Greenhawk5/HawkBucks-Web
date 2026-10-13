@@ -1,6 +1,6 @@
 import * as React from "react";
 import { Link, useNavigate } from "@tanstack/react-router";
-import { SlidersHorizontal, Users, X } from "lucide-react";
+import { SlidersHorizontal, Swords, Users, X } from "lucide-react";
 
 import { getPublicStrings, heroClassLabel } from "@/lib/cms/public-strings";
 import {
@@ -10,7 +10,6 @@ import {
   facetCountLabel,
   heroResultLabel,
   tierCountLabel,
-  powerRangeLabelText,
 } from "@/lib/cms/hero-labels";
 import { HERO_CLASSES } from "@/lib/cms/heroes";
 import { RARITIES, parsePublicRarityParam } from "@/lib/cms/taxonomy";
@@ -34,7 +33,7 @@ import {
   parseSearchParam,
   PUBLIC_PAGE_SIZE,
 } from "@/lib/cms/public-content";
-import { parseFacetKeys, parsePowerParam, parseHeroSort } from "@/lib/cms/hero-reference";
+import { parseFacetKeys, parseHeroSort } from "@/lib/cms/hero-reference";
 import { cn } from "@/lib/utils";
 
 export type HeroFacetsResult = {
@@ -50,9 +49,6 @@ export interface HeroViewMode {
   mode: "compact" | "reference";
   onChange?: (m: "compact" | "reference") => void;
 }
-
-/** Power thresholds offered by the advanced panel. */
-const POWER_STEPS = [60, 90, 120, 135, 144] as const;
 /**
  * Caps that keep a long facet list scannable. A selected value is always added
  * back on top of the cap (see `withSelections`), never dropped.
@@ -134,7 +130,9 @@ export function HeroesPage({
   const category = typeof search["category"] === "string" ? (search["category"] as string) : null;
   const perkKeys = parseFacetKeys(search["perk"]);
   const abilityKeys = parseFacetKeys(search["ability"]);
-  const minPower = parsePowerParam(search["power"]);
+  // Legacy `power` params (from URLs shared before Max Power filtering was
+  // removed) are intentionally ignored: the filter no longer exists, but the
+  // URL must still render the normal collection without errors or redirects.
   const sort = parseHeroSort(search["sort"]);
   const page = parsePageParam(search["page"]);
   const q = parseSearchParam(search["q"]) ?? "";
@@ -142,6 +140,7 @@ export function HeroesPage({
   const [draft, setDraft] = React.useState(q);
   const [preview, setPreview] = React.useState<HeroCardData | null>(null);
   const [advancedOpen, setAdvancedOpen] = React.useState(false);
+  const advancedTriggerRef = React.useRef<HTMLButtonElement | null>(null);
 
   React.useEffect(() => {
     setDraft(q);
@@ -188,7 +187,6 @@ export function HeroesPage({
     if (category) p.set("category", category);
     for (const k of perkKeys) p.append("perk", k);
     for (const k of abilityKeys) p.append("ability", k);
-    if (minPower !== null) p.set("power", String(minPower));
     if (q) p.set("q", q);
     if (sort !== "editorial") p.set("sort", sort);
     // `undefined` removes a key entirely, so shared URLs stay short and a facet
@@ -246,8 +244,7 @@ export function HeroesPage({
     return value.replace(/-/g, " ");
   };
 
-  const advancedCount =
-    perkKeys.length + abilityKeys.length + (category ? 1 : 0) + (minPower !== null ? 1 : 0);
+  const advancedCount = perkKeys.length + abilityKeys.length + (category ? 1 : 0);
   const hasFilters =
     advancedCount + (heroClass ? 1 : 0) + (rarity ? 1 : 0) + (q !== "" ? 1 : 0) > 0;
 
@@ -308,13 +305,6 @@ export function HeroesPage({
     selected: category === f.value,
     href: qs({ category: category === f.value ? undefined : f.value, page: undefined }),
   }));
-  const powerOptions: HeroFacetOption[] = POWER_STEPS.map((n) => ({
-    value: String(n),
-    label: l.powerAtLeast.replace("{n}", String(n)),
-    count: null,
-    selected: minPower === n,
-    href: qs({ power: minPower === n ? undefined : n, page: undefined }),
-  }));
 
   const advancedSections: HeroFacetSection[] = [];
   if (perkOptions.length > 0) {
@@ -352,7 +342,6 @@ export function HeroesPage({
       options: categoryOptions,
     });
   }
-  advancedSections.push({ id: "hero-facet-power", title: l.powerLabel, options: powerOptions });
 
   // --- active filter chips (outside the panel, always removable) -----------
   const activeChips: Array<{ key: string; label: string; href: string }> = [];
@@ -391,13 +380,6 @@ export function HeroesPage({
       href: toggleFacet("ability", k),
     });
   }
-  if (minPower !== null) {
-    activeChips.push({
-      key: "power",
-      label: `${l.powerLabel}: ${l.powerAtLeast.replace("{n}", String(minPower))}`,
-      href: qs({ power: undefined, page: undefined }),
-    });
-  }
   if (q !== "") {
     activeChips.push({ key: "q", label: q, href: qs({ q: undefined, page: undefined }) });
   }
@@ -425,7 +407,10 @@ export function HeroesPage({
             options: classOptions,
             variant: "segmented" as const,
             // Same registered glyph the cards use — one asset, one source.
+            // `All` has no registry entry, so it falls back to the Swords
+            // Lucide mark — the same convention as the CMS Heroes nav icon.
             iconUrlFor: (v: string) => classIcons[v] ?? null,
+            fallbackIconFor: (v: string) => (v === "" ? Swords : null),
           },
           {
             label: l.rarity,
@@ -458,25 +443,39 @@ export function HeroesPage({
             } as never),
         }}
         actions={
-          <>
-            <button
-              type="button"
-              onClick={() => setAdvancedOpen((v) => !v)}
-              aria-expanded={advancedOpen}
-              aria-controls="hero-advanced-panel"
-              data-testid="hero-advanced-toggle"
-              className="inline-flex h-11 items-center gap-2 rounded-lg border border-panel-border px-3 text-xs font-semibold text-muted-foreground outline-none transition-colors hover:border-primary/60 hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
-            >
-              <SlidersHorizontal aria-hidden="true" className="h-4 w-4" />
-              <span className="hidden sm:inline">{s.advancedFilters}</span>
-              {advancedCount > 0 ? (
-                <span className="grid h-5 min-w-5 place-items-center rounded-full bg-primary px-1 text-[10px] font-bold text-primary-foreground tabular-nums">
-                  {advancedCount}
-                </span>
-              ) : null}
-            </button>
-            <ViewModeSwitch locale={locale} view={view} />
-          </>
+          <div className="relative" data-hero-advanced-root>
+            <div className="flex min-w-0 items-center justify-end gap-2">
+              <button
+                ref={advancedTriggerRef}
+                type="button"
+                onClick={() => setAdvancedOpen((v) => !v)}
+                aria-expanded={advancedOpen}
+                aria-controls="hero-advanced-panel"
+                data-testid="hero-advanced-toggle"
+                className="inline-flex h-11 items-center gap-2 rounded-lg border border-panel-border px-3 text-xs font-semibold text-muted-foreground outline-none transition-colors hover:border-primary/60 hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
+              >
+                <SlidersHorizontal aria-hidden="true" className="h-4 w-4" />
+                <span className="hidden sm:inline">{s.advancedFilters}</span>
+                {advancedCount > 0 ? (
+                  <span className="grid h-5 min-w-5 place-items-center rounded-full bg-primary px-1 text-[10px] font-bold text-primary-foreground tabular-nums">
+                    {advancedCount}
+                  </span>
+                ) : null}
+              </button>
+              <ViewModeSwitch locale={locale} view={view} />
+            </div>
+            {advancedOpen ? (
+              <HeroFilterPanel
+                id="hero-advanced-panel"
+                title={s.advancedFilters}
+                sections={advancedSections}
+                clearAllHref={basePath}
+                clearAllLabel={s.clearFilters}
+                anchorRef={advancedTriggerRef}
+                onRequestClose={() => setAdvancedOpen(false)}
+              />
+            ) : null}
+          </div>
         }
       >
         {/* Collection summary + the current selection, both readable at a
@@ -526,17 +525,6 @@ export function HeroesPage({
               {s.clearFilters}
             </Link>
           </div>
-        ) : null}
-
-        {advancedOpen ? (
-          <HeroFilterPanel
-            id="hero-advanced-panel"
-            title={s.advancedFilters}
-            sections={advancedSections}
-            clearAllHref={basePath}
-            clearAllLabel={s.clearFilters}
-            className="mt-4"
-          />
         ) : null}
       </ContentDiscoveryBar>
 
@@ -653,11 +641,10 @@ function ViewModeSwitch({ locale, view }: { locale: string; view: HeroViewMode }
  * Reference view: the same heroes, exposed for comparison rather than browsing.
  *
  * Compact mode answers "who looks right?"; reference mode answers "which of
- * these do I actually want?". So this row leads with identity and standard
- * perk — the two facts a reader compares — and keeps rarity, tier count, power
- * and the ability icons as a right-aligned comparison axis. Columns collapse
- * by priority as the viewport narrows so the name is never the thing that
- * gets squeezed out.
+ * these do I actually want?". Each row is a deliberate grid — identity, perk,
+ * abilities, tier count — that reflows to a stacked layout on phones instead
+ * of squeezing desktop columns into 360px. No Max Power metadata: the listing
+ * filter is gone and the row stays a comparison aid, not a progression table.
  */
 function ReferenceRowList({ locale, items }: { locale: string; items: HeroCardData[] }) {
   return (
@@ -668,58 +655,101 @@ function ReferenceRowList({ locale, items }: { locale: string; items: HeroCardDa
       {items.map((h) => {
         const std = h.reference?.perks.find((p) => p.slot === "standard");
         const prog = h.reference?.progression ?? null;
-        const maxPower = prog?.maxPower ?? h.reference?.maxPower ?? null;
-        const powers = powerRangeLabelText(locale, maxPower, maxPower);
+        const tiers = tierCountLabel(locale, prog?.tierCount ?? null);
         const abilities = h.reference?.abilities ?? [];
+        const href = heroDetailHref(locale, h.slug);
         return (
-          <li key={h.contentId} className="flex items-center gap-3 py-2.5 sm:gap-4">
-            {h.imageUrl ? (
-              <img
-                src={h.imageUrl}
-                alt=""
-                aria-hidden="true"
-                className="h-11 w-11 shrink-0 rounded-lg border border-panel-border/50 bg-background/40 object-cover object-top"
-                loading="lazy"
-                decoding="async"
-              />
-            ) : null}
-            <div className="min-w-0 flex-1">
-              <Link
-                to={heroDetailHref(locale, h.slug)}
-                className="block overflow-hidden text-ellipsis whitespace-nowrap rounded font-display text-sm font-bold outline-none transition-colors hover:text-primary focus-visible:ring-2 focus-visible:ring-ring"
+          <li
+            key={h.contentId}
+            className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-2 py-3 sm:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)_auto] sm:gap-x-4 md:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)_auto_auto]"
+          >
+            <div className="flex min-w-0 items-center gap-3">
+              {h.imageUrl ? (
+                <img
+                  src={h.imageUrl}
+                  alt=""
+                  aria-hidden="true"
+                  className="aspect-square h-11 w-11 shrink-0 rounded-lg border border-panel-border/50 bg-background/40 object-cover object-top"
+                  loading="lazy"
+                  decoding="async"
+                />
+              ) : null}
+              <div className="min-w-0">
+                <Link
+                  to={href}
+                  className="block truncate rounded font-display text-sm font-bold outline-none transition-colors hover:text-primary focus-visible:ring-2 focus-visible:ring-ring"
+                >
+                  {h.title}
+                </Link>
+                <p className="mt-0.5 flex min-w-0 items-center gap-1 truncate text-[11px] text-muted-foreground">
+                  {h.classIconUrl ? (
+                    <img
+                      src={h.classIconUrl}
+                      alt=""
+                      aria-hidden="true"
+                      loading="lazy"
+                      decoding="async"
+                      className="h-3.5 w-3.5 shrink-0 rounded-sm object-contain"
+                      onError={(e) => {
+                        e.currentTarget.style.display = "none";
+                      }}
+                    />
+                  ) : null}
+                  <span className="truncate">
+                    <span className="text-foreground/80">
+                      {heroClassLabel(locale, h.heroClass)}
+                    </span>
+                    {h.rarity ? ` · ${rarityLabel(locale, h.rarity) ?? h.rarity}` : ""}
+                  </span>
+                </p>
+                {std ? (
+                  <p className="mt-1 flex min-w-0 items-center gap-1.5 truncate text-xs text-muted-foreground sm:hidden">
+                    {std.iconUrl ? <MediaIcon url={std.iconUrl} sizeClass="h-4 w-4" /> : null}
+                    <span className="truncate">{std.name}</span>
+                  </p>
+                ) : null}
+              </div>
+            </div>
+            {std ? (
+              <p
+                className="hidden min-w-0 items-center gap-1.5 truncate text-xs text-muted-foreground sm:flex"
+                title={std.name}
               >
-                {h.title}
-              </Link>
-              <p className="mt-0.5 overflow-hidden text-ellipsis whitespace-nowrap text-[11px] text-muted-foreground">
-                <span className="text-foreground/80">{heroClassLabel(locale, h.heroClass)}</span>
-                {h.category ? ` · ${categoryLabel(locale, h.category)}` : ""}
-                {h.rarity ? ` · ${rarityLabel(locale, h.rarity) ?? h.rarity}` : ""}
+                {std.iconUrl ? <MediaIcon url={std.iconUrl} sizeClass="h-5 w-5 shrink-0" /> : null}
+                <span className="truncate">{std.name}</span>
               </p>
-            </div>
-            <p className="hidden min-w-0 max-w-56 flex-1 overflow-hidden text-ellipsis whitespace-nowrap text-xs text-muted-foreground sm:block">
-              {std ? std.name : null}
+            ) : (
+              <span className="hidden sm:block" aria-hidden="true" />
+            )}
+            <p className="hidden shrink-0 text-[11px] tabular-nums text-muted-foreground md:block">
+              {tiers}
             </p>
-            <div className="hidden shrink-0 text-end text-[11px] tabular-nums text-muted-foreground md:block">
-              {prog?.tierCount ? <div>{tierCountLabel(locale, prog.tierCount)}</div> : null}
-              {powers ? <div>{powers}</div> : null}
-            </div>
             {abilities.length > 0 ? (
               <ul
                 aria-label={heroLabels(locale).abilities}
-                className="hidden shrink-0 items-center gap-0.5 lg:flex"
+                className="flex min-w-0 flex-wrap items-center gap-1 sm:justify-end"
               >
                 {abilities.slice(0, 4).map((a) => (
                   <li key={a.key}>
-                    <MediaIcon
-                      url={a.iconUrl}
-                      sizeClass="h-6 w-6"
-                      fallbackText={a.name.slice(0, 2)}
-                    />
-                    <span className="sr-only">{a.name}</span>
+                    <Link
+                      to={href}
+                      aria-label={a.name}
+                      title={a.name}
+                      className="grid h-8 w-8 place-items-center rounded-lg border border-panel-border/50 bg-background/40 outline-none transition-colors hover:border-primary/60 hover:bg-primary/10 focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-ring"
+                    >
+                      <MediaIcon
+                        url={a.iconUrl}
+                        sizeClass="h-6 w-6"
+                        fallbackText={a.name.slice(0, 2)}
+                        labelled={false}
+                      />
+                    </Link>
                   </li>
                 ))}
               </ul>
-            ) : null}
+            ) : (
+              <span aria-hidden="true" />
+            )}
           </li>
         );
       })}

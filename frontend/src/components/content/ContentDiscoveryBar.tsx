@@ -1,6 +1,6 @@
 import * as React from "react";
 import { Link } from "@tanstack/react-router";
-import { Search, SlidersHorizontal, X } from "lucide-react";
+import { Search, SlidersHorizontal, X, type LucideIcon } from "lucide-react";
 
 import { PublicSelect, type PublicSelectOption } from "./PublicSelect";
 import { cn } from "@/lib/utils";
@@ -76,24 +76,36 @@ export interface FilterChipOption {
  * glyph per value (the Heroes class filter does) without the two variants
  * having to agree on anything else.
  */
-function ChipGlyph({ url }: { url?: string | null | undefined }) {
-  if (!url) return null;
-  return (
-    <img
-      src={url}
-      alt=""
-      aria-hidden="true"
-      // Fixed box + object-contain: the glyph occupies its slot before the
-      // image arrives, so a registered icon appearing never reflows the row.
-      className="me-1.5 h-3.5 w-3.5 shrink-0 rounded-sm object-contain"
-      loading="lazy"
-      decoding="async"
-      onError={(event) => {
-        // A broken glyph must not leave a broken-image glyph in the toolbar.
-        event.currentTarget.style.display = "none";
-      }}
-    />
-  );
+function ChipGlyph({
+  url,
+  Fallback,
+}: {
+  url?: string | null | undefined;
+  Fallback?: LucideIcon | null | undefined;
+}) {
+  if (url) {
+    return (
+      <img
+        src={url}
+        alt=""
+        aria-hidden="true"
+        // Fixed box + object-contain: the glyph occupies its slot before the
+        // image arrives, so a registered icon appearing never reflows the row.
+        className="me-1.5 h-3.5 w-3.5 shrink-0 rounded-sm object-contain"
+        loading="lazy"
+        decoding="async"
+        onError={(event) => {
+          // A broken glyph must not leave a broken-image glyph in the toolbar.
+          event.currentTarget.style.display = "none";
+        }}
+      />
+    );
+  }
+  // Lucide fallback (the `All` class option): same box so rows stay aligned.
+  if (Fallback) {
+    return <Fallback aria-hidden="true" className="me-1.5 h-3.5 w-3.5 shrink-0" />;
+  }
+  return null;
 }
 
 /**
@@ -115,6 +127,7 @@ export function FilterChipRow({
   className,
   variant = "chips",
   iconUrlFor,
+  fallbackIconFor,
 }: {
   label: string;
   options: ReadonlyArray<FilterChipOption>;
@@ -132,6 +145,12 @@ export function FilterChipRow({
    * where a glyph would have been.
    */
   iconUrlFor?: (value: string) => string | null | undefined;
+  /**
+   * Optional per-value Lucide fallback (used for the `All` option, which has
+   * no registry entry). Rendered only when `iconUrlFor` yields nothing, at the
+   * same box size so alignment never shifts.
+   */
+  fallbackIconFor?: (value: string) => LucideIcon | null | undefined;
 }) {
   if (variant === "segmented") {
     return (
@@ -164,7 +183,10 @@ export function FilterChipRow({
                       : "text-muted-foreground hover:bg-primary/10 hover:text-foreground",
                   )}
                 >
-                  <ChipGlyph url={iconUrlFor?.(opt.value)} />
+                  <ChipGlyph
+                    url={iconUrlFor?.(opt.value)}
+                    Fallback={fallbackIconFor?.(opt.value)}
+                  />
                   {opt.label}
                 </Link>
               </li>
@@ -199,7 +221,7 @@ export function FilterChipRow({
                     : "border-panel-border text-muted-foreground hover:border-primary/50 hover:text-foreground",
                 )}
               >
-                <ChipGlyph url={iconUrlFor?.(opt.value)} />
+                <ChipGlyph url={iconUrlFor?.(opt.value)} Fallback={fallbackIconFor?.(opt.value)} />
                 {opt.label}
               </Link>
             </li>
@@ -254,6 +276,8 @@ export function ContentDiscoveryBar({
     variant?: "chips" | "segmented";
     /** Optional per-value glyph; see `FilterChipRow.iconUrlFor`. */
     iconUrlFor?: (value: string) => string | null | undefined;
+    /** Optional per-value Lucide fallback; see `FilterChipRow.fallbackIconFor`. */
+    fallbackIconFor?: (value: string) => LucideIcon | null | undefined;
   }>;
   sort?: {
     label: string;
@@ -375,6 +399,7 @@ export function ContentDiscoveryBar({
               hrefFor={group.hrefFor}
               variant={group.variant ?? "chips"}
               {...(group.iconUrlFor ? { iconUrlFor: group.iconUrlFor } : {})}
+              {...(group.fallbackIconFor ? { fallbackIconFor: group.fallbackIconFor } : {})}
             />
           ))}
         </div>

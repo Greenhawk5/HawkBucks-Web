@@ -3,7 +3,7 @@ import { createFileRoute, Outlet, useChildMatches } from "@tanstack/react-router
 import { HeroesPage, HeroesGridSkeleton, type HeroFacetsResult } from "@/components/cms/HeroesPage";
 import type { HubHeroRow } from "@/lib/cms/public-hubs.loader";
 import { HeroListItemListJsonLd } from "@/components/heroes/HeroListJsonLd";
-import { parseFacetKeys, parsePowerParam, parseHeroSort } from "@/lib/cms/hero-reference";
+import { parseFacetKeys, parseHeroSort } from "@/lib/cms/hero-reference";
 import { listHubHeroes } from "@/lib/cms/public-hubs.loader";
 import {
   PUBLIC_PAGE_SIZE,
@@ -25,12 +25,10 @@ import { resolveLocale } from "@/i18n/config";
  * independently addressable. Unknown keys are dropped here, which is what keeps
  * a hand-edited URL from reaching the SQL layer.
  *
- * `power` must accept a NUMBER as well as a string. The router JSON-parses
- * search values, so `?power=135` arrives as the number 135; a string-only check
- * rejected it, the validated search then came back empty, and the router
- * redirected to the unfiltered `/heroes` — the max-power facet silently did
- * nothing. Normalising to a string here keeps the value, the URL and the
- * serialized round-trip all in agreement.
+ * A legacy `power` param (from URLs shared before Max Power filtering was
+ * removed) is accepted and ignored: the filter no longer exists, but the URL
+ * must still render the normal collection without errors or redirect loops.
+ * The new UI never generates it.
  */
 function heroesSearch(s: Record<string, unknown>) {
   const asArray = (v: unknown): string[] | undefined => {
@@ -83,7 +81,6 @@ export const Route = createFileRoute("/heroes")({
         : null;
     const perks = parseFacetKeys(deps.perk);
     const abilities = parseFacetKeys(deps.ability);
-    const minPower = parsePowerParam(deps.power);
     return listHubHeroes({
       data: {
         locale: "en",
@@ -92,7 +89,6 @@ export const Route = createFileRoute("/heroes")({
         ...(category === null ? {} : { category }),
         ...(perks.length === 0 ? {} : { perks }),
         ...(abilities.length === 0 ? {} : { abilities }),
-        ...(minPower === null ? {} : { minPower: String(minPower) }),
         ...(q === "" ? {} : { search: q }),
         sort,
         limit: PUBLIC_PAGE_SIZE,

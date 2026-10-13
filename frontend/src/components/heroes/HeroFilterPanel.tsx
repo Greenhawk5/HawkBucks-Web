@@ -92,6 +92,8 @@ export function HeroFilterPanel({
   clearAllHref,
   clearAllLabel,
   className,
+  anchorRef,
+  onRequestClose,
 }: {
   id: string;
   title: string;
@@ -100,38 +102,88 @@ export function HeroFilterPanel({
   clearAllHref: string;
   clearAllLabel: string;
   className?: string;
+  /** Trigger the popover anchors to on desktop. */
+  anchorRef?: React.RefObject<HTMLButtonElement | null>;
+  /** Close on outside pointer interaction or Escape. */
+  onRequestClose?: () => void;
 }) {
   const selectedCount = sections.reduce(
     (n, section) => n + section.options.filter((o) => o.selected).length,
     0,
   );
 
+  const panelRef = React.useRef<HTMLDivElement | null>(null);
+
+  // Dismiss on outside pointer interaction or Escape, following the toolbar
+  // disclosure convention. Anchor clicks are excluded so toggling never
+  // double-fires; Escape returns focus to the trigger.
+  React.useEffect(() => {
+    if (!onRequestClose) return;
+    const onPointerDown = (event: PointerEvent) => {
+      const target = event.target as Node | null;
+      if (!target) return;
+      if (panelRef.current?.contains(target)) return;
+      if (anchorRef?.current?.contains(target)) return;
+      onRequestClose();
+    };
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== "Escape") return;
+      event.preventDefault();
+      onRequestClose();
+      anchorRef?.current?.focus();
+    };
+    document.addEventListener("pointerdown", onPointerDown);
+    document.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.removeEventListener("pointerdown", onPointerDown);
+      document.removeEventListener("keydown", onKeyDown);
+    };
+  }, [anchorRef, onRequestClose]);
+
   return (
     <div
+      ref={panelRef}
       id={id}
+      role="dialog"
+      aria-label={title}
       data-testid="hero-advanced-panel"
-      className={cn("rounded-xl border border-panel-border/50 bg-background/30 p-3", className)}
+      className={cn(
+        "z-50 rounded-xl border border-panel-border bg-background shadow-xl shadow-black/30",
+        "absolute inset-x-0 top-[calc(100%+0.5rem)] max-h-[min(70dvh,26rem)] w-full overflow-hidden sm:inset-x-auto sm:end-0 sm:w-[22rem]",
+        className,
+      )}
     >
-      <div className="mb-3 flex items-center justify-between gap-3">
+      <div className="flex items-center justify-between gap-3 border-b border-panel-border/50 px-3 py-2">
         <p className="font-display text-[10px] font-bold uppercase tracking-[0.16em] text-muted-foreground">
           {title}
         </p>
-        {selectedCount > 0 ? (
-          <Link
-            to={clearAllHref}
-            data-testid="hero-clear-all-in-panel"
-            className="rounded text-xs font-semibold text-primary underline underline-offset-4 outline-none hover:text-primary/80 focus-visible:ring-2 focus-visible:ring-ring"
-          >
-            {clearAllLabel}
-          </Link>
-        ) : null}
+        <div className="flex items-center gap-2">
+          {selectedCount > 0 ? (
+            <Link
+              to={clearAllHref}
+              data-testid="hero-clear-all-in-panel"
+              className="rounded text-xs font-semibold text-primary underline underline-offset-4 outline-none hover:text-primary/80 focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              {clearAllLabel}
+            </Link>
+          ) : null}
+          {onRequestClose ? (
+            <button
+              type="button"
+              onClick={onRequestClose}
+              aria-label="Close filters"
+              className="grid h-7 w-7 place-items-center rounded-md text-muted-foreground outline-none transition-colors hover:bg-accent/15 hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              <X aria-hidden="true" className="h-4 w-4" />
+            </button>
+          ) : null}
+        </div>
       </div>
 
-      {/* Sections are visually separated by a shared vertical rule rather than
-          each being boxed again, so the panel reads as one surface instead of a
-          stack of cards. The rule only appears once there are two side-by-side
-          columns, where it actually separates something. */}
-      <div className="grid gap-x-5 gap-y-4 sm:grid-cols-2 xl:grid-cols-3 xl:divide-x xl:divide-panel-border/40 xl:gap-x-6">
+      {/* One restrained surface: compact single-column rhythm with hairline
+          separators. Long lists scroll inside the popover instead of expanding
+          the page. */}
+      <div className="grid max-h-[inherit] gap-y-3 overflow-y-auto p-3">
         {sections.map((section, index) => (
           <HeroFacetSection
             key={section.id}
@@ -186,8 +238,11 @@ function HeroFacetSection({ section, last }: { section: HeroFacetSection; last: 
     selected.length > 0 && section.clearAllHref !== undefined ? section.clearAllHref : null;
 
   return (
-    <section aria-labelledby={headingId} className={cn(!last && "xl:pr-6")}>
-      <div className="mb-1.5 flex items-center gap-1">
+    <section
+      aria-labelledby={headingId}
+      className={cn(!last && "border-b border-panel-border/40 pb-3")}
+    >
+      <div className="mb-1 flex items-center gap-1">
         <h3
           id={headingId}
           className="min-w-0 flex-1 font-display text-[10px] font-bold uppercase tracking-[0.16em] text-muted-foreground"
@@ -251,7 +306,7 @@ function HeroFacetSection({ section, last }: { section: HeroFacetSection; last: 
               keeps the list usable on iOS and Android instead of extending
               under the keyboard.
             */
-            className="max-h-[min(55dvh,18rem)] space-y-px overflow-y-auto overscroll-contain pe-1 [scrollbar-width:thin]"
+            className="max-h-44 space-y-px overflow-y-auto overscroll-contain pe-1 [scrollbar-width:thin]"
           >
             {/* SELECTED GROUP — always rendered first, always removable.
                 This is the rule that makes searching safe: a selection the

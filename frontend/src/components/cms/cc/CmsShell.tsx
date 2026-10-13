@@ -1,6 +1,6 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { Link, useLocation } from "@tanstack/react-router";
-import { PanelLeftClose, PanelLeftOpen } from "lucide-react";
+import { PanelLeftClose, PanelLeftOpen, Swords } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import { ASSETS } from "@/lib/assets";
@@ -449,9 +449,23 @@ export function CmsShell(props: {
 }
 
 export function CmsNavGlyph(props: { section: CmsSection; large?: boolean }) {
-  const glyph: Record<CmsSection, string> = {
+  // Heroes uses the Swords Lucide mark — the same convention as the public
+  // class filter's `All` fallback. Every other section keeps its glyph.
+  if (props.section === "heroes") {
+    return (
+      <span
+        aria-hidden="true"
+        className={cn(
+          "cc-nav-glyph grid place-items-center leading-none",
+          props.large ? "h-7 w-7" : "h-[22px] w-[22px]",
+        )}
+      >
+        <Swords aria-hidden="true" className={props.large ? "h-5 w-5" : "h-4 w-4"} />
+      </span>
+    );
+  }
+  const glyph: Record<Exclude<CmsSection, "heroes">, string> = {
     dashboard: "▦",
-    heroes: "⚔",
     loadouts: "⛨",
     inventory: "▤",
     items: "◈",
@@ -472,7 +486,7 @@ export function CmsNavGlyph(props: { section: CmsSection; large?: boolean }) {
       aria-hidden="true"
       className={cn("cc-nav-glyph leading-none", props.large && "h-7 w-7 text-xl")}
     >
-      {glyph[props.section]}
+      {glyph[props.section as Exclude<CmsSection, "heroes">]}
     </span>
   );
 }

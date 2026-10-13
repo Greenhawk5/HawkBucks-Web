@@ -4,7 +4,7 @@ import { hasChildMatch } from "@/lib/cms/entity-meta";
 import { HeroesPage, HeroesGridSkeleton, type HeroFacetsResult } from "@/components/cms/HeroesPage";
 import type { HubHeroRow } from "@/lib/cms/public-hubs.loader";
 import { HeroListItemListJsonLd } from "@/components/heroes/HeroListJsonLd";
-import { parseFacetKeys, parsePowerParam, parseHeroSort } from "@/lib/cms/hero-reference";
+import { parseFacetKeys, parseHeroSort } from "@/lib/cms/hero-reference";
 import { I18nProvider } from "@/i18n/context";
 import { translate } from "@/i18n/core";
 import {
@@ -55,10 +55,8 @@ export const Route = createFileRoute("/$locale/heroes")({
       }
       return typeof v === "string" && v !== "" ? [v] : undefined;
     })(),
-    // The router JSON-parses search values, so `?power=135` arrives as the
-    // number 135. Accepting only strings dropped it and the router redirected
-    // to the unfiltered collection; normalizing to a string keeps the value and
-    // its serialized round-trip in agreement. See heroes.tsx for the same note.
+    // Legacy `power` param (pre-removal shared URLs): accepted and ignored so
+    // the URL still renders the normal collection. The new UI never emits it.
     power:
       typeof s["power"] === "number"
         ? String(s["power"])
@@ -83,7 +81,6 @@ export const Route = createFileRoute("/$locale/heroes")({
         : null;
     const perks = parseFacetKeys(deps.perk);
     const abilities = parseFacetKeys(deps.ability);
-    const minPower = parsePowerParam(deps.power);
     return listHubHeroes({
       data: {
         locale: lang,
@@ -92,7 +89,6 @@ export const Route = createFileRoute("/$locale/heroes")({
         ...(category === null ? {} : { category }),
         ...(perks.length === 0 ? {} : { perks }),
         ...(abilities.length === 0 ? {} : { abilities }),
-        ...(minPower === null ? {} : { minPower: String(minPower) }),
         ...(q === "" ? {} : { search: q }),
         sort,
         limit: PUBLIC_PAGE_SIZE,
