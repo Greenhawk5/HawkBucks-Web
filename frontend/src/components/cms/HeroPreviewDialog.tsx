@@ -15,7 +15,6 @@ import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/compone
 import {
   RarityPill,
   PerkRow,
-  AbilityRow,
   ResourceCostGrid,
   MediaIcon,
   EmptyNote,
@@ -224,9 +223,19 @@ export function HeroPreviewDialog({
                   <h3 className="mb-2 text-[11px] font-bold uppercase tracking-[0.14em] text-muted-foreground">
                     {l.abilities}
                   </h3>
-                  <ul className="rounded-xl border border-panel-border/60 bg-background/40 px-3 py-1">
+                  <ul className="flex flex-wrap items-center gap-x-5 gap-y-2.5 rounded-xl border border-panel-border/60 bg-background/40 px-3.5 py-3">
                     {data.abilities.map((a) => (
-                      <AbilityRow key={a.key} ability={a} />
+                      <li
+                        key={a.key}
+                        data-testid="hero-ability-row"
+                        title={a.description ?? a.name}
+                        className="flex min-w-0 flex-1 items-center gap-2 [flex-basis:11rem]"
+                      >
+                        <MediaIcon url={a.iconUrl} sizeClass="h-7 w-7" />
+                        <span className="min-w-0 flex-1 text-[13px] font-medium leading-snug">
+                          {a.name}
+                        </span>
+                      </li>
                     ))}
                   </ul>
                 </section>
