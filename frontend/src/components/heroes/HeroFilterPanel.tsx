@@ -242,18 +242,40 @@ function HeroFacetSection({ section, last }: { section: HeroFacetSection; last: 
       aria-labelledby={headingId}
       className={cn(!last && "border-b border-panel-border/40 pb-3")}
     >
-      <div className="mb-1 flex items-center gap-1">
-        <h3
-          id={headingId}
-          className="min-w-0 flex-1 font-display text-[10px] font-bold uppercase tracking-[0.16em] text-muted-foreground"
+      <div className="mb-1 flex min-w-0 items-center gap-1">
+        <button
+          type="button"
+          onClick={() => setOpen((v) => !v)}
+          aria-expanded={open}
+          aria-controls={listId}
+          aria-labelledby={headingId}
+          className="flex h-8 min-w-0 flex-1 cursor-pointer items-center gap-1.5 rounded-md px-1 text-start outline-none transition-colors hover:bg-primary/8 focus-visible:ring-2 focus-visible:ring-ring"
         >
-          {section.title}
-          {selected.length > 0 ? (
-            <span className="ms-1.5 font-sans text-[10px] tabular-nums text-primary">
-              {selected.length}
-            </span>
+          {/* The heading text doubles as the button's accessible name via
+              aria-labelledby, so the control needs no separate (and
+              untranslatable) label text. A span, not an h3: headings cannot
+              be nested inside buttons. */}
+          <span
+            id={headingId}
+            className="min-w-0 flex-1 truncate font-display text-[10px] font-bold uppercase tracking-[0.16em] text-muted-foreground"
+          >
+            {section.title}
+            {selected.length > 0 ? (
+              <span className="ms-1.5 font-sans text-[10px] tabular-nums text-primary">
+                {selected.length}
+              </span>
+            ) : null}
+          </span>
+          {section.collapsible ? (
+            <ChevronDown
+              aria-hidden="true"
+              className={cn(
+                "h-4 w-4 shrink-0 text-muted-foreground transition-transform duration-200 motion-reduce:transition-none",
+                open ? "rotate-180" : "rotate-0",
+              )}
+            />
           ) : null}
-        </h3>
+        </button>
         {clearHref !== null ? (
           <Link
             to={clearHref}
@@ -262,25 +284,6 @@ function HeroFacetSection({ section, last }: { section: HeroFacetSection; last: 
           >
             {section.clearLabel}
           </Link>
-        ) : null}
-        {section.collapsible ? (
-          <button
-            type="button"
-            onClick={() => setOpen((v) => !v)}
-            aria-expanded={open}
-            aria-controls={listId}
-            // The section heading doubles as the button's accessible name, so
-            // the control needs no separate (and untranslatable) label text.
-            aria-labelledby={headingId}
-            className="grid h-6 w-6 shrink-0 place-items-center rounded-md text-muted-foreground outline-none transition-colors hover:bg-primary/10 hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
-          >
-            <ChevronDown
-              className={cn(
-                "h-4 w-4 transition-transform duration-200 motion-reduce:transition-none",
-                open ? "rotate-180" : "rotate-0",
-              )}
-            />
-          </button>
         ) : null}
       </div>
 

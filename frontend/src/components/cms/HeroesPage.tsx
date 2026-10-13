@@ -1,6 +1,6 @@
 import * as React from "react";
 import { Link, useNavigate } from "@tanstack/react-router";
-import { SlidersHorizontal, Users, X } from "lucide-react";
+import { SlidersHorizontal, Swords, Users, X } from "lucide-react";
 
 import { getPublicStrings, heroClassLabel } from "@/lib/cms/public-strings";
 import {
@@ -406,13 +406,11 @@ export function HeroesPage({
             hrefFor: (v) => qs({ class: v === null || v === "" ? undefined : v, page: undefined }),
             options: classOptions,
             variant: "segmented" as const,
-            // Same registered glyphs the cards use — one asset, one source.
-            // `All` resolves through the canonical `hero-class:hero-classes`
-            // entry (the `""` key in the loader's classIcons map), so the
-            // filter and the CMS Heroes nav icon can never drift apart. When
-            // the entry is missing the label stands alone — never an
-            // unrelated fallback glyph.
+            // Same registered glyph the cards use — one asset, one source.
+            // `All` has no registry entry, so it falls back to the Swords
+            // Lucide mark — the same convention as the CMS Heroes nav icon.
             iconUrlFor: (v: string) => classIcons[v] ?? null,
+            fallbackIconFor: (v: string) => (v === "" ? Swords : null),
           },
           {
             label: l.rarity,

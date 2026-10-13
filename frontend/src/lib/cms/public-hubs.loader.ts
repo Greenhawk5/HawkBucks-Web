@@ -15,7 +15,7 @@ import { HERO_CLASSES, isHeroClass } from "./heroes";
 import { isRarity, normalizeSearchQuery, parseListPaging } from "./taxonomy";
 import { isTrapPlacement } from "./schematics";
 import { isWeaponSubtype } from "./schematics";
-import { HERO_COLLECTION_ICON_KEY, heroClassIconKey } from "@/lib/icon-registry";
+import { heroClassIconKey } from "@/lib/icon-registry";
 
 function escapeLike(s: string): string {
   return s.replace(/[\\%_]/g, (c) => `\\${c}`);
@@ -143,10 +143,6 @@ export const listHubHeroes = createServerFn({ method: "GET" })
        * class icon resolution documented on `HubHeroRow.class_icon_url`. Empty
        * for a class with no registered icon — the UI then renders the class
        * name alone, which is the stable fallback.
-       *
-       * The `""` key carries the generic collection mark (`hero-class:
-       * hero-classes`) for the filter's `All` option — resolved in the same
-       * batched query, through the same canonical key the CMS sidebar uses.
        */
       classIcons: Record<string, string>;
     }> => {
@@ -272,14 +268,13 @@ export const listHubHeroes = createServerFn({ method: "GET" })
       // than per hero: four keys in a single query, then every row and the
       // class filter read the same map. A class with no registered entry is
       // simply absent, which is what makes the text fallback the normal case
-      // rather than an error path. The generic collection mark rides along in
-      // the same batch under the `""` key for the filter's `All` option.
+      // rather than an error path. The filter's `All` option has no registry
+      // entry and falls back to the Swords Lucide mark.
       const classKeys: Array<{ value: string; key: string }> = [];
       for (const value of HERO_CLASSES) {
         const key = heroClassIconKey(value);
         if (key !== null) classKeys.push({ value, key });
       }
-      classKeys.push({ value: "", key: HERO_COLLECTION_ICON_KEY });
       const classIconUrls =
         classKeys.length === 0
           ? new Map<string, string>()
