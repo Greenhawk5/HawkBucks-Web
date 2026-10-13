@@ -72,6 +72,12 @@ export const pt: PublicStrings = withEn({
   backToLoadouts: "Voltar às composições",
   categoryLabel: "Categoria",
   classNameLabel: "Classe",
+  advancedFilters: "Vantagens e habilidades",
+  activeFilters: "Filtros ativos",
+  viewModeLabel: "Visualização",
+  viewModeCompact: "Compacta",
+  viewModeReference: "Referência",
+  abilityHint: "Passe o cursor ou foque uma habilidade para ver o nome.",
 });
 export const zh: PublicStrings = withEn({
   heroesTitle: "英雄",
@@ -140,4 +146,10 @@ export const zh: PublicStrings = withEn({
   backToLoadouts: "返回阵容列表",
   categoryLabel: "分类",
   classNameLabel: "职业",
+  advancedFilters: "天赋与技能",
+  activeFilters: "已选筛选",
+  viewModeLabel: "视图",
+  viewModeCompact: "紧凑",
+  viewModeReference: "资料",
+  abilityHint: "将鼠标悬停在技能上或使其获得焦点即可查看名称。",
 });

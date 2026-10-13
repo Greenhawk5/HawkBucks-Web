@@ -2,13 +2,8 @@ import { Link } from "@tanstack/react-router";
 import { Shield } from "lucide-react";
 
 import { getPublicStrings, heroClassLabel } from "@/lib/cms/public-strings";
-import {
-  heroLabels,
-  categoryLabel,
-  tierCountLabel,
-  powerRangeLabelText,
-  formatNumber,
-} from "@/lib/cms/hero-labels";
+import { categoryLabel, powerRangeLabelText } from "@/lib/cms/hero-labels";
+import { rarityToken } from "@/lib/cms/rarity-tokens";
 import type { PublicHeroItem } from "@/lib/cms/public.loader";
 import type { HubHeroRow } from "@/lib/cms/public-hubs.loader";
 import type {
@@ -17,19 +12,9 @@ import type {
   PublicHeroProgression,
 } from "@/lib/cms/hero-reference";
 import { cn } from "@/lib/utils";
-import { RarityBadge } from "./RarityBadge";
-import {
-  EntityCard,
-  EntityCardBody,
-  EntityCardTitleLink,
-  MetaChip,
-} from "@/components/content/EntityCard";
-import {
-  HeroClassification,
-  MetaChip2,
-  AbilityChip,
-  ResourceCostChip,
-} from "@/components/heroes/HeroReferenceBits";
+import { EntityCard, EntityCardBody } from "@/components/content/EntityCard";
+import { HeroAbilityStrip, HeroPerkModule } from "@/components/heroes/HeroCardBits";
+import { RarityPill } from "@/components/heroes/HeroReferenceBits";
 
 export function heroDetailHref(locale: string, slug: string): string {
   return locale === "en" ? `/heroes/${slug}` : `/${locale}/heroes/${slug}`;
@@ -58,16 +43,23 @@ export interface HeroCardData extends PublicHeroItem {
 }
 
 /**
- * Hero card — a dense reference record, not a marketing tile.
+ * Hero card — a character-profile tile for the public directory.
  *
- * Reading order: portrait + name (identity) -> class/category (classification)
- * -> rarity (rarity) -> standard + commander perk (role) -> ability icons (kit)
- * -> tier/power line (progression). A reader can tell what a hero does without
- * opening anything.
+ * The card answers three questions in order, and stops there:
+ *   1. Who is it?      artwork → name → class/category → rarity
+ *   2. What does it do? Standard Perk module → ability strip
+ *   3. How far does it go? one power line
  *
- * The whole card is a single link target: `EntityCardTitleLink` stretches the
- * hit area, so there is exactly ONE interactive element per card rather than the
- * previous two competing buttons.
+ * Everything else a hero row carries — commander perk, tier count, the
+ * evolution and max-level material costs — is deliberately NOT here. Those are
+ * progression-research facts and they belong on the hero detail page and in
+ * Quick View, where a reader has opted into studying a specific hero. Keeping
+ * them off the tile is what lets the artwork and the Standard Perk read at a
+ * glance. No data was removed: the loader still attaches the full reference
+ * block, and `HeroPreviewDialog` / `HeroDetail` still render the costs.
+ *
+ * Progression data is only read for the single power line, so a hero with no
+ * progression rows simply loses that line rather than gaining an empty block.
  */
 export function HeroCard({
   hero,
@@ -80,191 +72,126 @@ export function HeroCard({
   locale: string;
   onPreview?: (hero: HeroCardData) => void;
   priority?: boolean;
+  /** Shorter artwork crop for denser grids (Reference-adjacent layouts). */
   dense?: boolean;
 }) {
   const s = getPublicStrings(locale);
-  const l = heroLabels(locale);
   const rarity = hero.rarity ?? null;
+  const token = rarityToken(rarity);
   const ref = hero.reference;
   const standard = ref?.perks.find((p) => p.slot === "standard") ?? null;
-  const commander = ref?.perks.find((p) => p.slot === "commander") ?? null;
   const abilities = ref?.abilities ?? [];
-  const prog = ref?.progression ?? null;
-  const maxPower = ref?.maxPower ?? prog?.maxPower ?? null;
-  const tierCount = prog?.tierCount ?? null;
-  const summary = hero.summary && hero.summary.trim() !== "" ? hero.summary : null;
-  const cat = categoryLabel(locale, hero.category);
-  void cat;
+  const href = heroDetailHref(locale, hero.slug);
+  // One power figure, never two: the progression block's own max wins, and the
+  // pre-computed column value is the fallback for heroes without tier rows.
+  const maxPower = ref?.progression?.maxPower ?? ref?.maxPower ?? null;
+  const category = categoryLabel(locale, hero.category);
+  const powerLine = maxPower === null ? null : powerRangeLabelText(locale, maxPower, maxPower);
 
   return (
-    <EntityCard rarity={rarity} testId="hero-card" className="h-full">
-      {/* Media: square, small, object-top so a bust render is not cropped oddly. */}
-      {hero.imageUrl ? (
-        <img
-          src={hero.imageUrl}
-          alt={hero.title}
-          className={cn(
-            "w-full shrink-0 border-b border-panel-border/50 bg-background/40 object-cover object-top",
-            dense ? "aspect-[3/2]" : "aspect-square",
-          )}
-          loading={priority ? ("eager" as const) : ("lazy" as const)}
-          {...(priority ? { fetchPriority: "high" as const } : {})}
-          decoding="async"
-        />
-      ) : (
-        <div
-          aria-hidden="true"
-          className={cn(
-            "grid w-full shrink-0 place-items-center border-b border-panel-border/50 bg-muted/30 text-muted-foreground/40",
-            dense ? "aspect-[3/2]" : "aspect-square",
-          )}
-        >
-          <Shield className="h-8 w-8" />
-        </div>
-      )}
-
-      <EntityCardBody className="gap-2 p-3">
-        {/* Identity.
-            The title is a REAL anchor rendered here rather than through the
-            shared EntityCardTitleLink so the crawlable link is unambiguous in
-            this file. It keeps the same stretched hit-area contract: the ::after
-            overlay covers the card, so there is exactly ONE interactive element
-            per card (the old card had a title link plus two buttons). */}
-        <h3 className="font-display text-[15px] font-bold leading-snug">
-          <Link
-            to={heroDetailHref(locale, hero.slug)}
-            className="rounded outline-none transition-colors after:absolute after:inset-0 after:z-0 after:content-[''] hover:text-primary focus-visible:ring-2 focus-visible:ring-ring"
+    <EntityCard
+      rarity={rarity}
+      testId="hero-card"
+      accent="none"
+      className="h-full transition-[transform,border-color,box-shadow] duration-200 ease-out motion-reduce:transition-none"
+    >
+      {/* Artwork is the primary visual element. `object-top` keeps a bust
+          render from being cropped through the face. The 4:5 ratio is capped at
+          20rem so a card that goes wide (the global sidebar can leave a single
+          ~29rem column at tablet widths) crops the sides instead of growing a
+          half-metre-tall portrait that would unbalance the whole tile. */}
+      <div className="relative w-full shrink-0">
+        {hero.imageUrl ? (
+          <img
+            src={hero.imageUrl}
+            alt={hero.title}
+            className={cn(
+              "w-full bg-background/50 object-cover object-top",
+              dense ? "aspect-[5/4]" : "aspect-[4/5]",
+              "max-h-80",
+            )}
+            loading={priority ? ("eager" as const) : ("lazy" as const)}
+            {...(priority ? { fetchPriority: "high" as const } : {})}
+            decoding="async"
+          />
+        ) : (
+          <div
+            aria-hidden="true"
+            className={cn(
+              "grid w-full place-items-center bg-muted/30 text-muted-foreground/40",
+              dense ? "aspect-[5/4]" : "aspect-[4/5]",
+              "max-h-80",
+            )}
           >
-            {hero.title}
-          </Link>
-        </h3>
+            <Shield className="h-9 w-9" />
+          </div>
+        )}
+        <span
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-0 bg-gradient-to-t from-background via-background/25 to-transparent"
+        />
+        {/* Rarity accent, drawn where the artwork meets the body rather than
+            above the image, where a bar would read as a loading strip. */}
+        {token ? (
+          <span
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-x-0 bottom-0 h-px"
+            style={{ backgroundColor: token.accent }}
+          />
+        ) : null}
+      </div>
 
-        {/* Classification */}
-        <HeroClassification locale={locale} heroClass={hero.heroClass} category={hero.category} />
-
-        {/* Rarity — text + colour, never colour alone */}
-        <div className="flex flex-wrap items-center gap-1.5">
-          <RarityBadge rarity={rarity} />
-          {tierCount ? <MetaChip2>{tierCountLabel(locale, tierCount)}</MetaChip2> : null}
-          {maxPower !== null ? (
-            <MetaChip2 title={l.maxPower}>
-              {powerRangeLabelText(locale, maxPower, maxPower)}
-            </MetaChip2>
-          ) : null}
+      <EntityCardBody className="gap-3.5 p-4">
+        {/* Identity. The title is a real anchor whose ::after overlay covers
+            the card, so there is exactly ONE stretched hit area per card; the
+            ability icons and Quick View re-assert their own stacking above it. */}
+        <div className="flex flex-col gap-1.5">
+          <h3 className="font-display text-lg font-bold leading-tight tracking-tight">
+            <Link
+              to={href}
+              className="rounded outline-none transition-colors after:absolute after:inset-0 after:z-0 after:content-[''] hover:text-primary focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              {hero.title}
+            </Link>
+          </h3>
+          <p className="text-[13px] leading-snug text-muted-foreground">
+            <span className="font-medium text-foreground/90">
+              {heroClassLabel(locale, hero.heroClass)}
+            </span>
+            {category ? <span> · {category}</span> : null}
+          </p>
+          {rarity ? <RarityPill locale={locale} rarity={rarity} className="w-fit" /> : null}
         </div>
 
-        {/* Role — the single highest-value addition over the old card */}
-        {standard ? (
-          <ul className="space-y-1">
-            <PerkLine locale={locale} label={l.standardPerk} perk={standard} />
-            {commander ? (
-              <PerkLine locale={locale} label={l.commanderPerk} perk={commander} muted />
-            ) : null}
-          </ul>
-        ) : null}
+        {standard ? <HeroPerkModule locale={locale} perk={standard} /> : null}
 
-        {/* Kit */}
         {abilities.length > 0 ? (
-          <ul className="flex flex-wrap items-center gap-1.5" aria-label={l.abilities}>
-            {abilities.map((a) => (
-              <li key={a.key}>
-                <AbilityChip locale={locale} ability={a} />
-              </li>
-            ))}
-          </ul>
+          <HeroAbilityStrip
+            locale={locale}
+            hintText={s.abilityHint}
+            href={href}
+            abilities={abilities}
+          />
         ) : null}
 
-        {/* Progression headline */}
-        {prog && prog.rarities.length > 0 ? <ProgressionLine locale={locale} prog={prog} /> : null}
-
-        {/* Editorial summary only when an editor wrote one. Never a truncated body. */}
-        {summary ? (
-          <p className="line-clamp-2 text-xs leading-relaxed text-muted-foreground">{summary}</p>
+        {/* Single secondary metadata line; evolution and material costs live
+            on the hero page and in Quick View. */}
+        {powerLine ? (
+          <p className="text-xs tabular-nums text-muted-foreground">{powerLine}</p>
         ) : null}
 
-        {/* Cost headline for the best rarity, if present */}
-        {prog?.rarities.length ? <CostLine locale={locale} prog={prog} /> : null}
-
-        {/* Secondary affordance: quick view only. The card itself is the link. */}
         {onPreview ? (
           <button
             type="button"
             onClick={() => onPreview(hero)}
             aria-haspopup="dialog"
-            className="relative z-10 mt-auto inline-flex h-7 w-fit items-center rounded-md border border-panel-border/80 px-2 text-[11px] font-semibold text-muted-foreground outline-none transition-colors hover:border-primary hover:text-primary focus-visible:ring-2 focus-visible:ring-ring"
+            className="relative z-10 mt-1 inline-flex h-8 w-fit items-center rounded-md border border-panel-border/80 px-2.5 text-[11px] font-semibold text-muted-foreground outline-none transition-colors hover:border-primary hover:text-primary focus-visible:ring-2 focus-visible:ring-ring"
           >
             {s.openPreview}
           </button>
         ) : null}
       </EntityCardBody>
     </EntityCard>
-  );
-}
-
-function PerkLine({
-  locale,
-  label,
-  perk,
-  muted = false,
-}: {
-  locale: string;
-  label: string;
-  perk: PublicHeroPerk;
-  muted?: boolean;
-}) {
-  return (
-    <li className="flex min-w-0 items-center gap-1.5" title={perk.description || perk.name}>
-      {perk.iconUrl ? (
-        <img
-          src={perk.iconUrl}
-          alt=""
-          aria-hidden="true"
-          className="h-4 w-4 shrink-0 rounded-sm object-contain"
-          loading="lazy"
-          decoding="async"
-        />
-      ) : null}
-      <span className="sr-only">{label}:</span>
-      <span
-        className={cn("min-w-0 truncate text-xs", muted ? "text-muted-foreground" : "font-medium")}
-      >
-        {perk.name}
-      </span>
-    </li>
-  );
-}
-
-function ProgressionLine({ locale, prog }: { locale: string; prog: PublicHeroProgression }) {
-  const best = prog.rarities[prog.rarities.length - 1];
-  if (!best) return null;
-  const top = best.tiers[best.tiers.length - 1];
-  const label = powerRangeLabelText(locale, top?.powerMin ?? null, top?.powerMax ?? null);
-  return (
-    <p className="text-[11px] tabular-nums text-muted-foreground">
-      {tierCountLabel(locale, best.tiers.length) ? (
-        <span>{tierCountLabel(locale, best.tiers.length)}</span>
-      ) : null}
-      {label ? (
-        <>
-          {" · "}
-          <span>{label}</span>
-        </>
-      ) : null}
-    </p>
-  );
-}
-
-function CostLine({ locale, prog }: { locale: string; prog: PublicHeroProgression }) {
-  const best = prog.rarities[prog.rarities.length - 1];
-  if (!best || best.total.length === 0) return null;
-  return (
-    <ul className="flex flex-wrap gap-1" aria-label={heroLabels(locale).totalToMax}>
-      {best.total.slice(0, 4).map((c) => (
-        <li key={`${c.resourceKey}-${c.amount}`}>
-          <ResourceCostChip locale={locale} cost={c} />
-        </li>
-      ))}
-    </ul>
   );
 }
 
@@ -293,4 +220,4 @@ export function heroRowToItem(r: HubHeroRow): HeroCardData {
   };
 }
 
-export { heroClassLabel, MetaChip };
+export { heroClassLabel };

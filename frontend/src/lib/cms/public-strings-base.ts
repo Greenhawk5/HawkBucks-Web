@@ -75,6 +75,16 @@ export interface PublicStrings {
   backToLoadouts: string;
   categoryLabel: string;
   classNameLabel: string;
+  /** Label for the secondary (perk/ability) filter disclosure. */
+  advancedFilters: string;
+  /** Group heading for the removable chips describing the current selection. */
+  activeFilters: string;
+  /** Accessible name for the compact/reference display-mode switch. */
+  viewModeLabel: string;
+  viewModeCompact: string;
+  viewModeReference: string;
+  /** Explains that an ability icon reveals its name; never the only source. */
+  abilityHint: string;
 }
 
 export const en: PublicStrings = {
@@ -146,6 +156,12 @@ export const en: PublicStrings = {
   backToLoadouts: "Back to Loadouts",
   categoryLabel: "Category",
   classNameLabel: "Class",
+  advancedFilters: "Perks & abilities",
+  activeFilters: "Active filters",
+  viewModeLabel: "View",
+  viewModeCompact: "Compact",
+  viewModeReference: "Reference",
+  abilityHint: "Hover or focus an ability to see its name.",
 };
 
 /**

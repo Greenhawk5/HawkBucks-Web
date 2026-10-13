@@ -71,6 +71,12 @@ export const es: PublicStrings = withEn({
   backToLoadouts: "Volver a Equipos",
   categoryLabel: "Categoría",
   classNameLabel: "Clase",
+  advancedFilters: "Ventajas y habilidades",
+  activeFilters: "Filtros activos",
+  viewModeLabel: "Vista",
+  viewModeCompact: "Compacta",
+  viewModeReference: "Referencia",
+  abilityHint: "Pasa el cursor o enfoca una habilidad para ver su nombre.",
 });
 export const fr: PublicStrings = withEn({
   heroesTitle: "Héros",
@@ -142,6 +148,12 @@ export const fr: PublicStrings = withEn({
   backToLoadouts: "Retour aux compositions",
   categoryLabel: "Catégorie",
   classNameLabel: "Classe",
+  advancedFilters: "Perks et capacités",
+  activeFilters: "Filtres actifs",
+  viewModeLabel: "Affichage",
+  viewModeCompact: "Compact",
+  viewModeReference: "Référence",
+  abilityHint: "Survolez ou concentrez une capacité pour voir son nom.",
 });
 export const ru: PublicStrings = withEn({
   heroesTitle: "Герои",
@@ -212,6 +224,12 @@ export const ru: PublicStrings = withEn({
   backToLoadouts: "Назад к сборкам",
   categoryLabel: "Категория",
   classNameLabel: "Класс",
+  advancedFilters: "Бонусы и способности",
+  activeFilters: "Активные фильтры",
+  viewModeLabel: "Вид",
+  viewModeCompact: "Компактный",
+  viewModeReference: "Справочный",
+  abilityHint: "Наведите курсор или установите фокус на способности, чтобы увидеть её название.",
 });
 export const de: PublicStrings = withEn({
   heroesTitle: "Helden",
@@ -283,4 +301,10 @@ export const de: PublicStrings = withEn({
   backToLoadouts: "Zurück zu Loadouts",
   categoryLabel: "Kategorie",
   classNameLabel: "Klasse",
+  advancedFilters: "Perks & Fähigkeiten",
+  activeFilters: "Aktive Filter",
+  viewModeLabel: "Ansicht",
+  viewModeCompact: "Kompakt",
+  viewModeReference: "Referenz",
+  abilityHint: "Zeige den Fokus auf eine Fähigkeit oder berühre sie, um den Namen zu sehen.",
 });

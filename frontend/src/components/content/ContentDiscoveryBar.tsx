@@ -75,6 +75,10 @@ export interface FilterChipOption {
  * and works without JavaScript; `aria-current` marks the selection. Rendered
  * as a scrollable strip on narrow viewports instead of wrapping into a wall
  * of buttons.
+ *
+ * `variant="segmented"` is the compact treatment used by a hub whose primary
+ * facets must stay visible in the always-on toolbar: one shared container with
+ * flat segments, no per-value outline. Same link semantics either way.
  */
 export function FilterChipRow({
   label,
@@ -82,6 +86,7 @@ export function FilterChipRow({
   value,
   hrefFor,
   className,
+  variant = "chips",
 }: {
   label: string;
   options: ReadonlyArray<FilterChipOption>;
@@ -89,7 +94,48 @@ export function FilterChipRow({
   value: string | null;
   hrefFor: (value: string | null) => string;
   className?: string;
+  variant?: "chips" | "segmented";
 }) {
+  if (variant === "segmented") {
+    return (
+      <div className={cn("min-w-0", className)}>
+        <p className="mb-1.5 font-display text-[10px] font-bold uppercase tracking-[0.16em] text-muted-foreground">
+          {label}
+        </p>
+        <ul
+          className={cn(
+            "-mx-1 flex snap-x gap-1 overflow-x-auto rounded-lg border border-panel-border/60 bg-background/40 p-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:mx-0 sm:flex-wrap sm:overflow-visible sm:px-1",
+            // Hug the segments so a short facet set does not read as one long
+            // empty bar; `max-w-full` keeps it scrollable when the set is long.
+            "w-fit max-w-full",
+          )}
+          aria-label={label}
+        >
+          {options.map((opt) => {
+            const selected = value === opt.value;
+            return (
+              <li key={opt.value} className="shrink-0 snap-start">
+                <Link
+                  to={hrefFor(opt.value)}
+                  aria-current={selected ? "true" : undefined}
+                  data-selected={selected}
+                  className={cn(
+                    "inline-flex h-8 items-center whitespace-nowrap rounded-md px-2.5 text-xs outline-none transition-colors",
+                    "focus-visible:ring-2 focus-visible:ring-ring",
+                    selected
+                      ? "bg-primary/15 font-semibold text-primary ring-1 ring-inset ring-primary/40"
+                      : "text-muted-foreground hover:bg-primary/10 hover:text-foreground",
+                  )}
+                >
+                  {opt.label}
+                </Link>
+              </li>
+            );
+          })}
+        </ul>
+      </div>
+    );
+  }
   return (
     <div className={cn("min-w-0", className)}>
       <p className="mb-1.5 font-display text-[10px] font-bold uppercase tracking-[0.16em] text-muted-foreground">
@@ -129,6 +175,16 @@ export function FilterChipRow({
  * Cohesive discovery toolbar: search + facet chips + sort, with the active
  * filter summary on the boundary. On mobile the secondary facets collapse
  * behind a toggle so the toolbar never overflows or buries the results.
+ *
+ * `surface="bare"` drops the enclosing card for a hub that owns an editorial
+ * page heading and wants the heading -> controls -> results to read as one
+ * continuous surface rather than a bordered widget. Everything else — the
+ * primitives, the link semantics, the mobile disclosure — is identical, so
+ * the default (panel) rendering of the other hubs is untouched.
+ *
+ * `hideToggle` is for hubs whose only filter groups are primary, always-on
+ * segmented controls: there is nothing to collapse, so the redundant "Filters"
+ * button is suppressed and the groups stay visible at every width.
  */
 export function ContentDiscoveryBar({
   searchId,
@@ -140,6 +196,10 @@ export function ContentDiscoveryBar({
   sort,
   activeFilterCount,
   filtersLabel,
+  surface = "panel",
+  hideToggle = false,
+  stackControls = false,
+  actions,
   children,
 }: {
   searchId: string;
@@ -152,6 +212,7 @@ export function ContentDiscoveryBar({
     options: ReadonlyArray<FilterChipOption>;
     value: string | null;
     hrefFor: (value: string | null) => string;
+    variant?: "chips" | "segmented";
   }>;
   sort?: {
     label: string;
@@ -162,15 +223,28 @@ export function ContentDiscoveryBar({
   /** Drives the mobile toggle badge — count of non-default facets. */
   activeFilterCount: number;
   filtersLabel: string;
+  /** "panel" = bordered card (default). "bare" = hairline-divided, unpainted. */
+  surface?: "panel" | "bare";
+  /** Suppress the mobile facet disclosure when every group is always visible. */
+  hideToggle?: boolean;
+  /** Stack the control row into full-width lines below `sm`. See usage above. */
+  stackControls?: boolean;
+  /** Extra controls on the search row (e.g. an advanced-filter trigger). */
+  actions?: React.ReactNode;
   /** Active-filter summary + result count, rendered on the bottom boundary. */
   children?: React.ReactNode;
 }) {
   const [filtersOpen, setFiltersOpen] = React.useState(false);
+  const hasGroups = Boolean(filterGroups && filterGroups.length > 0);
 
   return (
     <section
       aria-label={searchLabel}
-      className="mt-8 rounded-2xl border border-panel-border bg-background/40 p-4 backdrop-blur-sm sm:p-5"
+      className={cn(
+        surface === "bare"
+          ? "mt-7 border-t border-panel-border/50 pt-5"
+          : "mt-8 rounded-2xl border border-panel-border bg-background/40 p-4 backdrop-blur-sm sm:p-5",
+      )}
     >
       <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
         <SearchField
@@ -181,8 +255,22 @@ export function ContentDiscoveryBar({
           {...(searchPlaceholder !== undefined ? { placeholder: searchPlaceholder } : {})}
         />
 
-        <div className="flex items-center gap-2">
-          {filterGroups && filterGroups.length > 0 ? (
+        {/*
+            Default (unchanged): one row that packs the facet toggle, sort and
+            any extra controls side by side.
+
+            `stackControls` is for a hub that also supplies `actions` — below
+            `sm` the controls become deliberate full-width lines (search / sort
+            / advanced + view mode) instead of reflowing into a ragged wrap or
+            overflowing the viewport. Opt-in so the other hubs are untouched.
+          */}
+        <div
+          className={cn(
+            "flex items-center gap-2",
+            stackControls && "flex-col items-stretch sm:flex-row sm:flex-wrap sm:items-center",
+          )}
+        >
+          {hasGroups && !hideToggle ? (
             <button
               type="button"
               onClick={() => setFiltersOpen((v) => !v)}
@@ -201,7 +289,7 @@ export function ContentDiscoveryBar({
           ) : null}
 
           {sort ? (
-            <div className="min-w-0 flex-1 lg:flex-none">
+            <div className={cn("min-w-0 flex-1 lg:flex-none", stackControls && "sm:basis-56")}>
               <label htmlFor={`${searchId}-sort`} className="sr-only">
                 {sort.label}
               </label>
@@ -215,27 +303,36 @@ export function ContentDiscoveryBar({
               />
             </div>
           ) : null}
+
+          {actions ? (
+            // `min-w-0` so this group can shrink with the row; without it the
+            // group is unshrinkable and pushes the toolbar — and therefore the
+            // page — into horizontal overflow.
+            <div className="flex min-w-0 items-center justify-end gap-2">{actions}</div>
+          ) : null}
         </div>
       </div>
 
-      {filterGroups && filterGroups.length > 0 ? (
+      {hasGroups ? (
         <div
           id={`${searchId}-filters`}
           className={cn(
             "mt-4 gap-3 sm:grid-cols-2",
             // Below lg the facets collapse behind the toggle; from lg up they
-            // are always visible in a single auto-fitting row.
-            filtersOpen ? "grid grid-cols-1" : "hidden",
+            // are always visible in a single auto-fitting row. A hub with
+            // `hideToggle` has nothing to collapse, so it never hides them.
+            hideToggle ? "grid grid-cols-1" : filtersOpen ? "grid grid-cols-1" : "hidden",
             "lg:grid lg:grid-cols-[repeat(auto-fit,minmax(11rem,1fr))] lg:gap-4",
           )}
         >
-          {filterGroups.map((group) => (
+          {filterGroups?.map((group) => (
             <FilterChipRow
               key={group.label}
               label={group.label}
               options={group.options}
               value={group.value}
               hrefFor={group.hrefFor}
+              variant={group.variant ?? "chips"}
             />
           ))}
         </div>

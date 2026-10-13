@@ -71,6 +71,12 @@ export const arSA: PublicStrings = withEn({
   backToLoadouts: "عودة إلى التشكيلات",
   categoryLabel: "التصنيف",
   classNameLabel: "الفئة",
+  advancedFilters: "الميزات والقدرات",
+  activeFilters: "عوامل التصفية النشطة",
+  viewModeLabel: "العرض",
+  viewModeCompact: "مدمج",
+  viewModeReference: "مرجعي",
+  abilityHint: "مرّر المؤشر فوق القدرة أوركّز عليها لعرض اسمها.",
 });
 export const faIR: PublicStrings = withEn({
   heroesTitle: "هیروها",
@@ -141,6 +147,12 @@ export const faIR: PublicStrings = withEn({
   backToLoadouts: "بازگشت به ترکیب‌ها",
   categoryLabel: "دسته‌بندی",
   classNameLabel: "کلاس",
+  advancedFilters: "مزیت‌ها و توانایی‌ها",
+  activeFilters: "فیلترهای فعال",
+  viewModeLabel: "نمایش",
+  viewModeCompact: "فشرده",
+  viewModeReference: "مرجع",
+  abilityHint: "برای دیدن نام یک توانایی، نشانگر را روی آن ببرید یا آن را متمرکز کنید.",
 });
 export const CLASS_LABELS: Record<string, Record<string, string>> = {
   en: { soldier: "Soldier", constructor: "Constructor", ninja: "Ninja", outlander: "Outlander" },

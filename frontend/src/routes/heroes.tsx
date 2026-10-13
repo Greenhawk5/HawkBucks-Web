@@ -1,6 +1,6 @@
 import * as React from "react";
 import { createFileRoute, Outlet, useChildMatches } from "@tanstack/react-router";
-import { HeroesPage, type HeroFacetsResult } from "@/components/cms/HeroesPage";
+import { HeroesPage, HeroesGridSkeleton, type HeroFacetsResult } from "@/components/cms/HeroesPage";
 import type { HubHeroRow } from "@/lib/cms/public-hubs.loader";
 import { HeroListItemListJsonLd } from "@/components/heroes/HeroListJsonLd";
 import { parseFacetKeys, parsePowerParam, parseHeroSort } from "@/lib/cms/hero-reference";
@@ -24,6 +24,13 @@ import { resolveLocale } from "@/i18n/config";
  * comma-joined list, so a shared filter URL stays legible and each value is
  * independently addressable. Unknown keys are dropped here, which is what keeps
  * a hand-edited URL from reaching the SQL layer.
+ *
+ * `power` must accept a NUMBER as well as a string. The router JSON-parses
+ * search values, so `?power=135` arrives as the number 135; a string-only check
+ * rejected it, the validated search then came back empty, and the router
+ * redirected to the unfiltered `/heroes` — the max-power facet silently did
+ * nothing. Normalising to a string here keeps the value, the URL and the
+ * serialized round-trip all in agreement.
  */
 function heroesSearch(s: Record<string, unknown>) {
   const asArray = (v: unknown): string[] | undefined => {
@@ -39,7 +46,12 @@ function heroesSearch(s: Record<string, unknown>) {
     category: typeof s["category"] === "string" ? s["category"] : undefined,
     perk: asArray(s["perk"]),
     ability: asArray(s["ability"]),
-    power: typeof s["power"] === "string" ? s["power"] : undefined,
+    power:
+      typeof s["power"] === "number"
+        ? String(s["power"])
+        : typeof s["power"] === "string"
+          ? s["power"]
+          : undefined,
     q: typeof s["q"] === "string" ? s["q"] : undefined,
     sort: typeof s["sort"] === "string" ? s["sort"] : undefined,
     page: typeof s["page"] === "string" || typeof s["page"] === "number" ? s["page"] : undefined,
@@ -123,6 +135,10 @@ export const Route = createFileRoute("/heroes")({
     };
   },
   component: HeroesListing,
+  // Facet and page changes suspend while the loader re-runs. The placeholder
+  // mirrors the real grid's column count and card aspect so the results area
+  // keeps its geometry instead of collapsing and snapping the layout.
+  pendingComponent: HeroesGridSkeleton,
 });
 
 function HeroesListing() {

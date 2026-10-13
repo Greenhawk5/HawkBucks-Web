@@ -21,6 +21,7 @@ export function EntityCard({
   testId,
   dataKind,
   interactive = true,
+  accent = "top",
   className,
   children,
 }: {
@@ -29,6 +30,13 @@ export function EntityCard({
   dataKind?: string;
   /** False for cards whose body has no single navigable target. */
   interactive?: boolean;
+  /**
+   * Where the rarity accent bar is drawn. "top" (default) keeps every existing
+   * hub unchanged. "none" lets a hub that puts artwork flush against the card
+   * edge draw its own accent over the media instead, where a bar above the
+   * image would read as a loading strip.
+   */
+  accent?: "top" | "none";
   className?: string;
   children: ReactNode;
 }) {
@@ -46,7 +54,7 @@ export function EntityCard({
       )}
       {...(token ? { style: rarityGlowStyle(token) } : {})}
     >
-      {token ? (
+      {token && accent === "top" ? (
         <span
           aria-hidden="true"
           className="absolute inset-x-0 top-0 z-10 h-[3px]"

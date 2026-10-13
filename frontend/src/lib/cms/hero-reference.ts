@@ -184,9 +184,16 @@ export function isHeroPerkKey(v: unknown): v is string {
   return typeof v === "string" && parseHeroPerkKey(v) !== null;
 }
 
-/** Facet-safe key: lowercase slugs only, bounded length. */
+/**
+ * Facet-safe key: lowercase slugs only, bounded length.
+ *
+ * `/` is allowed because the Standard-perk facet value IS a slot-qualified key
+ * (`standard/hang-time`, produced by `heroPerkKey` and matched column-side
+ * against `hero_perk_defs.perk_key`). Without it every perk link produced a key
+ * this rejected, so the perk facet could never narrow the collection.
+ */
 export function isFacetKey(v: unknown): v is string {
-  return typeof v === "string" && /^[a-z0-9][a-z0-9_-]{0,63}$/.test(v);
+  return typeof v === "string" && /^[a-z0-9][a-z0-9_/-]{0,63}$/.test(v);
 }
 
 /** Normalize a repeatable URL param into a bounded, de-duplicated key list. */

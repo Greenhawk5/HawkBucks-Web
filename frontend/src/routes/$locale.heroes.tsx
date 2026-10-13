@@ -1,7 +1,7 @@
 import * as React from "react";
 import { createFileRoute, Outlet, redirect, useChildMatches } from "@tanstack/react-router";
 import { hasChildMatch } from "@/lib/cms/entity-meta";
-import { HeroesPage, type HeroFacetsResult } from "@/components/cms/HeroesPage";
+import { HeroesPage, HeroesGridSkeleton, type HeroFacetsResult } from "@/components/cms/HeroesPage";
 import type { HubHeroRow } from "@/lib/cms/public-hubs.loader";
 import { HeroListItemListJsonLd } from "@/components/heroes/HeroListJsonLd";
 import { parseFacetKeys, parsePowerParam, parseHeroSort } from "@/lib/cms/hero-reference";
@@ -55,7 +55,16 @@ export const Route = createFileRoute("/$locale/heroes")({
       }
       return typeof v === "string" && v !== "" ? [v] : undefined;
     })(),
-    power: typeof s["power"] === "string" ? s["power"] : undefined,
+    // The router JSON-parses search values, so `?power=135` arrives as the
+    // number 135. Accepting only strings dropped it and the router redirected
+    // to the unfiltered collection; normalizing to a string keeps the value and
+    // its serialized round-trip in agreement. See heroes.tsx for the same note.
+    power:
+      typeof s["power"] === "number"
+        ? String(s["power"])
+        : typeof s["power"] === "string"
+          ? s["power"]
+          : undefined,
     q: typeof s["q"] === "string" ? s["q"] : undefined,
     sort: typeof s["sort"] === "string" ? s["sort"] : undefined,
     page: typeof s["page"] === "string" || typeof s["page"] === "number" ? s["page"] : undefined,
@@ -127,6 +136,7 @@ export const Route = createFileRoute("/$locale/heroes")({
     };
   },
   component: LocalizedHeroesListing,
+  pendingComponent: HeroesGridSkeleton,
 });
 
 function LocalizedHeroesListing() {

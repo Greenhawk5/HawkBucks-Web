@@ -1,6 +1,6 @@
-import * as React from "react";
+﻿import * as React from "react";
 import { Link, useNavigate } from "@tanstack/react-router";
-import { SlidersHorizontal, Users } from "lucide-react";
+import { SlidersHorizontal, Users, X } from "lucide-react";
 
 import { getPublicStrings, heroClassLabel } from "@/lib/cms/public-strings";
 import {
@@ -9,17 +9,23 @@ import {
   rarityLabel,
   facetCountLabel,
   heroResultLabel,
+  tierCountLabel,
+  powerRangeLabelText,
 } from "@/lib/cms/hero-labels";
 import { HERO_CLASSES } from "@/lib/cms/heroes";
-import { RARITIES } from "@/lib/cms/taxonomy";
+import { RARITIES, parsePublicRarityParam } from "@/lib/cms/taxonomy";
 import type { HubHeroRow } from "@/lib/cms/public-hubs.loader";
-import { parsePublicRarityParam } from "@/lib/cms/taxonomy";
-import type { PublicHeroItem } from "@/lib/cms/public.loader";
+import { MediaIcon } from "@/components/heroes/HeroReferenceBits";
 import { ContentDiscoveryBar } from "@/components/content/ContentDiscoveryBar";
 import { ContentEmptyState } from "@/components/content/ContentEmptyState";
 import { PaginationBar } from "@/components/content/PaginationBar";
 import { PublicSectionHeader } from "@/components/content/PublicSectionHeader";
 import { ResultCount } from "@/components/content/ResultCount";
+import {
+  HeroFilterPanel,
+  type HeroFacetSection,
+  type HeroFacetOption,
+} from "@/components/heroes/HeroFilterPanel";
 import { HeroCard, heroRowToItem, heroDetailHref, type HeroCardData } from "./HeroCard";
 import { HeroPreviewDialog } from "./HeroPreviewDialog";
 import {
@@ -44,8 +50,55 @@ export interface HeroViewMode {
   onChange?: (m: "compact" | "reference") => void;
 }
 
+/** Power thresholds offered by the advanced panel. */
+const POWER_STEPS = [60, 90, 120, 135, 144] as const;
 /**
- * Heroes hub — faceted reference browser.
+ * Caps that keep a long facet list scannable. A selected value is always added
+ * back on top of the cap (see `withSelections`), never dropped.
+ */
+const PERK_OPTION_LIMIT = 60;
+const ABILITY_OPTION_LIMIT = 40;
+
+/**
+ * The top `limit` facets by count, with any value the reader has already
+ * selected PINNED TO THE TOP — even when it falls outside that window.
+ *
+ * Without the first clause, selecting a rare perk made the section render with
+ * no visible reason for the filtered result set. Without the second, the
+ * selection existed (in the URL and the chips) but sat below the scroll fold of
+ * a 60-item list, so the panel still looked like it was explaining nothing.
+ */
+function withSelections<T extends { value: string }>(
+  buckets: readonly T[],
+  selected: readonly string[],
+  limit: number,
+): T[] {
+  const chosen = selected
+    .map((v) => buckets.find((b) => b.value === v))
+    .filter((b): b is T => b !== undefined);
+  if (chosen.length === 0) return buckets.slice(0, limit);
+  const chosenValues = new Set(chosen.map((b) => b.value));
+  const rest = buckets.filter((b) => !chosenValues.has(b.value)).slice(0, limit);
+  return [...chosen, ...rest];
+}
+
+/**
+ * Heroes hub — the public character directory.
+ *
+ * Information architecture (Sprint 1):
+ *
+ *   heading + one-line intro           editorial, unpainted, no hero banner
+ *   toolbar row 1                      search · sort · advanced filters · view mode
+ *   toolbar row 2                      class + rarity as compact segmented rows
+ *   collection summary                 result count + removable active-filter chips
+ *   (advanced panel, on request)       perks · abilities · category · max power
+ *   hero grid                          the page's visual focus
+ *
+ * There is exactly ONE filtering surface. The previous build rendered these
+ * facets twice — a toolbar plus a permanent left rail — which meant two
+ * competing control areas and a grid squeezed into the leftover width. The
+ * primary facets stay permanently visible because they are the ones a reader
+ * reaches for; everything else is one disclosure away.
  *
  * Data arrives from the route loader so cards, facet counts and pagination links
  * are all in the SSR HTML. The URL is the single source of truth: every facet is
@@ -82,7 +135,7 @@ export function HeroesPage({
 
   const [draft, setDraft] = React.useState(q);
   const [preview, setPreview] = React.useState<HeroCardData | null>(null);
-  const [filtersOpen, setFiltersOpen] = React.useState(false);
+  const [advancedOpen, setAdvancedOpen] = React.useState(false);
 
   React.useEffect(() => {
     setDraft(q);
@@ -113,11 +166,16 @@ export function HeroesPage({
   const pages = Math.max(1, Math.ceil(total / PUBLIC_PAGE_SIZE));
 
   /**
-   * Build a href that preserves every OTHER facet and always resets the page.
-   * `undefined` removes a key entirely, so shared URLs stay short and a facet
-   * can be cleared without leaving `category=` behind.
+   * The full current query as URLSearchParams.
+   *
+   * Shared by `qs` and `toggleFacet` so a repeatable facet is appended to the
+   * SAME parameter set every other facet came from. Building a toggle href by
+   * re-parsing an already-rendered href (`new URLSearchParams(qs({}))`) silently
+   * corrupts it: when the collection has no other params `qs` returns the bare
+   * path, so the path itself gets encoded into the first key and the link points
+   * at `/heroes?%2Fheroes%3Fperk=…` instead of the filtered collection.
    */
-  const qs = (extra: Record<string, unknown>): string => {
+  const buildParams = (extra: Record<string, unknown> = {}): URLSearchParams => {
     const p = new URLSearchParams();
     if (heroClass) p.set("class", heroClass);
     if (rarity) p.set("rarity", rarity);
@@ -127,207 +185,199 @@ export function HeroesPage({
     if (minPower !== null) p.set("power", String(minPower));
     if (q) p.set("q", q);
     if (sort !== "editorial") p.set("sort", sort);
+    // `undefined` removes a key entirely, so shared URLs stay short and a facet
+    // can be cleared without leaving `category=` behind.
     for (const [k, v] of Object.entries(extra)) {
       if (v === undefined || v === null || v === "") p.delete(k);
       else p.set(k, String(v));
     }
+    return p;
+  };
+
+  /** A collection URL preserving every current facet, reset to page 1. */
+  const qs = (extra: Record<string, unknown>): string => {
+    const str = buildParams(extra).toString();
+    return str === "" ? basePath : `${basePath}?${str}`;
+  };
+
+  /** Add a value to (or remove it from) a repeatable facet. */
+  const toggleFacet = (key: "perk" | "ability", value: string): string => {
+    const current = key === "perk" ? perkKeys : abilityKeys;
+    const next = current.includes(value) ? current.filter((k) => k !== value) : [...current, value];
+    const p = buildParams();
+    p.delete(key);
+    for (const v of next) p.append(key, v);
     const str = p.toString();
     return str === "" ? basePath : `${basePath}?${str}`;
   };
 
-  const activeFilterCount =
-    (heroClass ? 1 : 0) +
-    (rarity ? 1 : 0) +
-    (category ? 1 : 0) +
-    perkKeys.length +
-    abilityKeys.length +
-    (minPower !== null ? 1 : 0) +
-    (q !== "" ? 1 : 0);
-  const hasFilters = activeFilterCount > 0;
-
-  const toggleFacet = (key: "perk" | "ability", value: string) => {
-    const current = key === "perk" ? perkKeys : abilityKeys;
-    const next = current.includes(value) ? current.filter((k) => k !== value) : [...current, value];
-    const params = new URLSearchParams();
-    for (const v of next) params.append(key, v);
-    const rest = new URLSearchParams(qs({}));
-    rest.delete(key);
-    for (const v of next) rest.append(key, v);
-    const str = rest.toString();
-    return str === "" ? basePath : `${basePath}?${str}`;
+  /** `perk=standard/ninja-slash` displays as its display name, not its key. */
+  const perkLabel = (value: string): string => {
+    const short = value.includes("/") ? value.slice(value.indexOf("/") + 1) : value;
+    return short.replace(/-/g, " ");
   };
+  const abilityLabel = (value: string): string => value.replace(/-/g, " ");
 
-  // --- facet panels --------------------------------------------------------
-  const facetPanel = (
-    <div className="space-y-5">
-      <FacetGroup title={s.classLabel}>
-        <ul className="flex flex-wrap gap-1.5 lg:flex-col">
-          <FacetLink
-            href={qs({ class: undefined, page: undefined })}
-            active={!heroClass}
-            label={s.classAll}
-            count={null}
-          />
-          {facets.class
-            .filter((f) => HERO_CLASSES.includes(f.value as never))
-            .map((f) => (
-              <FacetLink
-                key={f.value}
-                href={qs({ class: f.value, page: undefined })}
-                active={heroClass === f.value}
-                label={heroClassLabel(locale, f.value)}
-                count={facetCountLabel(locale, f.count)}
-              />
-            ))}
-        </ul>
-      </FacetGroup>
+  const advancedCount =
+    perkKeys.length + abilityKeys.length + (category ? 1 : 0) + (minPower !== null ? 1 : 0);
+  const hasFilters =
+    advancedCount + (heroClass ? 1 : 0) + (rarity ? 1 : 0) + (q !== "" ? 1 : 0) > 0;
 
-      {/* All stored rarities are exposed, not the legacy two-value subset. */}
-      <FacetGroup title={l.rarity}>
-        <ul className="flex flex-wrap gap-1.5 lg:flex-col">
-          <FacetLink
-            href={qs({ rarity: undefined, page: undefined })}
-            active={!rarity}
-            label={s.classAll}
-            count={null}
-          />
-          {facets.rarity
-            .filter((f) => (RARITIES as readonly string[]).includes(f.value))
-            .sort((a, b) => RARITIES.indexOf(b.value as never) - RARITIES.indexOf(a.value as never))
-            .map((f) => (
-              <FacetLink
-                key={f.value}
-                href={qs({ rarity: f.value, page: undefined })}
-                active={rarity === f.value}
-                label={rarityLabel(locale, f.value) ?? f.value}
-                count={facetCountLabel(locale, f.count)}
-              />
-            ))}
-        </ul>
-      </FacetGroup>
+  // --- primary facets (always visible) -------------------------------------
+  const classOptions = [
+    { value: "", label: s.classAll },
+    ...HERO_CLASSES.map((c) => ({ value: c, label: heroClassLabel(locale, c) })),
+  ];
 
-      {facets.category.length > 0 ? (
-        <FacetGroup title={l.category}>
-          <ul className="flex flex-wrap gap-1.5 lg:flex-col">
-            <FacetLink
-              href={qs({ category: undefined, page: undefined })}
-              active={!category}
-              label={s.classAll}
-              count={null}
-            />
-            {facets.category.map((f) => (
-              <FacetLink
-                key={f.value}
-                href={qs({ category: f.value, page: undefined })}
-                active={category === f.value}
-                label={categoryLabel(locale, f.value) ?? f.value}
-                count={facetCountLabel(locale, f.count)}
-              />
-            ))}
-          </ul>
-        </FacetGroup>
-      ) : null}
+  const rarityOptions = [
+    { value: "", label: s.classAll },
+    ...facets.rarity
+      .filter((f) => (RARITIES as readonly string[]).includes(f.value))
+      .sort((a, b) => RARITIES.indexOf(b.value as never) - RARITIES.indexOf(a.value as never))
+      .map((f) => ({ value: f.value, label: rarityLabel(locale, f.value) ?? f.value })),
+  ];
 
-      {minPower !== null ? (
-        <FacetGroup title={l.powerLabel}>
-          <FacetLink
-            href={qs({ power: undefined, page: undefined })}
-            active={false}
-            label={l.powerAll}
-            count={null}
-          />
-          <ul className="mt-1.5 flex flex-wrap gap-1.5">
-            {[60, 90, 120, 135, 144].map((n) => (
-              <li key={n}>
-                <FacetLink
-                  href={qs({ power: minPower === n ? undefined : n, page: undefined })}
-                  active={minPower === n}
-                  label={l.powerAtLeast.replace("{n}", String(n))}
-                  count={null}
-                />
-              </li>
-            ))}
-          </ul>
-        </FacetGroup>
-      ) : null}
+  // --- advanced facets (behind one disclosure) -----------------------------
+  const perkOptions: HeroFacetOption[] = withSelections(
+    facets.perk,
+    perkKeys,
+    PERK_OPTION_LIMIT,
+  ).map((f) => ({
+    value: f.value,
+    label: perkLabel(f.value),
+    count: facetCountLabel(locale, f.count),
+    selected: perkKeys.includes(f.value),
+    href: toggleFacet("perk", f.value),
+  }));
+  const abilityOptions: HeroFacetOption[] = withSelections(
+    facets.ability,
+    abilityKeys,
+    ABILITY_OPTION_LIMIT,
+  ).map((f) => ({
+    value: f.value,
+    label: abilityLabel(f.value),
+    count: facetCountLabel(locale, f.count),
+    selected: abilityKeys.includes(f.value),
+    href: toggleFacet("ability", f.value),
+  }));
+  const categoryOptions: HeroFacetOption[] = facets.category.map((f) => ({
+    value: f.value,
+    label: categoryLabel(locale, f.value) ?? f.value,
+    count: facetCountLabel(locale, f.count),
+    selected: category === f.value,
+    href: qs({ category: category === f.value ? undefined : f.value, page: undefined }),
+  }));
+  const powerOptions: HeroFacetOption[] = POWER_STEPS.map((n) => ({
+    value: String(n),
+    label: l.powerAtLeast.replace("{n}", String(n)),
+    count: null,
+    selected: minPower === n,
+    href: qs({ power: minPower === n ? undefined : n, page: undefined }),
+  }));
 
-      {facets.perk.length > 0 ? (
-        <FacetGroup title={l.standardPerk} collapsible>
-          <ul className="max-h-64 space-y-0.5 overflow-y-auto pe-1">
-            {facets.perk.slice(0, 60).map((f) => {
-              const short = f.value.includes("/")
-                ? f.value.slice(f.value.indexOf("/") + 1)
-                : f.value;
-              const name = short.replace(/-/g, " ");
-              return (
-                <li key={f.value}>
-                  <FacetLink
-                    href={toggleFacet("perk", f.value)}
-                    active={perkKeys.includes(f.value)}
-                    label={name}
-                    count={facetCountLabel(locale, f.count)}
-                    small
-                  />
-                </li>
-              );
-            })}
-          </ul>
-        </FacetGroup>
-      ) : null}
+  const advancedSections: HeroFacetSection[] = [];
+  if (perkOptions.length > 0) {
+    advancedSections.push({
+      id: "hero-facet-perks",
+      title: l.standardPerk,
+      options: perkOptions,
+      collapsible: true,
+    });
+  }
+  if (abilityOptions.length > 0) {
+    advancedSections.push({
+      id: "hero-facet-abilities",
+      title: l.abilities,
+      options: abilityOptions,
+      collapsible: true,
+    });
+  }
+  if (categoryOptions.length > 0) {
+    advancedSections.push({
+      id: "hero-facet-category",
+      title: l.category,
+      options: categoryOptions,
+    });
+  }
+  advancedSections.push({ id: "hero-facet-power", title: l.powerLabel, options: powerOptions });
 
-      {facets.ability.length > 0 ? (
-        <FacetGroup title={l.abilities} collapsible>
-          <ul className="max-h-56 space-y-0.5 overflow-y-auto pe-1">
-            {facets.ability.slice(0, 40).map((f) => (
-              <li key={f.value}>
-                <FacetLink
-                  href={toggleFacet("ability", f.value)}
-                  active={abilityKeys.includes(f.value)}
-                  label={f.value.replace(/-/g, " ")}
-                  count={facetCountLabel(locale, f.count)}
-                  small
-                />
-              </li>
-            ))}
-          </ul>
-        </FacetGroup>
-      ) : null}
-    </div>
-  );
+  // --- active filter chips (outside the panel, always removable) -----------
+  const activeChips: Array<{ key: string; label: string; href: string }> = [];
+  if (heroClass) {
+    activeChips.push({
+      key: "class",
+      label: `${s.classLabel}: ${heroClassLabel(locale, heroClass)}`,
+      href: qs({ class: undefined, page: undefined }),
+    });
+  }
+  if (rarity) {
+    activeChips.push({
+      key: "rarity",
+      label: `${l.rarity}: ${rarityLabel(locale, rarity) ?? rarity}`,
+      href: qs({ rarity: undefined, page: undefined }),
+    });
+  }
+  for (const k of category ? [category] : []) {
+    activeChips.push({
+      key: `category:${k}`,
+      label: `${l.category}: ${categoryLabel(locale, k) ?? k}`,
+      href: qs({ category: undefined, page: undefined }),
+    });
+  }
+  for (const k of perkKeys) {
+    activeChips.push({
+      key: `perk:${k}`,
+      label: perkLabel(k),
+      href: toggleFacet("perk", k),
+    });
+  }
+  for (const k of abilityKeys) {
+    activeChips.push({
+      key: `ability:${k}`,
+      label: abilityLabel(k),
+      href: toggleFacet("ability", k),
+    });
+  }
+  if (minPower !== null) {
+    activeChips.push({
+      key: "power",
+      label: `${l.powerLabel}: ${l.powerAtLeast.replace("{n}", String(minPower))}`,
+      href: qs({ power: undefined, page: undefined }),
+    });
+  }
+  if (q !== "") {
+    activeChips.push({ key: "q", label: q, href: qs({ q: undefined, page: undefined }) });
+  }
 
   return (
     <div className="py-8">
       <PublicSectionHeader title={s.heroesTitle} description={s.heroesIntro} />
 
       <ContentDiscoveryBar
+        surface="bare"
+        hideToggle
+        stackControls
         searchId="hero-search"
         searchLabel={s.searchLabel}
         searchValue={draft}
         onSearchChange={setDraft}
         searchPlaceholder={s.searchPlaceholder}
-        activeFilterCount={activeFilterCount}
-        filtersLabel={s.filtersLabel}
+        activeFilterCount={advancedCount}
+        filtersLabel={s.advancedFilters}
         filterGroups={[
           {
             label: s.classLabel,
             value: heroClass,
-            hrefFor: (v) => qs({ class: v, page: undefined }),
-            options: [
-              { value: "", label: s.classAll },
-              ...HERO_CLASSES.map((c) => ({ value: c, label: heroClassLabel(locale, c) })),
-            ],
+            hrefFor: (v) => qs({ class: v === null || v === "" ? undefined : v, page: undefined }),
+            options: classOptions,
+            variant: "segmented" as const,
           },
           {
             label: l.rarity,
             value: rarity,
-            hrefFor: (v) => qs({ rarity: v, page: undefined }),
-            options: [
-              { value: "", label: s.classAll },
-              ...facets.rarity.map((f) => ({
-                value: f.value,
-                label: rarityLabel(locale, f.value) ?? f.value,
-              })),
-            ],
+            hrefFor: (v) => qs({ rarity: v === null || v === "" ? undefined : v, page: undefined }),
+            options: rarityOptions,
+            variant: "segmented" as const,
           },
         ]}
         sort={{
@@ -352,132 +402,135 @@ export function HeroesPage({
               replace: true,
             } as never),
         }}
-      >
-        <div className="mt-5 flex flex-wrap items-center justify-between gap-3 border-t border-border/60 pt-4">
-          <ResultCount
-            count={total}
-            label={heroResultLabel(locale, total)}
-            className="text-xs font-bold uppercase tracking-[0.14em] text-muted-foreground"
-          />
-          <div className="flex items-center gap-3">
-            {hasFilters ? (
-              <Link
-                to={basePath}
-                data-testid="hero-clear-filters"
-                className="text-xs font-bold uppercase tracking-[0.14em] text-primary underline underline-offset-4"
-              >
-                {s.clearFilters}
-              </Link>
-            ) : null}
-            {/* View mode is a presentation preference, not a query filter: it
-                never changes the result set, so it stays out of the URL. */}
-            <div className="flex items-center gap-1" role="group" aria-label={l.summary}>
-              {(["compact", "reference"] as const).map((m) => (
-                <button
-                  key={m}
-                  type="button"
-                  aria-pressed={view.mode === m}
-                  onClick={() => view.onChange?.(m)}
-                  className={cn(
-                    "rounded-md border px-2 py-1 text-[11px] font-semibold uppercase tracking-wide transition-colors",
-                    view.mode === m
-                      ? "border-primary text-primary"
-                      : "border-panel-border text-muted-foreground hover:text-foreground",
-                  )}
-                >
-                  {m}
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
-      </ContentDiscoveryBar>
-
-      <div className="mt-6 flex gap-8">
-        {/* Desktop: sticky facet rail. Mobile: a disclosure + inline panel. */}
-        <aside className="hidden w-60 shrink-0 lg:block" aria-label={s.filtersLabel}>
-          <div className="sticky top-20 max-h-[calc(100vh-6rem)] overflow-y-auto pe-2">
-            {facetPanel}
-          </div>
-        </aside>
-
-        <div className="min-w-0 flex-1">
-          {/* Mobile facet disclosure */}
-          <div className="mb-4 lg:hidden">
+        actions={
+          <>
             <button
               type="button"
-              onClick={() => setFiltersOpen((v) => !v)}
-              aria-expanded={filtersOpen}
-              aria-controls="hero-facet-panel"
-              data-testid="hero-filter-toggle"
-              className="inline-flex h-9 items-center gap-2 rounded-lg border border-panel-border px-3 text-xs font-bold uppercase tracking-wider"
+              onClick={() => setAdvancedOpen((v) => !v)}
+              aria-expanded={advancedOpen}
+              aria-controls="hero-advanced-panel"
+              data-testid="hero-advanced-toggle"
+              className="inline-flex h-11 items-center gap-2 rounded-lg border border-panel-border px-3 text-xs font-semibold text-muted-foreground outline-none transition-colors hover:border-primary/60 hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
             >
-              <SlidersHorizontal className="h-3.5 w-3.5" aria-hidden="true" />
-              {s.filtersLabel}
-              {activeFilterCount > 0 ? (
-                <span className="rounded bg-primary px-1.5 py-0.5 text-[10px] text-primary-foreground">
-                  {activeFilterCount}
+              <SlidersHorizontal aria-hidden="true" className="h-4 w-4" />
+              <span className="hidden sm:inline">{s.advancedFilters}</span>
+              {advancedCount > 0 ? (
+                <span className="grid h-5 min-w-5 place-items-center rounded-full bg-primary px-1 text-[10px] font-bold text-primary-foreground tabular-nums">
+                  {advancedCount}
                 </span>
               ) : null}
             </button>
-            {filtersOpen ? (
-              <div
-                id="hero-facet-panel"
-                className="mt-3 rounded-lg border border-panel-border/60 p-4"
-              >
-                {facetPanel}
-              </div>
-            ) : null}
-          </div>
-
-          {items.length === 0 ? (
-            <div className="mt-8">
-              <ContentEmptyState
-                icon={Users}
-                title={s.emptyHeroesTitle}
-                description={s.emptyHeroesDesc}
-                {...(hasFilters
-                  ? {
-                      action: (
-                        <Link
-                          to={basePath}
-                          className="inline-flex h-10 items-center rounded-lg border border-panel-border px-4 text-xs font-bold uppercase tracking-wider transition-colors hover:border-primary hover:text-primary focus-visible:ring-2 focus-visible:ring-ring"
-                        >
-                          {s.clearFilters}
-                        </Link>
-                      ),
-                    }
-                  : {})}
-              />
-            </div>
-          ) : view.mode === "compact" ? (
+            <ViewModeSwitch locale={locale} view={view} />
+          </>
+        }
+      >
+        {/* Collection summary + the current selection, both readable at a
+            glance and removable without opening anything. */}
+        <div className="mt-5 flex flex-col gap-3 border-t border-panel-border/50 pt-4 sm:flex-row sm:items-center sm:justify-between">
+          <ResultCount
+            count={total}
+            label={heroResultLabel(locale, total)}
+            className="text-sm text-muted-foreground"
+          />
+          {activeChips.length > 0 ? (
             <ul
-              data-testid="hero-grid"
-              className="grid list-none grid-cols-[repeat(auto-fill,minmax(min(100%,15rem),1fr))] gap-3 sm:gap-4"
+              data-testid="hero-active-chips"
+              aria-label={s.activeFilters}
+              className="-mx-1 flex flex-wrap items-center gap-1.5 sm:mx-0 sm:justify-end"
             >
-              {items.map((h, i) => (
-                <li key={h.contentId} className="flex">
-                  <HeroCard
-                    hero={h}
-                    locale={locale}
-                    dense
-                    priority={i < 4}
-                    onPreview={(hero) => setPreview(hero)}
-                  />
+              {activeChips.map((chip) => (
+                <li key={chip.key}>
+                  <Link
+                    to={chip.href}
+                    data-testid="hero-active-chip"
+                    className="inline-flex h-7 items-center gap-1.5 rounded-full border border-primary/40 bg-primary/10 ps-2.5 pe-1 text-[11px] font-medium capitalize text-primary outline-none transition-colors hover:border-primary hover:bg-primary/20 focus-visible:ring-2 focus-visible:ring-ring"
+                  >
+                    <span className="block max-w-40 overflow-hidden text-ellipsis whitespace-nowrap normal-case">
+                      {chip.label}
+                    </span>
+                    <span
+                      aria-hidden="true"
+                      className="grid h-5 w-5 place-items-center rounded-full transition-colors hover:bg-primary/25"
+                    >
+                      <X className="h-3 w-3" />
+                    </span>
+                  </Link>
                 </li>
               ))}
             </ul>
-          ) : (
-            <ReferenceRowList locale={locale} items={items} />
-          )}
-
-          <PaginationBar
-            page={page}
-            pageCount={pages}
-            hrefForPage={(p) => qs({ page: p === 1 ? undefined : p })}
-            label={s.heroesTitle}
-          />
+          ) : null}
         </div>
+
+        {hasFilters ? (
+          <div className="mt-3">
+            <Link
+              to={basePath}
+              data-testid="hero-clear-filters"
+              className="inline-flex text-xs font-semibold text-primary underline underline-offset-4 outline-none hover:text-primary/80 focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              {s.clearFilters}
+            </Link>
+          </div>
+        ) : null}
+
+        {advancedOpen ? (
+          <HeroFilterPanel
+            id="hero-advanced-panel"
+            title={s.advancedFilters}
+            sections={advancedSections}
+            clearAllHref={basePath}
+            clearAllLabel={s.clearFilters}
+            className="mt-4"
+          />
+        ) : null}
+      </ContentDiscoveryBar>
+
+      {/* The grid is the page. No rail competes with it for width. */}
+      <div className="mt-8">
+        {items.length === 0 ? (
+          <ContentEmptyState
+            icon={Users}
+            title={s.emptyHeroesTitle}
+            description={s.emptyHeroesDesc}
+            {...(hasFilters
+              ? {
+                  action: (
+                    <Link
+                      to={basePath}
+                      className="inline-flex h-10 items-center rounded-lg border border-panel-border px-4 text-xs font-bold uppercase tracking-wider transition-colors hover:border-primary hover:text-primary focus-visible:ring-2 focus-visible:ring-ring"
+                    >
+                      {s.clearFilters}
+                    </Link>
+                  ),
+                }
+              : {})}
+          />
+        ) : view.mode === "compact" ? (
+          <ul
+            data-testid="hero-grid"
+            className="grid list-none grid-cols-[repeat(auto-fill,minmax(min(100%,15rem),1fr))] gap-4 sm:gap-5"
+          >
+            {items.map((h, i) => (
+              <li key={h.contentId} className="flex">
+                <HeroCard
+                  hero={h}
+                  locale={locale}
+                  priority={i < 4}
+                  onPreview={(hero) => setPreview(hero)}
+                />
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <ReferenceRowList locale={locale} items={items} />
+        )}
+
+        <PaginationBar
+          page={page}
+          pageCount={pages}
+          hrefForPage={(p) => qs({ page: p === 1 ? undefined : p })}
+          label={s.heroesTitle}
+        />
       </div>
 
       <HeroPreviewDialog hero={preview} locale={locale} onClose={() => setPreview(null)} />
@@ -485,81 +538,55 @@ export function HeroesPage({
   );
 }
 
-function FacetGroup({
-  title,
-  children,
-  collapsible = false,
-}: {
-  title: string;
-  children: React.ReactNode;
-  collapsible?: boolean;
-}) {
-  const [open, setOpen] = React.useState(!collapsible);
+/**
+ * Compact/reference switch.
+ *
+ * This is a presentation preference, not a query filter: it never changes the
+ * result set, so it stays out of the URL. Both modes share the toolbar's
+ * control language (and the same filter state) — only the card body differs.
+ */
+function ViewModeSwitch({ locale, view }: { locale: string; view: HeroViewMode }) {
+  const s = getPublicStrings(locale);
+  const modes = [
+    { value: "compact" as const, label: s.viewModeCompact },
+    { value: "reference" as const, label: s.viewModeReference },
+  ];
   return (
-    <section aria-label={title}>
-      <h2
-        className={cn(
-          "mb-2 text-[11px] font-bold uppercase tracking-[0.14em] text-muted-foreground",
-          collapsible ? "flex w-full items-center justify-between" : "",
-        )}
-      >
-        {collapsible ? (
-          <button
-            type="button"
-            onClick={() => setOpen((v) => !v)}
-            aria-expanded={open}
-            className="inline-flex items-center gap-1.5 text-start"
-          >
-            {title}
-            <span
-              aria-hidden="true"
-              className={cn("transition-transform", open ? "rotate-180" : "rotate-180")}
-            >
-              ▾
-            </span>
-          </button>
-        ) : (
-          title
-        )}
-      </h2>
-      {open ? children : null}
-    </section>
-  );
-}
-
-function FacetLink({
-  href,
-  active,
-  label,
-  count,
-  small = false,
-}: {
-  href: string;
-  active: boolean;
-  label: string;
-  count: string | null;
-  small?: boolean;
-}) {
-  return (
-    <Link
-      to={href}
-      aria-current={active ? "true" : undefined}
-      data-active={active || undefined}
-      className={cn(
-        "inline-flex items-center justify-between gap-2 rounded-md border px-2 py-1 transition-colors",
-        small ? "text-xs" : "text-[13px]",
-        active
-          ? "border-primary/60 bg-primary/10 font-semibold text-primary"
-          : "border-transparent text-muted-foreground hover:bg-background/60 hover:text-foreground",
-      )}
+    <div
+      role="group"
+      aria-label={s.viewModeLabel}
+      className="flex h-11 w-full items-center justify-center rounded-lg border border-panel-border bg-background/40 p-1 sm:w-auto"
     >
-      <span className="truncate capitalize">{label}</span>
-      {count ? <span className="shrink-0 tabular-nums text-[10px] opacity-70">{count}</span> : null}
-    </Link>
+      {modes.map((m) => (
+        <button
+          key={m.value}
+          type="button"
+          aria-pressed={view.mode === m.value}
+          onClick={() => view.onChange?.(m.value)}
+          className={cn(
+            "h-9 rounded-md px-2.5 text-[11px] font-semibold outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring",
+            view.mode === m.value
+              ? "bg-primary/15 text-primary ring-1 ring-inset ring-primary/40"
+              : "text-muted-foreground hover:text-foreground",
+          )}
+        >
+          {m.label}
+        </button>
+      ))}
+    </div>
   );
 }
 
-/** Reference view: a dense row list for scanning and comparing. */
+/**
+ * Reference view: the same heroes, exposed for comparison rather than browsing.
+ *
+ * Compact mode answers "who looks right?"; reference mode answers "which of
+ * these do I actually want?". So this row leads with identity and standard
+ * perk — the two facts a reader compares — and keeps rarity, tier count, power
+ * and the ability icons as a right-aligned comparison axis. Columns collapse
+ * by priority as the viewport narrows so the name is never the thing that
+ * gets squeezed out.
+ */
 function ReferenceRowList({ locale, items }: { locale: string; items: HeroCardData[] }) {
   return (
     <ul
@@ -568,17 +595,18 @@ function ReferenceRowList({ locale, items }: { locale: string; items: HeroCardDa
     >
       {items.map((h) => {
         const std = h.reference?.perks.find((p) => p.slot === "standard");
-        const cmd = h.reference?.perks.find((p) => p.slot === "commander");
-        const prog = h.reference?.progression;
-        const top = prog?.rarities[prog.rarities.length - 1]?.tiers.slice(-1)[0];
+        const prog = h.reference?.progression ?? null;
+        const maxPower = prog?.maxPower ?? h.reference?.maxPower ?? null;
+        const powers = powerRangeLabelText(locale, maxPower, maxPower);
+        const abilities = h.reference?.abilities ?? [];
         return (
-          <li key={h.contentId} className="flex items-center gap-3 py-2">
+          <li key={h.contentId} className="flex items-center gap-3 py-2.5 sm:gap-4">
             {h.imageUrl ? (
               <img
                 src={h.imageUrl}
                 alt=""
                 aria-hidden="true"
-                className="h-10 w-10 shrink-0 rounded-md border border-panel-border/50 object-cover object-top"
+                className="h-11 w-11 shrink-0 rounded-lg border border-panel-border/50 bg-background/40 object-cover object-top"
                 loading="lazy"
                 decoding="async"
               />
@@ -586,26 +614,74 @@ function ReferenceRowList({ locale, items }: { locale: string; items: HeroCardDa
             <div className="min-w-0 flex-1">
               <Link
                 to={heroDetailHref(locale, h.slug)}
-                className="truncate font-display text-sm font-bold hover:text-primary"
+                className="block overflow-hidden text-ellipsis whitespace-nowrap rounded font-display text-sm font-bold outline-none transition-colors hover:text-primary focus-visible:ring-2 focus-visible:ring-ring"
               >
                 {h.title}
               </Link>
-              <p className="truncate text-[11px] text-muted-foreground">
-                {heroClassLabel(locale, h.heroClass)}
+              <p className="mt-0.5 overflow-hidden text-ellipsis whitespace-nowrap text-[11px] text-muted-foreground">
+                <span className="text-foreground/80">{heroClassLabel(locale, h.heroClass)}</span>
                 {h.category ? ` · ${categoryLabel(locale, h.category)}` : ""}
-                {std ? ` · ${std.name}` : ""}
+                {h.rarity ? ` · ${rarityLabel(locale, h.rarity) ?? h.rarity}` : ""}
               </p>
             </div>
-            <div className="hidden shrink-0 text-end text-[11px] tabular-nums text-muted-foreground sm:block">
-              {cmd ? <div>{cmd.name}</div> : null}
-            </div>
+            <p className="hidden min-w-0 max-w-56 flex-1 overflow-hidden text-ellipsis whitespace-nowrap text-xs text-muted-foreground sm:block">
+              {std ? std.name : null}
+            </p>
             <div className="hidden shrink-0 text-end text-[11px] tabular-nums text-muted-foreground md:block">
-              {prog?.tierCount ? <div>{`${prog.tierCount} tiers`}</div> : null}
-              {top?.powerMax ? <div>{`P${top.powerMax}`}</div> : null}
+              {prog?.tierCount ? <div>{tierCountLabel(locale, prog.tierCount)}</div> : null}
+              {powers ? <div>{powers}</div> : null}
             </div>
+            {abilities.length > 0 ? (
+              <ul
+                aria-label={heroLabels(locale).abilities}
+                className="hidden shrink-0 items-center gap-0.5 lg:flex"
+              >
+                {abilities.slice(0, 4).map((a) => (
+                  <li key={a.key}>
+                    <MediaIcon
+                      url={a.iconUrl}
+                      sizeClass="h-6 w-6"
+                      fallbackText={a.name.slice(0, 2)}
+                    />
+                    <span className="sr-only">{a.name}</span>
+                  </li>
+                ))}
+              </ul>
+            ) : null}
           </li>
         );
       })}
+    </ul>
+  );
+}
+
+/**
+ * Grid placeholder used while a filtered page is loading.
+ *
+ * Matches the real card's aspect ratio and column count so the results area
+ * keeps its geometry instead of collapsing to nothing and snapping the layout
+ * when the data lands.
+ */
+export function HeroesGridSkeleton() {
+  return (
+    <ul
+      data-testid="hero-grid-skeleton"
+      aria-hidden="true"
+      className="grid list-none grid-cols-[repeat(auto-fill,minmax(min(100%,15rem),1fr))] gap-4 sm:gap-5"
+    >
+      {Array.from({ length: 8 }, (_, i) => (
+        <li key={i} className="flex">
+          <div className="flex h-full w-full flex-col overflow-hidden rounded-2xl border border-panel-border bg-background/40">
+            <div className="aspect-[4/5] w-full animate-pulse bg-muted/30 motion-reduce:animate-none" />
+            <div className="flex flex-col gap-3 p-4">
+              <div className="h-5 w-3/4 animate-pulse rounded bg-muted/40 motion-reduce:animate-none" />
+              <div className="h-3 w-1/2 animate-pulse rounded bg-muted/30 motion-reduce:animate-none" />
+              <div className="h-8 w-full animate-pulse rounded bg-muted/20 motion-reduce:animate-none" />
+              <div className="h-9 w-24 animate-pulse rounded-lg bg-muted/20 motion-reduce:animate-none" />
+            </div>
+          </div>
+        </li>
+      ))}
     </ul>
   );
 }
