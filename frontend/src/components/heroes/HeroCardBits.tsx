@@ -57,13 +57,7 @@ import { cn } from "@/lib/utils";
  * attribute carries the same name (never the description) so a long localized
  * name stays reachable without a tooltip that duplicates what is on screen.
  */
-export function HeroPerkRow({
-  perk,
-  className,
-}: {
-  perk: PublicHeroPerk;
-  className?: string;
-}) {
+export function HeroPerkRow({ perk, className }: { perk: PublicHeroPerk; className?: string }) {
   return (
     <div
       data-testid="hero-perk-module"
