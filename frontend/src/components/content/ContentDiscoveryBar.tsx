@@ -70,6 +70,33 @@ export interface FilterChipOption {
 }
 
 /**
+ * One rendered chip glyph.
+ *
+ * Both the segmented and the chip variant render this, so a group can offer a
+ * glyph per value (the Heroes class filter does) without the two variants
+ * having to agree on anything else.
+ */
+function ChipGlyph({ url }: { url?: string | null | undefined }) {
+  if (!url) return null;
+  return (
+    <img
+      src={url}
+      alt=""
+      aria-hidden="true"
+      // Fixed box + object-contain: the glyph occupies its slot before the
+      // image arrives, so a registered icon appearing never reflows the row.
+      className="me-1.5 h-3.5 w-3.5 shrink-0 rounded-sm object-contain"
+      loading="lazy"
+      decoding="async"
+      onError={(event) => {
+        // A broken glyph must not leave a broken-image glyph in the toolbar.
+        event.currentTarget.style.display = "none";
+      }}
+    />
+  );
+}
+
+/**
  * Chip row for small, mutually-exclusive facet sets (class, type, rarity…).
  * Every chip is a real <a href> so the filter state is crawlable, shareable,
  * and works without JavaScript; `aria-current` marks the selection. Rendered
@@ -87,6 +114,7 @@ export function FilterChipRow({
   hrefFor,
   className,
   variant = "chips",
+  iconUrlFor,
 }: {
   label: string;
   options: ReadonlyArray<FilterChipOption>;
@@ -95,6 +123,15 @@ export function FilterChipRow({
   hrefFor: (value: string | null) => string;
   className?: string;
   variant?: "chips" | "segmented";
+  /**
+   * Optional per-value glyph (a registered class icon, for example).
+   *
+   * Opt-in and returning `null`/nothing for a value means "no icon", which
+   * renders exactly as before — so a hub that does not pass this is untouched,
+   * and a class with no registered icon keeps its label with no empty box left
+   * where a glyph would have been.
+   */
+  iconUrlFor?: (value: string) => string | null | undefined;
 }) {
   if (variant === "segmented") {
     return (
@@ -127,6 +164,7 @@ export function FilterChipRow({
                       : "text-muted-foreground hover:bg-primary/10 hover:text-foreground",
                   )}
                 >
+                  <ChipGlyph url={iconUrlFor?.(opt.value)} />
                   {opt.label}
                 </Link>
               </li>
@@ -161,6 +199,7 @@ export function FilterChipRow({
                     : "border-panel-border text-muted-foreground hover:border-primary/50 hover:text-foreground",
                 )}
               >
+                <ChipGlyph url={iconUrlFor?.(opt.value)} />
                 {opt.label}
               </Link>
             </li>
@@ -213,6 +252,8 @@ export function ContentDiscoveryBar({
     value: string | null;
     hrefFor: (value: string | null) => string;
     variant?: "chips" | "segmented";
+    /** Optional per-value glyph; see `FilterChipRow.iconUrlFor`. */
+    iconUrlFor?: (value: string) => string | null | undefined;
   }>;
   sort?: {
     label: string;
@@ -333,6 +374,7 @@ export function ContentDiscoveryBar({
               value={group.value}
               hrefFor={group.hrefFor}
               variant={group.variant ?? "chips"}
+              {...(group.iconUrlFor ? { iconUrlFor: group.iconUrlFor } : {})}
             />
           ))}
         </div>

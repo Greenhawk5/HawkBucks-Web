@@ -78,6 +78,12 @@ export const pt: PublicStrings = withEn({
   viewModeCompact: "Compacta",
   viewModeReference: "Referência",
   abilityHint: "Passe o cursor ou foque uma habilidade para ver o nome.",
+  searchPerksLabel: "Pesquisar vantagens padrão",
+  searchAbilitiesLabel: "Pesquisar habilidades",
+  selectedLabel: "Selecionado",
+  noPerksResults: "Nenhuma vantagem padrão corresponde à sua pesquisa.",
+  noAbilitiesResults: "Nenhuma habilidade corresponde à sua pesquisa.",
+  clearSectionLabel: "Limpar",
 });
 export const zh: PublicStrings = withEn({
   heroesTitle: "英雄",
@@ -152,4 +158,10 @@ export const zh: PublicStrings = withEn({
   viewModeCompact: "紧凑",
   viewModeReference: "资料",
   abilityHint: "将鼠标悬停在技能上或使其获得焦点即可查看名称。",
+  searchPerksLabel: "搜索标准特性",
+  searchAbilitiesLabel: "搜索技能",
+  selectedLabel: "已选择",
+  noPerksResults: "没有匹配搜索的标准特性。",
+  noAbilitiesResults: "没有匹配的技能。",
+  clearSectionLabel: "清除",
 });

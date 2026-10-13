@@ -77,6 +77,12 @@ export const es: PublicStrings = withEn({
   viewModeCompact: "Compacta",
   viewModeReference: "Referencia",
   abilityHint: "Pasa el cursor o enfoca una habilidad para ver su nombre.",
+  searchPerksLabel: "Buscar ventajas estándar",
+  searchAbilitiesLabel: "Buscar habilidades",
+  selectedLabel: "Seleccionado",
+  noPerksResults: "Ninguna ventaja estándar coincide con tu búsqueda.",
+  noAbilitiesResults: "Ninguna habilidad coincide con tu búsqueda.",
+  clearSectionLabel: "Limpiar",
 });
 export const fr: PublicStrings = withEn({
   heroesTitle: "Héros",
@@ -154,6 +160,12 @@ export const fr: PublicStrings = withEn({
   viewModeCompact: "Compact",
   viewModeReference: "Référence",
   abilityHint: "Survolez ou concentrez une capacité pour voir son nom.",
+  searchPerksLabel: "Rechercher des avantages standard",
+  searchAbilitiesLabel: "Rechercher des capacités",
+  selectedLabel: "Sélectionné",
+  noPerksResults: "Aucun avantage standard ne correspond à votre recherche.",
+  noAbilitiesResults: "Aucune capacité ne correspond à votre recherche.",
+  clearSectionLabel: "Effacer",
 });
 export const ru: PublicStrings = withEn({
   heroesTitle: "Герои",
@@ -230,6 +242,12 @@ export const ru: PublicStrings = withEn({
   viewModeCompact: "Компактный",
   viewModeReference: "Справочный",
   abilityHint: "Наведите курсор или установите фокус на способности, чтобы увидеть её название.",
+  searchPerksLabel: "Поиск стандартных бонусов",
+  searchAbilitiesLabel: "Поиск способностей",
+  selectedLabel: "Выбрано",
+  noPerksResults: "Стандартные бонусы не найдены.",
+  noAbilitiesResults: "Способности не найдены.",
+  clearSectionLabel: "Очистить",
 });
 export const de: PublicStrings = withEn({
   heroesTitle: "Helden",
@@ -307,4 +325,10 @@ export const de: PublicStrings = withEn({
   viewModeCompact: "Kompakt",
   viewModeReference: "Referenz",
   abilityHint: "Zeige den Fokus auf eine Fähigkeit oder berühre sie, um den Namen zu sehen.",
+  searchPerksLabel: "Standard-Perks suchen",
+  searchAbilitiesLabel: "Fähigkeiten suchen",
+  selectedLabel: "Ausgewählt",
+  noPerksResults: "Keine Standard-Perks gefunden.",
+  noAbilitiesResults: "Keine Fähigkeiten gefunden.",
+  clearSectionLabel: "Zurücksetzen",
 });

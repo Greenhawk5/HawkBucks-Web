@@ -144,7 +144,13 @@ function LocalizedHeroesListing() {
   const lang = parseLocaleParam(locale) ?? DEFAULT_LANGUAGE;
   const search = Route.useSearch() as Record<string, unknown>;
   const data = Route.useLoaderData() as
-    { items: HubHeroRow[]; total: number; facets: HeroFacetsResult } | undefined;
+    | {
+        items: HubHeroRow[];
+        total: number;
+        facets: HeroFacetsResult;
+        classIcons?: Record<string, string>;
+      }
+    | undefined;
   const [mode, setMode] = React.useState<"compact" | "reference">("compact");
   // This hub route is the PARENT of its detail route, so a child match must
   // paint through the Outlet; rendering the listing unconditionally made every

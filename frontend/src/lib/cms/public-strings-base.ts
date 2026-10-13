@@ -85,6 +85,18 @@ export interface PublicStrings {
   viewModeReference: string;
   /** Explains that an ability icon reveals its name; never the only source. */
   abilityHint: string;
+  /** Accessible name + placeholder for the Standard Perks facet search. */
+  searchPerksLabel: string;
+  /** Accessible name + placeholder for the Abilities facet search. */
+  searchAbilitiesLabel: string;
+  /** Heading above the always-visible selected group inside a facet section. */
+  selectedLabel: string;
+  /** Shown when the perk search text matches nothing. */
+  noPerksResults: string;
+  /** Shown when the ability search text matches nothing. */
+  noAbilitiesResults: string;
+  /** Per-section "clear these" action; also the search field's clear button. */
+  clearSectionLabel: string;
 }
 
 export const en: PublicStrings = {
@@ -162,6 +174,12 @@ export const en: PublicStrings = {
   viewModeCompact: "Compact",
   viewModeReference: "Reference",
   abilityHint: "Hover or focus an ability to see its name.",
+  searchPerksLabel: "Search standard perks",
+  searchAbilitiesLabel: "Search abilities",
+  selectedLabel: "Selected",
+  noPerksResults: "No standard perks match your search.",
+  noAbilitiesResults: "No abilities match your search.",
+  clearSectionLabel: "Clear",
 };
 
 /**

@@ -102,6 +102,9 @@ const asInt = (v: unknown): number | null => {
 
 const asStr = (v: unknown): string => (v === null || v === undefined ? "" : String(v));
 
+/** A delivery URL that is a non-empty string, or NULL. Never a blank string. */
+const asOptionalStr = (v: unknown): string | null => (typeof v === "string" && v !== "" ? v : null);
+
 // ---------------------------------------------------------------------------
 // Batched readers
 // ---------------------------------------------------------------------------
@@ -441,44 +444,85 @@ export async function readHeroReference(
 // ---------------------------------------------------------------------------
 
 /** Every standard-perk slug in use, with hero counts. Drives the perk facet. */
+/**
+ * Standard Perks in use, with hero counts AND each perk's icon.
+ *
+ * The icon follows the same precedence as everywhere else in the codebase:
+ * the stored definition icon wins, and the icon registry (migration 0017) is the
+ * FALLBACK for a perk whose own columns are empty. Both joins carry
+ * `status = 'ready'`, so an unusable asset yields NULL rather than a URL that
+ * 404s.
+ *
+ * The registry join is keyed on `standard-perk:<perk_slug>`, derived in SQL with
+ * REPLACE so the key is built from the canonical perk key rather than assembled
+ * in JS and rebound — one query, no per-facet lookup.
+ */
 export async function readPerkFacetBuckets(
   db: D1Database,
-): Promise<Array<{ value: string; count: number; name: string }>> {
+): Promise<Array<{ value: string; count: number; name: string; iconUrl: string | null }>> {
   const { results } = await db
     .prepare(
       `SELECT d.perk_key AS value,
               COALESCE(NULLIF(d.editorial_name, ''), d.display_name) AS name,
-              COUNT(*) AS count
+              COUNT(*) AS count,
+              COALESCE(md.delivery_url, mr.delivery_url) AS icon_url
          FROM hero_perks p
          JOIN hero_perk_defs d ON d.id = p.hero_perk_def_id
          JOIN cms_contents c ON c.id = p.hero_content_id AND c.entity_type='hero' AND c.status='published'
+         LEFT JOIN media_assets md ON md.id = d.icon_asset_id AND md.status = 'ready'
+         LEFT JOIN icon_registry ir
+                ON ir.semantic_key = 'standard-perk:' || REPLACE(REPLACE(SUBSTR(d.perk_key, INSTR(d.perk_key, '/') + 1), '/', '-'), ' ', '-')
+               AND ir.category = 'standard-perk'
+         LEFT JOIN media_assets mr ON mr.id = ir.media_asset_id AND mr.status = 'ready'
         WHERE d.slot = 'standard'
         GROUP BY d.perk_key
         ORDER BY count DESC, name ASC
         LIMIT 400`,
     )
-    .all<{ value: string; name: string; count: number }>();
-  return results.map((r) => ({ value: r.value, name: asStr(r.name), count: Number(r.count) || 0 }));
+    .all<{ value: string; name: string; count: number; icon_url: string | null }>();
+  return results.map((r) => ({
+    value: r.value,
+    name: asStr(r.name),
+    count: Number(r.count) || 0,
+    iconUrl: asOptionalStr(r.icon_url),
+  }));
 }
 
-/** Every ability in use, with hero counts. */
+/**
+ * Every ability in use, with hero counts AND each ability's icon.
+ *
+ * Same precedence as Standard Perks: the stored ability-definition icon wins,
+ * the icon registry is the fallback, and an ability with no definition row still
+ * resolves through `hero_abilities.icon_asset_id` exactly as the hero cards do.
+ */
 export async function readAbilityFacetBuckets(
   db: D1Database,
-): Promise<Array<{ value: string; count: number; name: string }>> {
+): Promise<Array<{ value: string; count: number; name: string; iconUrl: string | null }>> {
   const { results } = await db
     .prepare(
       `SELECT a.ability_key AS value,
               COALESCE(NULLIF(d.editorial_name, ''), NULLIF(d.display_name, ''), a.ability_key) AS name,
-              COUNT(*) AS count
+              COUNT(*) AS count,
+              COALESCE(md.delivery_url, ma.delivery_url, mr.delivery_url) AS icon_url
          FROM hero_abilities a
          LEFT JOIN ability_defs d ON d.id = a.ability_def_id
          JOIN cms_contents c ON c.id = a.hero_content_id AND c.entity_type='hero' AND c.status='published'
+         LEFT JOIN media_assets md ON md.id = COALESCE(a.icon_asset_id, d.icon_asset_id) AND md.status = 'ready'
+         LEFT JOIN media_assets ma ON ma.id = d.icon_asset_id AND ma.status = 'ready'
+         LEFT JOIN icon_registry ir
+                ON ir.semantic_key = 'ability:' || a.ability_key AND ir.category = 'ability'
+         LEFT JOIN media_assets mr ON mr.id = ir.media_asset_id AND mr.status = 'ready'
         GROUP BY a.ability_key
         ORDER BY count DESC, name ASC
         LIMIT 200`,
     )
-    .all<{ value: string; name: string; count: number }>();
-  return results.map((r) => ({ value: r.value, name: asStr(r.name), count: Number(r.count) || 0 }));
+    .all<{ value: string; name: string; count: number; icon_url: string | null }>();
+  return results.map((r) => ({
+    value: r.value,
+    name: asStr(r.name),
+    count: Number(r.count) || 0,
+    iconUrl: asOptionalStr(r.icon_url),
+  }));
 }
 
 /** Top power per published hero, for the power filter and sort. */

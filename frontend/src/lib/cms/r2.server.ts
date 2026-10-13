@@ -52,6 +52,11 @@ const R2_FOLDER_PREFIXES = [
   "schematics",
   "abilities",
   "articles",
+  // Reusable glyphs registered in the Game Items Icons tab (see
+  // lib/icon-registry.ts). Kept in its own prefix rather than under
+  // `misc`/`abilities` because one small glyph is typically shared by many
+  // entities, which is exactly what an entity-owned prefix cannot express.
+  "icons",
   "og",
   "misc",
 ] as const;

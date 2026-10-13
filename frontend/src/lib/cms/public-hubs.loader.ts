@@ -11,10 +11,11 @@
  */
 
 import { createServerFn } from "@tanstack/react-start";
-import { isHeroClass } from "./heroes";
+import { HERO_CLASSES, isHeroClass } from "./heroes";
 import { isRarity, normalizeSearchQuery, parseListPaging } from "./taxonomy";
 import { isTrapPlacement } from "./schematics";
 import { isWeaponSubtype } from "./schematics";
+import { heroClassIconKey } from "@/lib/icon-registry";
 
 function escapeLike(s: string): string {
   return s.replace(/[\\%_]/g, (c) => `\\${c}`);
@@ -80,6 +81,13 @@ export interface HubHeroRow {
     progression: import("./hero-reference").PublicHeroProgression | null;
     maxPower: number | null;
   };
+  /**
+   * Resolved class glyph for this row's `hero_class`, or NULL when no icon is
+   * registered for the class (or its asset is unusable). Attached per row so a
+   * card never has to ask for its own icon; the class filter reads the same
+   * values off the page-level `classIcons` map.
+   */
+  class_icon_url?: string | null;
 }
 
 function heroOrder(sort: string): string {
@@ -127,9 +135,16 @@ export const listHubHeroes = createServerFn({ method: "GET" })
         class: Array<{ value: string; count: number }>;
         rarity: Array<{ value: string; count: number }>;
         category: Array<{ value: string; count: number }>;
-        perk: Array<{ value: string; count: number }>;
-        ability: Array<{ value: string; count: number }>;
+        perk: Array<{ value: string; count: number; name: string; iconUrl: string | null }>;
+        ability: Array<{ value: string; count: number; name: string; iconUrl: string | null }>;
       };
+      /**
+       * Hero-class glyphs keyed by class slug, for the class filter and the
+       * class icon resolution documented on `HubHeroRow.class_icon_url`. Empty
+       * for a class with no registered icon — the UI then renders the class
+       * name alone, which is the stable fallback.
+       */
+      classIcons: Record<string, string>;
     }> => {
       const { resolveRequestCmsDb } = await import("./db.server");
       const { parseFacetKeys, parsePowerParam, parseHeroSort } = await import("./hero-reference");
@@ -239,6 +254,7 @@ export const listHubHeroes = createServerFn({ method: "GET" })
         const ref = reference.get(row.content_id);
         return {
           ...row,
+          class_icon_url: null,
           reference: {
             perks: ref?.perks ?? [],
             abilities: ref?.abilities ?? [],
@@ -248,9 +264,37 @@ export const listHubHeroes = createServerFn({ method: "GET" })
         };
       });
 
+      // Hero-class glyphs, resolved ONCE for the closed set of classes rather
+      // than per hero: four keys in a single query, then every row and the
+      // class filter read the same map. A class with no registered entry is
+      // simply absent, which is what makes the text fallback the normal case
+      // rather than an error path.
+      const classKeys: Array<{ value: string; key: string }> = [];
+      for (const value of HERO_CLASSES) {
+        const key = heroClassIconKey(value);
+        if (key !== null) classKeys.push({ value, key });
+      }
+      const classIconUrls =
+        classKeys.length === 0
+          ? new Map<string, string>()
+          : await (
+              await import("./icon-registry.server")
+            ).resolveIconUrls(
+              db,
+              classKeys.map((entry) => entry.key),
+            );
+      const classIcons: Record<string, string> = {};
+      for (const entry of classKeys) {
+        const url = classIconUrls.get(entry.key);
+        if (url !== undefined) classIcons[entry.value] = url;
+      }
+      for (const item of items) {
+        item.class_icon_url = classIcons[item.hero_class] ?? null;
+      }
+
       const empty = { class: [], rarity: [], category: [], perk: [], ability: [] };
       if (data.withFacets === false) {
-        return { items, total: page.total, facets: empty };
+        return { items, total: page.total, facets: empty, classIcons };
       }
 
       // Facet counts ignore the facet's own selection (standard faceted-search
@@ -299,9 +343,24 @@ export const listHubHeroes = createServerFn({ method: "GET" })
             value: r.value,
             count: Number(r.count) || 0,
           })),
-          perk: perkBuckets.map((r) => ({ value: r.value, count: r.count })),
-          ability: abilityBuckets.map((r) => ({ value: r.value, count: r.count })),
+          // `name` is the REAL display name from the definition table, not a
+          // label reconstructed from the key, so the filter panel can search and
+          // sort on what an editor actually typed. `icon_url` is resolved with
+          // the same precedence the cards use.
+          perk: perkBuckets.map((r) => ({
+            value: r.value,
+            count: r.count,
+            name: r.name,
+            iconUrl: r.iconUrl,
+          })),
+          ability: abilityBuckets.map((r) => ({
+            value: r.value,
+            count: r.count,
+            name: r.name,
+            iconUrl: r.iconUrl,
+          })),
         },
+        classIcons,
       };
     },
   );

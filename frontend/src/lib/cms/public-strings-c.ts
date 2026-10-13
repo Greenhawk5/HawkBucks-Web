@@ -77,6 +77,12 @@ export const arSA: PublicStrings = withEn({
   viewModeCompact: "مدمج",
   viewModeReference: "مرجعي",
   abilityHint: "مرّر المؤشر فوق القدرة أوركّز عليها لعرض اسمها.",
+  searchPerksLabel: "ابحث في الميزات القياسية",
+  searchAbilitiesLabel: "ابحث في القدرات",
+  selectedLabel: "محدد",
+  noPerksResults: "لا توجد ميزات قياسية مطابقة لبحثك.",
+  noAbilitiesResults: "لا توجد قدرات مطابقة لبحثك.",
+  clearSectionLabel: "مسح",
 });
 export const faIR: PublicStrings = withEn({
   heroesTitle: "هیروها",
@@ -153,6 +159,12 @@ export const faIR: PublicStrings = withEn({
   viewModeCompact: "فشرده",
   viewModeReference: "مرجع",
   abilityHint: "برای دیدن نام یک توانایی، نشانگر را روی آن ببرید یا آن را متمرکز کنید.",
+  searchPerksLabel: "جستجوی مزایای استاندارد",
+  searchAbilitiesLabel: "جستجوی توانایی‌ها",
+  selectedLabel: "انتخاب‌شده",
+  noPerksResults: "هیچ مزیت استانداردی با جستجوی شما مطابقت ندارد.",
+  noAbilitiesResults: "هیچ توانایی‌ای با جستجوی شما مطابقت ندارد.",
+  clearSectionLabel: "پاک کردن",
 });
 export const CLASS_LABELS: Record<string, Record<string, string>> = {
   en: { soldier: "Soldier", constructor: "Constructor", ninja: "Ninja", outlander: "Outlander" },

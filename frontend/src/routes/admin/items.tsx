@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState, type ReactNode } from "react";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 
 import { getAdminSession } from "@/lib/cms/admin.loader";
@@ -15,6 +15,12 @@ import {
   updateAdminCatalogResource,
   updateAdminPerkDef,
 } from "@/lib/cms/catalog-admin.loader";
+import {
+  createAdminIconRegistryEntry,
+  deleteAdminIconRegistryEntry,
+  listAdminIconRegistry,
+  updateAdminIconRegistryEntry,
+} from "@/lib/cms/icon-registry-admin.loader";
 import { CMS_CONTENT_LOCALES } from "@/lib/cms/heroes";
 import { CmsShell } from "@/components/cms/cc/CmsShell";
 import {
@@ -32,10 +38,10 @@ import { CmsMediaPicker } from "@/components/cms/cc/CmsMediaPicker";
 import { CmsSelect } from "@/components/cms/cc/CmsSelect";
 import { GameItemIcon } from "@/components/cms/GameItemIcon";
 
-type Tab = "resources" | "abilities" | "perks";
+type Tab = "resources" | "abilities" | "perks" | "icons";
 
 function isTab(value: unknown): value is Tab {
-  return value === "resources" || value === "abilities" || value === "perks";
+  return value === "resources" || value === "abilities" || value === "perks" || value === "icons";
 }
 
 interface ItemsSearch {
@@ -79,6 +85,20 @@ export const Route = createFileRoute("/admin/items")({
           search: deps.q,
           category: deps.category,
           status: deps.status,
+          limit: PAGE_SIZE,
+          offset: deps.offset ?? 0,
+        },
+      });
+      return { session, tab, data };
+    }
+    if (tab === "icons") {
+      // Reuses the same `q`/`category` search params as the other tabs. `q` here
+      // matches semantic key OR display name, and `category` is restricted to
+      // the icon categories the resolver actually serves.
+      const data = await listAdminIconRegistry({
+        data: {
+          search: deps.q,
+          category: deps.category,
           limit: PAGE_SIZE,
           offset: deps.offset ?? 0,
         },
@@ -141,7 +161,9 @@ function GameItemsAdmin() {
             The reusable catalog behind evolution costs, abilities, and perks: what an item{" "}
             <em>is</em> lives here; the files live in the Media Library. Renames and corrections
             made here survive the reference sync — the original upstream value stays visible and
-            restorable.
+            restorable. The <strong>Icons</strong> section registers the small glyphs several
+            entities share — class marks, perk and ability icons — pointing at assets the Media
+            Library already stores, never uploading a second copy.
           </p>
         </div>
 
@@ -151,6 +173,7 @@ function GameItemsAdmin() {
               ["resources", "Resources"],
               ["abilities", "Abilities"],
               ["perks", "Hero perks"],
+              ["icons", "Icons"],
             ] as Array<[Tab, string]>
           ).map(([t, label]) => (
             <button
@@ -179,9 +202,17 @@ function GameItemsAdmin() {
             canWrite={canWrite}
             onNew={() => setCreateOpen(true)}
           />
+        ) : tab === "icons" ? (
+          <IconsTab
+            data={data as Awaited<ReturnType<typeof listAdminIconRegistry>>}
+            search={search}
+            setParams={setParams}
+            refresh={refresh}
+            canWrite={canWrite}
+          />
         ) : (
           <DefsTab
-            kind={tab}
+            kind={tab === "abilities" ? "abilities" : "perks"}
             data={data as Awaited<ReturnType<typeof listAdminCatalogDefs>>}
             search={search}
             setParams={setParams}
@@ -1109,5 +1140,497 @@ function EditDefDialog(props: {
         }}
       />
     </CmsDialog>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Icons — the reusable-glyph registry
+// ---------------------------------------------------------------------------
+
+const ICON_CATEGORY_OPTIONS = [
+  { value: "", label: "All categories" },
+  { value: "hero-class", label: "Hero classes" },
+  { value: "standard-perk", label: "Standard Perks" },
+  { value: "ability", label: "Abilities" },
+  { value: "resource", label: "Catalog resources" },
+];
+
+const ASSOCIATION_LABELS: Record<string, string> = {
+  hero_portrait: "Hero portrait",
+  hero_banner: "Hero banner",
+  hero_ability_icon: "Hero ability",
+  ability_definition_icon: "Shared ability icon",
+  hero_perk_icon: "Hero perk",
+  hero_perk_definition_icon: "Shared perk icon",
+  catalog_item_icon: "Catalog item",
+  loadout_cover: "Loadout cover",
+  weapon_icon: "Weapon",
+  trap_icon: "Trap",
+  perk_icon: "Team perk",
+  schematic_icon: "Schematic",
+  article_cover: "Article cover",
+  article_attachment: "Article attachment",
+  og_image: "Share image",
+};
+
+function associationLabel(source: string): string {
+  return ASSOCIATION_LABELS[source] ?? source;
+}
+
+type IconRow = Awaited<ReturnType<typeof listAdminIconRegistry>>["entries"][number];
+
+/**
+ * The Icons section of the existing Game Items page.
+ *
+ * This is an EXTENSION of this page, not a new tool: it reuses the tab
+ * navigation, the search/category filter params, the `CmsMediaPicker` for
+ * selection, the `GameItemIcon` renderer, and the write conventions the other
+ * tabs already use. There is one hard boundary that keeps it from becoming a
+ * second media system:
+ *
+ *   nothing here uploads, renames, moves or deletes a file. Every row is a
+ *   POINTER to an asset the Media Library already owns, and the only way in is
+ *   selecting an existing asset. Deleting a row is one DELETE against the
+ *   registry table and leaves the bytes and the `media_assets` row exactly as
+ *   they were.
+ */
+function IconsTab(props: {
+  data: Awaited<ReturnType<typeof listAdminIconRegistry>>;
+  search: ItemsSearch;
+  setParams: (next: Partial<ItemsSearch>) => void;
+  refresh: () => Promise<void>;
+  canWrite: boolean;
+}) {
+  const { data, search, setParams, refresh, canWrite } = props;
+  const [editing, setEditing] = useState<IconRow | null>(null);
+  const [creating, setCreating] = useState(false);
+
+  return (
+    <section className="space-y-4">
+      <div className="flex flex-wrap items-center gap-2">
+        <input
+          className="cc-input max-w-72"
+          placeholder="Search display name or key…"
+          defaultValue={search.q ?? ""}
+          key={search.q ?? ""}
+          aria-label="Search registered icons"
+          onKeyDown={(e) => {
+            if (e.key === "Enter")
+              setParams({ q: (e.target as HTMLInputElement).value, offset: 0 });
+          }}
+        />
+        <CmsSelect
+          id="icons-category"
+          value={search.category ?? ""}
+          onChange={(v) => setParams({ category: v === "" ? undefined : v, offset: 0 })}
+          width="full"
+          options={ICON_CATEGORY_OPTIONS}
+        />
+        <span className="ms-auto text-xs opacity-60">
+          Showing {data.entries.length} of {data.total}
+        </span>
+      </div>
+
+      <CmsNotice kind="info">
+        Registers an <strong>existing</strong> Media Library asset under a stable{" "}
+        <code className="font-mono text-xs">category:slug</code> key. Resolution on the public site
+        is an exact key match — never a name match — so renaming the display text below cannot
+        silently repoint an icon, and the key itself is immutable once registered.
+      </CmsNotice>
+
+      {data.entries.length === 0 ? (
+        <CmsNotice kind="info">
+          {search.q || search.category
+            ? "No icons match."
+            : "No icons registered yet. Add one, then pick an existing asset in the Media Library."}
+        </CmsNotice>
+      ) : (
+        <ul className="cc-panel divide-y overflow-hidden rounded-xl">
+          {data.entries.map((row) => (
+            <li key={row.id}>
+              <button
+                type="button"
+                className="flex w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-white/5"
+                onClick={() => setEditing(row)}
+              >
+                <GameItemIcon iconUrl={row.iconUrl} name={row.displayName} sizeClass="h-9 w-9" />
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate font-medium">{row.displayName}</span>
+                  <span className="block truncate font-mono text-xs opacity-60">
+                    {row.semanticKey}
+                  </span>
+                </span>
+                {row.mediaAssetId === null ? (
+                  // A real, reachable state: an editor reserved the key and has
+                  // not picked a file yet. Saying so is better than an
+                  // unexplained empty slot.
+                  <span className="cc-badge">unbound</span>
+                ) : row.iconUrl === null ? (
+                  <span className="cc-badge" title="Asset is missing or not usable">
+                    unavailable
+                  </span>
+                ) : row.usageCount > 0 ? (
+                  <span className="cc-badge" title={row.usedBy.map(associationLabel).join(", ")}>
+                    in use · {row.usageCount}
+                  </span>
+                ) : null}
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+
+      <Pager total={data.total} offset={search.offset ?? 0} setParams={setParams} />
+
+      {canWrite ? (
+        <div className="flex justify-end">
+          <button
+            type="button"
+            className="cc-btn cc-btn-primary cc-btn-sm"
+            onClick={() => setCreating(true)}
+          >
+            Register icon
+          </button>
+        </div>
+      ) : null}
+
+      {creating ? (
+        <RegisterIconDialog
+          onClose={() => setCreating(false)}
+          onCreated={() => void refresh()}
+          canWrite={canWrite}
+        />
+      ) : null}
+
+      {editing ? (
+        <EditIconDialog
+          row={editing}
+          canWrite={canWrite}
+          onClose={() => setEditing(null)}
+          onSaved={() => void refresh()}
+        />
+      ) : null}
+    </section>
+  );
+}
+
+interface IconFormState {
+  displayName: string;
+  category: string;
+  semanticKey: string;
+  assetId: string | null;
+  assetUrl: string | null;
+}
+
+/** Derive a semantic key from the category + a human name, exactly as the
+ *  resolver does, so what the form PREVIEWS is what will be stored. */
+function suggestedKey(category: string, name: string): string {
+  const slug = name
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 64);
+  if (slug === "") return "";
+  return `${category}:${slug}`;
+}
+
+function IconDialogShell(props: {
+  title: string;
+  state: IconFormState;
+  onChange: (next: Partial<IconFormState>) => void;
+  error: string | null;
+  saving: boolean;
+  onClose: () => void;
+  onSubmit: () => void;
+  canWrite: boolean;
+  submitLabel: string;
+  /** When set, the semantic key is shown read-only after registration. */
+  keyHint?: string;
+  /** Extra footer action(s), e.g. deleting the entry. Lives INSIDE the dialog
+   *  so it can never be painted behind the modal overlay. */
+  extraActions?: ReactNode;
+}) {
+  const { state, onChange } = props;
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const keyLocked = props.keyHint !== undefined;
+  const derivedKey = suggestedKey(state.category, state.displayName);
+  const effectiveKey = state.semanticKey === "" ? derivedKey : state.semanticKey;
+  const keyValid =
+    /^[a-z][a-z0-9-]{0,31}:[a-z0-9][a-z0-9-]{0,63}$/.test(effectiveKey) &&
+    effectiveKey.startsWith(`${state.category}:`);
+
+  return (
+    <CmsDialog open onClose={props.onClose} title={props.title} size="md">
+      <div className="space-y-4">
+        <div className="flex items-center gap-3">
+          <GameItemIcon iconUrl={state.assetUrl} name={state.displayName} sizeClass="h-12 w-12" />
+          <div className="min-w-0">
+            <p className="text-sm">
+              {state.assetId ? (
+                <>
+                  Bound to Media Library asset{" "}
+                  <span className="font-mono text-xs opacity-70">
+                    {state.assetId.slice(0, 18)}…
+                  </span>
+                </>
+              ) : (
+                <>No asset bound yet</>
+              )}
+            </p>
+            <p className="text-xs opacity-60">
+              The file stays in the Media Library — this entry only points at it.
+            </p>
+          </div>
+        </div>
+
+        <CmsField
+          label="Category"
+          description="Restricted to the categories the public icons actually use."
+        >
+          <CmsSelect
+            id="icon-category"
+            value={state.category}
+            onChange={(v) => onChange({ category: v, semanticKey: "" })}
+            width="full"
+            options={ICON_CATEGORY_OPTIONS.filter((o) => o.value !== "")}
+          />
+        </CmsField>
+
+        <CmsField label="Display name">
+          <input
+            className="cc-input"
+            value={state.displayName}
+            disabled={!props.canWrite}
+            onChange={(e) => onChange({ displayName: e.target.value })}
+            placeholder="Soldier"
+          />
+        </CmsField>
+
+        <CmsField
+          label="Semantic key"
+          {...(keyLocked && props.keyHint !== undefined ? { description: props.keyHint } : {})}
+        >
+          <input
+            className="cc-input font-mono text-sm"
+            value={keyLocked ? state.semanticKey : effectiveKey}
+            readOnly={keyLocked}
+            disabled={!props.canWrite}
+            onChange={(e) => onChange({ semanticKey: e.target.value })}
+            placeholder="hero-class:soldier"
+          />
+          {!keyLocked && !keyValid && effectiveKey !== "" ? (
+            <p className="mt-1 text-xs text-[var(--cc-danger)]">
+              Key must be <code className="font-mono">category:slug</code> and start with{" "}
+              <code className="font-mono">{state.category}:</code>.
+            </p>
+          ) : null}
+        </CmsField>
+
+        <CmsField
+          label="Icon asset"
+          description="Pick an existing Media Library asset. Nothing is uploaded here."
+        >
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              className="cc-btn cc-btn-outline cc-btn-sm"
+              disabled={!props.canWrite}
+              onClick={() => setPickerOpen(true)}
+            >
+              {state.assetId ? "Replace…" : "Choose…"}
+            </button>
+            {state.assetId ? (
+              <button
+                type="button"
+                className="cc-btn cc-btn-ghost cc-btn-sm"
+                disabled={!props.canWrite}
+                onClick={() => onChange({ assetId: null, assetUrl: null })}
+              >
+                Clear
+              </button>
+            ) : null}
+          </div>
+        </CmsField>
+
+        {props.error ? (
+          <p className="text-sm text-[var(--cc-danger)]" role="alert">
+            {props.error}
+          </p>
+        ) : null}
+
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          {props.extraActions}
+          <div className="flex justify-end gap-2 ms-auto">
+            <button type="button" className="cc-btn cc-btn-ghost cc-btn-sm" onClick={props.onClose}>
+              Cancel
+            </button>
+            <button
+              type="button"
+              className="cc-btn cc-btn-primary cc-btn-sm"
+              disabled={
+                !props.canWrite || props.saving || !keyValid || state.displayName.trim() === ""
+              }
+              onClick={props.onSubmit}
+            >
+              {props.saving ? "Saving…" : props.submitLabel}
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <CmsMediaPicker
+        open={pickerOpen}
+        onClose={() => setPickerOpen(false)}
+        title="Choose icon asset"
+        onPick={(assetId, deliveryUrl) => onChange({ assetId, assetUrl: deliveryUrl })}
+      />
+    </CmsDialog>
+  );
+}
+
+function RegisterIconDialog(props: {
+  onClose: () => void;
+  onCreated: () => void;
+  canWrite: boolean;
+}) {
+  const [state, setState] = useState<IconFormState>({
+    displayName: "",
+    category: "hero-class",
+    semanticKey: "",
+    assetId: null,
+    assetUrl: null,
+  });
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const submit = async () => {
+    setError(null);
+    setSaving(true);
+    try {
+      await createAdminIconRegistryEntry({
+        data: {
+          semanticKey:
+            state.semanticKey === ""
+              ? suggestedKey(state.category, state.displayName)
+              : state.semanticKey,
+          displayName: state.displayName.trim(),
+          category: state.category,
+          mediaAssetId: state.assetId,
+        },
+      });
+      props.onCreated();
+      props.onClose();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Registration failed.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <IconDialogShell
+      title="Register icon"
+      state={state}
+      onChange={(next) => setState((prev) => ({ ...prev, ...next }))}
+      error={error}
+      saving={saving}
+      canWrite={props.canWrite}
+      onClose={props.onClose}
+      onSubmit={() => void submit()}
+      submitLabel="Register"
+    />
+  );
+}
+
+function EditIconDialog(props: {
+  row: IconRow;
+  canWrite: boolean;
+  onClose: () => void;
+  onSaved: () => void;
+}) {
+  const [state, setState] = useState<IconFormState>({
+    displayName: props.row.displayName,
+    category: props.row.category,
+    semanticKey: props.row.semanticKey,
+    assetId: props.row.mediaAssetId,
+    assetUrl: props.row.iconUrl,
+  });
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+
+  const save = async () => {
+    setError(null);
+    setSaving(true);
+    try {
+      await updateAdminIconRegistryEntry({
+        data: {
+          id: props.row.id,
+          displayName: state.displayName.trim(),
+          mediaAssetId: state.assetId,
+        },
+      });
+      props.onSaved();
+      props.onClose();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Save failed.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const remove = async () => {
+    setError(null);
+    setSaving(true);
+    try {
+      await deleteAdminIconRegistryEntry({ data: { id: props.row.id } });
+      setConfirmDelete(false);
+      props.onSaved();
+      props.onClose();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Delete failed.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <>
+      <IconDialogShell
+        title="Edit icon"
+        state={state}
+        onChange={(next) => setState((prev) => ({ ...prev, ...next }))}
+        error={error}
+        saving={saving}
+        canWrite={props.canWrite}
+        onClose={props.onClose}
+        onSubmit={() => void save()}
+        submitLabel="Save"
+        keyHint="The semantic key is the public resolution key and cannot change once registered — renaming it would silently repoint every consumer."
+        extraActions={
+          props.canWrite ? (
+            <button
+              type="button"
+              className="cc-btn cc-btn-danger-outline cc-btn-sm"
+              disabled={saving}
+              onClick={() => setConfirmDelete(true)}
+            >
+              Remove entry
+            </button>
+          ) : null
+        }
+      />
+
+      <CmsConfirmDialog
+        open={confirmDelete}
+        title="Remove this icon entry?"
+        body={`Removes the registry pointer for “${props.row.displayName}”. The Media Library asset and the file in storage are left untouched — use the Media Library to destroy the object itself.`}
+        confirmLabel={saving ? "Working…" : "Remove entry"}
+        tone="danger"
+        onConfirm={() => void remove()}
+        onClose={() => setConfirmDelete(false)}
+      />
+    </>
   );
 }

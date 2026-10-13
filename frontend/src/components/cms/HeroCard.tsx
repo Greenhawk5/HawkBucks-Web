@@ -2,7 +2,6 @@ import { Link } from "@tanstack/react-router";
 import { Shield } from "lucide-react";
 
 import { getPublicStrings, heroClassLabel } from "@/lib/cms/public-strings";
-import { categoryLabel, powerRangeLabelText } from "@/lib/cms/hero-labels";
 import { rarityToken } from "@/lib/cms/rarity-tokens";
 import type { PublicHeroItem } from "@/lib/cms/public.loader";
 import type { HubHeroRow } from "@/lib/cms/public-hubs.loader";
@@ -13,8 +12,8 @@ import type {
 } from "@/lib/cms/hero-reference";
 import { cn } from "@/lib/utils";
 import { EntityCard, EntityCardBody } from "@/components/content/EntityCard";
-import { HeroAbilityStrip, HeroPerkModule } from "@/components/heroes/HeroCardBits";
-import { RarityPill } from "@/components/heroes/HeroReferenceBits";
+import { HeroAbilityStrip, HeroPerkRow } from "@/components/heroes/HeroCardBits";
+import { MediaIcon, RarityPill } from "@/components/heroes/HeroReferenceBits";
 
 export function heroDetailHref(locale: string, slug: string): string {
   return locale === "en" ? `/heroes/${slug}` : `/${locale}/heroes/${slug}`;
@@ -40,26 +39,35 @@ export interface HeroCardData extends PublicHeroItem {
   rarity?: string | null;
   summary?: string | null;
   reference?: HeroCardReference | undefined;
+  /**
+   * Registered class glyph for `heroClass`, resolved once per listing page by
+   * the loader. NULL/absent means no icon is registered — the card then renders
+   * the class name alone rather than a placeholder box.
+   */
+  classIconUrl?: string | null;
 }
 
 /**
  * Hero card — a character-profile tile for the public directory.
  *
  * The card answers three questions in order, and stops there:
- *   1. Who is it?      artwork → name → class/category → rarity
- *   2. What does it do? Standard Perk module → ability strip
- *   3. How far does it go? one power line
+ *   1. Who is it?   artwork → name → class → rarity
+ *   2. What is it?  Standard Perk icon + name, then the ability icons
+ *   3. Let me see?  Quick View, for the hero detail page
  *
- * Everything else a hero row carries — commander perk, tier count, the
- * evolution and max-level material costs — is deliberately NOT here. Those are
- * progression-research facts and they belong on the hero detail page and in
- * Quick View, where a reader has opted into studying a specific hero. Keeping
- * them off the tile is what lets the artwork and the Standard Perk read at a
- * glance. No data was removed: the loader still attaches the full reference
- * block, and `HeroPreviewDialog` / `HeroDetail` still render the costs.
+ * Deliberately NOT on the tile, because a listing is for scanning and none of
+ * these survive being read at card size:
+ *   * the Standard Perk's description paragraph (kept in `HeroPerkRow` below the
+ *     name only on the hero detail page and in Quick View);
+ *   * the power line and the max-power figure — progression research, and the
+ *     hero page carries it in full;
+ *   * evolution and material costs, which live on the detail page;
+ *   * the category tag, which the category filter and the hero page already
+ *     express and which only added a second line of text to every tile.
  *
- * Progression data is only read for the single power line, so a hero with no
- * progression rows simply loses that line rather than gaining an empty block.
+ * No data was removed anywhere. The loader still attaches the full reference
+ * block, so `HeroDetail` and `HeroPreviewDialog` still render the descriptions,
+ * the power range and the costs — this card simply stops repeating them.
  */
 export function HeroCard({
   hero,
@@ -82,11 +90,6 @@ export function HeroCard({
   const standard = ref?.perks.find((p) => p.slot === "standard") ?? null;
   const abilities = ref?.abilities ?? [];
   const href = heroDetailHref(locale, hero.slug);
-  // One power figure, never two: the progression block's own max wins, and the
-  // pre-computed column value is the fallback for heroes without tier rows.
-  const maxPower = ref?.progression?.maxPower ?? ref?.maxPower ?? null;
-  const category = categoryLabel(locale, hero.category);
-  const powerLine = maxPower === null ? null : powerRangeLabelText(locale, maxPower, maxPower);
 
   return (
     <EntityCard
@@ -141,7 +144,7 @@ export function HeroCard({
         ) : null}
       </div>
 
-      <EntityCardBody className="gap-3.5 p-4">
+      <EntityCardBody className="gap-3 p-4">
         {/* Identity. The title is a real anchor whose ::after overlay covers
             the card, so there is exactly ONE stretched hit area per card; the
             ability icons and Quick View re-assert their own stacking above it. */}
@@ -154,16 +157,35 @@ export function HeroCard({
               {hero.title}
             </Link>
           </h3>
-          <p className="text-[13px] leading-snug text-muted-foreground">
+          {/* Class glyph, when one is registered for the class. The icon is
+              drawn ONLY when it actually exists: an empty bordered square would
+              read as a broken asset, and the class name is already a complete
+              label on its own. A registered glyph is shared with the class
+              filter via `class_icon_url` — never a second hardcoded URL. */}
+          <p className="flex items-center gap-1.5 text-[13px] leading-snug text-muted-foreground">
+            {hero.classIconUrl ? (
+              <img
+                src={hero.classIconUrl}
+                alt=""
+                aria-hidden="true"
+                loading="lazy"
+                decoding="async"
+                // Fixed box + object-contain, so a registered glyph never
+                // shifts the class name while it arrives.
+                className="h-4 w-4 shrink-0 rounded-sm object-contain"
+                onError={(e) => {
+                  e.currentTarget.style.display = "none";
+                }}
+              />
+            ) : null}
             <span className="font-medium text-foreground/90">
               {heroClassLabel(locale, hero.heroClass)}
             </span>
-            {category ? <span> · {category}</span> : null}
           </p>
           {rarity ? <RarityPill locale={locale} rarity={rarity} className="w-fit" /> : null}
         </div>
 
-        {standard ? <HeroPerkModule locale={locale} perk={standard} /> : null}
+        {standard ? <HeroPerkRow perk={standard} /> : null}
 
         {abilities.length > 0 ? (
           <HeroAbilityStrip
@@ -172,12 +194,6 @@ export function HeroCard({
             href={href}
             abilities={abilities}
           />
-        ) : null}
-
-        {/* Single secondary metadata line; evolution and material costs live
-            on the hero page and in Quick View. */}
-        {powerLine ? (
-          <p className="text-xs tabular-nums text-muted-foreground">{powerLine}</p>
         ) : null}
 
         {onPreview ? (
@@ -217,6 +233,7 @@ export function heroRowToItem(r: HubHeroRow): HeroCardData {
     translationStatus: r.translation_status,
     summary: r.summary ?? null,
     reference: r.reference,
+    classIconUrl: r.class_icon_url ?? null,
   };
 }
 

@@ -33,6 +33,7 @@ export const MEDIA_FOLDERS = [
   "schematics",
   "abilities",
   "articles",
+  "icons",
   "og",
   "misc",
 ] as const;

@@ -5,15 +5,21 @@
  * both answer the same question — "what does this hero actually do?" — and both
  * need to stay legible, accessible and consistent as the card is resized:
  *
- *   `HeroPerkModule`   the Standard Perk as a composed block (label, icon,
- *                      name, description-when-stored)
+ *   `HeroPerkRow`     the Standard Perk as one compact line: icon + name
  *   `HeroAbilityStrip` the ability kit as a row of icons whose names are
  *                      reachable by pointer, keyboard and assistive tech
  *
- * Neither invents content. A perk description renders only when the CMS
- * actually stored one; an ability name always comes from `ability.name`. When
- * a field is absent the module simply omits it rather than guessing an effect
- * from the name.
+ * Neither invents content. Both read only what the CMS stored: an icon renders
+ * only when an asset is actually associated, and a name always comes from the
+ * stored `name`. When a field is absent the module omits it rather than
+ * guessing.
+ *
+ * SPLIT OF RESPONSIBILITY (why the description moved out, not away)
+ *   The listing card shows icon + name ONLY. The Standard Perk's description is
+ *   a paragraph, and a truncated paragraph is the one thing that reliably makes
+ *   a card look cluttered at four-across on a laptop. The full description is
+ *   unchanged and still rendered by `PerkRow` on the hero detail page and by the
+ *   Quick View dialog, which is where a reader has opted into studying a hero.
  *
  * Stacking note (why the ability icons are real links): the card's title link
  * paints a stretched `::after` hit area over the whole card, so any element
@@ -27,7 +33,6 @@
  * `text-start`/`text-end`) so ar-SA and fa-IR mirror from the document `dir`.
  */
 
-import * as React from "react";
 import { Link } from "@tanstack/react-router";
 
 import { MediaIcon } from "./HeroReferenceBits";
@@ -36,52 +41,49 @@ import type { PublicHeroAbility, PublicHeroPerk } from "@/lib/cms/hero-reference
 import { cn } from "@/lib/utils";
 
 /**
- * Standard Perk module.
+ * Standard Perk row — the card's compact representation.
  *
- * A left accent rule rather than a nested card: the perk sits *inside* the
- * hero card, and boxing it again would stack a third border/radius on top of
- * the artwork and the card shell. The rule gives the block its own visual
- * grouping without adding a container.
+ * A left accent rule rather than a nested card: the perk sits *inside* the hero
+ * card, and boxing it again would stack a third border/radius on top of the
+ * artwork and the card shell. The rule gives the block its own visual grouping
+ * without adding a container.
+ *
+ * ICON: rendered only when the perk actually has an associated asset, for the
+ * same reason as everywhere else in this codebase — an empty bordered square
+ * reads as a broken image. When there is no icon the name simply starts at the
+ * accent rule, so the row never looks half-drawn.
+ *
+ * NAME: always present, always the stored display name. The native `title`
+ * attribute carries the same name (never the description) so a long localized
+ * name stays reachable without a tooltip that duplicates what is on screen.
  */
-export function HeroPerkModule({
-  locale,
+export function HeroPerkRow({
   perk,
   className,
 }: {
-  locale: string;
   perk: PublicHeroPerk;
   className?: string;
 }) {
-  const l = heroLabels(locale);
-  const description = perk.description.trim();
-
   return (
     <div
       data-testid="hero-perk-module"
       data-slot={perk.slot}
-      className={cn("border-s-2 border-primary/45 ps-3", className)}
+      className={cn("flex items-center gap-2 border-s-2 border-primary/45 ps-2.5", className)}
     >
-      <p className="font-display text-[10px] font-bold uppercase tracking-[0.16em] text-muted-foreground">
-        {l.standardPerk}
+      {perk.iconUrl ? <MediaIcon url={perk.iconUrl} sizeClass="h-5 w-5" /> : null}
+      <p
+        className="min-w-0 truncate text-[13px] font-semibold leading-snug text-foreground"
+        title={perk.name}
+      >
+        {perk.name}
       </p>
-      <div className="mt-1.5 flex items-center gap-2">
-        {/* Only drawn when the CMS actually associated an icon: an empty
-            bordered square reads as a broken asset, and the left accent rule
-            already carries the block's grouping. */}
-        {perk.iconUrl ? <MediaIcon url={perk.iconUrl} sizeClass="h-7 w-7" /> : null}
-        <p
-          className="min-w-0 text-sm font-semibold leading-snug text-foreground"
-          title={description || perk.name}
-        >
-          {perk.name}
-        </p>
-      </div>
-      {/* Stored editorial description only. Never derived from the name. */}
-      {description !== "" ? (
-        <p className="mt-1.5 line-clamp-2 text-xs leading-relaxed text-muted-foreground">
-          {description}
-        </p>
-      ) : null}
+      {/* No slot label at all. The card only ever renders the STANDARD perk, so
+          the name is self-describing; the label belongs on the hero detail
+          page, where Standard and Commander appear side by side and it
+          genuinely disambiguates. Rendering it sr-only here still put it in the
+          accessibility tree and in every text extraction, which is noise the
+          reader did not ask for. The `data-slot` attribute keeps the structure
+          machine-readable for tests and structural CSS. */}
     </div>
   );
 }
@@ -90,11 +92,16 @@ export function HeroPerkModule({
  * Ability strip.
  *
  * The icons are the visual entry point. Each one is a link to the hero it
- * belongs to, which makes it focusable and gives it a real accessible name;
- * the hovered or focused ability's name is echoed into a reserved caption line
- * beneath the strip so the information is never hover-only for pointer users,
- * and it is always present for assistive tech through each link's name.
- * Touch users get the same names from Quick View and the hero page.
+ * belongs to, which makes it focusable and gives it a real accessible name.
+ * There is no resting caption line: it reserved a fixed-height row on every
+ * card purely to echo a name that is already on each icon's accessible name and
+ * on the hero page, which is the space the card now spends on being shorter
+ * instead.
+ *
+ * The hovered or focused ability's name is announced through the link's own
+ * accessible name, so the information is never hover-only for pointer users and
+ * never missing for assistive tech. Touch users get the same names from Quick
+ * View and the hero page.
  */
 export function HeroAbilityStrip({
   locale,
@@ -117,48 +124,31 @@ export function HeroAbilityStrip({
   className?: string;
 }) {
   const l = heroLabels(locale);
-  const [activeKey, setActiveKey] = React.useState<string | null>(null);
   if (abilities.length === 0) return null;
 
-  const active = abilities.find((a) => a.key === activeKey);
-
   return (
-    <div className={cn("mt-auto", className)}>
-      <ul
-        data-testid="hero-ability-strip"
-        aria-label={l.abilities}
-        title={hintText}
-        className="flex flex-wrap items-center gap-1"
-      >
-        {abilities.map((a) => (
-          <li key={a.key}>
-            <Link
-              to={href}
-              aria-label={a.name}
-              onMouseEnter={() => setActiveKey(a.key)}
-              onMouseLeave={() => setActiveKey(null)}
-              onFocus={() => setActiveKey(a.key)}
-              onBlur={() => setActiveKey(null)}
-              className="grid h-9 w-9 place-items-center rounded-lg border border-panel-border/50 bg-background/40 outline-none transition-colors hover:border-primary/60 hover:bg-primary/10 focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-ring"
-            >
-              <MediaIcon
-                url={a.iconUrl}
-                sizeClass="h-7 w-7"
-                fallbackText={a.name.slice(0, 2)}
-                labelled={false}
-              />
-            </Link>
-          </li>
-        ))}
-      </ul>
-      {/* Fixed height so revealing a name never reflows the card. */}
-      <p
-        data-testid="hero-ability-caption"
-        aria-hidden="true"
-        className="mt-1.5 flex h-4 items-center overflow-hidden text-ellipsis whitespace-nowrap text-[11px] leading-none text-muted-foreground"
-      >
-        {active ? active.name : l.abilities}
-      </p>
-    </div>
+    <ul
+      data-testid="hero-ability-strip"
+      aria-label={l.abilities}
+      title={hintText}
+      className={cn("mt-auto flex flex-wrap items-center gap-1", className)}
+    >
+      {abilities.map((a) => (
+        <li key={a.key}>
+          <Link
+            to={href}
+            aria-label={a.name}
+            className="grid h-8 w-8 place-items-center rounded-lg border border-panel-border/50 bg-background/40 outline-none transition-colors hover:border-primary/60 hover:bg-primary/10 focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            <MediaIcon
+              url={a.iconUrl}
+              sizeClass="h-6 w-6"
+              fallbackText={a.name.slice(0, 2)}
+              labelled={false}
+            />
+          </Link>
+        </li>
+      ))}
+    </ul>
   );
 }

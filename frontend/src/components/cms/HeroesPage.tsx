@@ -1,4 +1,4 @@
-﻿import * as React from "react";
+import * as React from "react";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { SlidersHorizontal, Users, X } from "lucide-react";
 
@@ -41,8 +41,9 @@ export type HeroFacetsResult = {
   class: Array<{ value: string; count: number }>;
   rarity: Array<{ value: string; count: number }>;
   category: Array<{ value: string; count: number }>;
-  perk: Array<{ value: string; count: number }>;
-  ability: Array<{ value: string; count: number }>;
+  /** Real display name + resolved glyph, so the panel never rebuilds a label. */
+  perk: Array<{ value: string; count: number; name: string; iconUrl: string | null }>;
+  ability: Array<{ value: string; count: number; name: string; iconUrl: string | null }>;
 };
 
 export interface HeroViewMode {
@@ -116,7 +117,12 @@ export function HeroesPage({
   locale: string;
   search: Record<string, unknown>;
   basePath: string;
-  initial: { items: HubHeroRow[]; total: number; facets: HeroFacetsResult };
+  initial: {
+    items: HubHeroRow[];
+    total: number;
+    facets: HeroFacetsResult;
+    classIcons?: Record<string, string>;
+  };
   view: HeroViewMode;
 }) {
   const s = getPublicStrings(locale);
@@ -211,12 +217,34 @@ export function HeroesPage({
     return str === "" ? basePath : `${basePath}?${str}`;
   };
 
-  /** `perk=standard/ninja-slash` displays as its display name, not its key. */
-  const perkLabel = (value: string): string => {
+  /**
+   * Drop EVERY value of a repeatable facet.
+   *
+   * `qs({ perk: undefined })` is not enough: repeatable params need `delete`, not
+   * `set`, or a second `?perk=` would survive the "clear" and the section would
+   * still appear to have a selection.
+   */
+  const clearFacet = (key: "perk" | "ability"): string => {
+    const p = buildParams();
+    p.delete(key);
+    p.delete("page");
+    const str = p.toString();
+    return str === "" ? basePath : `${basePath}?${str}`;
+  };
+
+  // `perk=standard/hang-time` falls back to its slug only when the definition has
+  // no display name; normally the real, localized name is shown.
+  const perkName = (value: string): string => {
+    const found = facets.perk.find((f) => f.value === value);
+    if (found !== undefined && found.name !== "") return found.name;
     const short = value.includes("/") ? value.slice(value.indexOf("/") + 1) : value;
     return short.replace(/-/g, " ");
   };
-  const abilityLabel = (value: string): string => value.replace(/-/g, " ");
+  const abilityName = (value: string): string => {
+    const found = facets.ability.find((f) => f.value === value);
+    if (found !== undefined && found.name !== "") return found.name;
+    return value.replace(/-/g, " ");
+  };
 
   const advancedCount =
     perkKeys.length + abilityKeys.length + (category ? 1 : 0) + (minPower !== null ? 1 : 0);
@@ -224,6 +252,11 @@ export function HeroesPage({
     advancedCount + (heroClass ? 1 : 0) + (rarity ? 1 : 0) + (q !== "" ? 1 : 0) > 0;
 
   // --- primary facets (always visible) -------------------------------------
+  //
+  // One glyph map, resolved once per page by the loader and shared with the
+  // cards: the class filter and the card's class line read the SAME registered
+  // asset, so the two can never drift and neither hardcodes a URL.
+  const classIcons = initial.classIcons ?? {};
   const classOptions = [
     { value: "", label: s.classAll },
     ...HERO_CLASSES.map((c) => ({ value: c, label: heroClassLabel(locale, c) })),
@@ -238,16 +271,23 @@ export function HeroesPage({
   ];
 
   // --- advanced facets (behind one disclosure) -----------------------------
+  //
+  // The panel's own search box re-sorts whatever these buckets return, so the
+  // loader is free to order them by count (the most useful default for a reader
+  // who has NOT opened the panel). What must not be lost is the real display
+  // name: the panel searches and sorts on it, and the fallback below is only for
+  // the rare bucket that arrives without one.
   const perkOptions: HeroFacetOption[] = withSelections(
     facets.perk,
     perkKeys,
     PERK_OPTION_LIMIT,
   ).map((f) => ({
     value: f.value,
-    label: perkLabel(f.value),
+    label: f.name !== "" ? f.name : perkName(f.value),
     count: facetCountLabel(locale, f.count),
     selected: perkKeys.includes(f.value),
     href: toggleFacet("perk", f.value),
+    iconUrl: f.iconUrl,
   }));
   const abilityOptions: HeroFacetOption[] = withSelections(
     facets.ability,
@@ -255,10 +295,11 @@ export function HeroesPage({
     ABILITY_OPTION_LIMIT,
   ).map((f) => ({
     value: f.value,
-    label: abilityLabel(f.value),
+    label: f.name !== "" ? f.name : abilityName(f.value),
     count: facetCountLabel(locale, f.count),
     selected: abilityKeys.includes(f.value),
     href: toggleFacet("ability", f.value),
+    iconUrl: f.iconUrl,
   }));
   const categoryOptions: HeroFacetOption[] = facets.category.map((f) => ({
     value: f.value,
@@ -282,6 +323,12 @@ export function HeroesPage({
       title: l.standardPerk,
       options: perkOptions,
       collapsible: true,
+      searchable: true,
+      searchLabel: s.searchPerksLabel,
+      selectedLabel: s.selectedLabel,
+      noResultsLabel: s.noPerksResults,
+      clearLabel: s.clearSectionLabel,
+      clearAllHref: clearFacet("perk"),
     });
   }
   if (abilityOptions.length > 0) {
@@ -290,6 +337,12 @@ export function HeroesPage({
       title: l.abilities,
       options: abilityOptions,
       collapsible: true,
+      searchable: true,
+      searchLabel: s.searchAbilitiesLabel,
+      selectedLabel: s.selectedLabel,
+      noResultsLabel: s.noAbilitiesResults,
+      clearLabel: s.clearSectionLabel,
+      clearAllHref: clearFacet("ability"),
     });
   }
   if (categoryOptions.length > 0) {
@@ -327,14 +380,14 @@ export function HeroesPage({
   for (const k of perkKeys) {
     activeChips.push({
       key: `perk:${k}`,
-      label: perkLabel(k),
+      label: perkName(k),
       href: toggleFacet("perk", k),
     });
   }
   for (const k of abilityKeys) {
     activeChips.push({
       key: `ability:${k}`,
-      label: abilityLabel(k),
+      label: abilityName(k),
       href: toggleFacet("ability", k),
     });
   }
@@ -371,6 +424,8 @@ export function HeroesPage({
             hrefFor: (v) => qs({ class: v === null || v === "" ? undefined : v, page: undefined }),
             options: classOptions,
             variant: "segmented" as const,
+            // Same registered glyph the cards use — one asset, one source.
+            iconUrlFor: (v: string) => classIcons[v] ?? null,
           },
           {
             label: l.rarity,
@@ -542,8 +597,23 @@ export function HeroesPage({
  * Compact/reference switch.
  *
  * This is a presentation preference, not a query filter: it never changes the
- * result set, so it stays out of the URL. Both modes share the toolbar's
- * control language (and the same filter state) — only the card body differs.
+ * result set, so it stays out of the URL. Both modes share the toolbar's control
+ * language (and the same filter state) — only the card body differs.
+ *
+ * LAYOUT (why this used to break on a phone)
+ *   The switch shares one row with the advanced-filter trigger inside
+ *   `ContentDiscoveryBar`'s `actions` slot, which is a flex ROW. It used to ask
+ *   for `w-full`, and `w-full` inside a row resolves against the row's width —
+ *   so the switch claimed 100% of the space while the trigger still had to sit
+ *   beside it. The two could not both fit, and the row either overflowed the
+ *   viewport or clipped the trigger. That is the actual defect; no amount of
+ *   positional CSS was going to fix a width contract that was wrong.
+ *
+ *   The fix is a width contract that composes: `min-w-0 flex-1` so the switch
+ *   takes the space that is actually LEFT OVER once the trigger has taken its
+ *   own, and `min-w-0` on the labels so a long localized word truncates instead
+ *   of forcing the row wider. From `sm` up it returns to its intrinsic width,
+ *   because by then it is no longer competing for a narrow row.
  */
 function ViewModeSwitch({ locale, view }: { locale: string; view: HeroViewMode }) {
   const s = getPublicStrings(locale);
@@ -555,7 +625,8 @@ function ViewModeSwitch({ locale, view }: { locale: string; view: HeroViewMode }
     <div
       role="group"
       aria-label={s.viewModeLabel}
-      className="flex h-11 w-full items-center justify-center rounded-lg border border-panel-border bg-background/40 p-1 sm:w-auto"
+      data-testid="hero-view-mode"
+      className="flex h-11 min-w-0 flex-1 items-center rounded-lg border border-panel-border bg-background/40 p-1 sm:w-auto sm:flex-none"
     >
       {modes.map((m) => (
         <button
@@ -563,14 +634,15 @@ function ViewModeSwitch({ locale, view }: { locale: string; view: HeroViewMode }
           type="button"
           aria-pressed={view.mode === m.value}
           onClick={() => view.onChange?.(m.value)}
+          data-mode={m.value}
           className={cn(
-            "h-9 rounded-md px-2.5 text-[11px] font-semibold outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring",
+            "grid h-9 min-w-0 flex-1 place-items-center overflow-hidden rounded-md px-2 text-[11px] font-semibold outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring sm:flex-none sm:px-2.5",
             view.mode === m.value
               ? "bg-primary/15 text-primary ring-1 ring-inset ring-primary/40"
               : "text-muted-foreground hover:text-foreground",
           )}
         >
-          {m.label}
+          <span className="truncate">{m.label}</span>
         </button>
       ))}
     </div>

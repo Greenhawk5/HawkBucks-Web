@@ -38,7 +38,8 @@ export type MediaReferenceSource =
   | "article_cover"
   | "article_inline_image"
   | "article_attachment"
-  | "og_image";
+  | "og_image"
+  | "icon_registry_entry";
 
 export interface MediaReference {
   source: MediaReferenceSource;
@@ -142,6 +143,17 @@ const REFERENCE_QUERIES: readonly ReferenceQuery[] = [
     sql: "SELECT id AS entity_id FROM cms_content_translations WHERE og_image_asset_id = ?",
     idColumn: "entity_id",
   },
+  {
+    // Migration 0017. A registry entry binds an existing asset, so the binding
+    // counts as a reference and blocks a physical R2 delete. That direction is
+    // deliberate: an operator who removes a registry row must be able to do so
+    // freely (the row is a pointer, never the owner of the bytes), while an
+    // operator deleting the OBJECT underneath a live entry must go through the
+    // Media Library and clear the binding first.
+    source: "icon_registry_entry",
+    sql: "SELECT semantic_key AS entity_id FROM icon_registry WHERE media_asset_id = ?",
+    idColumn: "entity_id",
+  },
 ];
 
 /** Labels for the UI (never a bare source key). */
@@ -162,6 +174,7 @@ export const MEDIA_REFERENCE_LABELS: Record<MediaReferenceSource, string> = {
   article_inline_image: "Article inline image",
   article_attachment: "Article attachment",
   og_image: "Social share image",
+  icon_registry_entry: "Icon registry entry",
 };
 
 /** Shape check for an article body_json document's image blocks. */
@@ -235,6 +248,106 @@ export async function findMediaReferences(
   references.push(...collectInlineArticleReferences(bodies, assetId));
   return references;
 }
+
+/**
+ * Batched association counts for a set of assets.
+ *
+ * Used by the Game Items Icons tab, which shows one row per registered icon and
+ * needs to answer "is this icon in use?" for the WHOLE PAGE at once. Calling
+ * `findMediaReferences` per row would mean ~16 queries × 2 document scans per
+ * icon; this is one query per source over the whole page instead.
+ *
+ * It reuses the same REFERENCE_QUERIES table, so the answer can never drift from
+ * what the delete guard believes. Inline article images are deliberately NOT
+ * counted here: they need a full document scan, no icon registry entry is ever
+ * bound to an article body, and a registry entry that reaches an article is
+ * still reported by the `article_*` column queries if that column ever holds the
+ * asset. The exact, authoritative answer remains `findMediaReferences`, which
+ * the destructive path always uses.
+ */
+export async function countMediaAssetAssociations(
+  db: D1Database,
+  assetIds: readonly string[],
+): Promise<Map<string, MediaReferenceSource[]>> {
+  const out = new Map<string, MediaReferenceSource[]>();
+  const ids = assetIds.filter((id) => typeof id === "string" && id !== "");
+  if (ids.length === 0) return out;
+  for (const id of ids) out.set(id, []);
+  for (const { source, table, column } of columnBackedQueries()) {
+    const placeholders = ids.map(() => "?").join(",");
+    const { results } = await db
+      .prepare(
+        `SELECT ${column} AS asset_id FROM ${table} WHERE ${column} IN (${placeholders}) LIMIT 500`,
+      )
+      .bind(...ids)
+      .all<{ asset_id: string }>();
+    for (const row of results) {
+      if (typeof row?.asset_id !== "string") continue;
+      const sources = out.get(row.asset_id);
+      if (sources === undefined || sources.includes(source)) continue;
+      sources.push(source);
+    }
+  }
+  return out;
+}
+
+/**
+ * Reference sources that live in a real `*_asset_id` column, i.e. the ones the
+ * batched counter can read without a document scan.
+ *
+ * Two sources are excluded on purpose:
+ *   `article_inline_image` — stored inside `article_bodies.body_json`, so there
+ *     is no column to select. No icon registry entry is ever bound to an article
+ *     body, and the exact answer remains `findMediaReferences`.
+ *   `icon_registry_entry`   — the registry counting itself. A registry row is a
+ *     pointer, not an external consumer, so counting it would make every bound
+ *     icon report itself as "in use". It still counts for the DELETE guard.
+ */
+function columnBackedQueries(): Array<{
+  source: ColumnBackedSource;
+  table: string;
+  column: string;
+}> {
+  return REFERENCE_QUERIES.filter(
+    (query): query is ReferenceQuery & { source: ColumnBackedSource } =>
+      query.source !== "article_inline_image" && query.source !== "icon_registry_entry",
+  ).map((query) => ({
+    source: query.source,
+    table: REFERENCE_ASSET_COLUMNS[query.source].table,
+    column: REFERENCE_ASSET_COLUMNS[query.source].column,
+  }));
+}
+
+type ColumnBackedSource = Exclude<
+  MediaReferenceSource,
+  "article_inline_image" | "icon_registry_entry"
+>;
+
+/**
+ * Which table/column each reference query reads.
+ *
+ * `ReferenceQuery` stores the whole SELECT as one string, so the column has to
+ * be recovered for the batched form. Every column-backed query in the table
+ * matches `WHERE <column> = ?` on a single asset column; the test suite asserts
+ * this mapping against the table so a new source cannot silently drift.
+ */
+const REFERENCE_ASSET_COLUMNS: Record<ColumnBackedSource, { table: string; column: string }> = {
+  hero_portrait: { table: "hero_records", column: "portrait_asset_id" },
+  hero_banner: { table: "hero_records", column: "banner_asset_id" },
+  hero_ability_icon: { table: "hero_abilities", column: "icon_asset_id" },
+  ability_definition_icon: { table: "ability_defs", column: "icon_asset_id" },
+  hero_perk_icon: { table: "hero_perks", column: "icon_asset_id" },
+  hero_perk_definition_icon: { table: "hero_perk_defs", column: "icon_asset_id" },
+  catalog_item_icon: { table: "resources", column: "icon_asset_id" },
+  loadout_cover: { table: "loadout_records", column: "cover_asset_id" },
+  weapon_icon: { table: "weapon_records", column: "icon_asset_id" },
+  trap_icon: { table: "trap_records", column: "icon_asset_id" },
+  perk_icon: { table: "perk_records", column: "icon_asset_id" },
+  schematic_icon: { table: "schematic_records", column: "icon_asset_id" },
+  article_cover: { table: "article_bodies", column: "cover_asset_id" },
+  article_attachment: { table: "article_media", column: "asset_id" },
+  og_image: { table: "cms_content_translations", column: "og_image_asset_id" },
+};
 
 /**
  * Throwing form used by the destructive paths. Any reference at all blocks

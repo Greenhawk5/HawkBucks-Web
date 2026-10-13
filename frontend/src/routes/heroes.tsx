@@ -144,7 +144,13 @@ export const Route = createFileRoute("/heroes")({
 function HeroesListing() {
   const search = Route.useSearch() as Record<string, unknown>;
   const data = Route.useLoaderData() as
-    { items: HubHeroRow[]; total: number; facets: HeroFacetsResult } | undefined;
+    | {
+        items: HubHeroRow[];
+        total: number;
+        facets: HeroFacetsResult;
+        classIcons?: Record<string, string>;
+      }
+    | undefined;
   const [mode, setMode] = React.useState<"compact" | "reference">("compact");
   // `/heroes` is the PARENT of `/heroes/$slug`, so a child match (the detail
   // page) must paint through this route's Outlet. Rendering the listing
