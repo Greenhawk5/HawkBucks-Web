@@ -86,3 +86,30 @@ export function rarityAccentStyle(token: RarityToken): import("react").CSSProper
 export function rarityGlowStyle(token: RarityToken): import("react").CSSProperties {
   return token.glow ? { boxShadow: `0 0 28px -14px ${token.accent}` } : {};
 }
+
+/**
+ * Sprint 2 — atmospheric showcase glow for the Hero Codex identity header.
+ *
+ * A soft radial color field derived from the hero's canonical rarity, drawn
+ * BEHIND the portrait. Restrained by design: low opacities, large soft
+ * falloff, no neon banner feel. Works for every rarity (Common gets a faint
+ * neutral lift, Legendary/Mythic a warmer presence) and never touches the
+ * artwork itself — no blur, saturation, or blend-mode changes on the image.
+ *
+ * Returns layered backgrounds (glow wash + vignette base) plus a screen-reader
+ * -safe decorative intent. The caller renders the portrait crisp above it.
+ */
+export function rarityShowcaseStyle(rarity: string | null | undefined): {
+  background: string;
+} | null {
+  const token = rarityToken(rarity);
+  const accent = token?.accent ?? "oklch(0.55 0.02 250)";
+  // color-mix keeps the glow translucent over the panel background so text
+  // contrast and the character stay intact.
+  return {
+    background: [
+      `radial-gradient(ellipse 62% 58% at 50% 42%, color-mix(in oklch, ${accent} 26%, transparent), transparent 72%)`,
+      `radial-gradient(ellipse 90% 78% at 50% 50%, color-mix(in oklch, ${accent} 10%, transparent), transparent 85%)`,
+    ].join(", "),
+  };
+}

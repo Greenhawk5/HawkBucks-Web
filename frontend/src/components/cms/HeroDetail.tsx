@@ -80,7 +80,7 @@ export function HeroDetail({
           <div className="mt-6 space-y-10 sm:space-y-12">
             {hasSummary ? (
               <CodexSection id="summary" title={l.summary}>
-                <CodexSummary hero={hero} />
+                <CodexSummary hero={hero} locale={locale} />
               </CodexSection>
             ) : null}
 

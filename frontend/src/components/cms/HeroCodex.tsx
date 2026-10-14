@@ -24,6 +24,8 @@ import {
   EmptyNote,
   ResourceCostGrid,
 } from "@/components/heroes/HeroReferenceBits";
+import { LocalizedTime } from "@/components/hawkbucks/LocalizedTime";
+import { rarityShowcaseStyle } from "@/lib/cms/rarity-tokens";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
 
@@ -143,88 +145,94 @@ export function CodexBackLink({ to, label }: { to: string; label: string }) {
 /**
  * Hero identity header.
  *
- * One portrait, then rarity → name → class (+ category) → power/tier meta.
- * The CMS banner slot is intentionally NOT rendered: it has no user-facing
- * meaning on the public page, and filling the header's right edge with it is
- * what produced the old layout's unexplained second image. SEO/OG still uses
- * bannerUrl (see the route head), which is unaffected.
+ * Borderless portrait on a rarity-derived atmospheric glow, then rarity →
+ * name → class (+ category) → short editorial tagline. No power/tier meta:
+ * that lives in the progression section. The full description lives in the
+ * Summary section, never here. The CMS banner slot is intentionally NOT
+ * rendered: it has no user-facing meaning on the public page, and filling
+ * the header's right edge with it is what produced the old layout's
+ * unexplained second image. SEO/OG still uses bannerUrl (see the route
+ * head), which is unaffected.
  */
 export function CodexHeader({ hero, locale }: { hero: PublicHeroDetail; locale: string }) {
   const l = heroLabels(locale);
   const cat = categoryLabel(locale, hero.category);
-  const powerRange = heroPowerRange(locale, hero.progression);
-  const tierText = hero.progression?.tierCount
-    ? tierCountLabel(locale, hero.progression.tierCount)
-    : null;
+  const summary = hero.summary.trim();
+  const showcase = rarityShowcaseStyle(hero.rarity);
 
   return (
-    <header className="flex items-center gap-4 sm:gap-6">
-      {hero.imageUrl ? (
-        <img
-          src={hero.imageUrl}
-          alt={hero.title}
-          fetchPriority="high"
-          decoding="async"
-          className="aspect-[3/4] w-28 shrink-0 self-start rounded-xl border border-panel-border/60 bg-background/40 object-cover object-top sm:w-40 lg:w-48"
-        />
-      ) : (
-        <div
-          aria-hidden="true"
-          className="grid aspect-[3/4] w-28 shrink-0 self-start place-items-center rounded-xl border border-panel-border/60 bg-muted/30 text-muted-foreground/40 sm:w-40 lg:w-48"
-        >
-          <Shield className="h-8 w-8" />
-        </div>
-      )}
-      <div className="min-w-0 flex-1">
-        <RarityPill locale={locale} rarity={hero.rarity} />
-        <h1 className="mt-2 font-display text-3xl font-extrabold tracking-tight text-balance sm:text-4xl">
-          {hero.title}
-        </h1>
-        <p className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm">
-          {hero.classIconUrl ? (
+    <header className="relative overflow-hidden rounded-2xl border border-panel-border/60 bg-panel/50">
+      {/* Atmospheric rarity glow: decorative, behind everything. */}
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-0"
+        style={showcase ?? {}}
+      />
+      <div className="relative grid items-center gap-6 p-5 sm:gap-8 sm:p-7 md:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] md:p-8">
+        {/* Borderless portrait: native aspect kept, never cropped to fit. */}
+        <div className="mx-auto w-full max-w-70 sm:max-w-80 md:max-w-none">
+          {hero.imageUrl ? (
             <img
-              src={hero.classIconUrl}
-              alt=""
-              aria-hidden="true"
-              loading="lazy"
+              src={hero.imageUrl}
+              alt={`${hero.title} portrait`}
+              fetchPriority="high"
               decoding="async"
-              className="h-5 w-5 shrink-0 rounded-sm object-contain"
-              onError={(e) => {
-                e.currentTarget.style.display = "none";
-              }}
+              className="mx-auto aspect-square w-full rounded-xl object-contain object-top drop-shadow-[0_18px_36px_rgba(0,0,0,0.45)]"
             />
-          ) : null}
-          <span className="font-semibold text-foreground/90">
-            {heroClassLabel(locale, hero.heroClass)}
-          </span>
-          {cat ? (
-            <>
-              <span aria-hidden="true" className="text-muted-foreground/60">
-                {" · "}
-              </span>
-              <span className="text-muted-foreground">{cat}</span>
-            </>
-          ) : null}
-        </p>
-        {powerRange || tierText ? (
-          <p className="mt-1.5 text-[13px] tabular-nums text-muted-foreground">
-            {powerRange ? (
-              <span className="whitespace-nowrap">
-                {l.maxPower}: {powerRange}
-              </span>
+          ) : (
+            <div
+              aria-hidden="true"
+              className="grid aspect-square w-full place-items-center rounded-xl text-muted-foreground/40"
+            >
+              <Shield className="h-16 w-16" />
+            </div>
+          )}
+        </div>
+
+        <div className="min-w-0 text-center md:text-start">
+          <RarityPill locale={locale} rarity={hero.rarity} />
+          <h1 className="mt-2 font-display text-3xl font-extrabold tracking-tight text-balance sm:text-4xl">
+            {hero.title}
+          </h1>
+          <p className="mt-2 flex flex-wrap items-center justify-center gap-x-2 gap-y-1 text-sm md:justify-start">
+            {hero.classIconUrl ? (
+              <img
+                src={hero.classIconUrl}
+                alt=""
+                aria-hidden="true"
+                loading="lazy"
+                decoding="async"
+                className="h-5 w-5 shrink-0 rounded-sm object-contain"
+                onError={(e) => {
+                  e.currentTarget.style.display = "none";
+                }}
+              />
             ) : null}
-            {powerRange && tierText ? <span aria-hidden="true">{" · "}</span> : null}
-            {tierText}
+            <span className="font-semibold text-foreground/90">
+              {heroClassLabel(locale, hero.heroClass)}
+            </span>
+            {cat ? (
+              <>
+                <span aria-hidden="true" className="text-muted-foreground/60">
+                  {" · "}
+                </span>
+                <span className="text-muted-foreground">{cat}</span>
+              </>
+            ) : null}
           </p>
-        ) : null}
-        {hero.isLocaleFallback ? (
-          <p
-            data-testid="hero-locale-fallback"
-            className="mt-2.5 max-w-xl rounded-md border border-panel-border/60 px-2 py-1 text-xs text-muted-foreground"
-          >
-            {l.localeFallbackNotice}
-          </p>
-        ) : null}
+          {/* Short editorial tagline, verbatim from the loader. */}
+          {summary !== "" ? (
+            <p className="mt-3 text-[15px] leading-relaxed text-foreground/85">{summary}</p>
+          ) : null}
+          {hero.isLocaleFallback ? (
+            <p
+              data-testid="hero-locale-fallback"
+              className="mt-2.5 max-w-xl rounded-md border border-panel-border/60 px-2 py-1 text-xs text-muted-foreground"
+            >
+              {l.localeFallbackNotice}
+            </p>
+          ) : null}
+        </div>
       </div>
     </header>
   );
@@ -240,6 +248,16 @@ export function CodexHeader({ hero, locale }: { hero: PublicHeroDetail; locale: 
  * underline. A side rail was evaluated and rejected: inside the 1100px
  * AppShell with the global sidebar already present, a second rail would
  * squeeze the content column for no orientation benefit.
+ */
+/**
+ * Sticky, scroll-aware section navigator — compact floating dock.
+ *
+ * Sprint 2 decision: a centered floating pill (Dynamic-Island language)
+ * instead of the previous full-width rectangular bar. A vertical rail was
+ * evaluated and rejected: inside the 1100px AppShell with the global sidebar
+ * already present, a second rail would squeeze the content column for no
+ * orientation benefit. The dock stays compact, centered, and visually quiet —
+ * a small underline marks the active section.
  */
 export function CodexSectionNav({
   locale,
@@ -264,44 +282,47 @@ export function CodexSectionNav({
   }, [activeId]);
 
   return (
-    <nav
-      aria-label={l.sectionNav}
-      data-testid="hero-section-nav"
-      className="sticky top-16 z-20 -mx-1 border-b border-panel-border/60 bg-background/85 px-1 py-2 backdrop-blur-md"
-    >
-      <div ref={listRef} className="flex gap-1 overflow-x-auto">
-        {sections.map((sec) => {
-          const active = sec.id === activeId;
-          return (
-            <a
-              key={sec.id}
-              href={`#${sec.id}`}
-              data-section={sec.id}
-              aria-current={active ? "true" : undefined}
-              onClick={(e) => {
-                e.preventDefault();
-                onNavigate(sec.id);
-              }}
-              className={cn(
-                "relative shrink-0 rounded-md px-3 py-2 text-[13px] font-semibold whitespace-nowrap outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring",
-                active
-                  ? "text-foreground"
-                  : "text-muted-foreground hover:bg-background/60 hover:text-foreground",
-              )}
-            >
-              {sec.label}
-              <span
-                aria-hidden="true"
+    <div className="sticky top-18 z-20 flex justify-center">
+      <nav
+        aria-label={l.sectionNav}
+        data-testid="hero-section-nav"
+        className="max-w-full rounded-full border border-panel-border/60 bg-background/85 py-1.5 ps-1.5 pe-1.5 shadow-[0_8px_28px_-12px_rgba(0,0,0,0.55)] backdrop-blur-md"
+      >
+        <div ref={listRef} className="flex max-w-full items-center gap-0.5 overflow-x-auto">
+          {sections.map((sec) => {
+            const active = sec.id === activeId;
+            return (
+              <a
+                key={sec.id}
+                href={`#${sec.id}`}
+                data-section={sec.id}
+                aria-current={active ? "true" : undefined}
+                onClick={(e) => {
+                  e.preventDefault();
+                  onNavigate(sec.id);
+                }}
                 className={cn(
-                  "absolute inset-x-3 bottom-0.5 h-0.5 rounded-full bg-primary transition-opacity",
-                  active ? "opacity-100" : "opacity-0",
+                  "relative shrink-0 rounded-full px-3.5 py-2 text-[13px] font-semibold whitespace-nowrap outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring motion-reduce:transition-none",
+                  "active:scale-[0.97]",
+                  active
+                    ? "bg-primary/12 text-foreground"
+                    : "text-muted-foreground hover:bg-background/60 hover:text-foreground",
                 )}
-              />
-            </a>
-          );
-        })}
-      </div>
-    </nav>
+              >
+                {sec.label}
+                <span
+                  aria-hidden="true"
+                  className={cn(
+                    "absolute inset-x-3.5 bottom-1 h-0.5 rounded-full bg-primary transition-opacity motion-reduce:transition-none",
+                    active ? "opacity-100" : "opacity-0",
+                  )}
+                />
+              </a>
+            );
+          })}
+        </div>
+      </nav>
+    </div>
   );
 }
 
@@ -329,17 +350,17 @@ export function CodexSection({
 }
 
 /**
- * Editorial summary, moved up directly under the identity header.
- * The one-liner leads when authored; otherwise the long-form body renders in
- * full (existing pipeline, paragraphs preserved). Renders nothing when the
- * hero has neither, and the section is then omitted from the nav as well.
+ * Full hero description: the canonical long-form body from `description`
+ * (cms_content_translations.body via the loader), verbatim, paragraphs
+ * preserved. The short tagline lives in the header now and NEVER doubles here.
+ * Uses the project's empty-content convention when nothing is authored.
  */
-export function CodexSummary({ hero }: { hero: PublicHeroDetail }) {
-  const oneLiner = hero.summary.trim();
-  const paras = (oneLiner !== "" ? [oneLiner] : hero.description.split(/\n{2,}/))
+export function CodexSummary({ hero, locale }: { hero: PublicHeroDetail; locale: string }) {
+  const paras = hero.description
+    .split(/\n{2,}/)
     .map((p) => p.trim())
     .filter((p) => p !== "");
-  if (paras.length === 0) return null;
+  if (paras.length === 0) return <EmptyNote>{heroLabels(locale).summaryEmpty}</EmptyNote>;
   return (
     <div className="max-w-[68ch] space-y-3 text-[15px] leading-relaxed text-foreground/85">
       {paras.map((p, i) => (
@@ -665,11 +686,12 @@ function FactRow({ label, children }: { label: string; children: React.ReactNode
 /**
  * Facts rail — quick-reference metadata only.
  *
- * No slug, no snapshot note, no invented "last updated": cms_contents
- * timestamps record migration backfills, not per-hero editorial changes, so
- * surfacing one would be a misleading freshness claim. On desktop the rail
- * sticks below the section bar; on mobile it drops to the end of the reading
- * flow.
+ * Sprint 2: the Last Updated row shows hero.lastUpdated (manual override when
+ * set, else the automatic stamp from the latest successful hero-scoped CMS
+ * save). Missing/legacy values omit the row — never a fabricated date. The
+ * date renders through LocalizedTime so it is locale-formatted and
+ * hydration-safe. On desktop the rail sticks below the section dock; on
+ * mobile it drops to the end of the reading flow.
  */
 export function CodexFacts({ hero, locale }: { hero: PublicHeroDetail; locale: string }) {
   const s = getPublicStrings(locale);
@@ -713,6 +735,16 @@ export function CodexFacts({ hero, locale }: { hero: PublicHeroDetail; locale: s
           {hero.abilities.length > 0 ? (
             <FactRow label={l.abilities}>
               <span className="tabular-nums">{hero.abilities.length}</span>
+            </FactRow>
+          ) : null}
+          {hero.lastUpdated ? (
+            <FactRow label={l.lastUpdated}>
+              <LocalizedTime
+                value={hero.lastUpdated}
+                kind="date"
+                locale={locale}
+                className="whitespace-nowrap tabular-nums"
+              />
             </FactRow>
           ) : null}
         </dl>

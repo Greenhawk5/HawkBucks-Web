@@ -1,0 +1,28 @@
+-- 0018 — Hero Last Updated manual override (ADDITIVE ONLY).
+--
+-- PURPOSE
+--   Give each hero an optional, editor-chosen "Last updated" date that takes
+--   precedence over the automatic timestamp. NULL means automatic mode: the
+--   public Hero Facts panel shows hero_records.updated_at, which every
+--   hero-scoped CMS mutation re-stamps via touchHeroRecord() on success only.
+--
+--   The reference sync never mentions this column (its hero_records statements
+--   name their columns explicitly), so a re-sync cannot clobber an override.
+--   Validation lives in the trusted mutation path
+--   (parseLastUpdatedOverride / heroes-loadouts.server.ts), never only in the
+--   browser: UTC calendar date, YYYY-MM-DD, years 2000-2100.
+--
+-- CONVENTIONS (match 0001/0006/0007/0014/0015/0016/0017):
+--   * TEXT timestamps, UTC ISO-8601.
+--   * IF NOT EXISTS everywhere so a re-run is a safe no-op.
+--   * Never modify old migrations. This file is additive only.
+--   * SQLite/D1 dialect: no ADD COLUMN IF NOT EXISTS, no DROP COLUMN.
+--
+-- ROLLBACK
+--   The column cannot be dropped on older D1 SQLite; it is nullable and
+--   ignored by pre-0018 code paths. No existing row is modified.
+--
+-- DEPLOYMENT
+--   Created and validated locally only. Production migration runs as part of
+--   an explicitly approved deployment step (wrangler d1 migrations apply).
+ALTER TABLE hero_records ADD COLUMN last_updated_override TEXT;

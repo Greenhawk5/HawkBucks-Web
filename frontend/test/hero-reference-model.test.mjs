@@ -87,15 +87,16 @@ test("0014 progression + cost constraints enforce uniqueness and scope", async (
   assert.match(sql, /CHECK \(slot IN \('standard', 'commander'\)\)/);
 });
 
-test("the migration chain stays ordered with 0016 as the newest", async () => {
+test("the migration chain stays ordered with 0018 as the newest", async () => {
   const names = (await readdir(MIGRATIONS)).filter((n) => n.endsWith(".sql")).sort();
   // 0014 was the newest migration until the editorial override layer and Game Item Catalog landed in
-  // 0016, and then until the reusable icon registry landed in 0017. The chain is
+  // 0016, and then until the reusable icon registry landed in 0017, and then
+  // until the hero Last Updated override landed in 0018. The chain is
   // still strictly ordered, and nothing was inserted between the earlier files,
   // which is what makes them immutable history.
-  assert.equal(names[names.length - 1], "0017_icon_registry.sql");
+  assert.equal(names[names.length - 1], "0018_hero_last_updated_override.sql");
   assert.equal(names[names.indexOf(M14)], M14, "0014 stays where it is in the chain");
-  for (let i = 1; i <= 17; i += 1) {
+  for (let i = 1; i <= 18; i += 1) {
     assert.match(names[i - 1], new RegExp(`^${String(i).padStart(4, "0")}_`));
   }
 });

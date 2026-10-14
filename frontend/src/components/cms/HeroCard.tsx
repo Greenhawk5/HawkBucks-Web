@@ -144,15 +144,21 @@ export function HeroCard({
         ) : null}
       </div>
 
-      <EntityCardBody className="gap-3 p-4">
+      <EntityCardBody className="flex flex-1 flex-col gap-3 p-4">
         {/* Identity. The title is a real anchor whose ::after overlay covers
             the card, so there is exactly ONE stretched hit area per card; the
-            ability icons and Quick View re-assert their own stacking above it. */}
+            ability icons and Quick View re-assert their own stacking above it.
+            The title reserves two lines (`min-h-14`) so a long name ("Aerobic
+            Assassin", "Archaeolo-Jess") wraps without pushing the class,
+            rarity, perk, or CTA rows down: every card's regions start at the
+            same height. The full name stays in the DOM, in the link's
+            accessible name, and on the detail page the link targets — never a
+            hover-only tooltip. */}
         <div className="flex flex-col gap-1.5">
-          <h3 className="font-display text-lg font-bold leading-tight tracking-tight">
+          <h3 className="flex min-h-14 items-center font-display text-lg font-bold leading-tight tracking-tight">
             <Link
               to={href}
-              className="rounded outline-none transition-colors after:absolute after:inset-0 after:z-0 after:content-[''] hover:text-primary focus-visible:ring-2 focus-visible:ring-ring"
+              className="line-clamp-2 rounded break-words outline-none transition-colors after:absolute after:inset-0 after:z-0 after:content-[''] hover:text-primary focus-visible:ring-2 focus-visible:ring-ring"
             >
               {hero.title}
             </Link>
@@ -185,27 +191,34 @@ export function HeroCard({
           {rarity ? <RarityPill locale={locale} rarity={rarity} className="w-fit" /> : null}
         </div>
 
-        {standard ? <HeroPerkRow perk={standard} /> : null}
+        {standard ? <HeroPerkRow perk={standard} className="min-h-9" /> : null}
 
-        {abilities.length > 0 ? (
-          <HeroAbilityStrip
-            locale={locale}
-            hintText={s.abilityHint}
-            href={href}
-            abilities={abilities}
-          />
-        ) : null}
+        {/* Footer: ability icons + Quick View pinned to the card bottom.
+            `mt-auto` absorbs the leftover space in cards whose body is shorter
+            (no perk row, short title), so the CTA sits at a consistent height
+            across the row instead of jumping with the text above it. */}
+        <div className="mt-auto flex flex-col gap-2.5 pt-1">
+          {abilities.length > 0 ? (
+            <HeroAbilityStrip
+              locale={locale}
+              hintText={s.abilityHint}
+              href={href}
+              className="mt-0"
+              abilities={abilities}
+            />
+          ) : null}
 
-        {onPreview ? (
-          <button
-            type="button"
-            onClick={() => onPreview(hero)}
-            aria-haspopup="dialog"
-            className="relative z-10 mt-1 inline-flex h-8 w-fit items-center rounded-md border border-panel-border/80 px-2.5 text-[11px] font-semibold text-muted-foreground outline-none transition-colors hover:border-primary hover:text-primary focus-visible:ring-2 focus-visible:ring-ring"
-          >
-            {s.openPreview}
-          </button>
-        ) : null}
+          {onPreview ? (
+            <button
+              type="button"
+              onClick={() => onPreview(hero)}
+              aria-haspopup="dialog"
+              className="relative z-10 inline-flex h-8 w-fit items-center rounded-md border border-panel-border/80 px-2.5 text-[11px] font-semibold text-muted-foreground outline-none transition-colors hover:border-primary hover:text-primary focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              {s.openPreview}
+            </button>
+          ) : null}
+        </div>
       </EntityCardBody>
     </EntityCard>
   );

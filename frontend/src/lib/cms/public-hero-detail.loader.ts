@@ -45,6 +45,13 @@ export interface PublicHeroDetail extends PublicHeroItem {
   /** Reference provenance, so the page can label synced vs authored data. */
   dataSource: string;
   dataSnapshotAt: string | null;
+  /**
+   * Sprint 2 effective "Last updated": the manual override (YYYY-MM-DD) when
+   * set, else hero_records.updated_at (latest successful hero-scoped CMS
+   * save). Null when no trustworthy value exists — the Facts panel omits the
+   * row rather than fabricating a date.
+   */
+  lastUpdated: string | null;
 }
 
 interface HeroSlugRow {
@@ -63,6 +70,8 @@ interface HeroRecordRow {
   summary: string | null;
   data_source: string | null;
   data_snapshot_at: string | null;
+  updated_at: string | null;
+  last_updated_override: string | null;
 }
 
 interface TranslationRow {
@@ -116,6 +125,7 @@ export const getPublicHero = createServerFn({ method: "GET" })
                 h.popularity AS popularity, h.sort_order AS sort_order,
                 h.summary AS summary, h.data_source AS data_source,
                 h.data_snapshot_at AS data_snapshot_at,
+                h.updated_at AS updated_at, h.last_updated_override AS last_updated_override,
                 pm.delivery_url AS portrait_url,
                 bm.delivery_url AS banner_url
            FROM hero_records h
@@ -256,6 +266,9 @@ export const getPublicHero = createServerFn({ method: "GET" })
         relatedHeroes,
         dataSource: rec.data_source ?? "editorial",
         dataSnapshotAt: rec.data_snapshot_at ?? null,
+        // Pre-0018 rows have no override column value (null = automatic); a
+        // missing/empty updated_at stays null so the UI omits the row.
+        lastUpdated: rec.last_updated_override ?? rec.updated_at ?? null,
       },
     };
   });

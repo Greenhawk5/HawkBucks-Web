@@ -53,20 +53,27 @@ import { cn } from "@/lib/utils";
  * reads as a broken image. When there is no icon the name simply starts at the
  * accent rule, so the row never looks half-drawn.
  *
- * NAME: always present, always the stored display name. The native `title`
- * attribute carries the same name (never the description) so a long localized
- * name stays reachable without a tooltip that duplicates what is on screen.
+ * NAME: always present, always the stored display name, always fully readable.
+ * The row reserves two lines (`min-h`) and wraps (`line-clamp-2`) instead of
+ * truncating to one line with an ellipsis: at six-across widths a single line
+ * only fits ~15 characters, so `truncate` silently destroyed names like
+ * "Enduring M…". Two 13px lines fit ~36 characters, which covers the catalog;
+ * the rare longer name clamps with its full text still in the DOM, on the
+ * native `title`, and one tap away in Quick View / the detail page — so
+ * pointer, touch, keyboard, and assistive-tech users all reach it.
+ * `items-start` keeps the icon pinned to the first text line when the name
+ * wraps; `break-words` guards long localized compounds.
  */
 export function HeroPerkRow({ perk, className }: { perk: PublicHeroPerk; className?: string }) {
   return (
     <div
       data-testid="hero-perk-module"
       data-slot={perk.slot}
-      className={cn("flex items-center gap-2 border-s-2 border-primary/45 ps-2.5", className)}
+      className={cn("flex items-start gap-2 border-s-2 border-primary/45 ps-2.5", className)}
     >
-      {perk.iconUrl ? <MediaIcon url={perk.iconUrl} sizeClass="h-5 w-5" /> : null}
+      {perk.iconUrl ? <MediaIcon url={perk.iconUrl} sizeClass="mt-0.5 h-5 w-5" /> : null}
       <p
-        className="min-w-0 truncate text-[13px] font-semibold leading-snug text-foreground"
+        className="min-h-9 min-w-0 flex-1 break-words text-[13px] font-semibold leading-snug text-foreground line-clamp-2"
         title={perk.name}
       >
         {perk.name}

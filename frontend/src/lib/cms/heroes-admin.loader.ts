@@ -44,6 +44,10 @@ export interface HeroAdminDetail extends HeroAdminItem {
   bannerAssetId: string | null;
   /** Phase 23 editorial one-liner. */
   summary: string | null;
+  /** Sprint 2: manual "Last updated" override (YYYY-MM-DD). Null = automatic mode. */
+  lastUpdatedOverride: string | null;
+  /** Effective date shown publicly: the override when set, else the automatic stamp. */
+  lastUpdatedEffective: string | null;
   /**
    * hero_records.updated_at, surfaced so the editor can send it back as an
    * optimistic concurrency token. Distinct from HeroAdminItem.updatedAt, which
@@ -273,6 +277,15 @@ export const getAdminHero = createServerFn({ method: "GET" })
       portraitAssetId: record.portrait_asset_id,
       bannerAssetId: record.banner_asset_id,
       summary: record.summary ?? null,
+      lastUpdatedOverride:
+        (record as { last_updated_override?: string | null }).last_updated_override ?? null,
+      // Effective display: manual override wins; otherwise the automatic stamp
+      // (updated_at = latest successful hero-scoped CMS save). Missing legacy
+      // values stay null — never fabricate a date.
+      lastUpdatedEffective:
+        (record as { last_updated_override?: string | null }).last_updated_override ??
+        record.updated_at ??
+        null,
       recordUpdatedAt: record.updated_at ?? null,
       dataSource: record.data_source ?? "editorial",
       dataSnapshotAt: record.data_snapshot_at ?? null,
@@ -375,6 +388,12 @@ export const updateAdminHero = createServerFn({ method: "POST" })
       bannerAssetId?: string | null;
       /** Phase 23 editorial one-liner shown on cards and in quick view. */
       summary?: string | null;
+      /**
+       * Sprint 2 manual "Last updated" override (YYYY-MM-DD). undefined =
+       * preserve; null/"" = clear to automatic mode; a date = manual mode.
+       * Trusted validation runs in updateHeroRecord.
+       */
+      lastUpdatedOverride?: string | null;
       /** Optimistic concurrency token (hero_records.updated_at as rendered). */
       expectedUpdatedAt?: string | null;
     }) =>
@@ -388,6 +407,7 @@ export const updateAdminHero = createServerFn({ method: "POST" })
         portraitAssetId: asOptionalStringOrNull(i.portraitAssetId),
         bannerAssetId: asOptionalStringOrNull(i.bannerAssetId),
         summary: asOptionalStringOrNull(i.summary),
+        lastUpdatedOverride: asOptionalStringOrNull(i.lastUpdatedOverride),
         expectedUpdatedAt: asOptionalStringOrNull(i.expectedUpdatedAt),
       }),
   )

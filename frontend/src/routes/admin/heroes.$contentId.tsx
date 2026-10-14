@@ -1454,6 +1454,12 @@ function IdentityForm(props: {
   const [popularity, setPopularity] = useState(String(hero.popularity));
   const [sortOrder, setSortOrder] = useState(String(hero.sortOrder));
   const [summary, setSummary] = useState(hero.summary ?? "");
+  // Sprint 2 manual override: initialized from the stored value, blank means
+  // automatic mode. Editing other fields never touches this state, so an
+  // existing override survives unrelated saves.
+  const [lastUpdatedOverride, setLastUpdatedOverride] = useState(
+    (hero as { lastUpdatedOverride?: string | null }).lastUpdatedOverride ?? "",
+  );
 
   /**
    * The optimistic-concurrency token, held in state so a successful save can
@@ -1492,6 +1498,10 @@ function IdentityForm(props: {
                   // cap). Sending null explicitly is what CLEARS a stored
                   // summary; omitting the field would preserve the old one.
                   summary,
+                  // Sprint 2: blank clears back to automatic mode; a date sets
+                  // manual mode. Trusted validation runs server-side.
+                  lastUpdatedOverride:
+                    lastUpdatedOverride.trim() === "" ? null : lastUpdatedOverride.trim(),
                   // Optimistic concurrency: reject the write if another editor
                   // changed this record since the last successful save.
                   expectedUpdatedAt: concurrencyToken,
@@ -1597,6 +1607,36 @@ function IdentityForm(props: {
             onChange={(e) => setSortOrder(e.currentTarget.value)}
             disabled={props.disabled}
           />
+        </CmsField>
+        <CmsField
+          label="Last updated"
+          alignControl
+          description={
+            lastUpdatedOverride.trim() === ""
+              ? "Automatic — follows the latest save. Pick a date for a manual override."
+              : "Manual date shown publicly instead of the automatic date."
+          }
+        >
+          <input
+            id="hero-last-updated-override"
+            className="cc-input"
+            type="date"
+            value={lastUpdatedOverride}
+            max={new Date().toISOString().slice(0, 10)}
+            min="2000-01-01"
+            onChange={(e) => setLastUpdatedOverride(e.currentTarget.value)}
+            disabled={props.disabled}
+          />
+          {lastUpdatedOverride.trim() !== "" ? (
+            <button
+              type="button"
+              className="cc-btn cc-btn-ghost cc-btn-sm mt-1"
+              disabled={props.disabled}
+              onClick={() => setLastUpdatedOverride("")}
+            >
+              Clear — return to automatic
+            </button>
+          ) : null}
         </CmsField>
       </div>
     </CmsFormSection>

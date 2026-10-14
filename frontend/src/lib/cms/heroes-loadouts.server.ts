@@ -43,6 +43,8 @@ export interface HeroRecordRow extends D1Row {
   data_source: string | null;
   data_snapshot_at: string | null;
   stw_ref_slug: string | null;
+  /** Sprint 2: optional manual "Last updated" override, YYYY-MM-DD. Null = automatic mode. */
+  last_updated_override: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -112,6 +114,12 @@ export interface HeroInput {
   /** Phase 23 editorial one-liner used by cards and quick view. */
   summary?: string | null;
   /**
+   * Sprint 2 "Last updated" manual override (YYYY-MM-DD). undefined = leave
+   * untouched; null/"" = clear to automatic mode; a date = manual mode.
+   * Validated server-side by parseLastUpdatedOverride.
+   */
+  lastUpdatedOverride?: string | null;
+  /**
    * Optimistic concurrency token: the hero_records.updated_at the editor page
    * was rendered from. When supplied and stale, the write is rejected instead
    * of silently overwriting a concurrent editor's change.
@@ -149,6 +157,69 @@ export function normalizeHeroSummary(value: string | null | undefined): string |
   }
   return trimmed;
 }
+/**
+ * Validate a Last Updated manual override in the TRUSTED mutation path.
+ *
+ * Accepts null/undefined/"" (all mean "clear to automatic mode") or a UTC
+ * calendar date "YYYY-MM-DD". Rejects anything else — including impossible
+ * dates, timestamps, years outside 2000-2100, and future dates. The `now`
+ * parameter is injectable so tests use a controllable clock instead of
+ * flaky real-time assertions.
+ */
+export function parseLastUpdatedOverride(
+  value: unknown,
+  now: Date = new Date(),
+): string | null | undefined {
+  if (value === undefined) return undefined;
+  if (value === null) return null;
+  if (typeof value !== "string") throw new Error("Last updated override must be a date or empty.");
+  const trimmed = value.trim();
+  if (trimmed === "") return null;
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(trimmed);
+  if (!match) throw new Error("Last updated override must be a calendar date (YYYY-MM-DD).");
+  const year = Number(match[1]);
+  const month = Number(match[2]);
+  const day = Number(match[3]);
+  if (year < 2000 || year > 2100) {
+    throw new Error("Last updated override year must be between 2000 and 2100.");
+  }
+  const instant = new Date(Date.UTC(year, month - 1, day));
+  if (
+    instant.getUTCFullYear() !== year ||
+    instant.getUTCMonth() !== month - 1 ||
+    instant.getUTCDate() !== day
+  ) {
+    throw new Error("Last updated override is not a valid calendar date.");
+  }
+  // Compare UTC calendar days so a reader's timezone can never shift the rule.
+  const todayUtc = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+  if (instant.getTime() > todayUtc.getTime()) {
+    throw new Error("Last updated override cannot be a future date.");
+  }
+  return `${match[1]}-${match[2]}-${match[3]}`;
+}
+
+/**
+ * Re-stamp a hero's editorial clock after a successful CMS write.
+ *
+ * Writes hero_records.updated_at = now on the TRUSTED side (server-generated
+ * timestamp, never a client-supplied value). Call AFTER the mutation succeeds —
+ * never before validation, never on failed persistence. Opening the editor,
+ * viewing, or cancelling never reaches this helper, so those paths cannot move
+ * the date. A save that persists nothing (no-op) should not call this helper;
+ * its caller should detect "nothing changed" first.
+ */
+export async function touchHeroRecord(
+  db: D1Database,
+  heroContentId: string,
+  now: string = utcNow(),
+): Promise<string> {
+  await db
+    .prepare("UPDATE hero_records SET updated_at = ? WHERE content_id = ?")
+    .bind(now, heroContentId)
+    .run();
+  return now;
+}
 
 function validateHeroInput(i: HeroInput): {
   heroClass: string;
@@ -157,6 +228,7 @@ function validateHeroInput(i: HeroInput): {
   popularity: number;
   sortOrder: number;
   summary: string | null;
+  lastUpdatedOverride: string | null | undefined;
 } {
   if (!isHeroClass(i.heroClass)) throw new Error("Invalid hero_class.");
   const category = normalizeHeroCategory(i.category ?? null);
@@ -173,7 +245,18 @@ function validateHeroInput(i: HeroInput): {
   if (!isValidPopularity(popularity)) throw new Error("Invalid popularity.");
   if (!isValidSortOrder(sortOrder)) throw new Error("Invalid sort_order.");
   const summary = normalizeHeroSummary(i.summary ?? null);
-  return { heroClass: i.heroClass, category, rarity, popularity, sortOrder, summary };
+  // Throws on invalid dates — a failed save never reaches the write below,
+  // so it can never move the automatic timestamp either.
+  const lastUpdatedOverride = parseLastUpdatedOverride(i.lastUpdatedOverride ?? undefined);
+  return {
+    heroClass: i.heroClass,
+    category,
+    rarity,
+    popularity,
+    sortOrder,
+    summary,
+    lastUpdatedOverride,
+  };
 }
 export async function createHeroRecord(
   db: D1Database,
@@ -188,7 +271,7 @@ export async function createHeroRecord(
   const ts = utcNow();
   await db
     .prepare(
-      "INSERT INTO hero_records (content_id, hero_class, category, rarity, popularity, sort_order, portrait_asset_id, banner_asset_id, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+      "INSERT INTO hero_records (content_id, hero_class, category, rarity, popularity, sort_order, portrait_asset_id, banner_asset_id, created_at, updated_at, last_updated_override) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
     )
     .bind(
       base.id,
@@ -201,6 +284,7 @@ export async function createHeroRecord(
       input.bannerAssetId ?? null,
       ts,
       ts,
+      v.lastUpdatedOverride ?? null,
     )
     .run();
   await recordAuditEvent(
@@ -255,6 +339,12 @@ export async function updateHeroRecord(
       input.portraitAssetId !== undefined ? input.portraitAssetId : cur.portrait_asset_id,
     bannerAssetId: input.bannerAssetId !== undefined ? input.bannerAssetId : cur.banner_asset_id,
     summary: input.summary !== undefined ? input.summary : ((cur.summary as string | null) ?? null),
+    // undefined preserves an existing manual override (editing other fields
+    // must not silently erase it); null/"" clears back to automatic mode.
+    lastUpdatedOverride:
+      input.lastUpdatedOverride !== undefined
+        ? input.lastUpdatedOverride
+        : ((cur.last_updated_override as string | null | undefined) ?? null),
   };
   // `v.summary` is the SERVER-normalized value: whitespace-only collapses to
   // NULL and the length cap is enforced here, not by the client's maxLength.
@@ -264,7 +354,7 @@ export async function updateHeroRecord(
   const timestamp = utcNow();
   await db
     .prepare(
-      "UPDATE hero_records SET hero_class = ?, category = ?, rarity = ?, popularity = ?, sort_order = ?, portrait_asset_id = ?, banner_asset_id = ?, summary = ?, updated_at = ? WHERE content_id = ?",
+      "UPDATE hero_records SET hero_class = ?, category = ?, rarity = ?, popularity = ?, sort_order = ?, portrait_asset_id = ?, banner_asset_id = ?, summary = ?, last_updated_override = ?, updated_at = ? WHERE content_id = ?",
     )
     .bind(
       v.heroClass,
@@ -275,6 +365,7 @@ export async function updateHeroRecord(
       merged.portraitAssetId ?? null,
       merged.bannerAssetId ?? null,
       v.summary,
+      v.lastUpdatedOverride ?? null,
       timestamp,
       contentId,
     )
@@ -417,6 +508,8 @@ export async function upsertAbility(
     .bind(heroContentId, input.abilityKey)
     .first<AbilityRow>();
   if (!row) throw new Error("Failed to read back ability.");
+  // A successful ability save is a real hero edit: advance the automatic clock.
+  await touchHeroRecord(db, heroContentId);
   return row;
 }
 
@@ -458,6 +551,8 @@ export async function setHeroPerkIcon(
     .prepare("UPDATE hero_perks SET icon_asset_id = ? WHERE id = ?")
     .bind(input.iconAssetId, input.heroPerkId)
     .run();
+  // A successful perk-icon save is a real hero edit: advance the automatic clock.
+  await touchHeroRecord(db, input.heroContentId);
   await recordAuditEvent(
     db,
     buildAuditEvent({
@@ -566,6 +661,8 @@ export async function assignHeroPerk(
       return { slot: input.slot, heroPerkId: null, perkDefId: null, createdDef: false };
     }
     await db.prepare("DELETE FROM hero_perks WHERE id = ?").bind(target.id).run();
+    // A successful unassign is a real hero edit: advance the automatic clock.
+    await touchHeroRecord(db, input.heroContentId);
     await recordAuditEvent(
       db,
       buildAuditEvent({
@@ -654,6 +751,8 @@ export async function assignHeroPerk(
       },
     }),
   );
+  // A successful assignment is a real hero edit: advance the automatic clock.
+  await touchHeroRecord(db, input.heroContentId);
 
   return { slot: input.slot, heroPerkId: id, perkDefId: def.id, createdDef };
 }
@@ -818,6 +917,8 @@ export async function deleteAbility(
     .first<AbilityRow>();
   if (!row) throw new Error("Ability not found.");
   await db.prepare("DELETE FROM hero_abilities WHERE id = ?").bind(abilityId).run();
+  // A successful ability delete is a real hero edit: advance the automatic clock.
+  await touchHeroRecord(db, row.hero_content_id);
   await recordAuditEvent(
     db,
     buildAuditEvent({
@@ -880,6 +981,8 @@ export async function upsertAbilityTranslation(
     .bind(abilityId, input.locale)
     .first<AbilityTrRow>();
   if (!row) throw new Error("Failed to read back ability translation.");
+  // A successful translation save is a real hero edit: advance the automatic clock.
+  await touchHeroRecord(db, ability.hero_content_id);
   return row;
 }
 export async function listAbilityTranslations(

@@ -782,14 +782,21 @@ export function HeroesGridSkeleton() {
       className="grid list-none grid-cols-1 gap-4 min-[480px]:grid-cols-2 sm:gap-5 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6"
     >
       {Array.from({ length: 8 }, (_, i) => (
-        <li key={i} className="flex">
+        <li key={i} className="flex w-full justify-center">
           <div className="flex h-full w-full flex-col overflow-hidden rounded-2xl border border-panel-border bg-background/40">
-            <div className="aspect-[4/5] w-full animate-pulse bg-muted/30 motion-reduce:animate-none" />
-            <div className="flex flex-col gap-3 p-4">
-              <div className="h-5 w-3/4 animate-pulse rounded bg-muted/40 motion-reduce:animate-none" />
+            <div className="aspect-[4/5] max-h-80 w-full animate-pulse bg-muted/30 motion-reduce:animate-none" />
+            <div className="flex flex-1 flex-col gap-3 p-4">
+              {/* Mirrors the card's reserved regions: two-line title (min-h-14)
+                  and two-line perk row (min-h-9), so the skeleton holds the
+                  same geometry instead of collapsing when data lands. */}
+              <div className="flex min-h-14 items-center">
+                <div className="h-5 w-3/4 animate-pulse rounded bg-muted/40 motion-reduce:animate-none" />
+              </div>
               <div className="h-3 w-1/2 animate-pulse rounded bg-muted/30 motion-reduce:animate-none" />
-              <div className="h-8 w-full animate-pulse rounded bg-muted/20 motion-reduce:animate-none" />
-              <div className="h-9 w-24 animate-pulse rounded-lg bg-muted/20 motion-reduce:animate-none" />
+              <div className="min-h-9 w-full animate-pulse rounded bg-muted/20 motion-reduce:animate-none" />
+              <div className="mt-auto flex flex-col gap-2.5 pt-1">
+                <div className="h-8 w-24 animate-pulse rounded-lg bg-muted/20 motion-reduce:animate-none" />
+              </div>
             </div>
           </div>
         </li>

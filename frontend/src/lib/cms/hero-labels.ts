@@ -78,11 +78,13 @@ export interface HeroLabels {
   totalToMax: string;
   // cards / quick view
   tiersShort: string;
+  summaryEmpty: string;
   powerRange: string;
   summary: string;
   // codex page chrome
   sectionNav: string;
   heroFacts: string;
+  lastUpdated: string;
   // related
   relatedHeroes: string;
   relatedCurated: string;
@@ -133,9 +135,11 @@ const en: HeroLabels = {
 
   tiersShort: "{n} tiers",
   powerRange: "Power {min}-{max}",
+  summaryEmpty: "No description available yet.",
   summary: "Summary",
   sectionNav: "On this page",
   heroFacts: "Hero facts",
+  lastUpdated: "Last updated",
 
   relatedHeroes: "Related Heroes",
   relatedCurated: "Hand-picked",
@@ -200,9 +204,11 @@ const es: HeroLabels = {
 
   tiersShort: "{n} rangos",
   powerRange: "Poder {min}-{max}",
+  summaryEmpty: "Sin descripción disponible todavía.",
   summary: "Resumen",
   sectionNav: "En esta página",
   heroFacts: "Datos del héroe",
+  lastUpdated: "Última actualización",
 
   relatedHeroes: "Héroes relacionados",
   relatedCurated: "Seleccionados",
@@ -268,9 +274,11 @@ const fr: HeroLabels = {
 
   tiersShort: "{n} paliers",
   powerRange: "Puissance {min}-{max}",
+  summaryEmpty: "Aucune description disponible pour le moment.",
   summary: "Résumé",
   sectionNav: "Sur cette page",
   heroFacts: "Infos du héros",
+  lastUpdated: "Dernière mise à jour",
 
   relatedHeroes: "Héros liés",
   relatedCurated: "Sélection",
@@ -335,9 +343,11 @@ const ru: HeroLabels = {
 
   tiersShort: "{n} рангов",
   powerRange: "Сила {min}-{max}",
+  summaryEmpty: "Описание пока недоступно.",
   summary: "Кратко",
   sectionNav: "На этой странице",
   heroFacts: "Данные героя",
+  lastUpdated: "Обновлено",
 
   relatedHeroes: "Похожие герои",
   relatedCurated: "Подборка",
@@ -402,9 +412,11 @@ const de: HeroLabels = {
 
   tiersShort: "{n} Stufen",
   powerRange: "Stärke {min}-{max}",
+  summaryEmpty: "Noch keine Beschreibung verfügbar.",
   summary: "Kurzfassung",
   sectionNav: "Auf dieser Seite",
   heroFacts: "Heldenfakten",
+  lastUpdated: "Zuletzt aktualisiert",
 
   relatedHeroes: "Verwandte Helden",
   relatedCurated: "Ausgewählt",
@@ -470,9 +482,11 @@ const pt: HeroLabels = {
 
   tiersShort: "{n} postos",
   powerRange: "Poder {min}-{max}",
+  summaryEmpty: "Ainda sem descrição disponível.",
   summary: "Resumo",
   sectionNav: "Nesta página",
   heroFacts: "Dados do herói",
+  lastUpdated: "Última atualização",
 
   relatedHeroes: "Heróis relacionados",
   relatedCurated: "Selecionados",
@@ -538,9 +552,11 @@ const zh: HeroLabels = {
 
   tiersShort: "{n} 星",
   powerRange: "战力 {min}-{max}",
+  summaryEmpty: "暂无描述。",
   summary: "简介",
   sectionNav: "本页内容",
   heroFacts: "英雄资料",
+  lastUpdated: "最后更新",
 
   relatedHeroes: "相关英雄",
   relatedCurated: "精选",
@@ -605,9 +621,11 @@ const arSA: HeroLabels = {
 
   tiersShort: "{n} رتب",
   powerRange: "القوة {min}-{max}",
+  summaryEmpty: "لا يوجد وصف متاح بعد.",
   summary: "الملخّص",
   sectionNav: "في هذه الصفحة",
   heroFacts: "بيانات البطل",
+  lastUpdated: "آخر تحديث",
 
   relatedHeroes: "أبطال مرتبطون",
   relatedCurated: "مختارات",
@@ -672,9 +690,11 @@ const faIR: HeroLabels = {
 
   tiersShort: "{n} رده",
   powerRange: "قدرت {min}-{max}",
+  summaryEmpty: "هنوز توضیحی در دسترس نیست.",
   summary: "خلاصه",
   sectionNav: "در این صفحه",
   heroFacts: "اطلاعات قهرمان",
+  lastUpdated: "آخرین به‌روزرسانی",
 
   relatedHeroes: "قهرمانان مرتبط",
   relatedCurated: "گزیده‌ها",
