@@ -18,12 +18,7 @@ import { getHeroGraph } from "@/lib/cms/content-graph.server";
 import { heroDetailHref, loadoutDetailHref } from "./HeroCard";
 import { ContentGraph } from "./ContentGraphClient";
 import { RelatedGuides } from "./RelatedGuides";
-import {
-  RarityPill,
-  MediaIcon,
-  EmptyNote,
-  ResourceCostGrid,
-} from "@/components/heroes/HeroReferenceBits";
+import { RarityPill, MediaIcon, EmptyNote } from "@/components/heroes/HeroReferenceBits";
 import { LocalizedTime } from "@/components/hawkbucks/LocalizedTime";
 import { rarityShowcaseStyle } from "@/lib/cms/rarity-tokens";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -33,8 +28,8 @@ import { cn } from "@/lib/utils";
  * Hero codex — presentation components used ONLY by the public hero detail
  * page (HeroDetail.tsx).
  *
- * The shared reference primitives (RarityPill, MediaIcon, ResourceCostGrid,
- * EmptyNote) stay untouched in HeroReferenceBits so the listing card and the
+ * The shared reference primitives (RarityPill, MediaIcon, EmptyNote) stay
+ * untouched in HeroReferenceBits so the listing card and the
  * quick-view dialog cannot regress. Everything in this file is detail-page
  * specific: the identity header, the scroll-spy section nav, the perk /
  * ability / progression layouts, the facts rail and the related-heroes
@@ -170,15 +165,33 @@ export function CodexHeader({ hero, locale }: { hero: PublicHeroDetail; locale: 
       />
       <div className="relative grid items-center gap-6 p-5 sm:gap-8 sm:p-7 md:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] md:p-8">
         {/* Borderless portrait: native aspect kept, never cropped to fit. */}
-        <div className="mx-auto w-full max-w-70 sm:max-w-80 md:max-w-none">
+        <div className="relative mx-auto w-full max-w-70 overflow-visible sm:max-w-80 md:max-w-none">
           {hero.imageUrl ? (
-            <img
-              src={hero.imageUrl}
-              alt={`${hero.title} portrait`}
-              fetchPriority="high"
-              decoding="async"
-              className="mx-auto aspect-square w-full rounded-xl object-contain object-top drop-shadow-[0_18px_36px_rgba(0,0,0,0.45)]"
-            />
+            <div className="relative">
+              {/* Floor fade: the page surface rises into the portrait's lower
+                  third so the cutout silhouette dissolves instead of ending in
+                  a hard horizontal edge. Decorative only. */}
+              <div
+                aria-hidden="true"
+                className="pointer-events-none absolute inset-x-0 bottom-0 z-[1] h-[38%] bg-gradient-to-t from-panel via-panel/55 to-transparent"
+              />
+              <img
+                src={hero.imageUrl}
+                alt={`${hero.title} portrait`}
+                fetchPriority="high"
+                decoding="async"
+                className="relative z-[2] mx-auto aspect-square w-full rounded-xl object-contain object-top drop-shadow-[0_18px_36px_rgba(0,0,0,0.45)]"
+                style={{
+                  // Feathered blend: opaque through the face and torso,
+                  // dissolving over the last ~18% so the lower silhouette
+                  // melts into the floor fade. No blur or desaturation — the
+                  // artwork itself is untouched, only its alpha edge softens.
+                  WebkitMaskImage:
+                    "linear-gradient(to bottom, black 0%, black 80%, transparent 99%)",
+                  maskImage: "linear-gradient(to bottom, black 0%, black 80%, transparent 99%)",
+                }}
+              />
+            </div>
           ) : (
             <div
               aria-hidden="true"
@@ -422,10 +435,12 @@ export function CodexPerks({
  * Abilities on a deliberate two-column grid.
  *
  * Two tracks fit the content column at every desktop width (three never do
- * inside the 1100px shell once the facts rail is beside it), and an odd final
- * item spans the full second row instead of orphaning a half-width tile —
- * the `last-child:nth-child(odd)` rule covers 1, 3 and 5 without knowing the
- * count in advance. Tiles are informational list items, never buttons.
+ * inside the 1100px shell once the facts rail is beside it: ~250px per card
+ * would cramp names and descriptions). Every tile keeps its own balanced
+ * width — including an odd final item — so the third ability never stretches
+ * into an oversized full-width row. Icon and name share one visual
+ * centerline via items-center. Tiles are informational list items, never
+ * buttons.
  */
 export function CodexAbilities({
   locale,
@@ -437,16 +452,20 @@ export function CodexAbilities({
   const l = heroLabels(locale);
   if (abilities.length === 0) return <EmptyNote>{l.abilities}</EmptyNote>;
   return (
-    <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:[&>li:last-child:nth-child(odd)]:col-span-2">
+    <ul className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
       {abilities.map((a) => (
         <li
           key={a.key}
           data-testid="hero-ability-row"
-          className="flex gap-3 rounded-xl border border-panel-border/60 bg-background/40 p-3.5"
+          className="flex min-w-0 items-center gap-2.5 rounded-xl border border-panel-border/60 bg-background/40 px-3 py-2.5"
         >
-          <MediaIcon url={a.iconUrl} sizeClass="mt-0.5 h-9 w-9" fallbackText={a.name.slice(0, 2)} />
+          <MediaIcon
+            url={a.iconUrl}
+            sizeClass="h-9 w-9 shrink-0"
+            fallbackText={a.name.slice(0, 2)}
+          />
           <div className="min-w-0">
-            <p className="font-display text-sm font-bold leading-snug">{a.name}</p>
+            <p className="font-display text-sm font-bold leading-snug text-balance">{a.name}</p>
             {a.description ? (
               <p className="mt-1 text-[13px] leading-relaxed text-muted-foreground">
                 {a.description}
@@ -459,7 +478,8 @@ export function CodexAbilities({
   );
 }
 
-/** One resource line: prominent locale-formatted quantity, secondary name. */
+/** One resource entry: icon + prominent quantity + secondary name, kept together
+ * as a compact inline chip that wraps inside its column. */
 function ResourceLine({
   locale,
   iconUrl,
@@ -474,12 +494,14 @@ function ResourceLine({
   return (
     <span
       data-testid="hero-resource-cost"
-      className="flex items-center gap-2"
+      className="inline-flex min-w-0 max-w-full items-baseline gap-1.5 rounded-md bg-background/40 px-1.5 py-0.5 text-[13px]"
       title={`${name}: ${formatNumber(locale, amount)}`}
     >
-      <MediaIcon url={iconUrl} sizeClass="h-5 w-5" />
-      <span className="font-semibold tabular-nums">{formatNumber(locale, amount)}</span>
-      <span className="min-w-0 text-muted-foreground">{name}</span>
+      <MediaIcon url={iconUrl} sizeClass="h-4 w-4 translate-y-[3px] shrink-0" />
+      <span className="font-semibold tabular-nums whitespace-nowrap">
+        {formatNumber(locale, amount)}
+      </span>
+      <span className="min-w-0 truncate text-muted-foreground">{name}</span>
     </span>
   );
 }
@@ -487,7 +509,7 @@ function ResourceLine({
 function TierTable({ locale, block }: { locale: string; block: PublicHeroRarityProgress }) {
   const l = heroLabels(locale);
   const rarityName = rarityLabel(locale, block.rarity) ?? block.rarity;
-  const cell = "px-3 py-2.5 align-top";
+  const cell = "px-2.5 py-1.5 align-middle";
   return (
     <div className="hidden overflow-x-auto rounded-xl border border-panel-border/60 sm:block">
       <table data-testid="hero-tier-table" className="w-full border-collapse text-sm">
@@ -498,25 +520,25 @@ function TierTable({ locale, block }: { locale: string; block: PublicHeroRarityP
           <tr className="border-b border-panel-border/70 bg-background/40 text-start">
             <th
               scope="col"
-              className="w-14 px-3 py-2 text-start text-[11px] font-semibold uppercase tracking-wide text-muted-foreground first:ps-4"
+              className="w-12 px-2.5 py-1.5 text-start text-[11px] font-semibold uppercase tracking-wide text-muted-foreground first:ps-3"
             >
               {l.tier}
             </th>
             <th
               scope="col"
-              className="w-28 px-3 py-2 text-start text-[11px] font-semibold uppercase tracking-wide text-muted-foreground"
+              className="w-24 px-2.5 py-1.5 text-start text-[11px] font-semibold uppercase tracking-wide text-muted-foreground"
             >
               {l.power}
             </th>
             <th
               scope="col"
-              className="w-28 px-3 py-2 text-start text-[11px] font-semibold uppercase tracking-wide text-muted-foreground"
+              className="w-24 px-2.5 py-1.5 text-start text-[11px] font-semibold uppercase tracking-wide text-muted-foreground"
             >
               {l.level}
             </th>
             <th
               scope="col"
-              className="px-3 py-2 text-start text-[11px] font-semibold uppercase tracking-wide text-muted-foreground last:pe-4"
+              className="px-2.5 py-1.5 text-start text-[11px] font-semibold uppercase tracking-wide text-muted-foreground last:pe-3"
             >
               {l.evolveToNext}
             </th>
@@ -525,18 +547,20 @@ function TierTable({ locale, block }: { locale: string; block: PublicHeroRarityP
         <tbody>
           {block.tiers.map((tier) => (
             <tr key={tier.tier} className="border-b border-panel-border/40 last:border-b-0">
-              <td className={`${cell} ps-4 font-semibold tabular-nums`}>{tier.tier}</td>
+              <td className={`${cell} ps-3 font-semibold tabular-nums`}>{tier.tier}</td>
               <td className={`${cell} whitespace-nowrap tabular-nums`}>
                 {codexRangeText(locale, tier.powerMin, tier.powerMax)}
               </td>
               <td className={`${cell} whitespace-nowrap tabular-nums`}>
                 {codexRangeText(locale, tier.levelMin, tier.levelMax)}
               </td>
-              <td className={`${cell} pe-4`}>
+              <td className={`${cell} pe-3`}>
                 {tier.evolve.length > 0 ? (
-                  <ul className="flex flex-col gap-1.5">
+                  // Wrapping inline flow: entries stay together, the numeric
+                  // columns never move, and rows stay one compact height.
+                  <ul className="flex flex-wrap gap-1.5">
                     {tier.evolve.map((c) => (
-                      <li key={`${tier.tier}-${c.resourceKey}`}>
+                      <li key={`${tier.tier}-${c.resourceKey}`} className="min-w-0">
                         <ResourceLine
                           locale={locale}
                           iconUrl={c.iconUrl}
@@ -561,27 +585,25 @@ function TierTable({ locale, block }: { locale: string; block: PublicHeroRarityP
 function TierCards({ locale, block }: { locale: string; block: PublicHeroRarityProgress }) {
   const l = heroLabels(locale);
   return (
-    <ul data-testid="hero-tier-list" className="space-y-2.5 sm:hidden">
+    <ul data-testid="hero-tier-list" className="space-y-2 sm:hidden">
       {block.tiers.map((tier) => (
         <li
           key={tier.tier}
-          className="rounded-xl border border-panel-border/60 bg-background/40 p-3"
+          className="rounded-xl border border-panel-border/60 bg-background/40 px-3 py-2.5"
         >
           <div className="flex items-baseline justify-between gap-2">
             <span className="text-[13px] font-bold">
               {l.tier} {tier.tier}
             </span>
             <span className="whitespace-nowrap text-xs tabular-nums text-muted-foreground">
-              {codexRangeText(locale, tier.powerMin, tier.powerMax)}
+              {codexRangeText(locale, tier.powerMin, tier.powerMax)} · {l.level}{" "}
+              {codexRangeText(locale, tier.levelMin, tier.levelMax)}
             </span>
           </div>
-          <p className="mt-0.5 text-xs tabular-nums text-muted-foreground">
-            {l.level} {codexRangeText(locale, tier.levelMin, tier.levelMax)}
-          </p>
           {tier.evolve.length > 0 ? (
-            <ul className="mt-2 space-y-1.5 border-t border-panel-border/50 pt-2 text-[13px]">
+            <ul className="mt-1.5 flex flex-wrap gap-1.5 border-t border-panel-border/50 pt-2 text-[13px]">
               {tier.evolve.map((c) => (
-                <li key={`${tier.tier}-${c.resourceKey}`}>
+                <li key={`${tier.tier}-${c.resourceKey}`} className="min-w-0">
                   <ResourceLine
                     locale={locale}
                     iconUrl={c.iconUrl}
@@ -606,8 +628,8 @@ function TierCards({ locale, block }: { locale: string; block: PublicHeroRarityP
  * selected block's tiers, totals and recycling figures all come from that one
  * loader block, never recalculated. The desktop table keeps every numeric
  * range on one line; narrow viewports get one tier card per tier instead of a
- * squeezed table. Totals reuse the shared ResourceCostGrid with the loader's
- * exact arrays.
+ * squeezed table. Totals and recycling reuse the loader's exact arrays
+ * rendered through the local compact ResourceLine entries.
  */
 export function CodexProgression({ locale, hero }: { locale: string; hero: PublicHeroDetail }) {
   const l = heroLabels(locale);
@@ -629,17 +651,31 @@ export function CodexProgression({ locale, hero }: { locale: string; hero: Publi
       <TierTable locale={locale} block={rarityBlock} />
       <TierCards locale={locale} block={rarityBlock} />
       {rarityBlock.total.length > 0 ? (
-        <div className="mt-5 rounded-xl border border-panel-border/60 bg-background/40 p-4">
+        <div className="mt-4 border-t border-panel-border/60 pt-3">
           <h3 className="text-sm font-bold">{l.totalToMax}</h3>
           <p className="mt-0.5 text-xs text-muted-foreground">{l.evolveToMax}</p>
-          <ResourceCostGrid locale={locale} costs={rarityBlock.total} className="mt-3" />
+          <ul className="mt-2 flex flex-wrap gap-1.5">
+            {rarityBlock.total.map((c) => (
+              <li key={c.resourceKey} className="min-w-0">
+                <ResourceLine locale={locale} iconUrl={c.iconUrl} amount={c.amount} name={c.name} />
+              </li>
+            ))}
+          </ul>
         </div>
       ) : null}
       {rarityBlock.recycle.length > 0 ? (
-        <div className="mt-3 rounded-xl border border-panel-border/50 p-3.5">
-          <h3 className="text-[13px] font-bold text-muted-foreground">{l.recyclingReturns}</h3>
-          <ResourceCostGrid locale={locale} costs={rarityBlock.recycle} className="mt-2.5" />
-        </div>
+        <p className="mt-2.5 flex flex-wrap items-baseline gap-x-2 gap-y-1 text-xs text-muted-foreground">
+          <span className="font-semibold uppercase tracking-wide">{l.recyclingReturns}</span>
+          {rarityBlock.recycle.map((c) => (
+            <span key={c.resourceKey} className="inline-flex items-baseline gap-1.5">
+              <MediaIcon url={c.iconUrl} sizeClass="h-4 w-4 translate-y-[3px] shrink-0" />
+              <span className="font-semibold tabular-nums text-foreground">
+                {formatNumber(locale, c.amount)}
+              </span>
+              <span>{c.name}</span>
+            </span>
+          ))}
+        </p>
       ) : null}
     </>
   );
@@ -794,13 +830,13 @@ export function CodexRelated({ hero, locale }: { hero: PublicHeroDetail; locale:
       {groups.map((group) => (
         <div key={group.kind}>
           <h3 className="mb-2.5 text-sm font-bold">{relatedGroupLabel(locale, group.kind)}</h3>
-          <ul className="grid grid-cols-[repeat(auto-fill,minmax(min(100%,15rem),1fr))] gap-2.5">
+          <ul className="grid grid-cols-[repeat(auto-fill,minmax(min(100%,13rem),1fr))] gap-2">
             {group.heroes.map((h) => (
-              <li key={h.contentId}>
+              <li key={h.contentId} className="min-w-0">
                 <Link
                   to={heroDetailHref(locale, h.slug)}
                   data-testid="hero-related-card"
-                  className="flex h-full items-center gap-3 rounded-xl border border-panel-border/60 bg-background/40 p-2.5 outline-none transition-colors hover:border-primary/60 hover:bg-background/60 focus-visible:ring-2 focus-visible:ring-ring"
+                  className="flex h-full min-w-0 items-center gap-2.5 rounded-xl border border-panel-border/50 bg-background/30 py-2 pe-3 ps-2 outline-none transition-colors hover:border-primary/50 hover:bg-background/50 focus-visible:ring-2 focus-visible:ring-ring active:bg-background/60"
                 >
                   {h.imageUrl ? (
                     <img
@@ -809,19 +845,24 @@ export function CodexRelated({ hero, locale }: { hero: PublicHeroDetail; locale:
                       aria-hidden="true"
                       loading="lazy"
                       decoding="async"
-                      className="h-12 w-12 shrink-0 rounded-lg border border-panel-border/50 object-cover object-top"
+                      className="h-14 w-11 shrink-0 rounded-md bg-panel object-cover object-top"
                     />
                   ) : (
                     <span
                       aria-hidden="true"
-                      className="grid h-12 w-12 shrink-0 place-items-center rounded-lg border border-panel-border/50 bg-background/40 text-muted-foreground/50"
+                      className="grid h-14 w-11 shrink-0 place-items-center rounded-md bg-background/40 text-muted-foreground/50"
                     >
                       <Shield className="h-5 w-5" />
                     </span>
                   )}
-                  <span className="min-w-0">
-                    <span className="block truncate text-sm font-semibold">{h.title}</span>
-                    <span className="mt-0.5 block truncate text-xs text-muted-foreground">
+                  <span className="min-w-0 py-0.5">
+                    <span
+                      className="block truncate font-display text-[13px] font-bold leading-snug"
+                      title={h.title}
+                    >
+                      {h.title}
+                    </span>
+                    <span className="mt-0.5 block truncate text-xs leading-snug text-muted-foreground">
                       {heroClassLabel(locale, h.heroClass)}
                       {h.standardPerkName ? ` · ${h.standardPerkName}` : ""}
                     </span>
