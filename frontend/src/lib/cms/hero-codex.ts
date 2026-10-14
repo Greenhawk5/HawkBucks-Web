@@ -15,8 +15,8 @@
 import { formatNumber } from "./hero-labels";
 import { primaryRarity, type PublicHeroProgression } from "./hero-reference";
 
-/** Non-breaking en dash: a range such as 116–144 must not split across lines. */
-const RANGE_DASH = "–";
+/** Range separator with breathing room: `12 – 26`, never line-broken. */
+const SPACED_DASH = " – ";
 
 /**
  * Which section the scroll-spy treats as current.
@@ -47,8 +47,9 @@ export function pickActiveSection<TId extends string>(
  * One inclusive numeric range, locale-formatted, never line-broken.
  *
  * The caller keeps the whole string inside a `whitespace-nowrap` cell, so
- * `116–144` renders as one visual unit. A single value renders bare; no
- * values at all renders an em dash rather than an empty cell.
+ * `12 – 26` renders as one visual unit with breathing room around the dash.
+ * A single value renders bare; no values at all renders an em dash rather
+ * than an empty cell.
  */
 export function codexRangeText(
   locale: string | null | undefined,
@@ -60,11 +61,11 @@ export function codexRangeText(
   }
   if (max === null || max === undefined) return formatNumber(locale, min);
   if (min === max) return formatNumber(locale, min);
-  return `${formatNumber(locale, min)}${RANGE_DASH}${formatNumber(locale, max)}`;
+  return `${formatNumber(locale, min)}${SPACED_DASH}${formatNumber(locale, max)}`;
 }
 
 /**
- * The hero's overall power span, e.g. "12–144".
+ * The hero's overall power span, e.g. "12 – 26".
  *
  * Floor = the first tier's minimum power of the hero's best rarity block,
  * ceiling = the loader's `maxPower` (top tier of that same block). Both are
@@ -87,5 +88,5 @@ export function heroPowerRange(
   if (floor === null || floor === undefined || floor === ceiling) {
     return formatNumber(locale, ceiling);
   }
-  return `${formatNumber(locale, floor)}${RANGE_DASH}${formatNumber(locale, ceiling)}`;
+  return `${formatNumber(locale, floor)}${SPACED_DASH}${formatNumber(locale, ceiling)}`;
 }

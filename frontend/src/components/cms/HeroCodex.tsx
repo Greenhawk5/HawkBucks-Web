@@ -167,31 +167,24 @@ export function CodexHeader({ hero, locale }: { hero: PublicHeroDetail; locale: 
         {/* Borderless portrait: native aspect kept, never cropped to fit. */}
         <div className="relative mx-auto w-full max-w-70 overflow-visible sm:max-w-80 md:max-w-none">
           {hero.imageUrl ? (
-            <div className="relative">
-              {/* Floor fade: the page surface rises into the portrait's lower
-                  third so the cutout silhouette dissolves instead of ending in
-                  a hard horizontal edge. Decorative only. */}
-              <div
-                aria-hidden="true"
-                className="pointer-events-none absolute inset-x-0 bottom-0 z-[1] h-[38%] bg-gradient-to-t from-panel via-panel/55 to-transparent"
-              />
-              <img
-                src={hero.imageUrl}
-                alt={`${hero.title} portrait`}
-                fetchPriority="high"
-                decoding="async"
-                className="relative z-[2] mx-auto aspect-square w-full rounded-xl object-contain object-top drop-shadow-[0_18px_36px_rgba(0,0,0,0.45)]"
-                style={{
-                  // Feathered blend: opaque through the face and torso,
-                  // dissolving over the last ~18% so the lower silhouette
-                  // melts into the floor fade. No blur or desaturation — the
-                  // artwork itself is untouched, only its alpha edge softens.
-                  WebkitMaskImage:
-                    "linear-gradient(to bottom, black 0%, black 80%, transparent 99%)",
-                  maskImage: "linear-gradient(to bottom, black 0%, black 80%, transparent 99%)",
-                }}
-              />
-            </div>
+            <img
+              src={hero.imageUrl}
+              alt={`${hero.title} portrait`}
+              fetchPriority="high"
+              decoding="async"
+              className="relative mx-auto aspect-square w-full object-contain object-top drop-shadow-[0_18px_36px_rgba(0,0,0,0.45)]"
+              style={{
+                // Single elliptical alpha mask: opaque through the face and
+                // torso, feathering out toward every edge so the silhouette
+                // dissolves into the rarity glow with no rectangular outline.
+                // No blur, desaturation, or whole-image opacity — the artwork
+                // itself is untouched, only its alpha edge softens.
+                WebkitMaskImage:
+                  "radial-gradient(ellipse 88% 86% at 50% 42%, black 60%, transparent 98%)",
+                maskImage:
+                  "radial-gradient(ellipse 88% 86% at 50% 42%, black 60%, transparent 98%)",
+              }}
+            />
           ) : (
             <div
               aria-hidden="true"
@@ -432,15 +425,13 @@ export function CodexPerks({
 }
 
 /**
- * Abilities on a deliberate two-column grid.
+ * Abilities on a responsive one/two/three-column grid.
  *
- * Two tracks fit the content column at every desktop width (three never do
- * inside the 1100px shell once the facts rail is beside it: ~250px per card
- * would cramp names and descriptions). Every tile keeps its own balanced
- * width — including an odd final item — so the third ability never stretches
- * into an oversized full-width row. Icon and name share one visual
- * centerline via items-center. Tiles are informational list items, never
- * buttons.
+ * Exactly three abilities share one balanced row on desktop: each tile takes
+ * an equal third of the section width. Below the lg breakpoint the grid falls
+ * back to two columns, then one on narrow mobile, so labels never cramp.
+ * Icon and name share one visual centerline via items-center. Tiles are
+ * informational list items, never buttons.
  */
 export function CodexAbilities({
   locale,
@@ -452,7 +443,12 @@ export function CodexAbilities({
   const l = heroLabels(locale);
   if (abilities.length === 0) return <EmptyNote>{l.abilities}</EmptyNote>;
   return (
-    <ul className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
+    <ul
+      className={cn(
+        "grid grid-cols-1 gap-2.5 sm:grid-cols-2",
+        abilities.length === 3 ? "lg:grid-cols-3" : "",
+      )}
+    >
       {abilities.map((a) => (
         <li
           key={a.key}
@@ -517,28 +513,28 @@ function TierTable({ locale, block }: { locale: string; block: PublicHeroRarityP
           {l.progression} — {rarityName}
         </caption>
         <thead>
-          <tr className="border-b border-panel-border/70 bg-background/40 text-start">
+          <tr className="border-b border-panel-border/70 bg-background/40 text-center">
             <th
               scope="col"
-              className="w-12 px-2.5 py-1.5 text-start text-[11px] font-semibold uppercase tracking-wide text-muted-foreground first:ps-3"
+              className="w-12 px-2.5 py-1.5 text-center text-[11px] font-semibold uppercase tracking-wide text-muted-foreground first:ps-3"
             >
               {l.tier}
             </th>
             <th
               scope="col"
-              className="w-24 px-2.5 py-1.5 text-start text-[11px] font-semibold uppercase tracking-wide text-muted-foreground"
+              className="w-24 px-2.5 py-1.5 text-center text-[11px] font-semibold uppercase tracking-wide text-muted-foreground"
             >
               {l.power}
             </th>
             <th
               scope="col"
-              className="w-24 px-2.5 py-1.5 text-start text-[11px] font-semibold uppercase tracking-wide text-muted-foreground"
+              className="w-24 px-2.5 py-1.5 text-center text-[11px] font-semibold uppercase tracking-wide text-muted-foreground"
             >
               {l.level}
             </th>
             <th
               scope="col"
-              className="px-2.5 py-1.5 text-start text-[11px] font-semibold uppercase tracking-wide text-muted-foreground last:pe-3"
+              className="px-2.5 py-1.5 text-center text-[11px] font-semibold uppercase tracking-wide text-muted-foreground last:pe-3"
             >
               {l.evolveToNext}
             </th>
@@ -547,18 +543,19 @@ function TierTable({ locale, block }: { locale: string; block: PublicHeroRarityP
         <tbody>
           {block.tiers.map((tier) => (
             <tr key={tier.tier} className="border-b border-panel-border/40 last:border-b-0">
-              <td className={`${cell} ps-3 font-semibold tabular-nums`}>{tier.tier}</td>
-              <td className={`${cell} whitespace-nowrap tabular-nums`}>
+              <td className={`${cell} ps-3 text-center font-semibold tabular-nums`}>{tier.tier}</td>
+              <td className={`${cell} text-center whitespace-nowrap tabular-nums`}>
                 {codexRangeText(locale, tier.powerMin, tier.powerMax)}
               </td>
-              <td className={`${cell} whitespace-nowrap tabular-nums`}>
+              <td className={`${cell} text-center whitespace-nowrap tabular-nums`}>
                 {codexRangeText(locale, tier.levelMin, tier.levelMax)}
               </td>
               <td className={`${cell} pe-3`}>
                 {tier.evolve.length > 0 ? (
-                  // Wrapping inline flow: entries stay together, the numeric
-                  // columns never move, and rows stay one compact height.
-                  <ul className="flex flex-wrap gap-1.5">
+                  // Wrapping inline flow, centered as a group: entries keep
+                  // their natural reading order and internal alignment while
+                  // the group sits centered in the requirements cell.
+                  <ul className="flex flex-wrap justify-center gap-1.5">
                     {tier.evolve.map((c) => (
                       <li key={`${tier.tier}-${c.resourceKey}`} className="min-w-0">
                         <ResourceLine
@@ -571,7 +568,7 @@ function TierTable({ locale, block }: { locale: string; block: PublicHeroRarityP
                     ))}
                   </ul>
                 ) : (
-                  <span className="text-xs text-muted-foreground">—</span>
+                  <span className="block text-center text-xs text-muted-foreground">—</span>
                 )}
               </td>
             </tr>

@@ -64,9 +64,9 @@ test("a subset of sections still resolves deterministically", () => {
 // codexRangeText
 // ---------------------------------------------------------------------------
 
-test("ranges render locale-formatted with a non-breaking dash", () => {
-  assert.equal(CX.codexRangeText("en", 116, 144), "116–144");
-  assert.equal(CX.codexRangeText("de", 1000, 2000), "1.000–2.000");
+test("ranges render locale-formatted with a spaced dash", () => {
+  assert.equal(CX.codexRangeText("en", 116, 144), "116 – 144");
+  assert.equal(CX.codexRangeText("de", 1000, 2000), "1.000 – 2.000");
   assert.equal(CX.codexRangeText("en", 40, 40), "40");
 });
 
@@ -95,7 +95,7 @@ function mythicBlock() {
 
 test("the power span runs from the best block floor to the loader maxPower", () => {
   const prog = { rarities: [mythicBlock()], maxPower: 144, tierCount: 5 };
-  assert.equal(CX.heroPowerRange("en", prog), "12–144");
+  assert.equal(CX.heroPowerRange("en", prog), "12 – 144");
 });
 
 test("a single value renders bare, never as a degenerate range", () => {
