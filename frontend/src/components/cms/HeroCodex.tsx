@@ -172,17 +172,18 @@ export function CodexHeader({ hero, locale }: { hero: PublicHeroDetail; locale: 
               alt={`${hero.title} portrait`}
               fetchPriority="high"
               decoding="async"
-              className="relative mx-auto aspect-square w-full object-contain object-top drop-shadow-[0_18px_36px_rgba(0,0,0,0.45)]"
+              className="relative mx-auto aspect-square w-full object-contain object-top"
               style={{
-                // Single elliptical alpha mask: opaque through the face and
-                // torso, feathering out toward every edge so the silhouette
-                // dissolves into the rarity glow with no rectangular outline.
-                // No blur, desaturation, or whole-image opacity — the artwork
-                // itself is untouched, only its alpha edge softens.
+                // Bottom-weighted feathered mask: the face and torso stay
+                // fully opaque; only the lower silhouette dissolves into the
+                // page background. No drop-shadow (a filtered shadow is drawn
+                // from the unmasked box, which is what read as a rectangular
+                // panel edge) and no blur, desaturation, or whole-image
+                // opacity — the artwork itself is untouched.
                 WebkitMaskImage:
-                  "radial-gradient(ellipse 88% 86% at 50% 42%, black 60%, transparent 98%)",
+                  "linear-gradient(to bottom, black 0%, black 68%, rgba(0,0,0,0.55) 82%, transparent 97%)",
                 maskImage:
-                  "radial-gradient(ellipse 88% 86% at 50% 42%, black 60%, transparent 98%)",
+                  "linear-gradient(to bottom, black 0%, black 68%, rgba(0,0,0,0.55) 82%, transparent 97%)",
               }}
             />
           ) : (
@@ -552,10 +553,11 @@ function TierTable({ locale, block }: { locale: string; block: PublicHeroRarityP
               </td>
               <td className={`${cell} pe-3`}>
                 {tier.evolve.length > 0 ? (
-                  // Wrapping inline flow, centered as a group: entries keep
-                  // their natural reading order and internal alignment while
-                  // the group sits centered in the requirements cell.
-                  <ul className="flex flex-wrap justify-center gap-1.5">
+                  // Left-aligned wrapping flow with a stable starting edge:
+                  // every tier begins at the same horizontal position, entries
+                  // wrap predictably with a consistent gap, and each chip
+                  // keeps its icon + quantity + name together.
+                  <ul className="flex flex-wrap gap-1.5">
                     {tier.evolve.map((c) => (
                       <li key={`${tier.tier}-${c.resourceKey}`} className="min-w-0">
                         <ResourceLine
