@@ -503,6 +503,21 @@ function ResourceLine({
   );
 }
 
+/**
+ * Centered two-column resource grid for the desktop `Evolve to Next` cell.
+ *
+ * The grid as a whole is centered (capped width + auto margins) while every
+ * entry stays left-aligned inside its own column. Equal `1fr` columns give
+ * identical widths across all tiers; row-major placement keeps the loader's
+ * exact resource order. The table wrapper already scrolls horizontally, so
+ * the grid can never push the page itself into overflow.
+ */
+function ResourceGrid({ children }: { children: React.ReactNode }) {
+  return (
+    <ul className="mx-auto grid w-full max-w-[28rem] grid-cols-2 gap-x-4 gap-y-1.5">{children}</ul>
+  );
+}
+
 function TierTable({ locale, block }: { locale: string; block: PublicHeroRarityProgress }) {
   const l = heroLabels(locale);
   const rarityName = rarityLabel(locale, block.rarity) ?? block.rarity;
@@ -553,11 +568,11 @@ function TierTable({ locale, block }: { locale: string; block: PublicHeroRarityP
               </td>
               <td className={`${cell} pe-3`}>
                 {tier.evolve.length > 0 ? (
-                  // Left-aligned wrapping flow with a stable starting edge:
-                  // every tier begins at the same horizontal position, entries
-                  // wrap predictably with a consistent gap, and each chip
-                  // keeps its icon + quantity + name together.
-                  <ul className="flex flex-wrap gap-1.5">
+                  // Centered two-column grid, entries left-aligned per cell:
+                  // the grid sits centered under the heading, both columns
+                  // share a stable width, and each chip keeps its icon +
+                  // quantity + name together in loader order.
+                  <ResourceGrid>
                     {tier.evolve.map((c) => (
                       <li key={`${tier.tier}-${c.resourceKey}`} className="min-w-0">
                         <ResourceLine
@@ -568,7 +583,7 @@ function TierTable({ locale, block }: { locale: string; block: PublicHeroRarityP
                         />
                       </li>
                     ))}
-                  </ul>
+                  </ResourceGrid>
                 ) : (
                   <span className="block text-center text-xs text-muted-foreground">—</span>
                 )}
