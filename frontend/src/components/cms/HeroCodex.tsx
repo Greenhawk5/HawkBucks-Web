@@ -1,0 +1,851 @@
+import * as React from "react";
+import { Link } from "@tanstack/react-router";
+import { ArrowLeft, Shield } from "lucide-react";
+
+import { getPublicStrings, heroClassLabel } from "@/lib/cms/public-strings";
+import {
+  heroLabels,
+  categoryLabel,
+  rarityLabel,
+  tierCountLabel,
+  formatNumber,
+} from "@/lib/cms/hero-labels";
+import { primaryRarity, sortRaritiesAsc } from "@/lib/cms/hero-reference";
+import type { PublicHeroRarityProgress } from "@/lib/cms/hero-reference";
+import { pickActiveSection, codexRangeText, heroPowerRange } from "@/lib/cms/hero-codex";
+import type { PublicHeroDetail } from "@/lib/cms/public-hero-detail.loader";
+import { getHeroGraph } from "@/lib/cms/content-graph.server";
+import { heroDetailHref, loadoutDetailHref } from "./HeroCard";
+import { ContentGraph } from "./ContentGraphClient";
+import { RelatedGuides } from "./RelatedGuides";
+import {
+  RarityPill,
+  MediaIcon,
+  EmptyNote,
+  ResourceCostGrid,
+} from "@/components/heroes/HeroReferenceBits";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { cn } from "@/lib/utils";
+
+/**
+ * Hero codex — presentation components used ONLY by the public hero detail
+ * page (HeroDetail.tsx).
+ *
+ * The shared reference primitives (RarityPill, MediaIcon, ResourceCostGrid,
+ * EmptyNote) stay untouched in HeroReferenceBits so the listing card and the
+ * quick-view dialog cannot regress. Everything in this file is detail-page
+ * specific: the identity header, the scroll-spy section nav, the perk /
+ * ability / progression layouts, the facts rail and the related-heroes
+ * discovery grid.
+ *
+ * RTL: directional properties are logical only (ms-/me-/ps-/pe-/start/end),
+ * matching the convention enforced on the neighbouring reference files.
+ */
+
+export type CodexSectionId = "summary" | "perks" | "abilities" | "progression" | "related";
+
+export interface CodexSectionLink {
+  id: CodexSectionId;
+  label: string;
+}
+
+/**
+ * Distance from the viewport top at which a section counts as "current".
+ * Top navbar (64px) + sticky section bar (~53px) + a little breathing room.
+ */
+const SPY_OFFSET = 136;
+
+/**
+ * Scroll-spy for the in-page section nav.
+ *
+ * Established-mechanism choice: a passive scroll listener with rAF
+ * coalescing, the same approach as BackToTop — no IntersectionObserver
+ * bookkeeping, no flicker around section boundaries (the last section at or
+ * above the offset line wins; see pickActiveSection). Anchor clicks scroll
+ * natively-aware (smooth unless reduced motion) and update the hash with
+ * pushState, so there is no jump and no unrelated state reset.
+ */
+export function useCodexScrollSpy(ids: readonly CodexSectionId[]): {
+  activeId: CodexSectionId | null;
+  goTo: (id: CodexSectionId) => void;
+} {
+  const [activeId, setActiveId] = React.useState<CodexSectionId | null>(null);
+  const lockUntil = React.useRef(0);
+  const idsKey = ids.join("|");
+
+  React.useEffect(() => {
+    const list = idsKey.split("|").filter((v): v is CodexSectionId => v !== "");
+    if (list.length === 0) return;
+    let raf = 0;
+    const update = () => {
+      raf = 0;
+      // A programmatic anchor scroll passes through intermediate sections;
+      // hold the clicked target until the scroll settles instead of
+      // flickering through every section on the way.
+      if (Date.now() < lockUntil.current) return;
+      const tops = list
+        .map((id) => {
+          const el = document.getElementById(id);
+          return el ? { id, top: el.getBoundingClientRect().top } : null;
+        })
+        .filter((v): v is { id: CodexSectionId; top: number } => v !== null);
+      const nearBottom =
+        window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 4;
+      setActiveId(pickActiveSection(tops, SPY_OFFSET, nearBottom));
+    };
+    const onScroll = () => {
+      if (raf !== 0) return;
+      raf = window.requestAnimationFrame(update);
+    };
+    update();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    window.addEventListener("resize", onScroll);
+    return () => {
+      if (raf !== 0) window.cancelAnimationFrame(raf);
+      window.removeEventListener("scroll", onScroll);
+      window.removeEventListener("resize", onScroll);
+    };
+  }, [idsKey]);
+
+  const goTo = React.useCallback((id: CodexSectionId) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    lockUntil.current = Date.now() + 800;
+    setActiveId(id);
+    const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    el.scrollIntoView({ behavior: reduce ? "auto" : "smooth", block: "start" });
+    window.history.pushState(null, "", `#${id}`);
+  }, []);
+
+  return { activeId, goTo };
+}
+
+/**
+ * Back navigation — a compact secondary control, not a call-to-action.
+ * Destination and routing behaviour are unchanged; only the affordance is
+ * designed (arrow mark, hover/focus/pressed states, subtle nudge).
+ */
+export function CodexBackLink({ to, label }: { to: string; label: string }) {
+  return (
+    <Link
+      to={to}
+      className="group -ms-2 inline-flex w-fit items-center gap-1.5 rounded-lg px-2 py-1.5 text-sm font-medium text-muted-foreground outline-none transition-colors hover:bg-background/70 hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring active:text-foreground"
+    >
+      <ArrowLeft
+        aria-hidden="true"
+        className="h-4 w-4 transition-transform duration-150 group-hover:-translate-x-0.5 motion-reduce:transition-none motion-reduce:group-hover:translate-x-0 rtl:scale-x-[-1] rtl:group-hover:translate-x-0.5"
+      />
+      {label}
+    </Link>
+  );
+}
+
+/**
+ * Hero identity header.
+ *
+ * One portrait, then rarity → name → class (+ category) → power/tier meta.
+ * The CMS banner slot is intentionally NOT rendered: it has no user-facing
+ * meaning on the public page, and filling the header's right edge with it is
+ * what produced the old layout's unexplained second image. SEO/OG still uses
+ * bannerUrl (see the route head), which is unaffected.
+ */
+export function CodexHeader({ hero, locale }: { hero: PublicHeroDetail; locale: string }) {
+  const l = heroLabels(locale);
+  const cat = categoryLabel(locale, hero.category);
+  const powerRange = heroPowerRange(locale, hero.progression);
+  const tierText = hero.progression?.tierCount
+    ? tierCountLabel(locale, hero.progression.tierCount)
+    : null;
+
+  return (
+    <header className="flex items-center gap-4 sm:gap-6">
+      {hero.imageUrl ? (
+        <img
+          src={hero.imageUrl}
+          alt={hero.title}
+          fetchPriority="high"
+          decoding="async"
+          className="aspect-[3/4] w-28 shrink-0 self-start rounded-xl border border-panel-border/60 bg-background/40 object-cover object-top sm:w-40 lg:w-48"
+        />
+      ) : (
+        <div
+          aria-hidden="true"
+          className="grid aspect-[3/4] w-28 shrink-0 self-start place-items-center rounded-xl border border-panel-border/60 bg-muted/30 text-muted-foreground/40 sm:w-40 lg:w-48"
+        >
+          <Shield className="h-8 w-8" />
+        </div>
+      )}
+      <div className="min-w-0 flex-1">
+        <RarityPill locale={locale} rarity={hero.rarity} />
+        <h1 className="mt-2 font-display text-3xl font-extrabold tracking-tight text-balance sm:text-4xl">
+          {hero.title}
+        </h1>
+        <p className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm">
+          {hero.classIconUrl ? (
+            <img
+              src={hero.classIconUrl}
+              alt=""
+              aria-hidden="true"
+              loading="lazy"
+              decoding="async"
+              className="h-5 w-5 shrink-0 rounded-sm object-contain"
+              onError={(e) => {
+                e.currentTarget.style.display = "none";
+              }}
+            />
+          ) : null}
+          <span className="font-semibold text-foreground/90">
+            {heroClassLabel(locale, hero.heroClass)}
+          </span>
+          {cat ? (
+            <>
+              <span aria-hidden="true" className="text-muted-foreground/60">
+                {" · "}
+              </span>
+              <span className="text-muted-foreground">{cat}</span>
+            </>
+          ) : null}
+        </p>
+        {powerRange || tierText ? (
+          <p className="mt-1.5 text-[13px] tabular-nums text-muted-foreground">
+            {powerRange ? (
+              <span className="whitespace-nowrap">
+                {l.maxPower}: {powerRange}
+              </span>
+            ) : null}
+            {powerRange && tierText ? <span aria-hidden="true">{" · "}</span> : null}
+            {tierText}
+          </p>
+        ) : null}
+        {hero.isLocaleFallback ? (
+          <p
+            data-testid="hero-locale-fallback"
+            className="mt-2.5 max-w-xl rounded-md border border-panel-border/60 px-2 py-1 text-xs text-muted-foreground"
+          >
+            {l.localeFallbackNotice}
+          </p>
+        ) : null}
+      </div>
+    </header>
+  );
+}
+
+/**
+ * Sticky, scroll-aware section navigator.
+ *
+ * A slim bar pinned under the app top navbar (top-16), horizontally
+ * scrollable on narrow viewports so it never wraps into bulky rows or
+ * overflows the page. Plain anchor links (real hrefs, real keyboard
+ * behaviour); the active item is marked with aria-current and a primary
+ * underline. A side rail was evaluated and rejected: inside the 1100px
+ * AppShell with the global sidebar already present, a second rail would
+ * squeeze the content column for no orientation benefit.
+ */
+export function CodexSectionNav({
+  locale,
+  sections,
+  activeId,
+  onNavigate,
+}: {
+  locale: string;
+  sections: readonly CodexSectionLink[];
+  activeId: CodexSectionId | null;
+  onNavigate: (id: CodexSectionId) => void;
+}) {
+  const l = heroLabels(locale);
+  const listRef = React.useRef<HTMLDivElement>(null);
+
+  // Keep the active item in view inside the scrollable row. block:"nearest"
+  // never moves the page itself while the stuck bar is on screen.
+  React.useEffect(() => {
+    if (!activeId) return;
+    const el = listRef.current?.querySelector<HTMLElement>(`[data-section="${activeId}"]`);
+    el?.scrollIntoView({ block: "nearest", inline: "nearest" });
+  }, [activeId]);
+
+  return (
+    <nav
+      aria-label={l.sectionNav}
+      data-testid="hero-section-nav"
+      className="sticky top-16 z-20 -mx-1 border-b border-panel-border/60 bg-background/85 px-1 py-2 backdrop-blur-md"
+    >
+      <div ref={listRef} className="flex gap-1 overflow-x-auto">
+        {sections.map((sec) => {
+          const active = sec.id === activeId;
+          return (
+            <a
+              key={sec.id}
+              href={`#${sec.id}`}
+              data-section={sec.id}
+              aria-current={active ? "true" : undefined}
+              onClick={(e) => {
+                e.preventDefault();
+                onNavigate(sec.id);
+              }}
+              className={cn(
+                "relative shrink-0 rounded-md px-3 py-2 text-[13px] font-semibold whitespace-nowrap outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring",
+                active
+                  ? "text-foreground"
+                  : "text-muted-foreground hover:bg-background/60 hover:text-foreground",
+              )}
+            >
+              {sec.label}
+              <span
+                aria-hidden="true"
+                className={cn(
+                  "absolute inset-x-3 bottom-0.5 h-0.5 rounded-full bg-primary transition-opacity",
+                  active ? "opacity-100" : "opacity-0",
+                )}
+              />
+            </a>
+          );
+        })}
+      </div>
+    </nav>
+  );
+}
+
+/** One codex section: heading owns the accessible name via aria-labelledby. */
+export function CodexSection({
+  id,
+  title,
+  children,
+}: {
+  id: CodexSectionId;
+  title: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <section id={id} aria-labelledby={`${id}-heading`} className="scroll-mt-32">
+      <h2
+        id={`${id}-heading`}
+        className="border-b border-panel-border/60 pb-2 font-display text-xl font-bold tracking-tight"
+      >
+        {title}
+      </h2>
+      <div className="mt-4">{children}</div>
+    </section>
+  );
+}
+
+/**
+ * Editorial summary, moved up directly under the identity header.
+ * The one-liner leads when authored; otherwise the long-form body renders in
+ * full (existing pipeline, paragraphs preserved). Renders nothing when the
+ * hero has neither, and the section is then omitted from the nav as well.
+ */
+export function CodexSummary({ hero }: { hero: PublicHeroDetail }) {
+  const oneLiner = hero.summary.trim();
+  const paras = (oneLiner !== "" ? [oneLiner] : hero.description.split(/\n{2,}/))
+    .map((p) => p.trim())
+    .filter((p) => p !== "");
+  if (paras.length === 0) return null;
+  return (
+    <div className="max-w-[68ch] space-y-3 text-[15px] leading-relaxed text-foreground/85">
+      {paras.map((p, i) => (
+        <p key={i}>{p}</p>
+      ))}
+    </div>
+  );
+}
+
+/**
+ * Perks as a hairline-divided ledger, not a card stack: the name leads, the
+ * slot (Standard / Commander) is secondary on the same baseline, and the full
+ * description reads at a comfortable measure. Loader order is preserved
+ * untouched (slot_order: standard before commander).
+ */
+export function CodexPerks({
+  locale,
+  perks,
+}: {
+  locale: string;
+  perks: PublicHeroDetail["perks"];
+}) {
+  const l = heroLabels(locale);
+  if (perks.length === 0) return <EmptyNote>{l.progressionEmpty}</EmptyNote>;
+  return (
+    <ul className="divide-y divide-panel-border/50">
+      {perks.map((p) => (
+        <li
+          key={p.key}
+          data-testid="hero-perk-row"
+          data-slot={p.slot}
+          className="flex gap-3.5 py-4 first:pt-0 last:pb-0"
+        >
+          <MediaIcon
+            url={p.iconUrl}
+            sizeClass="mt-0.5 h-10 w-10"
+            fallbackText={p.name.slice(0, 2)}
+          />
+          <div className="min-w-0">
+            <p className="flex flex-wrap items-baseline gap-x-2">
+              <span className="font-display text-[15px] font-bold leading-snug">{p.name}</span>
+              <span className="text-xs text-muted-foreground">
+                {p.slot === "commander" ? l.commanderPerk : l.standardPerk}
+              </span>
+            </p>
+            {p.description ? (
+              <p className="mt-1 max-w-[68ch] text-sm leading-relaxed text-muted-foreground">
+                {p.description}
+              </p>
+            ) : null}
+          </div>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+/**
+ * Abilities on a deliberate two-column grid.
+ *
+ * Two tracks fit the content column at every desktop width (three never do
+ * inside the 1100px shell once the facts rail is beside it), and an odd final
+ * item spans the full second row instead of orphaning a half-width tile —
+ * the `last-child:nth-child(odd)` rule covers 1, 3 and 5 without knowing the
+ * count in advance. Tiles are informational list items, never buttons.
+ */
+export function CodexAbilities({
+  locale,
+  abilities,
+}: {
+  locale: string;
+  abilities: PublicHeroDetail["abilities"];
+}) {
+  const l = heroLabels(locale);
+  if (abilities.length === 0) return <EmptyNote>{l.abilities}</EmptyNote>;
+  return (
+    <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:[&>li:last-child:nth-child(odd)]:col-span-2">
+      {abilities.map((a) => (
+        <li
+          key={a.key}
+          data-testid="hero-ability-row"
+          className="flex gap-3 rounded-xl border border-panel-border/60 bg-background/40 p-3.5"
+        >
+          <MediaIcon url={a.iconUrl} sizeClass="mt-0.5 h-9 w-9" fallbackText={a.name.slice(0, 2)} />
+          <div className="min-w-0">
+            <p className="font-display text-sm font-bold leading-snug">{a.name}</p>
+            {a.description ? (
+              <p className="mt-1 text-[13px] leading-relaxed text-muted-foreground">
+                {a.description}
+              </p>
+            ) : null}
+          </div>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+/** One resource line: prominent locale-formatted quantity, secondary name. */
+function ResourceLine({
+  locale,
+  iconUrl,
+  amount,
+  name,
+}: {
+  locale: string;
+  iconUrl: string | null;
+  amount: number;
+  name: string;
+}) {
+  return (
+    <span
+      data-testid="hero-resource-cost"
+      className="flex items-center gap-2"
+      title={`${name}: ${formatNumber(locale, amount)}`}
+    >
+      <MediaIcon url={iconUrl} sizeClass="h-5 w-5" />
+      <span className="font-semibold tabular-nums">{formatNumber(locale, amount)}</span>
+      <span className="min-w-0 text-muted-foreground">{name}</span>
+    </span>
+  );
+}
+
+function TierTable({ locale, block }: { locale: string; block: PublicHeroRarityProgress }) {
+  const l = heroLabels(locale);
+  const rarityName = rarityLabel(locale, block.rarity) ?? block.rarity;
+  const cell = "px-3 py-2.5 align-top";
+  return (
+    <div className="hidden overflow-x-auto rounded-xl border border-panel-border/60 sm:block">
+      <table data-testid="hero-tier-table" className="w-full border-collapse text-sm">
+        <caption className="sr-only">
+          {l.progression} — {rarityName}
+        </caption>
+        <thead>
+          <tr className="border-b border-panel-border/70 bg-background/40 text-start">
+            <th
+              scope="col"
+              className="w-14 px-3 py-2 text-start text-[11px] font-semibold uppercase tracking-wide text-muted-foreground first:ps-4"
+            >
+              {l.tier}
+            </th>
+            <th
+              scope="col"
+              className="w-28 px-3 py-2 text-start text-[11px] font-semibold uppercase tracking-wide text-muted-foreground"
+            >
+              {l.power}
+            </th>
+            <th
+              scope="col"
+              className="w-28 px-3 py-2 text-start text-[11px] font-semibold uppercase tracking-wide text-muted-foreground"
+            >
+              {l.level}
+            </th>
+            <th
+              scope="col"
+              className="px-3 py-2 text-start text-[11px] font-semibold uppercase tracking-wide text-muted-foreground last:pe-4"
+            >
+              {l.evolveToNext}
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          {block.tiers.map((tier) => (
+            <tr key={tier.tier} className="border-b border-panel-border/40 last:border-b-0">
+              <td className={`${cell} ps-4 font-semibold tabular-nums`}>{tier.tier}</td>
+              <td className={`${cell} whitespace-nowrap tabular-nums`}>
+                {codexRangeText(locale, tier.powerMin, tier.powerMax)}
+              </td>
+              <td className={`${cell} whitespace-nowrap tabular-nums`}>
+                {codexRangeText(locale, tier.levelMin, tier.levelMax)}
+              </td>
+              <td className={`${cell} pe-4`}>
+                {tier.evolve.length > 0 ? (
+                  <ul className="flex flex-col gap-1.5">
+                    {tier.evolve.map((c) => (
+                      <li key={`${tier.tier}-${c.resourceKey}`}>
+                        <ResourceLine
+                          locale={locale}
+                          iconUrl={c.iconUrl}
+                          amount={c.amount}
+                          name={c.name}
+                        />
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <span className="text-xs text-muted-foreground">—</span>
+                )}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+function TierCards({ locale, block }: { locale: string; block: PublicHeroRarityProgress }) {
+  const l = heroLabels(locale);
+  return (
+    <ul data-testid="hero-tier-list" className="space-y-2.5 sm:hidden">
+      {block.tiers.map((tier) => (
+        <li
+          key={tier.tier}
+          className="rounded-xl border border-panel-border/60 bg-background/40 p-3"
+        >
+          <div className="flex items-baseline justify-between gap-2">
+            <span className="text-[13px] font-bold">
+              {l.tier} {tier.tier}
+            </span>
+            <span className="whitespace-nowrap text-xs tabular-nums text-muted-foreground">
+              {codexRangeText(locale, tier.powerMin, tier.powerMax)}
+            </span>
+          </div>
+          <p className="mt-0.5 text-xs tabular-nums text-muted-foreground">
+            {l.level} {codexRangeText(locale, tier.levelMin, tier.levelMax)}
+          </p>
+          {tier.evolve.length > 0 ? (
+            <ul className="mt-2 space-y-1.5 border-t border-panel-border/50 pt-2 text-[13px]">
+              {tier.evolve.map((c) => (
+                <li key={`${tier.tier}-${c.resourceKey}`}>
+                  <ResourceLine
+                    locale={locale}
+                    iconUrl={c.iconUrl}
+                    amount={c.amount}
+                    name={c.name}
+                  />
+                </li>
+              ))}
+            </ul>
+          ) : null}
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+/**
+ * Evolution & progression.
+ *
+ * Rarity selection uses the project's Radix tabs (correct tab semantics and
+ * arrow-key support included) because costs genuinely differ per rarity; the
+ * selected block's tiers, totals and recycling figures all come from that one
+ * loader block, never recalculated. The desktop table keeps every numeric
+ * range on one line; narrow viewports get one tier card per tier instead of a
+ * squeezed table. Totals reuse the shared ResourceCostGrid with the loader's
+ * exact arrays.
+ */
+export function CodexProgression({ locale, hero }: { locale: string; hero: PublicHeroDetail }) {
+  const l = heroLabels(locale);
+  const prog = hero.progression;
+  const rarityNames = prog ? sortRaritiesAsc(prog.rarities.map((r) => r.rarity)) : [];
+  const [activeRarity, setActiveRarity] = React.useState<string | null>(null);
+  const selectedRarity =
+    activeRarity && rarityNames.includes(activeRarity)
+      ? activeRarity
+      : (primaryRarity(rarityNames, hero.rarity) ?? rarityNames[0] ?? null);
+  const rarityBlock = prog?.rarities.find((r) => r.rarity === selectedRarity) ?? null;
+
+  if (!prog || rarityNames.length === 0 || !rarityBlock || !selectedRarity) {
+    return <EmptyNote>{l.progressionEmpty}</EmptyNote>;
+  }
+
+  const table = (
+    <>
+      <TierTable locale={locale} block={rarityBlock} />
+      <TierCards locale={locale} block={rarityBlock} />
+      {rarityBlock.total.length > 0 ? (
+        <div className="mt-5 rounded-xl border border-panel-border/60 bg-background/40 p-4">
+          <h3 className="text-sm font-bold">{l.totalToMax}</h3>
+          <p className="mt-0.5 text-xs text-muted-foreground">{l.evolveToMax}</p>
+          <ResourceCostGrid locale={locale} costs={rarityBlock.total} className="mt-3" />
+        </div>
+      ) : null}
+      {rarityBlock.recycle.length > 0 ? (
+        <div className="mt-3 rounded-xl border border-panel-border/50 p-3.5">
+          <h3 className="text-[13px] font-bold text-muted-foreground">{l.recyclingReturns}</h3>
+          <ResourceCostGrid locale={locale} costs={rarityBlock.recycle} className="mt-2.5" />
+        </div>
+      ) : null}
+    </>
+  );
+
+  if (rarityNames.length < 2) return table;
+
+  return (
+    <Tabs value={selectedRarity} onValueChange={setActiveRarity}>
+      <TabsList
+        aria-label={l.rarity}
+        className="mb-4 border border-panel-border/60 bg-background/40"
+      >
+        {rarityNames.map((r) => (
+          <TabsTrigger
+            key={r}
+            value={r}
+            className="data-[state=active]:bg-primary/15 data-[state=active]:text-primary"
+          >
+            {rarityLabel(locale, r) ?? r}
+          </TabsTrigger>
+        ))}
+      </TabsList>
+      {rarityNames.map((r) => (
+        <TabsContent key={r} value={r} className="mt-0">
+          {r === selectedRarity ? table : null}
+        </TabsContent>
+      ))}
+    </Tabs>
+  );
+}
+
+/** One facts row: muted label, right-aligned value. */
+function FactRow({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div className="flex items-baseline justify-between gap-3 border-b border-panel-border/40 py-2 last:border-b-0">
+      <dt className="shrink-0 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+        {label}
+      </dt>
+      <dd className="min-w-0 text-end text-[13px] font-medium leading-snug">{children}</dd>
+    </div>
+  );
+}
+
+/**
+ * Facts rail — quick-reference metadata only.
+ *
+ * No slug, no snapshot note, no invented "last updated": cms_contents
+ * timestamps record migration backfills, not per-hero editorial changes, so
+ * surfacing one would be a misleading freshness claim. On desktop the rail
+ * sticks below the section bar; on mobile it drops to the end of the reading
+ * flow.
+ */
+export function CodexFacts({ hero, locale }: { hero: PublicHeroDetail; locale: string }) {
+  const s = getPublicStrings(locale);
+  const l = heroLabels(locale);
+  const cat = categoryLabel(locale, hero.category);
+  const powerRange = heroPowerRange(locale, hero.progression);
+  const tierText = hero.progression?.tierCount
+    ? tierCountLabel(locale, hero.progression.tierCount)
+    : null;
+
+  return (
+    <aside aria-label={l.heroFacts} className="w-full shrink-0 lg:w-60">
+      <div className="lg:sticky lg:top-32">
+        <dl className="rounded-xl border border-panel-border/60 bg-background/40 px-3.5 py-1.5">
+          <FactRow label={s.classNameLabel}>
+            <span className="inline-flex items-center justify-end gap-1.5">
+              {hero.classIconUrl ? (
+                <img
+                  src={hero.classIconUrl}
+                  alt=""
+                  aria-hidden="true"
+                  loading="lazy"
+                  decoding="async"
+                  className="h-4 w-4 shrink-0 rounded-sm object-contain"
+                  onError={(e) => {
+                    e.currentTarget.style.display = "none";
+                  }}
+                />
+              ) : null}
+              <span>{heroClassLabel(locale, hero.heroClass)}</span>
+            </span>
+          </FactRow>
+          {cat ? <FactRow label={l.category}>{cat}</FactRow> : null}
+          <FactRow label={l.rarity}>{rarityLabel(locale, hero.rarity)}</FactRow>
+          {powerRange ? (
+            <FactRow label={l.maxPower}>
+              <span className="whitespace-nowrap tabular-nums">{powerRange}</span>
+            </FactRow>
+          ) : null}
+          {tierText ? <FactRow label={l.tierCount}>{tierText}</FactRow> : null}
+          {hero.abilities.length > 0 ? (
+            <FactRow label={l.abilities}>
+              <span className="tabular-nums">{hero.abilities.length}</span>
+            </FactRow>
+          ) : null}
+        </dl>
+      </div>
+    </aside>
+  );
+}
+
+function relatedGroupLabel(locale: string, kind: string): string {
+  const l = heroLabels(locale);
+  switch (kind) {
+    case "curated":
+      return l.relatedCurated;
+    case "same_category":
+      return l.relatedSameCategory;
+    case "same_perk":
+      return l.relatedSamePerk;
+    case "same_ability":
+      return l.relatedSameAbility;
+    case "same_class":
+      return l.relatedSameClass;
+    default:
+      return l.relatedHeroes;
+  }
+}
+
+/**
+ * Related heroes — discovery, subordinate to the current hero.
+ *
+ * Loader grouping, ordering and destinations are preserved untouched. Every
+ * card is one link (portrait, name, class + standard perk), equal heights via
+ * the auto-fill grid, restrained hover/focus treatment. Empty groups render
+ * nothing; a fully empty relation set renders the standard empty note while
+ * the guides/graph rails below still show.
+ */
+export function CodexRelated({ hero, locale }: { hero: PublicHeroDetail; locale: string }) {
+  const s = getPublicStrings(locale);
+  const l = heroLabels(locale);
+  const groups = hero.relatedHeroes.filter((g) => g.heroes.length > 0);
+
+  return (
+    <div className="space-y-6">
+      {groups.length === 0 && hero.relatedLoadouts.length === 0 ? (
+        <EmptyNote>{l.relatedEmpty}</EmptyNote>
+      ) : null}
+
+      {groups.map((group) => (
+        <div key={group.kind}>
+          <h3 className="mb-2.5 text-sm font-bold">{relatedGroupLabel(locale, group.kind)}</h3>
+          <ul className="grid grid-cols-[repeat(auto-fill,minmax(min(100%,15rem),1fr))] gap-2.5">
+            {group.heroes.map((h) => (
+              <li key={h.contentId}>
+                <Link
+                  to={heroDetailHref(locale, h.slug)}
+                  data-testid="hero-related-card"
+                  className="flex h-full items-center gap-3 rounded-xl border border-panel-border/60 bg-background/40 p-2.5 outline-none transition-colors hover:border-primary/60 hover:bg-background/60 focus-visible:ring-2 focus-visible:ring-ring"
+                >
+                  {h.imageUrl ? (
+                    <img
+                      src={h.imageUrl}
+                      alt=""
+                      aria-hidden="true"
+                      loading="lazy"
+                      decoding="async"
+                      className="h-12 w-12 shrink-0 rounded-lg border border-panel-border/50 object-cover object-top"
+                    />
+                  ) : (
+                    <span
+                      aria-hidden="true"
+                      className="grid h-12 w-12 shrink-0 place-items-center rounded-lg border border-panel-border/50 bg-background/40 text-muted-foreground/50"
+                    >
+                      <Shield className="h-5 w-5" />
+                    </span>
+                  )}
+                  <span className="min-w-0">
+                    <span className="block truncate text-sm font-semibold">{h.title}</span>
+                    <span className="mt-0.5 block truncate text-xs text-muted-foreground">
+                      {heroClassLabel(locale, h.heroClass)}
+                      {h.standardPerkName ? ` · ${h.standardPerkName}` : ""}
+                    </span>
+                  </span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </div>
+      ))}
+
+      {hero.relatedLoadouts.length > 0 ? (
+        <div>
+          <h3 className="mb-2.5 text-sm font-bold">{s.relatedLoadouts}</h3>
+          <ul className="grid grid-cols-[repeat(auto-fill,minmax(min(100%,15rem),1fr))] gap-2.5">
+            {hero.relatedLoadouts.map((ld) => (
+              <li key={ld.contentId}>
+                <Link
+                  to={loadoutDetailHref(locale, ld.slug)}
+                  className="flex h-full items-center gap-3 rounded-xl border border-panel-border/60 bg-background/40 p-2.5 outline-none transition-colors hover:border-primary/60 hover:bg-background/60 focus-visible:ring-2 focus-visible:ring-ring"
+                >
+                  {ld.imageUrl ? (
+                    <img
+                      src={ld.imageUrl}
+                      alt=""
+                      aria-hidden="true"
+                      loading="lazy"
+                      decoding="async"
+                      className="h-12 w-12 shrink-0 rounded-lg border border-panel-border/50 object-cover"
+                    />
+                  ) : (
+                    <span
+                      aria-hidden="true"
+                      className="grid h-12 w-12 shrink-0 place-items-center rounded-lg border border-panel-border/50 bg-background/40 text-muted-foreground/50"
+                    >
+                      <Shield className="h-5 w-5" />
+                    </span>
+                  )}
+                  <span className="min-w-0 truncate text-sm font-semibold">{ld.title}</span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
+
+      <div className="space-y-4">
+        <RelatedGuides entityContentId={hero.contentId} locale={locale} />
+        <ContentGraph
+          load={getHeroGraph}
+          contentId={hero.contentId}
+          locale={locale}
+          title={s.relatedLoadouts}
+          testId="hero-content-graph"
+        />
+      </div>
+    </div>
+  );
+}

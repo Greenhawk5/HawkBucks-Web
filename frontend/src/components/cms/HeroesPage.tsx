@@ -551,7 +551,7 @@ export function HeroesPage({
         ) : view.mode === "compact" ? (
           <ul
             data-testid="hero-grid"
-            className="grid list-none grid-cols-[repeat(auto-fill,minmax(min(100%,15rem),1fr))] justify-items-center gap-4 sm:gap-5"
+            className="grid list-none grid-cols-1 justify-items-center gap-4 min-[480px]:grid-cols-2 sm:gap-5 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6"
           >
             {items.map((h, i) => (
               <li key={h.contentId} className="flex w-full max-w-md justify-center sm:max-w-none">
@@ -779,7 +779,7 @@ export function HeroesGridSkeleton() {
     <ul
       data-testid="hero-grid-skeleton"
       aria-hidden="true"
-      className="grid list-none grid-cols-[repeat(auto-fill,minmax(min(100%,15rem),1fr))] gap-4 sm:gap-5"
+      className="grid list-none grid-cols-1 gap-4 min-[480px]:grid-cols-2 sm:gap-5 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6"
     >
       {Array.from({ length: 8 }, (_, i) => (
         <li key={i} className="flex">

@@ -7,7 +7,7 @@
  *   before  : 1 + 1 + A(ability icons) + 2(media) + 1 + 3M(loadouts)   ~27 for A=3, M=6
  *   after   : 1(slug) + 1(record) + 1(abilities) + 1(perks) +
  *             1(progression) + 1(costs) + 1(loadouts, single join) +
- *             1(curated) + 1(candidates) + 1(hreflang)                ~10, fixed
+ *             1(curated) + 1(candidates) + 1(class icon) + 1(hreflang)  ~11, fixed
  */
 
 import { createServerFn } from "@tanstack/react-start";
@@ -17,6 +17,8 @@ import type { RelatedHeroInput } from "./hero-reference.server";
 
 export interface PublicHeroDetail extends PublicHeroItem {
   rarity: string | null;
+  /** Registered class glyph for `heroClass`, resolved like the listing/quick view. */
+  classIconUrl: string | null;
   abilities: Array<{ key: string; name: string; description: string; iconUrl: string | null }>;
   relatedLoadouts: PublicLoadoutItem[];
   /** Locales with complete published translations (drives per-entity hreflang). */
@@ -192,6 +194,12 @@ export const getPublicHero = createServerFn({ method: "GET" })
     }));
 
     // ---- 6. related heroes: curated first, then deterministic similarity ----
+    // The class glyph resolves through the icon registry with the same
+    // helper and service the listing and quick view use, so all three
+    // surfaces can never disagree about which class icon a hero shows.
+    const { heroClassIconKey } = await import("@/lib/icon-registry");
+    const { resolveIconUrls } = await import("./icon-registry.server");
+    const classKey = heroClassIconKey(rec.hero_class);
     const relatedInput: RelatedHeroInput = {
       contentId,
       locale,
@@ -200,9 +208,10 @@ export const getPublicHero = createServerFn({ method: "GET" })
       perkKeys: ref.perks.filter((p) => p.slot === "standard").map((p) => p.key),
       abilityKeys: ref.abilities.map((a) => a.key),
     };
-    const [curated, candidates] = await Promise.all([
+    const [curated, candidates, classIconUrls] = await Promise.all([
       readCuratedRelated(db, contentId, locale),
       readRelatedCandidates(db, relatedInput),
+      classKey ? resolveIconUrls(db, [classKey]) : Promise.resolve(new Map<string, string>()),
     ]);
     const relatedHeroes = scoreRelatedGroups(relatedInput, candidates, curated);
 
@@ -228,6 +237,7 @@ export const getPublicHero = createServerFn({ method: "GET" })
         heroClass: rec.hero_class,
         category: rec.category,
         rarity: rec.rarity ?? null,
+        classIconUrl: classKey ? (classIconUrls.get(classKey) ?? null) : null,
         popularity: Number(rec.popularity ?? 0),
         sortOrder: Number(rec.sort_order ?? 0),
         imageUrl: rec.portrait_url ?? null,

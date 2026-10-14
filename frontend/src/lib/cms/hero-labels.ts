@@ -80,6 +80,9 @@ export interface HeroLabels {
   tiersShort: string;
   powerRange: string;
   summary: string;
+  // codex page chrome
+  sectionNav: string;
+  heroFacts: string;
   // related
   relatedHeroes: string;
   relatedCurated: string;
@@ -131,6 +134,8 @@ const en: HeroLabels = {
   tiersShort: "{n} tiers",
   powerRange: "Power {min}-{max}",
   summary: "Summary",
+  sectionNav: "On this page",
+  heroFacts: "Hero facts",
 
   relatedHeroes: "Related Heroes",
   relatedCurated: "Hand-picked",
@@ -196,6 +201,8 @@ const es: HeroLabels = {
   tiersShort: "{n} rangos",
   powerRange: "Poder {min}-{max}",
   summary: "Resumen",
+  sectionNav: "En esta página",
+  heroFacts: "Datos del héroe",
 
   relatedHeroes: "Héroes relacionados",
   relatedCurated: "Seleccionados",
@@ -262,6 +269,8 @@ const fr: HeroLabels = {
   tiersShort: "{n} paliers",
   powerRange: "Puissance {min}-{max}",
   summary: "Résumé",
+  sectionNav: "Sur cette page",
+  heroFacts: "Infos du héros",
 
   relatedHeroes: "Héros liés",
   relatedCurated: "Sélection",
@@ -327,6 +336,8 @@ const ru: HeroLabels = {
   tiersShort: "{n} рангов",
   powerRange: "Сила {min}-{max}",
   summary: "Кратко",
+  sectionNav: "На этой странице",
+  heroFacts: "Данные героя",
 
   relatedHeroes: "Похожие герои",
   relatedCurated: "Подборка",
@@ -392,6 +403,8 @@ const de: HeroLabels = {
   tiersShort: "{n} Stufen",
   powerRange: "Stärke {min}-{max}",
   summary: "Kurzfassung",
+  sectionNav: "Auf dieser Seite",
+  heroFacts: "Heldenfakten",
 
   relatedHeroes: "Verwandte Helden",
   relatedCurated: "Ausgewählt",
@@ -458,6 +471,8 @@ const pt: HeroLabels = {
   tiersShort: "{n} postos",
   powerRange: "Poder {min}-{max}",
   summary: "Resumo",
+  sectionNav: "Nesta página",
+  heroFacts: "Dados do herói",
 
   relatedHeroes: "Heróis relacionados",
   relatedCurated: "Selecionados",
@@ -524,6 +539,8 @@ const zh: HeroLabels = {
   tiersShort: "{n} 星",
   powerRange: "战力 {min}-{max}",
   summary: "简介",
+  sectionNav: "本页内容",
+  heroFacts: "英雄资料",
 
   relatedHeroes: "相关英雄",
   relatedCurated: "精选",
@@ -589,6 +606,8 @@ const arSA: HeroLabels = {
   tiersShort: "{n} رتب",
   powerRange: "القوة {min}-{max}",
   summary: "الملخّص",
+  sectionNav: "في هذه الصفحة",
+  heroFacts: "بيانات البطل",
 
   relatedHeroes: "أبطال مرتبطون",
   relatedCurated: "مختارات",
@@ -654,6 +673,8 @@ const faIR: HeroLabels = {
   tiersShort: "{n} رده",
   powerRange: "قدرت {min}-{max}",
   summary: "خلاصه",
+  sectionNav: "در این صفحه",
+  heroFacts: "اطلاعات قهرمان",
 
   relatedHeroes: "قهرمانان مرتبط",
   relatedCurated: "گزیده‌ها",

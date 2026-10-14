@@ -12,7 +12,13 @@
 
 import { createServerFn } from "@tanstack/react-start";
 import { HERO_CLASSES, isHeroClass } from "./heroes";
-import { isRarity, normalizeSearchQuery, parseListPaging } from "./taxonomy";
+import {
+  RARITIES,
+  RARITY_ORDER,
+  isRarity,
+  normalizeSearchQuery,
+  parseListPaging,
+} from "./taxonomy";
 import { isTrapPlacement } from "./schematics";
 import { isWeaponSubtype } from "./schematics";
 import { heroClassIconKey } from "@/lib/icon-registry";
@@ -96,12 +102,13 @@ function heroOrder(sort: string): string {
   if (sort === "rarity") {
     // Deterministic rarity order via CASE, then title. Ties never depend on
     // row order, so pagination stays stable across requests.
-    return (
-      "ORDER BY CASE h.rarity " +
-      "WHEN 'mythic' THEN 5 WHEN 'legendary' THEN 4 WHEN 'epic' THEN 3 " +
-      "WHEN 'rare' THEN 2 WHEN 'uncommon' THEN 1 WHEN 'common' THEN 0 ELSE 9 END ASC, " +
-      "t.title ASC, c.id ASC"
-    );
+    // The WHEN arms are derived from the canonical RARITIES registry in
+    // taxonomy.ts (ascending: common → mythic), so the SQL can never drift
+    // out of sync with the domain hierarchy — mythic always outranks
+    // legendary. Descending rank puts mythic first; unknown/missing rarities
+    // fall back to -1 so they sort after every known rarity.
+    const arms = RARITIES.map((r) => `WHEN '${r}' THEN ${RARITY_ORDER[r]}`).join(" ");
+    return `ORDER BY CASE h.rarity ${arms} ELSE -1 END DESC, ` + "t.title ASC, c.id ASC";
   }
   if (sort === "class") return "ORDER BY h.hero_class ASC, t.title ASC, c.id ASC";
   return "ORDER BY h.sort_order ASC, h.popularity DESC, t.title ASC, c.id ASC";

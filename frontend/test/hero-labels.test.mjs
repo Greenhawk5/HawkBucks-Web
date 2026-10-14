@@ -107,6 +107,7 @@ test("new components contain no physical-direction CSS", async () => {
     "components/heroes/HeroListJsonLd.tsx",
     "components/cms/HeroCard.tsx",
     "components/cms/HeroDetail.tsx",
+    "components/cms/HeroCodex.tsx",
     "components/cms/HeroPreviewDialog.tsx",
   ];
   const banned = [
