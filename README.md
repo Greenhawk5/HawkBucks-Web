@@ -905,7 +905,7 @@ HawkBucks has evolved beyond a simple mission viewer.
 
 ### Release candidate
 
-**v2.0.0-rc.1 — the first Release Candidate for v2.0.0 (pre-release).** This is not a stable release, and the stable v2.0.0 has not been released yet. It covers the v2 content-platform and public-experience overhaul together with the Phase 20–24 production-hardening and release-candidate QA work:
+**v2.0.0-rc.2 — the second Release Candidate for v2.0.0 (pre-release).** This is not a stable release, and the stable v2.0.0 has not been released yet. It builds on rc.1 with site-wide localization fallback, hero collection/detail/Quick View hardening, the heroes hydration fix, and Hero Codex presentation refinements:
 
 - CMS content platform on Cloudflare D1 + R2 (heroes, loadouts, schematics, guides) with a D1-backed admin and audit log.
 - Public content routes (`/heroes`, `/loadouts`, `/schematics`, `/guides`) alongside the `/vbucks-missions` tracker and `/missions-guide`.

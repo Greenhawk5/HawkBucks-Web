@@ -1,6 +1,6 @@
 {
   "name": "vbucks-alerts",
-  "version": "2.0.0-rc.1",
+  "version": "2.0.0-rc.2",
   "description": "V-Bucks Alerts Bot - JavaScript version for Save the World mission alerts",
   "main": "index.js",
   "scripts": {

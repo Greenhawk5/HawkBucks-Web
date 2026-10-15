@@ -49,7 +49,7 @@ const navGroups: ReadonlyArray<{
   },
 ];
 
-const APP_VERSION = "v2.0.0-rc.1";
+const APP_VERSION = "v2.0.0-rc.2";
 
 function ColTitle({ children }: { children: React.ReactNode }) {
   return (

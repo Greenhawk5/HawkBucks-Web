@@ -2,6 +2,35 @@
 
 All notable HawkBucks changes are documented here. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [2.0.0-rc.2] - 2026-10-15
+
+Second **Release Candidate** for v2.0.0 (pre-release). Builds on `v2.0.0-rc.1` with site-wide localization fallback, hero collection/detail/Quick View hardening, the heroes-route hydration fix, and Hero Codex presentation refinements. This is a **pre-release**: v1.2.0 remains the latest stable release, and the stable v2.0.0 has not been released yet.
+
+### Added
+
+- Site-wide CMS localization fallback policy (`frontend/src/lib/cms/locale-fallback.ts`): requested locale -> content `default_locale` -> English, with record-level single-row picks, field-level fallback, COALESCE SQL builders, and English-first static-dictionary merging.
+- Shared hero identity resolver (`frontend/src/lib/cms/hero-identity.server.ts`): slug matches in any locale namespace (requested first), then requested -> default -> English translation selection, so English-only heroes stay reachable from every collection and Quick View can never disagree with detail.
+- Regression coverage: `locale-fallback`, `locale-fallback-sqlite`, `hero-quickview-fallback`, `hero-reference-model`, `hero-labels`, `hero-codex`, `hero-last-updated`, `hero-media`, and `icon-registry` suites; CMS suites for media, JSON import, bulk delete, hero editor, admin lists, and push notifications.
+
+### Changed
+
+- Hero Collection Reference view and navigation: reference rows navigate to hero detail, collection cards and filter panel polished, icon registry drives class glyphs with text fallback.
+- Hero Codex presentation and progression layout: premium codex detail, refined artwork fade/alignment, and progression resource grid refinements.
+- CMS content platform: editable reference overrides and game item catalog, server-side paging/bulk lifecycle/safe draft deletion, hero perk slots, evolution inspection, server-side media search, inline media upload, JSON imports, and full-screen 404/error handling.
+- Push delivery: restored push delivery and retry behavior.
+
+### Fixed
+
+- Heroes-route hydration/serialization: heroes hub class-icon map now uses a null-prototype record (`Object.create(null)`) so the `constructor` class no longer leaks the inherited `Object` function into the server-function response.
+- Quick View slug resolution and localization fallback: Quick View now resolves through the shared hero identity resolver instead of an English-namespace lookup, so translated-collection slugs and English-only heroes resolve exactly like detail.
+- Long translated facts labels and perk-name wrapping in hero presentation.
+- Collection icon and mobile layout, accordion interaction, MissionsHistory missing-period guard, icon-registry comment encoding, CMS full-screen errors/dropdown styling/bulk draft deletion, R2 media batch bounds, and lockfile platform bindings with `/assets/*` excluded from worker routing.
+
+### Technical
+
+- New D1 migrations: hero reference model, hero media associations, editorial overrides/catalog, icon registry, and hero last-updated override.
+- Hero reference reads batched (identity + reference reads + cached icon lookup) to keep Quick View fast and query-count fixed.
+
 ## [2.0.0-rc.1] - 2026-10-03
 
 First **Release Candidate** for v2.0.0 — the HawkBucks content-platform and public-experience overhaul, together with the Phase 20–24 production-hardening and release-candidate QA work. This is a **pre-release**: v1.2.0 remains the latest stable release, and the stable v2.0.0 has not been released yet.
