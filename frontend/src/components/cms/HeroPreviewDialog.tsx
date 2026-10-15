@@ -229,10 +229,10 @@ export function HeroPreviewDialog({
                         key={a.key}
                         data-testid="hero-ability-row"
                         title={a.description ?? a.name}
-                        className="flex min-w-0 flex-1 items-center gap-2 [flex-basis:11rem]"
+                        className="flex min-w-0 flex-1 items-center gap-1.5 [flex-basis:11rem]"
                       >
-                        <MediaIcon url={a.iconUrl} sizeClass="h-7 w-7" />
-                        <span className="min-w-0 flex-1 text-[13px] font-medium leading-snug">
+                        <MediaIcon url={a.iconUrl} sizeClass="h-7 w-7 shrink-0" />
+                        <span className="min-w-0 flex-1 break-words text-xs font-medium leading-snug">
                           {a.name}
                         </span>
                       </li>

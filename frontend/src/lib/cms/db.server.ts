@@ -825,11 +825,15 @@ export async function getPublishedBySlug(
   db: D1Database,
   input: { entityType: string; locale: string; slug: string },
 ): Promise<PublishedContent | null> {
-  // Phase 19 — single round trip. The previous implementation issued three
-  // sequential queries (slug join, then a content re-read, then a translation
-  // re-read) even though the join already returns every published column.
-  // Explicit aliased columns avoid the c.*/t.* `id` collision (the
-  // translation id used to overwrite the content id in the merged row).
+  // Site-wide fallback: slug may live in the requested locale or in English;
+  // the served translation resolves requested -> English in the same row.
+  // Single round trip on the hit path (Phase 19 budget preserved).
+  const requestedLocale =
+    typeof input.locale === "string" && input.locale !== "" ? input.locale : "en";
+  const slugNorm = normalizeSlug(input.slug);
+  // Fallback-aware single round trip: the slug may be the requested-locale
+  // slug or the English slug; the served translation prefers requested text
+  // per field and falls back to English for blank/missing columns.
   const row = await db
     .prepare(
       `SELECT
@@ -838,22 +842,31 @@ export async function getPublishedBySlug(
          c.published_at AS content_published_at, c.created_by AS content_created_by,
          c.updated_by AS content_updated_by, c.created_at AS content_created_at,
          c.updated_at AS content_updated_at,
-         t.id AS translation_id, t.title AS translation_title, t.body AS translation_body,
-         t.slug AS translation_slug, t.seo_title AS translation_seo_title,
-         t.seo_description AS translation_seo_description,
-         t.seo_canonical_override AS translation_seo_canonical_override,
-         t.seo_robots AS translation_seo_robots, t.og_title AS translation_og_title,
-         t.og_description AS translation_og_description,
-         t.og_image_asset_id AS translation_og_image_asset_id,
-         t.translation_status AS translation_translation_status,
-         t.created_at AS translation_created_at, t.updated_at AS translation_updated_at
+         COALESCE(t_req.id, t_def.id, t_en.id) AS translation_id,
+         CASE WHEN t_req.id IS NOT NULL THEN t_req.locale WHEN t_def.id IS NOT NULL THEN t_def.locale ELSE t_en.locale END AS translation_locale,
+         COALESCE(NULLIF(t_req.title,''), NULLIF(t_def.title,''), t_en.title) AS translation_title,
+         COALESCE(NULLIF(t_req.body,''), NULLIF(t_def.body,''), t_en.body) AS translation_body,
+         COALESCE(NULLIF(t_req.slug,''), NULLIF(t_def.slug,''), t_en.slug) AS translation_slug,
+         COALESCE(NULLIF(t_req.seo_title,''), NULLIF(t_def.seo_title,''), t_en.seo_title) AS translation_seo_title,
+         COALESCE(NULLIF(t_req.seo_description,''), NULLIF(t_def.seo_description,''), t_en.seo_description) AS translation_seo_description,
+         COALESCE(t_req.seo_canonical_override, t_def.seo_canonical_override, t_en.seo_canonical_override) AS translation_seo_canonical_override,
+         COALESCE(t_req.seo_robots, t_def.seo_robots, t_en.seo_robots) AS translation_seo_robots,
+         COALESCE(NULLIF(t_req.og_title,''), NULLIF(t_def.og_title,''), t_en.og_title) AS translation_og_title,
+         COALESCE(NULLIF(t_req.og_description,''), NULLIF(t_def.og_description,''), t_en.og_description) AS translation_og_description,
+         COALESCE(t_req.og_image_asset_id, t_def.og_image_asset_id, t_en.og_image_asset_id) AS translation_og_image_asset_id,
+         CASE WHEN t_req.id IS NOT NULL THEN t_req.translation_status WHEN t_def.id IS NOT NULL THEN t_def.translation_status ELSE t_en.translation_status END AS translation_translation_status,
+         CASE WHEN t_req.id IS NOT NULL THEN t_req.created_at WHEN t_def.id IS NOT NULL THEN t_def.created_at ELSE t_en.created_at END AS translation_created_at,
+         CASE WHEN t_req.id IS NOT NULL THEN t_req.updated_at WHEN t_def.id IS NOT NULL THEN t_def.updated_at ELSE t_en.updated_at END AS translation_updated_at
        FROM cms_slugs s
        JOIN cms_contents c ON c.id = s.content_id
-       JOIN cms_content_translations t ON t.content_id = c.id AND t.locale = s.locale
-       WHERE s.entity_type = ? AND s.locale = ? AND s.slug = ?
-         AND c.status = 'published'`,
+       LEFT JOIN cms_content_translations t_req ON t_req.content_id = c.id AND t_req.locale = ?
+       LEFT JOIN cms_content_translations t_def ON t_def.content_id = c.id AND t_def.locale = c.default_locale
+       LEFT JOIN cms_content_translations t_en ON t_en.content_id = c.id AND t_en.locale = 'en'
+       WHERE s.entity_type = ? AND s.slug = ?
+         AND c.status = 'published' AND (t_req.id IS NOT NULL OR t_def.id IS NOT NULL OR t_en.id IS NOT NULL)
+       ORDER BY CASE WHEN s.locale = ? THEN 0 ELSE 1 END LIMIT 1`,
     )
-    .bind(input.entityType, input.locale, normalizeSlug(input.slug))
+    .bind(requestedLocale, input.entityType, slugNorm, requestedLocale)
     .first<Record<string, string | number | null>>();
   if (!row || row["content_status"] !== "published") return null;
   const content: ContentRow = {
@@ -870,7 +883,7 @@ export async function getPublishedBySlug(
   const translation: ContentTranslationRow = {
     id: String(row["translation_id"] ?? ""),
     content_id: String(row["content_id"] ?? ""),
-    locale: input.locale,
+    locale: String(row["translation_locale"] ?? requestedLocale),
     title: String(row["translation_title"] ?? ""),
     body: String(row["translation_body"] ?? ""),
     slug: String(row["translation_slug"] ?? ""),
@@ -895,9 +908,10 @@ export async function listPublishedByEntity(
 ): Promise<PublishedContent[]> {
   const limit = Math.max(1, Math.min(100, Math.floor(input.limit ?? 50)));
   const offset = Math.max(0, Math.floor(input.offset ?? 0));
-  // Phase 19 — single round trip. The previous implementation issued one
-  // query for the content rows plus one translation re-read PER row (N+1).
-  // Translation columns are selected explicitly (aliased) in the same join.
+  // Site-wide fallback, still a single round trip (Phase 19 budget): one row
+  // per published entity, requested text with English per-field fallback.
+  const requestedLocale =
+    typeof input.locale === "string" && input.locale !== "" ? input.locale : "en";
   const { results } = await db
     .prepare(
       `SELECT
@@ -906,21 +920,30 @@ export async function listPublishedByEntity(
          c.published_at AS content_published_at, c.created_by AS content_created_by,
          c.updated_by AS content_updated_by, c.created_at AS content_created_at,
          c.updated_at AS content_updated_at,
-         t.id AS translation_id, t.title AS translation_title, t.body AS translation_body,
-         t.slug AS translation_slug, t.seo_title AS translation_seo_title,
-         t.seo_description AS translation_seo_description,
-         t.seo_canonical_override AS translation_seo_canonical_override,
-         t.seo_robots AS translation_seo_robots, t.og_title AS translation_og_title,
-         t.og_description AS translation_og_description,
-         t.og_image_asset_id AS translation_og_image_asset_id,
-         t.translation_status AS translation_translation_status,
-         t.created_at AS translation_created_at, t.updated_at AS translation_updated_at
+         COALESCE(t_req.id, t_def.id, t_en.id) AS translation_id,
+         CASE WHEN t_req.id IS NOT NULL THEN t_req.locale WHEN t_def.id IS NOT NULL THEN t_def.locale ELSE t_en.locale END AS translation_locale,
+         COALESCE(NULLIF(t_req.title,''), NULLIF(t_def.title,''), t_en.title) AS translation_title,
+         COALESCE(NULLIF(t_req.body,''), NULLIF(t_def.body,''), t_en.body) AS translation_body,
+         COALESCE(NULLIF(t_req.slug,''), NULLIF(t_def.slug,''), t_en.slug) AS translation_slug,
+         COALESCE(NULLIF(t_req.seo_title,''), NULLIF(t_def.seo_title,''), t_en.seo_title) AS translation_seo_title,
+         COALESCE(NULLIF(t_req.seo_description,''), NULLIF(t_def.seo_description,''), t_en.seo_description) AS translation_seo_description,
+         COALESCE(t_req.seo_canonical_override, t_def.seo_canonical_override, t_en.seo_canonical_override) AS translation_seo_canonical_override,
+         COALESCE(t_req.seo_robots, t_def.seo_robots, t_en.seo_robots) AS translation_seo_robots,
+         COALESCE(NULLIF(t_req.og_title,''), NULLIF(t_def.og_title,''), t_en.og_title) AS translation_og_title,
+         COALESCE(NULLIF(t_req.og_description,''), NULLIF(t_def.og_description,''), t_en.og_description) AS translation_og_description,
+         COALESCE(t_req.og_image_asset_id, t_def.og_image_asset_id, t_en.og_image_asset_id) AS translation_og_image_asset_id,
+         CASE WHEN t_req.id IS NOT NULL THEN t_req.translation_status WHEN t_def.id IS NOT NULL THEN t_def.translation_status ELSE t_en.translation_status END AS translation_translation_status,
+         CASE WHEN t_req.id IS NOT NULL THEN t_req.created_at WHEN t_def.id IS NOT NULL THEN t_def.created_at ELSE t_en.created_at END AS translation_created_at,
+         CASE WHEN t_req.id IS NOT NULL THEN t_req.updated_at WHEN t_def.id IS NOT NULL THEN t_def.updated_at ELSE t_en.updated_at END AS translation_updated_at
        FROM cms_contents c
-       JOIN cms_content_translations t ON t.content_id = c.id AND t.locale = ?
+       LEFT JOIN cms_content_translations t_req ON t_req.content_id = c.id AND t_req.locale = ?
+       LEFT JOIN cms_content_translations t_def ON t_def.content_id = c.id AND t_def.locale = c.default_locale
+       LEFT JOIN cms_content_translations t_en ON t_en.content_id = c.id AND t_en.locale = 'en'
        WHERE c.entity_type = ? AND c.status = 'published'
+         AND (t_req.id IS NOT NULL OR t_def.id IS NOT NULL OR t_en.id IS NOT NULL)
        ORDER BY c.published_at DESC LIMIT ? OFFSET ?`,
     )
-    .bind(input.locale, input.entityType, limit, offset)
+    .bind(requestedLocale, input.entityType, limit, offset)
     .all<Record<string, string | number | null>>();
   const out: PublishedContent[] = [];
   for (const row of results) {
@@ -940,7 +963,7 @@ export async function listPublishedByEntity(
       translation: {
         id: String(row["translation_id"] ?? ""),
         content_id: String(row["content_id"] ?? ""),
-        locale: input.locale,
+        locale: String(row["translation_locale"] ?? requestedLocale),
         title: String(row["translation_title"] ?? ""),
         body: String(row["translation_body"] ?? ""),
         slug: String(row["translation_slug"] ?? ""),

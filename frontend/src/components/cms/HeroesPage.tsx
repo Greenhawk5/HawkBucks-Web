@@ -13,8 +13,9 @@ import {
 } from "@/lib/cms/hero-labels";
 import { HERO_CLASSES } from "@/lib/cms/heroes";
 import { RARITIES, parsePublicRarityParam } from "@/lib/cms/taxonomy";
+import { rarityToken } from "@/lib/cms/rarity-tokens";
 import type { HubHeroRow } from "@/lib/cms/public-hubs.loader";
-import { MediaIcon } from "@/components/heroes/HeroReferenceBits";
+import { MediaIcon, RarityPill } from "@/components/heroes/HeroReferenceBits";
 import { ContentDiscoveryBar } from "@/components/content/ContentDiscoveryBar";
 import { ContentEmptyState } from "@/components/content/ContentEmptyState";
 import { PaginationBar } from "@/components/content/PaginationBar";
@@ -655,6 +656,28 @@ function ViewModeSwitch({ locale, view }: { locale: string; view: HeroViewMode }
  * abilities, tier count — that reflows to a stacked layout on phones instead
  * of squeezing desktop columns into 360px. No Max Power metadata: the listing
  * filter is gone and the row stays a comparison aid, not a progression table.
+ *
+ * WHOLE-ROW TARGET
+ *   A row IS one hero entry, so the entire row opens that hero. The title link
+ *   carries a stretched `::after` hit area (`after:absolute after:inset-0`)
+ *   covering the row's padding box — portrait, name, class, rarity, perk, tier
+ *   count and empty space all land on the link. The destination stays
+ *   `heroDetailHref(locale, slug)`, so locale-aware routing is untouched.
+ *
+ *   The row also contains independent links (the ability icons), so wrapping
+ *   the `<li>` in an anchor would nest interactive elements — invalid HTML and
+ *   conflicting activation. Instead the ability list is lifted ABOVE the
+ *   overlay (`relative z-10`), the same stacking contract the collection card
+ *   uses. Every control keeps its own focus stop, accessible name and
+ *   activation; the overlay only serves the regions that previously did
+ *   nothing, and nothing under it is interactive on its own.
+ *
+ * RARITY
+ *   The label is the shared `RarityPill` (canonical `rarity-tokens` palette),
+ *   and a narrow leading edge repeats the same accent at row level. Both are
+ *   decorative colour over text — the pill's visible label always names the
+ *   rarity — and both simply disappear when a hero has no rarity, so nothing
+ *   is colour-only.
  */
 function ReferenceRowList({ locale, items }: { locale: string; items: HeroCardData[] }) {
   return (
@@ -668,11 +691,25 @@ function ReferenceRowList({ locale, items }: { locale: string; items: HeroCardDa
         const tiers = tierCountLabel(locale, prog?.tierCount ?? null);
         const abilities = h.reference?.abilities ?? [];
         const href = heroDetailHref(locale, h.slug);
+        const rarity = h.rarity?.toLowerCase() ?? null;
+        const token = rarityToken(rarity);
         return (
           <li
             key={h.contentId}
-            className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-2 py-3 sm:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)_auto] sm:gap-x-4 md:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)_auto_auto]"
+            data-testid="hero-reference-row"
+            data-rarity={rarity ?? undefined}
+            className="group relative grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-2 py-3 ps-3 transition-colors hover:bg-primary/5 focus-within:bg-primary/5 sm:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)_auto] sm:gap-x-4 md:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)_auto_auto]"
           >
+            {/* Narrow rarity rail: the pill's accent repeated once at row
+                level. Decorative and pointer-inert — the pill below carries
+                the accessible value. */}
+            {token ? (
+              <span
+                aria-hidden="true"
+                className="pointer-events-none absolute inset-y-2 start-0 w-0.5 rounded-full"
+                style={{ backgroundColor: token.accent, opacity: token.glow ? 0.9 : 0.6 }}
+              />
+            ) : null}
             <div className="flex min-w-0 items-center gap-3">
               {h.imageUrl ? (
                 <img
@@ -685,13 +722,16 @@ function ReferenceRowList({ locale, items }: { locale: string; items: HeroCardDa
                 />
               ) : null}
               <div className="min-w-0">
+                {/* The stretched ::after is the single row-wide hit area.
+                    Ability links re-assert their own stacking (z-10) to stay
+                    clickable above it. */}
                 <Link
                   to={href}
-                  className="block truncate rounded font-display text-sm font-bold outline-none transition-colors hover:text-primary focus-visible:ring-2 focus-visible:ring-ring"
+                  className="block truncate rounded font-display text-sm font-bold outline-none transition-colors after:absolute after:inset-0 after:z-0 after:content-[''] hover:text-primary focus-visible:ring-2 focus-visible:ring-ring"
                 >
                   {h.title}
                 </Link>
-                <p className="mt-0.5 flex min-w-0 items-center gap-1 truncate text-[11px] text-muted-foreground">
+                <p className="mt-0.5 flex min-w-0 flex-wrap items-center gap-x-1.5 gap-y-1 text-[11px] text-muted-foreground">
                   {h.classIconUrl ? (
                     <img
                       src={h.classIconUrl}
@@ -705,12 +745,10 @@ function ReferenceRowList({ locale, items }: { locale: string; items: HeroCardDa
                       }}
                     />
                   ) : null}
-                  <span className="truncate">
-                    <span className="text-foreground/80">
-                      {heroClassLabel(locale, h.heroClass)}
-                    </span>
-                    {h.rarity ? ` · ${rarityLabel(locale, h.rarity) ?? h.rarity}` : ""}
+                  <span className="min-w-0 truncate text-foreground/80">
+                    {heroClassLabel(locale, h.heroClass)}
                   </span>
+                  <RarityPill locale={locale} rarity={h.rarity} />
                 </p>
                 {std ? (
                   <p className="mt-1 flex min-w-0 items-center gap-1.5 truncate text-xs text-muted-foreground sm:hidden">
@@ -731,13 +769,13 @@ function ReferenceRowList({ locale, items }: { locale: string; items: HeroCardDa
             ) : (
               <span className="hidden sm:block" aria-hidden="true" />
             )}
-            <p className="hidden shrink-0 text-[11px] tabular-nums text-muted-foreground md:block">
+            <p className="hidden shrink-0 whitespace-nowrap text-[11px] tabular-nums text-muted-foreground md:block">
               {tiers}
             </p>
             {abilities.length > 0 ? (
               <ul
                 aria-label={heroLabels(locale).abilities}
-                className="flex min-w-0 flex-wrap items-center gap-1 sm:justify-end"
+                className="relative z-10 flex min-w-0 flex-wrap items-center gap-1 sm:justify-end"
               >
                 {abilities.slice(0, 4).map((a) => (
                   <li key={a.key}>

@@ -961,6 +961,8 @@ async function resolvePerkLocaleText(
   perkContentId: string,
   locale: string,
 ): Promise<{ name: string | null; description: string }> {
+  // English is canonical: requested row first, then English, then any row
+  // (deterministic by locale) — never a blank/missing fallback.
   const exact = await db
     .prepare(
       "SELECT name, description FROM perk_translations WHERE perk_content_id = ? AND locale = ?",
@@ -968,6 +970,15 @@ async function resolvePerkLocaleText(
     .bind(perkContentId, locale)
     .first<{ name: string; description: string }>();
   if (exact) return { name: exact.name, description: exact.description ?? "" };
+  if (locale !== "en") {
+    const english = await db
+      .prepare(
+        "SELECT name, description FROM perk_translations WHERE perk_content_id = ? AND locale = 'en'",
+      )
+      .bind(perkContentId)
+      .first<{ name: string; description: string }>();
+    if (english) return { name: english.name, description: english.description ?? "" };
+  }
   const fallback = await db
     .prepare(
       "SELECT name, description FROM perk_translations WHERE perk_content_id = ? ORDER BY locale ASC LIMIT 1",
@@ -994,10 +1005,23 @@ async function buildPublishedPerk(
   if (!perk) return null;
   const content = await getContentById(db, perkContentId);
   if (!content || !isContentStatus(content.status) || content.status !== "published") return null;
-  const translation = await db
-    .prepare("SELECT * FROM cms_content_translations WHERE content_id = ? AND locale = ?")
-    .bind(perkContentId, locale)
-    .first<import("./db.server").ContentTranslationRow>();
+  const reqPerkLoc = typeof locale === "string" && locale !== "" ? locale : "en";
+  const { results: perkTrows2 } = await db
+    .prepare(
+      "SELECT * FROM cms_content_translations WHERE content_id = ? AND locale IN (?, ?, 'en')",
+    )
+    .bind(perkContentId, reqPerkLoc, content.default_locale || "en")
+    .all<import("./db.server").ContentTranslationRow>();
+  const { mergeTranslationRows: mergePerkTr } = await import("./locale-fallback");
+  const { row: perkDe } = mergePerkTr(
+    perkTrows2.find((t) => t.locale === (content.default_locale || "en")) ?? null,
+    perkTrows2.find((t) => t.locale === "en") ?? null,
+  );
+  const { row: perkMerged } = mergePerkTr(
+    perkTrows2.find((t) => t.locale === reqPerkLoc) ?? null,
+    perkDe,
+  );
+  const translation = perkMerged;
   const text = await resolvePerkLocaleText(db, perkContentId, locale);
   return {
     content,
@@ -1045,10 +1069,24 @@ async function buildPublishedWeapon(
   if (!weapon) return null;
   const content = await getContentById(db, weaponContentId);
   if (!content || !isContentStatus(content.status) || content.status !== "published") return null;
-  const translation = await db
-    .prepare("SELECT * FROM cms_content_translations WHERE content_id = ? AND locale = ?")
-    .bind(weaponContentId, locale)
-    .first<import("./db.server").ContentTranslationRow>();
+  // Shared fallback: requested row preferred, English merged per field.
+  const reqLoc = typeof locale === "string" && locale !== "" ? locale : "en";
+  const { results: wtrows } = await db
+    .prepare(
+      "SELECT * FROM cms_content_translations WHERE content_id = ? AND locale IN (?, ?, 'en')",
+    )
+    .bind(weaponContentId, reqLoc, content.default_locale || "en")
+    .all<import("./db.server").ContentTranslationRow>();
+  const { mergeTranslationRows } = await import("./locale-fallback");
+  const { row: wDe } = mergeTranslationRows(
+    wtrows.find((t) => t.locale === (content.default_locale || "en")) ?? null,
+    wtrows.find((t) => t.locale === "en") ?? null,
+  );
+  const { row: wmerged } = mergeTranslationRows(
+    wtrows.find((t) => t.locale === reqLoc) ?? null,
+    wDe,
+  );
+  const translation = wmerged;
   if (!translation) return null;
   const icon = weapon.icon_asset_id
     ? await db
@@ -1079,10 +1117,20 @@ async function buildPublishedTrap(
   if (!trap) return null;
   const content = await getContentById(db, trapContentId);
   if (!content || !isContentStatus(content.status) || content.status !== "published") return null;
-  const translation = await db
-    .prepare("SELECT * FROM cms_content_translations WHERE content_id = ? AND locale = ?")
-    .bind(trapContentId, locale)
-    .first<import("./db.server").ContentTranslationRow>();
+  const reqLoc2 = typeof locale === "string" && locale !== "" ? locale : "en";
+  const { results: ttrows } = await db
+    .prepare(
+      "SELECT * FROM cms_content_translations WHERE content_id = ? AND locale IN (?, ?, 'en')",
+    )
+    .bind(trapContentId, reqLoc2, content.default_locale || "en")
+    .all<import("./db.server").ContentTranslationRow>();
+  const { mergeTranslationRows: mergeTrapTr } = await import("./locale-fallback");
+  const { row: tDe } = mergeTrapTr(
+    ttrows.find((t) => t.locale === (content.default_locale || "en")) ?? null,
+    ttrows.find((t) => t.locale === "en") ?? null,
+  );
+  const { row: tmerged } = mergeTrapTr(ttrows.find((t) => t.locale === reqLoc2) ?? null, tDe);
+  const translation = tmerged;
   if (!translation) return null;
   const icon = trap.icon_asset_id
     ? await db
@@ -1107,10 +1155,20 @@ async function buildPublishedSchematic(
   if (!schematic) return null;
   const content = await getContentById(db, schematicContentId);
   if (!content || !isContentStatus(content.status) || content.status !== "published") return null;
-  const translation = await db
-    .prepare("SELECT * FROM cms_content_translations WHERE content_id = ? AND locale = ?")
-    .bind(schematicContentId, locale)
-    .first<import("./db.server").ContentTranslationRow>();
+  const reqLoc3 = typeof locale === "string" && locale !== "" ? locale : "en";
+  const { results: strows } = await db
+    .prepare(
+      "SELECT * FROM cms_content_translations WHERE content_id = ? AND locale IN (?, ?, 'en')",
+    )
+    .bind(schematicContentId, reqLoc3, content.default_locale || "en")
+    .all<import("./db.server").ContentTranslationRow>();
+  const { mergeTranslationRows: mergeSchemTr } = await import("./locale-fallback");
+  const { row: sDe } = mergeSchemTr(
+    strows.find((t) => t.locale === (content.default_locale || "en")) ?? null,
+    strows.find((t) => t.locale === "en") ?? null,
+  );
+  const { row: smerged } = mergeSchemTr(strows.find((t) => t.locale === reqLoc3) ?? null, sDe);
+  const translation = smerged;
   if (!translation) return null;
   const kind: "weapon" | "trap" = schematic.weapon_content_id !== null ? "weapon" : "trap";
   const weapon =
@@ -1182,7 +1240,9 @@ export async function listPublishedWeapons(
     throw new Error("Invalid weapon_subtype.");
   if (input.rarity !== undefined && !isRarity(input.rarity)) throw new Error("Invalid rarity.");
   const clauses = ["c.entity_type = 'weapon'", "c.status = 'published'"];
-  const values: unknown[] = [];
+  const reqWLoc = typeof input.locale === "string" && input.locale !== "" ? input.locale : "en";
+  clauses.push("(t_req.id IS NOT NULL OR t_en.id IS NOT NULL)");
+  const values: unknown[] = [reqWLoc];
   if (input.weaponSubtype !== undefined) {
     clauses.push("w.weapon_subtype = ?");
     values.push(input.weaponSubtype);
@@ -1193,14 +1253,29 @@ export async function listPublishedWeapons(
   }
   const { results } = await db
     .prepare(
-      `SELECT c.*, t.id AS t_id FROM cms_contents c
-        JOIN cms_content_translations t ON t.content_id = c.id AND t.locale = ?
-        JOIN weapon_records w ON w.content_id = c.id
-       WHERE ${clauses.join(" AND ")}
-       ORDER BY w.sort_order ASC, w.popularity DESC LIMIT ? OFFSET ?`,
+      `SELECT c.*,
+              COALESCE(t_req.id, t_en.id) AS t_id,
+              CASE WHEN t_req.id IS NOT NULL THEN t_req.locale ELSE t_en.locale END AS t_locale,
+              COALESCE(NULLIF(t_req.title,''), t_en.title) AS t_title,
+              COALESCE(NULLIF(t_req.body,''), t_en.body) AS t_body,
+              COALESCE(NULLIF(t_req.slug,''), t_en.slug) AS t_slug
+         FROM cms_contents c
+         LEFT JOIN cms_content_translations t_req ON t_req.content_id = c.id AND t_req.locale = ?
+         LEFT JOIN cms_content_translations t_en ON t_en.content_id = c.id AND t_en.locale = 'en'
+         JOIN weapon_records w ON w.content_id = c.id
+        WHERE ${clauses.join(" AND ")}
+        ORDER BY w.sort_order ASC, w.popularity DESC LIMIT ? OFFSET ?`,
     )
-    .bind(input.locale, ...values, limit, offset)
-    .all<ContentRow & { t_id: string }>();
+    .bind(...values, limit, offset)
+    .all<
+      ContentRow & {
+        t_id: string;
+        t_locale: string;
+        t_title: string;
+        t_body: string;
+        t_slug: string;
+      }
+    >();
   const out: Array<{
     content: ContentRow;
     translation: import("./db.server").ContentTranslationRow;
@@ -1212,7 +1287,21 @@ export async function listPublishedWeapons(
       .bind(r.t_id)
       .first<import("./db.server").ContentTranslationRow>();
     const weapon = await getWeaponRecord(db, r.id);
-    if (tr && weapon) out.push({ content: r, translation: tr, weapon });
+    if (tr && weapon) {
+      const { mergeTranslationRows: mergeWList } = await import("./locale-fallback");
+      void mergeWList;
+      out.push({
+        content: r,
+        translation: {
+          ...tr,
+          title: typeof r.t_title === "string" && r.t_title !== "" ? r.t_title : tr.title,
+          body: typeof r.t_body === "string" && r.t_body !== "" ? r.t_body : tr.body,
+          slug: typeof r.t_slug === "string" && r.t_slug !== "" ? r.t_slug : tr.slug,
+          locale: typeof r.t_locale === "string" && r.t_locale !== "" ? r.t_locale : tr.locale,
+        },
+        weapon,
+      });
+    }
   }
   return out;
 }
@@ -1254,7 +1343,9 @@ export async function listPublishedTraps(
     throw new Error("Invalid trap_placement.");
   if (input.rarity !== undefined && !isRarity(input.rarity)) throw new Error("Invalid rarity.");
   const clauses = ["c.entity_type = 'trap'", "c.status = 'published'"];
-  const values: unknown[] = [];
+  const reqTLoc = typeof input.locale === "string" && input.locale !== "" ? input.locale : "en";
+  clauses.push("(t_req.id IS NOT NULL OR t_en.id IS NOT NULL)");
+  const values: unknown[] = [reqTLoc];
   if (input.trapSubtype !== undefined) {
     clauses.push("t2.trap_subtype = ?");
     values.push(input.trapSubtype);
@@ -1269,14 +1360,29 @@ export async function listPublishedTraps(
   }
   const { results } = await db
     .prepare(
-      `SELECT c.*, t.id AS t_id FROM cms_contents c
-        JOIN cms_content_translations t ON t.content_id = c.id AND t.locale = ?
-        JOIN trap_records t2 ON t2.content_id = c.id
-       WHERE ${clauses.join(" AND ")}
-       ORDER BY t2.sort_order ASC, t2.popularity DESC LIMIT ? OFFSET ?`,
+      `SELECT c.*,
+              COALESCE(t_req.id, t_en.id) AS t_id,
+              CASE WHEN t_req.id IS NOT NULL THEN t_req.locale ELSE t_en.locale END AS t_locale,
+              COALESCE(NULLIF(t_req.title,''), t_en.title) AS t_title,
+              COALESCE(NULLIF(t_req.body,''), t_en.body) AS t_body,
+              COALESCE(NULLIF(t_req.slug,''), t_en.slug) AS t_slug
+         FROM cms_contents c
+         LEFT JOIN cms_content_translations t_req ON t_req.content_id = c.id AND t_req.locale = ?
+         LEFT JOIN cms_content_translations t_en ON t_en.content_id = c.id AND t_en.locale = 'en'
+         JOIN trap_records t2 ON t2.content_id = c.id
+        WHERE ${clauses.join(" AND ")}
+        ORDER BY t2.sort_order ASC, t2.popularity DESC LIMIT ? OFFSET ?`,
     )
-    .bind(input.locale, ...values, limit, offset)
-    .all<ContentRow & { t_id: string }>();
+    .bind(...values, limit, offset)
+    .all<
+      ContentRow & {
+        t_id: string;
+        t_locale: string;
+        t_title: string;
+        t_body: string;
+        t_slug: string;
+      }
+    >();
   const out: Array<{
     content: ContentRow;
     translation: import("./db.server").ContentTranslationRow;
@@ -1288,7 +1394,18 @@ export async function listPublishedTraps(
       .bind(r.t_id)
       .first<import("./db.server").ContentTranslationRow>();
     const trap = await getTrapRecord(db, r.id);
-    if (tr && trap) out.push({ content: r, translation: tr, trap });
+    if (tr && trap)
+      out.push({
+        content: r,
+        translation: {
+          ...tr,
+          title: typeof r.t_title === "string" && r.t_title !== "" ? r.t_title : tr.title,
+          body: typeof r.t_body === "string" && r.t_body !== "" ? r.t_body : tr.body,
+          slug: typeof r.t_slug === "string" && r.t_slug !== "" ? r.t_slug : tr.slug,
+          locale: typeof r.t_locale === "string" && r.t_locale !== "" ? r.t_locale : tr.locale,
+        },
+        trap,
+      });
   }
   return out;
 }
@@ -1331,30 +1448,43 @@ export async function listPublishedSchematicIndex(
   db: D1Database,
   input: { locale: string },
 ): Promise<PublishedSchematicIndexRow[]> {
+  const reqSLoc = typeof input.locale === "string" && input.locale !== "" ? input.locale : "en";
   const { results } = await db
     .prepare(
       `SELECT
          c.id AS c_id, c.entity_type AS c_entity_type, c.default_locale AS c_default_locale,
          c.status AS c_status, c.published_at AS c_published_at, c.created_by AS c_created_by,
          c.updated_by AS c_updated_by, c.created_at AS c_created_at, c.updated_at AS c_updated_at,
-         t.id AS t_id, t.content_id AS t_content_id, t.locale AS t_locale, t.title AS t_title,
-         t.body AS t_body, t.slug AS t_slug, t.seo_title AS t_seo_title,
-         t.seo_description AS t_seo_description, t.seo_canonical_override AS t_seo_canonical_override,
-         t.seo_robots AS t_seo_robots, t.og_title AS t_og_title, t.og_description AS t_og_description,
-         t.og_image_asset_id AS t_og_image_asset_id, t.translation_status AS t_translation_status,
-         t.created_at AS t_created_at, t.updated_at AS t_updated_at,
+         COALESCE(t_req.id, t_en.id) AS t_id,
+         COALESCE(t_req.content_id, t_en.content_id) AS t_content_id,
+         CASE WHEN t_req.id IS NOT NULL THEN t_req.locale ELSE t_en.locale END AS t_locale,
+         COALESCE(NULLIF(t_req.title,''), t_en.title) AS t_title,
+         COALESCE(NULLIF(t_req.body,''), t_en.body) AS t_body,
+         COALESCE(NULLIF(t_req.slug,''), t_en.slug) AS t_slug,
+         COALESCE(NULLIF(t_req.seo_title,''), t_en.seo_title) AS t_seo_title,
+         COALESCE(NULLIF(t_req.seo_description,''), t_en.seo_description) AS t_seo_description,
+         COALESCE(t_req.seo_canonical_override, t_en.seo_canonical_override) AS t_seo_canonical_override,
+         COALESCE(t_req.seo_robots, t_en.seo_robots) AS t_seo_robots,
+         COALESCE(NULLIF(t_req.og_title,''), t_en.og_title) AS t_og_title,
+         COALESCE(NULLIF(t_req.og_description,''), t_en.og_description) AS t_og_description,
+         COALESCE(t_req.og_image_asset_id, t_en.og_image_asset_id) AS t_og_image_asset_id,
+         CASE WHEN t_req.id IS NOT NULL THEN t_req.translation_status ELSE t_en.translation_status END AS t_translation_status,
+         CASE WHEN t_req.id IS NOT NULL THEN t_req.created_at ELSE t_en.created_at END AS t_created_at,
+         CASE WHEN t_req.id IS NOT NULL THEN t_req.updated_at ELSE t_en.updated_at END AS t_updated_at,
          s.content_id AS s_content_id, s.weapon_content_id AS s_weapon_content_id,
          s.trap_content_id AS s_trap_content_id, s.popularity AS s_popularity,
          s.sort_order AS s_sort_order, s.icon_asset_id AS s_icon_asset_id,
          s.created_at AS s_created_at, s.updated_at AS s_updated_at
         FROM cms_contents c
-        JOIN cms_content_translations t ON t.content_id = c.id AND t.locale = ?
+        LEFT JOIN cms_content_translations t_req ON t_req.content_id = c.id AND t_req.locale = ?
+        LEFT JOIN cms_content_translations t_en ON t_en.content_id = c.id AND t_en.locale = 'en'
         JOIN schematic_records s ON s.content_id = c.id
        WHERE c.entity_type = 'schematic' AND c.status = 'published'
-       ORDER BY s.sort_order ASC, s.popularity DESC, t.title ASC
+         AND (t_req.id IS NOT NULL OR t_en.id IS NOT NULL)
+       ORDER BY s.sort_order ASC, s.popularity DESC, COALESCE(NULLIF(t_req.title,''), t_en.title) ASC
        LIMIT ?`,
     )
-    .bind(input.locale, MAX_SCHEMATIC_INDEX_ROWS)
+    .bind(reqSLoc, MAX_SCHEMATIC_INDEX_ROWS)
     .all<Record<string, string | number | null>>();
   const out: PublishedSchematicIndexRow[] = [];
   for (const r of results) {
@@ -1420,15 +1550,24 @@ export async function listPublishedSchematics(
 > {
   const limit = Math.max(1, Math.min(100, Math.floor(input.limit ?? 50)));
   const offset = Math.max(0, Math.floor(input.offset ?? 0));
+  const reqSchLoc = typeof input.locale === "string" && input.locale !== "" ? input.locale : "en";
   const { results } = await db
     .prepare(
-      `SELECT c.*, t.id AS t_id FROM cms_contents c
-        JOIN cms_content_translations t ON t.content_id = c.id AND t.locale = ?
-        JOIN schematic_records s ON s.content_id = c.id
-       WHERE c.entity_type = 'schematic' AND c.status = 'published'
-       ORDER BY s.sort_order ASC, s.popularity DESC LIMIT ? OFFSET ?`,
+      `SELECT c.*,
+              COALESCE(t_req.id, t_en.id) AS t_id,
+              CASE WHEN t_req.id IS NOT NULL THEN t_req.locale ELSE t_en.locale END AS t_locale,
+              COALESCE(NULLIF(t_req.title,''), t_en.title) AS t_title,
+              COALESCE(NULLIF(t_req.body,''), t_en.body) AS t_body,
+              COALESCE(NULLIF(t_req.slug,''), t_en.slug) AS t_slug
+         FROM cms_contents c
+         LEFT JOIN cms_content_translations t_req ON t_req.content_id = c.id AND t_req.locale = ?
+         LEFT JOIN cms_content_translations t_en ON t_en.content_id = c.id AND t_en.locale = 'en'
+         JOIN schematic_records s ON s.content_id = c.id
+        WHERE c.entity_type = 'schematic' AND c.status = 'published'
+          AND (t_req.id IS NOT NULL OR t_en.id IS NOT NULL)
+        ORDER BY s.sort_order ASC, s.popularity DESC LIMIT ? OFFSET ?`,
     )
-    .bind(input.locale, limit, offset)
+    .bind(reqSchLoc, limit, offset)
     .all<ContentRow & { t_id: string }>();
   const out: Array<{
     content: ContentRow;
@@ -1456,15 +1595,24 @@ export async function listPublishedPerks(
     clauses.push("p.perk_type = ?");
     values.push(input.perkType);
   }
+  const reqPLoc = typeof input.locale === "string" && input.locale !== "" ? input.locale : "en";
+  clauses.push("(t_req.id IS NOT NULL OR t_en.id IS NOT NULL)");
   const { results } = await db
     .prepare(
-      `SELECT c.*, t.id AS t_id FROM cms_contents c
-        JOIN cms_content_translations t ON t.content_id = c.id AND t.locale = ?
-        JOIN perk_records p ON p.content_id = c.id
-       WHERE ${clauses.join(" AND ")}
-       ORDER BY p.sort_order ASC, p.popularity DESC LIMIT ? OFFSET ?`,
+      `SELECT c.*,
+              COALESCE(t_req.id, t_en.id) AS t_id,
+              CASE WHEN t_req.id IS NOT NULL THEN t_req.locale ELSE t_en.locale END AS t_locale,
+              COALESCE(NULLIF(t_req.title,''), t_en.title) AS t_title,
+              COALESCE(NULLIF(t_req.body,''), t_en.body) AS t_body,
+              COALESCE(NULLIF(t_req.slug,''), t_en.slug) AS t_slug
+         FROM cms_contents c
+         LEFT JOIN cms_content_translations t_req ON t_req.content_id = c.id AND t_req.locale = ?
+         LEFT JOIN cms_content_translations t_en ON t_en.content_id = c.id AND t_en.locale = 'en'
+         JOIN perk_records p ON p.content_id = c.id
+        WHERE ${clauses.join(" AND ")}
+        ORDER BY p.sort_order ASC, p.popularity DESC LIMIT ? OFFSET ?`,
     )
-    .bind(input.locale, ...values, limit, offset)
+    .bind(reqPLoc, ...values, limit, offset)
     .all<ContentRow & { t_id: string }>();
   const out: PublishedPerk[] = [];
   for (const r of results) {

@@ -1,6 +1,10 @@
 /**
  * Phase 13 — public Heroes/Loadouts UI strings registry (9 locales).
  * English source lives in public-strings-base.ts to avoid cycles.
+ *
+ * Site-wide fallback: every non-English table merges over English per key
+ * (see withEnglishFallback), so one missing/blank translated key renders the
+ * English string — never a blank label or key id.
  */
 import type { PublicStrings } from "./public-strings-base";
 import { en } from "./public-strings-base";

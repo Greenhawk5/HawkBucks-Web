@@ -217,18 +217,34 @@ function createMemoryD1() {
       return tables.cms_contents.filter((r) => r.id === params[0]);
     }
     if (/FROM cms_slugs s/.test(sql)) {
-      // Public selector: published only. Returns the Phase 19 aliased
-      // single-query shape (content_* / translation_* columns).
-      const [entityType, locale, slug] = params;
+      // Public selector: published only, slug in ANY locale namespace,
+      // translation resolves requested -> default_locale -> English.
+      // Bind order: (requestedLocale, entityType, slug, requestedLocale).
+      const [requestedLocale, entityType, slug] = params;
+      const nonEmpty = (v) => typeof v === "string" && v !== "";
       const out = [];
       for (const s of tables.cms_slugs) {
-        if (s.entity_type !== entityType || s.locale !== locale || s.slug !== slug) continue;
+        if (s.entity_type !== entityType || s.slug !== slug) continue;
         const c = tables.cms_contents.find((x) => x.id === s.content_id);
         if (!c || c.status !== "published") continue;
-        const t = tables.cms_content_translations.find(
-          (x) => x.content_id === c.id && x.locale === s.locale,
+        const tReq = tables.cms_content_translations.find(
+          (x) => x.content_id === c.id && x.locale === requestedLocale,
         );
+        const tDef = tables.cms_content_translations.find(
+          (x) => x.content_id === c.id && x.locale === c.default_locale,
+        );
+        const tEn = tables.cms_content_translations.find(
+          (x) => x.content_id === c.id && x.locale === "en",
+        );
+        const t = tReq ?? tDef ?? tEn;
         if (!t) continue;
+        // Per-field COALESCE mirror: requested -> default -> en.
+        const pickT = (key) =>
+          nonEmpty(tReq?.[key])
+            ? tReq[key]
+            : nonEmpty(tDef?.[key])
+              ? tDef[key]
+              : (tEn?.[key] ?? t[key]);
         out.push({
           content_id: c.id,
           content_entity_type: c.entity_type,
@@ -240,11 +256,18 @@ function createMemoryD1() {
           content_created_at: c.created_at,
           content_updated_at: c.updated_at,
           translation_id: t.id,
-          translation_title: t.title,
-          translation_body: t.body,
-          translation_slug: t.slug,
-          translation_seo_title: t.seo_title,
-          translation_seo_description: t.seo_description,
+          translation_locale: tReq
+            ? tReq.locale
+            : tDef
+              ? tDef.locale
+              : tEn
+                ? tEn.locale
+                : requestedLocale,
+          translation_title: pickT("title"),
+          translation_body: pickT("body"),
+          translation_slug: pickT("slug"),
+          translation_seo_title: pickT("seo_title"),
+          translation_seo_description: pickT("seo_description"),
           translation_seo_canonical_override: t.seo_canonical_override,
           translation_seo_robots: t.seo_robots,
           translation_og_title: t.og_title,
@@ -272,17 +295,30 @@ function createMemoryD1() {
       );
       return hit ? [{ slug: hit.slug }] : [];
     }
-    if (/JOIN cms_content_translations t ON/.test(sql)) {
-      // listPublishedByEntity: entity, published, locale join. Returns the
-      // Phase 19 aliased single-query shape (content_* / translation_*).
+    if (/LEFT JOIN cms_content_translations t_req/.test(sql)) {
+      // listPublishedByEntity with site-wide fallback: bind (locale, entity, limit, offset).
       const [locale, entityType, limit, offset] = params;
+      const nonEmpty = (v) => typeof v === "string" && v !== "";
+      const pickT = (tReq, tDef, tEn, key) =>
+        nonEmpty(tReq?.[key])
+          ? tReq[key]
+          : nonEmpty(tDef?.[key])
+            ? tDef[key]
+            : (tEn?.[key] ?? null);
       return tables.cms_contents
         .filter((c) => c.entity_type === entityType && c.status === "published")
         .sort((a, b) => ((a.published_at ?? "") < (b.published_at ?? "") ? 1 : -1))
         .flatMap((c) => {
-          const t = tables.cms_content_translations.find(
+          const tReq = tables.cms_content_translations.find(
             (x) => x.content_id === c.id && x.locale === locale,
           );
+          const tDef = tables.cms_content_translations.find(
+            (x) => x.content_id === c.id && x.locale === c.default_locale,
+          );
+          const tEn = tables.cms_content_translations.find(
+            (x) => x.content_id === c.id && x.locale === "en",
+          );
+          const t = tReq ?? tDef ?? tEn;
           if (!t) return [];
           return [
             {
@@ -296,11 +332,18 @@ function createMemoryD1() {
               content_created_at: c.created_at,
               content_updated_at: c.updated_at,
               translation_id: t.id,
-              translation_title: t.title,
-              translation_body: t.body,
-              translation_slug: t.slug,
-              translation_seo_title: t.seo_title,
-              translation_seo_description: t.seo_description,
+              translation_locale: tReq
+                ? tReq.locale
+                : tDef
+                  ? tDef.locale
+                  : tEn
+                    ? tEn.locale
+                    : locale,
+              translation_title: pickT(tReq, tDef, tEn, "title"),
+              translation_body: pickT(tReq, tDef, tEn, "body"),
+              translation_slug: pickT(tReq, tDef, tEn, "slug"),
+              translation_seo_title: pickT(tReq, tDef, tEn, "seo_title"),
+              translation_seo_description: pickT(tReq, tDef, tEn, "seo_description"),
               translation_seo_canonical_override: t.seo_canonical_override,
               translation_seo_robots: t.seo_robots,
               translation_og_title: t.og_title,

@@ -139,14 +139,16 @@ export async function readHeroPerks(
         `SELECT p.hero_content_id AS hero_content_id,
                 d.perk_key AS perk_key,
                 d.slot AS slot,
-                COALESCE(NULLIF(t.editorial_name, ''), NULLIF(t.name, ''), NULLIF(d.editorial_name, ''), d.display_name) AS display_name,
-                COALESCE(NULLIF(t.editorial_description, ''), t.description, '') AS description,
+                COALESCE(NULLIF(t.editorial_name, ''), NULLIF(t.name, ''), NULLIF(te.editorial_name, ''), NULLIF(te.name, ''), NULLIF(d.editorial_name, ''), d.display_name) AS display_name,
+                COALESCE(NULLIF(t.editorial_description, ''), NULLIF(t.description, ''), NULLIF(te.editorial_description, ''), NULLIF(te.description, ''), '') AS description,
                 m.delivery_url AS icon_url,
                 p.slot_order AS slot_order
            FROM hero_perks p
            JOIN hero_perk_defs d ON d.id = p.hero_perk_def_id
            LEFT JOIN hero_perk_def_translations t
                   ON t.hero_perk_def_id = d.id AND t.locale = ?
+           LEFT JOIN hero_perk_def_translations te
+                  ON te.hero_perk_def_id = d.id AND te.locale = 'en'
            LEFT JOIN media_assets m
                   ON m.id = COALESCE(p.icon_asset_id, d.icon_asset_id) AND m.status = 'ready'
           WHERE p.hero_content_id IN (${placeholders(ids.length)})
@@ -199,24 +201,25 @@ export async function readHeroAbilities(
         `SELECT a.hero_content_id AS hero_content_id,
                 a.ability_key AS ability_key,
                 COALESCE(NULLIF(d.editorial_name, ''), d.display_name) AS display_name,
-                COALESCE(NULLIF(t.editorial_name, ''), NULLIF(t.name, '')) AS def_translated_name,
-                COALESCE(t.description, '') AS description,
+                COALESCE(NULLIF(t.editorial_name, ''), NULLIF(t.name, ''), NULLIF(te.editorial_name, ''), NULLIF(te.name, '')) AS def_translated_name,
+                COALESCE(t.description, te.description, '') AS description,
                 m.delivery_url AS icon_url,
                 a.sort_order AS sort_order,
                 (SELECT at.name
                    FROM hero_ability_translations at
-                  WHERE at.ability_id = a.id AND at.locale = ?
-                  ORDER BY at.locale ASC
+                  WHERE at.ability_id = a.id AND at.locale IN (?, 'en')
+                  ORDER BY CASE WHEN at.locale = ? THEN 0 ELSE 1 END, at.locale ASC
                   LIMIT 1) AS translated_name
            FROM hero_abilities a
            LEFT JOIN ability_defs d ON d.id = a.ability_def_id
            LEFT JOIN ability_def_translations t ON t.ability_def_id = d.id AND t.locale = ?
+           LEFT JOIN ability_def_translations te ON te.ability_def_id = d.id AND te.locale = 'en'
            LEFT JOIN media_assets m
                   ON m.id = COALESCE(a.icon_asset_id, d.icon_asset_id) AND m.status = 'ready'
           WHERE a.hero_content_id IN (${placeholders(ids.length)})
           ORDER BY a.sort_order ASC, a.ability_key ASC`,
       )
-      .bind(locale, locale, ...ids)
+      .bind(locale, locale, locale, ...ids)
       .all<AbilityJoinRow>();
 
     for (const r of results) {
@@ -294,11 +297,12 @@ export async function readHeroProgressionCosts(
         `SELECT c.hero_content_id AS hero_content_id, c.rarity AS rarity,
                 c.scope AS scope, c.tier AS tier, c.kind AS kind,
                 r.resource_key AS resource_key,
-                COALESCE(NULLIF(rt.name, ''), NULLIF(r.editorial_name, ''), r.display_name) AS display_name,
+                COALESCE(NULLIF(rt.name, ''), NULLIF(rte.name, ''), NULLIF(r.editorial_name, ''), r.display_name) AS display_name,
                 COALESCE(c.editorial_amount, c.amount) AS amount, m.delivery_url AS icon_url
            FROM hero_progression_costs c
            JOIN resources r ON r.id = c.resource_id AND r.status = 'active'
            LEFT JOIN resource_translations rt ON rt.resource_id = r.id AND rt.locale = ?
+           LEFT JOIN resource_translations rte ON rte.resource_id = r.id AND rte.locale = 'en'
            LEFT JOIN media_assets m ON m.id = r.icon_asset_id AND m.status = 'ready'
           WHERE c.hero_content_id IN (${placeholders(ids.length)})
             AND c.editorial_excluded = 0
@@ -583,7 +587,12 @@ export async function readRelatedCandidates(
   input: RelatedHeroInput,
   limit = 60,
 ): Promise<RelatedCandidateRow[]> {
-  const clauses = ["c.entity_type='hero'", "c.status='published'", "h.content_id != ?"];
+  const clauses = [
+    "c.entity_type='hero'",
+    "c.status='published'",
+    "h.content_id != ?",
+    "(t.id IS NOT NULL OR td.id IS NOT NULL OR te.id IS NOT NULL)",
+  ];
   // Bind order must match the SQL TEXT order of the placeholders: the FROM JOIN
   // on cms_content_translations (t.locale) appears before the WHERE clause, so
   // locale is FIRST even though the != ? on h.content_id is the first WHERE
@@ -616,7 +625,9 @@ export async function readRelatedCandidates(
 
   const { results } = await db
     .prepare(
-      `SELECT h.content_id AS content_id, t.slug AS slug, t.title AS title,
+      `SELECT h.content_id AS content_id,
+              COALESCE(NULLIF(t.slug,''), NULLIF(td.slug,''), te.slug) AS slug,
+              COALESCE(NULLIF(t.title,''), NULLIF(td.title,''), te.title) AS title,
               h.hero_class AS hero_class, h.category AS category, h.rarity AS rarity,
               m.delivery_url AS image_url,
               (SELECT GROUP_CONCAT(d.perk_key, '|')
@@ -625,7 +636,9 @@ export async function readRelatedCandidates(
               (SELECT GROUP_CONCAT(a.ability_key, '|')
                  FROM hero_abilities a WHERE a.hero_content_id = h.content_id) AS ability_keys
          FROM cms_contents c
-         JOIN cms_content_translations t ON t.content_id = c.id AND t.locale = ?
+         LEFT JOIN cms_content_translations t ON t.content_id = c.id AND t.locale = ?
+         LEFT JOIN cms_content_translations td ON td.content_id = c.id AND td.locale = c.default_locale
+         LEFT JOIN cms_content_translations te ON te.content_id = c.id AND te.locale = 'en'
          JOIN hero_records h ON h.content_id = c.id
          LEFT JOIN media_assets m ON m.id = h.portrait_asset_id AND m.status = 'ready'
         WHERE ${clauses.join(" AND ")}
@@ -647,20 +660,25 @@ export async function readCuratedRelated(
 ): Promise<RelatedHeroGroup["heroes"]> {
   const { results } = await db
     .prepare(
-      `SELECT h.content_id AS content_id, t.slug AS slug, t.title AS title,
+      `SELECT h.content_id AS content_id,
+              COALESCE(NULLIF(t.slug,''), NULLIF(td.slug,''), te.slug) AS slug,
+              COALESCE(NULLIF(t.title,''), NULLIF(td.title,''), te.title) AS title,
               h.hero_class AS hero_class, h.rarity AS rarity, m.delivery_url AS image_url,
-              (SELECT COALESCE(NULLIF(td.name, ''), d.display_name)
+              (SELECT COALESCE(NULLIF(td2.name, ''), d.display_name)
                  FROM hero_perks p
                  JOIN hero_perk_defs d ON d.id = p.hero_perk_def_id
-                 LEFT JOIN hero_perk_def_translations td ON td.hero_perk_def_id = d.id AND td.locale = ?
+                 LEFT JOIN hero_perk_def_translations td2 ON td2.hero_perk_def_id = d.id AND td2.locale = ?
                 WHERE p.hero_content_id = h.content_id AND d.slot = 'standard'
                 ORDER BY p.slot_order ASC LIMIT 1) AS standard_perk_name
          FROM hero_related_heroes r
          JOIN cms_contents c ON c.id = r.related_content_id AND c.entity_type='hero' AND c.status='published'
          JOIN hero_records h ON h.content_id = c.id
-         JOIN cms_content_translations t ON t.content_id = c.id AND t.locale = ?
+         LEFT JOIN cms_content_translations t ON t.content_id = c.id AND t.locale = ?
+         LEFT JOIN cms_content_translations td ON td.content_id = c.id AND td.locale = c.default_locale
+         LEFT JOIN cms_content_translations te ON te.content_id = c.id AND te.locale = 'en'
          LEFT JOIN media_assets m ON m.id = h.portrait_asset_id AND m.status = 'ready'
         WHERE r.hero_content_id = ?
+          AND (t.id IS NOT NULL OR td.id IS NOT NULL OR te.id IS NOT NULL)
         ORDER BY r.slot_order ASC, h.sort_order ASC
         LIMIT ?`,
     )

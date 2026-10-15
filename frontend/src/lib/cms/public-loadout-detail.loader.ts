@@ -42,11 +42,27 @@ export const getPublicLoadout = createServerFn({ method: "GET" })
       if (!id) return null;
       const hc = await getContentById(db, id);
       if (!hc || !isContentStatus(hc.status) || hc.status !== "published") return null;
-      const htr = await db
-        .prepare("SELECT * FROM cms_content_translations WHERE content_id = ? AND locale = ?")
-        .bind(id, locale)
-        .first<Record<string, string | number | null>>();
+      const { results: hrows } = await db
+        .prepare(
+          "SELECT * FROM cms_content_translations WHERE content_id = ? AND locale IN (?, ?, 'en')",
+        )
+        .bind(id, locale, hc.default_locale || "en")
+        .all<Record<string, string | number | null>>();
+      const hReq = hrows.find((r) => r["locale"] === locale) ?? null;
+      const hDef = hrows.find((r) => r["locale"] === (hc.default_locale || "en")) ?? null;
+      const hEn = hrows.find((r) => r["locale"] === "en") ?? null;
+      const htr = hReq ?? hDef ?? hEn;
       if (!htr) return null;
+      // Field priority: requested -> default_locale -> English; blank counts
+      // as missing (final audit: the old `??` chain kept blank strings).
+      const pick = (key: string): string | null => {
+        const vals = [hReq?.[key], hDef?.[key], hEn?.[key], htr[key]];
+        for (const v of vals) {
+          if (typeof v === "string" && v.trim() !== "") return v;
+        }
+        const v = htr[key];
+        return typeof v === "string" ? v : null;
+      };
       const hrec = await db
         .prepare("SELECT * FROM hero_records WHERE content_id = ?")
         .bind(id)
@@ -54,16 +70,16 @@ export const getPublicLoadout = createServerFn({ method: "GET" })
       if (!hrec) return null;
       return {
         contentId: id,
-        slug: String(htr["slug"] ?? ""),
-        title: String(htr["title"] ?? ""),
-        description: String(htr["body"] ?? ""),
+        slug: pick("slug") ?? "",
+        title: pick("title") ?? "",
+        description: pick("body") ?? "",
         heroClass: String(hrec["hero_class"] ?? "soldier"),
         category: (hrec["category"] as string | null) ?? null,
         popularity: Number(hrec["popularity"] ?? 0),
         sortOrder: Number(hrec["sort_order"] ?? 0),
         imageUrl: null,
-        seoTitle: (htr["seo_title"] as string | null) ?? null,
-        seoDescription: (htr["seo_description"] as string | null) ?? null,
+        seoTitle: pick("seo_title"),
+        seoDescription: pick("seo_description"),
         translationStatus: String(htr["translation_status"] ?? "draft"),
       };
     }

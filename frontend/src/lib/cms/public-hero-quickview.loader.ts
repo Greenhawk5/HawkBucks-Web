@@ -48,8 +48,8 @@ export const getHeroQuickView = createServerFn({ method: "GET" })
     if (slug === "") return { hero: null };
     const { db } = await resolveRequestCmsDb();
 
-    // 1. resolve identity, published-only, with the same deterministic locale
-    //    fallback the detail page uses.
+    // 1. resolve identity, published-only. Slug fallback mirrors the detail
+    //    page: requested-locale slug first, English slug second.
     const { results: identRows } = await db
       .prepare(
         `SELECT c.id AS content_id, c.default_locale AS default_locale,
@@ -65,12 +65,13 @@ export const getHeroQuickView = createServerFn({ method: "GET" })
                        WHERE t2.content_id = c.id AND t2.locale = ? LIMIT 1),
                      (SELECT t3.locale FROM cms_content_translations t3
                        WHERE t3.content_id = c.id AND t3.locale = c.default_locale LIMIT 1),
-                     ?)
+                     'en')
            LEFT JOIN media_assets m ON m.id = h.portrait_asset_id AND m.status = 'ready'
-          WHERE s.entity_type='hero' AND s.locale = ? AND s.slug = ?
+          WHERE s.entity_type='hero' AND s.slug = ? AND (s.locale = ? OR s.locale = 'en')
+          ORDER BY CASE WHEN s.locale = ? THEN 0 ELSE 1 END
           LIMIT 1`,
       )
-      .bind(locale, locale, locale, slug)
+      .bind(locale, locale, locale, slug, locale, locale)
       .all<{
         content_id: string;
         title: string;

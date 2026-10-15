@@ -37,10 +37,14 @@ async function publishedCards(
   const { results } = await db
     .prepare(
       `SELECT c.id AS content_id, c.entity_type AS entity_type,
-              t.slug AS slug, t.title AS title
+              COALESCE(NULLIF(t.slug,''), NULLIF(td.slug,''), te.slug) AS slug,
+              COALESCE(NULLIF(t.title,''), NULLIF(td.title,''), te.title) AS title
        FROM cms_contents c
-       JOIN cms_content_translations t ON t.content_id = c.id AND t.locale = ?
-       WHERE c.id IN (${placeholders}) AND c.status = 'published'`,
+       LEFT JOIN cms_content_translations t ON t.content_id = c.id AND t.locale = ?
+         LEFT JOIN cms_content_translations td ON td.content_id = c.id AND td.locale = c.default_locale
+       LEFT JOIN cms_content_translations te ON te.content_id = c.id AND te.locale = 'en'
+       WHERE c.id IN (${placeholders}) AND c.status = 'published'
+         AND (t.id IS NOT NULL OR td.id IS NOT NULL OR te.id IS NOT NULL)`,
     )
     .bind(locale, ...ids)
     .all<{ content_id: string; entity_type: string; slug: string; title: string }>();

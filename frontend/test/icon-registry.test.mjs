@@ -440,6 +440,7 @@ test("the public resolver is an exact batched key lookup", async () => {
 test("hero class icons are resolved once per page, not per hero", async () => {
   const src = await repo("lib/cms/public-hubs.loader.ts");
   assert.match(src, /classIcons: Record<string, string>/);
+  assert.match(src, /const classIcons = Object\.create\(null\)/);
   // The call is a dynamic import, so it spans several lines.
   assert.match(src, /resolveIconUrls\(\s*db,\s*classKeys\.map\(\(entry\) => entry\.key\),\s*\)/);
   assert.match(src, /item\.class_icon_url = classIcons\[item\.hero_class\] \?\? null/);

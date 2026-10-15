@@ -1356,8 +1356,14 @@ export async function listPublishedHeroes(
 > {
   const limit = Math.max(1, Math.min(100, Math.floor(input.limit ?? 50)));
   const offset = Math.max(0, Math.floor(input.offset ?? 0));
-  const cl = ["c.entity_type = 'hero'", "c.status = 'published'"];
-  const vals: unknown[] = [];
+  const requestedLocale =
+    typeof input.locale === "string" && input.locale !== "" ? input.locale : "en";
+  const cl = [
+    "c.entity_type = 'hero'",
+    "c.status = 'published'",
+    "(t_req.id IS NOT NULL OR t_en.id IS NOT NULL)",
+  ];
+  const vals: unknown[] = [requestedLocale];
   if (input.heroClass !== undefined) {
     if (!isHeroClass(input.heroClass)) throw new Error("Invalid hero_class.");
     cl.push("h.hero_class = ?");
@@ -1368,24 +1374,54 @@ export async function listPublishedHeroes(
     cl.push("h.rarity = ?");
     vals.push(input.rarity);
   }
+  // Site-wide fallback: one row per hero, requested text with English
+  // per-field fallback. The WHERE runs on the fallback join (not an exact
+  // `t.locale = ?` inner join) so untranslated heroes survive with English.
   const { results } = await db
     .prepare(
-      `SELECT c.*, t.id AS t_id FROM cms_contents c JOIN cms_content_translations t ON t.content_id = c.id AND t.locale = ? JOIN hero_records h ON h.content_id = c.id WHERE ${cl.join(" AND ")} ORDER BY h.sort_order ASC, h.popularity DESC LIMIT ? OFFSET ?`,
+      `SELECT c.*, COALESCE(t_req.id, t_en.id) AS t_id,
+              CASE WHEN t_req.id IS NOT NULL THEN t_req.locale ELSE t_en.locale END AS t_locale,
+              COALESCE(NULLIF(t_req.title,''), t_en.title) AS t_title,
+              COALESCE(NULLIF(t_req.body,''), t_en.body) AS t_body,
+              COALESCE(NULLIF(t_req.slug,''), t_en.slug) AS t_slug
+         FROM cms_contents c
+         LEFT JOIN cms_content_translations t_req ON t_req.content_id = c.id AND t_req.locale = ?
+         LEFT JOIN cms_content_translations t_en ON t_en.content_id = c.id AND t_en.locale = 'en'
+         JOIN hero_records h ON h.content_id = c.id WHERE ${cl.join(" AND ")} ORDER BY h.sort_order ASC, h.popularity DESC LIMIT ? OFFSET ?`,
     )
-    .bind(input.locale, ...vals, limit, offset)
-    .all<ContentRow & { t_id: string }>();
+    .bind(...vals, limit, offset)
+    .all<
+      ContentRow & {
+        t_id: string;
+        t_locale: string;
+        t_title: string;
+        t_body: string;
+        t_slug: string;
+      }
+    >();
   const out: Array<{
     content: ContentRow;
     translation: import("./db.server").ContentTranslationRow;
     hero: HeroRecordRow;
   }> = [];
   for (const r of results) {
+    // Fallback-aware: the t_* aliases above already carry requested -> en text,
+    // so patch the re-read row (t_id prefers the requested locale) before use.
     const tr = await db
       .prepare("SELECT * FROM cms_content_translations WHERE id = ?")
       .bind(r.t_id)
       .first<import("./db.server").ContentTranslationRow>();
     const hero = await getHeroRecord(db, r.id);
-    if (tr && hero) out.push({ content: r, translation: tr, hero });
+    if (tr && hero) {
+      const patched = {
+        ...tr,
+        title: typeof r.t_title === "string" && r.t_title !== "" ? r.t_title : tr.title,
+        body: typeof r.t_body === "string" && r.t_body !== "" ? r.t_body : tr.body,
+        slug: typeof r.t_slug === "string" && r.t_slug !== "" ? r.t_slug : tr.slug,
+        locale: typeof r.t_locale === "string" && r.t_locale !== "" ? r.t_locale : tr.locale,
+      } as import("./db.server").ContentTranslationRow;
+      out.push({ content: r, translation: patched, hero });
+    }
   }
   return out;
 }
@@ -1404,14 +1440,28 @@ export async function getPublishedLoadoutBySlug(
   if (!loadout) return null;
   const members = await listLoadoutHeroes(db, base.content.id);
   const heroes: PublishedLoadout["heroes"] = [];
+  const requestedLoc =
+    typeof input.locale === "string" && input.locale !== "" ? input.locale : "en";
   for (const m of members) {
     const hc = await getContentById(db, m.hero_content_id);
     if (!hc || !isContentStatus(hc.status) || hc.status !== "published") continue;
-    const tr = await db
-      .prepare("SELECT * FROM cms_content_translations WHERE content_id = ? AND locale = ?")
-      .bind(m.hero_content_id, input.locale)
-      .first<import("./db.server").ContentTranslationRow>();
-    heroes.push({ contentId: m.hero_content_id, translation: tr });
+    // Fallback-aware single-row read: requested -> default_locale -> English,
+    // merged per field (final audit: default_locale matters when it is
+    // neither the requested locale nor English).
+    const { results: trows } = await db
+      .prepare(
+        "SELECT * FROM cms_content_translations WHERE content_id = ? AND locale IN (?, ?, 'en')",
+      )
+      .bind(m.hero_content_id, requestedLoc, hc.default_locale || "en")
+      .all<import("./db.server").ContentTranslationRow>();
+    const tReq = trows.find((t) => t.locale === requestedLoc) ?? null;
+    const tDef = trows.find((t) => t.locale === (hc.default_locale || "en")) ?? null;
+    const tEn = trows.find((t) => t.locale === "en") ?? null;
+    const { mergeTranslationRows } = await import("./locale-fallback");
+    const { row: deRow } = mergeTranslationRows(tDef, tEn);
+    const { row: merged } = mergeTranslationRows(tReq, deRow);
+    if (!merged) continue;
+    heroes.push({ contentId: m.hero_content_id, translation: merged });
   }
   const cover = loadout.cover_asset_id
     ? await db
@@ -1435,15 +1485,25 @@ export async function getPublishedLoadoutBySlug(
         .prepare("SELECT perk_key FROM perk_records WHERE content_id = ?")
         .bind(teamPerkId)
         .first<{ perk_key: string }>();
-      const perkTr = await db
-        .prepare("SELECT title FROM cms_content_translations WHERE content_id = ? AND locale = ?")
-        .bind(teamPerkId, input.locale)
-        .first<{ title: string }>();
+      const { results: perkTrows } = await db
+        .prepare(
+          "SELECT title, locale FROM cms_content_translations WHERE content_id = ? AND locale IN (?, ?, 'en')",
+        )
+        .bind(teamPerkId, requestedLoc, base.content.default_locale || "en")
+        .all<{ title: string; locale: string }>();
+      const perkReq = perkTrows.find((t) => t.locale === requestedLoc) ?? null;
+      const perkDef =
+        perkTrows.find((t) => t.locale === (base.content.default_locale || "en")) ?? null;
+      const perkEn = perkTrows.find((t) => t.locale === "en") ?? null;
+      const perkTitle =
+        perkReq && typeof perkReq.title === "string" && perkReq.title.trim() !== ""
+          ? perkReq.title
+          : (perkDef?.title ?? perkEn?.title ?? null);
       if (perkRow) {
         teamPerk = {
           contentId: teamPerkId,
           perkKey: perkRow.perk_key,
-          name: perkTr?.title ?? null,
+          name: perkTitle,
         };
       }
     }
@@ -1469,12 +1529,34 @@ export async function listPublishedLoadouts(
 > {
   const limit = Math.max(1, Math.min(100, Math.floor(input.limit ?? 50)));
   const offset = Math.max(0, Math.floor(input.offset ?? 0));
+  const requestedLocale =
+    typeof input.locale === "string" && input.locale !== "" ? input.locale : "en";
   const { results } = await db
     .prepare(
-      "SELECT c.*, t.id AS t_id FROM cms_contents c JOIN cms_content_translations t ON t.content_id = c.id AND t.locale = ? JOIN loadout_records l ON l.content_id = c.id WHERE c.entity_type = 'loadout' AND c.status = 'published' ORDER BY l.sort_order ASC, l.popularity DESC LIMIT ? OFFSET ?",
+      `SELECT c.*,
+              COALESCE(t_req.id, t_en.id) AS t_id,
+              CASE WHEN t_req.id IS NOT NULL THEN t_req.locale ELSE t_en.locale END AS t_locale,
+              COALESCE(NULLIF(t_req.title,''), t_en.title) AS t_title,
+              COALESCE(NULLIF(t_req.body,''), t_en.body) AS t_body,
+              COALESCE(NULLIF(t_req.slug,''), t_en.slug) AS t_slug
+         FROM cms_contents c
+         LEFT JOIN cms_content_translations t_req ON t_req.content_id = c.id AND t_req.locale = ?
+         LEFT JOIN cms_content_translations t_en ON t_en.content_id = c.id AND t_en.locale = 'en'
+         JOIN loadout_records l ON l.content_id = c.id
+        WHERE c.entity_type = 'loadout' AND c.status = 'published'
+          AND (t_req.id IS NOT NULL OR t_en.id IS NOT NULL)
+        ORDER BY l.sort_order ASC, l.popularity DESC LIMIT ? OFFSET ?`,
     )
-    .bind(input.locale, limit, offset)
-    .all<ContentRow & { t_id: string }>();
+    .bind(requestedLocale, limit, offset)
+    .all<
+      ContentRow & {
+        t_id: string;
+        t_locale: string;
+        t_title: string;
+        t_body: string;
+        t_slug: string;
+      }
+    >();
   const out: Array<{
     content: ContentRow;
     translation: import("./db.server").ContentTranslationRow;
@@ -1486,7 +1568,16 @@ export async function listPublishedLoadouts(
       .bind(r.t_id)
       .first<import("./db.server").ContentTranslationRow>();
     const loadout = await getLoadoutRecord(db, r.id);
-    if (tr && loadout) out.push({ content: r, translation: tr, loadout });
+    if (tr && loadout) {
+      const patched = {
+        ...tr,
+        title: typeof r.t_title === "string" && r.t_title !== "" ? r.t_title : tr.title,
+        body: typeof r.t_body === "string" && r.t_body !== "" ? r.t_body : tr.body,
+        slug: typeof r.t_slug === "string" && r.t_slug !== "" ? r.t_slug : tr.slug,
+        locale: typeof r.t_locale === "string" && r.t_locale !== "" ? r.t_locale : tr.locale,
+      } as import("./db.server").ContentTranslationRow;
+      out.push({ content: r, translation: patched, loadout });
+    }
   }
   return out;
 }

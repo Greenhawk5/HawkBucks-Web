@@ -131,7 +131,7 @@ export function FilterChipRow({
 }: {
   label: string;
   options: ReadonlyArray<FilterChipOption>;
-  /** Currently selected value; `null` means "all". */
+  /** Currently selected value; `null` (or `""`) means "all". */
   value: string | null;
   hrefFor: (value: string | null) => string;
   className?: string;
@@ -152,6 +152,10 @@ export function FilterChipRow({
    */
   fallbackIconFor?: (value: string) => LucideIcon | null | undefined;
 }) {
+  // Hubs encode "All" two ways: the option value is `""` while the parsed
+  // filter state is `null` (absent param). Coalesce both to `""` so the
+  // default `All` chip derives the same selected style as any other choice.
+  const current = value ?? "";
   if (variant === "segmented") {
     return (
       <div className={cn("min-w-0", className)}>
@@ -170,7 +174,7 @@ export function FilterChipRow({
           aria-label={label}
         >
           {options.map((opt) => {
-            const selected = value === opt.value;
+            const selected = current === opt.value;
             return (
               <li key={opt.value} className="shrink-0 snap-start">
                 <Link
@@ -208,7 +212,7 @@ export function FilterChipRow({
         aria-label={label}
       >
         {options.map((opt) => {
-          const selected = value === opt.value;
+          const selected = current === opt.value;
           return (
             <li key={opt.value} className="shrink-0 snap-start">
               <Link

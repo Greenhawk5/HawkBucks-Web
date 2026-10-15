@@ -514,7 +514,7 @@ function ResourceLine({
  */
 function ResourceGrid({ children }: { children: React.ReactNode }) {
   return (
-    <ul className="mx-auto grid w-full max-w-[28rem] grid-cols-2 gap-x-4 gap-y-1.5">{children}</ul>
+    <ul className="mx-auto grid w-full max-w-[26rem] grid-cols-2 gap-x-2 gap-y-1.5">{children}</ul>
   );
 }
 

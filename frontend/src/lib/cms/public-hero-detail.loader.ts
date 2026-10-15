@@ -95,22 +95,22 @@ export const getPublicHero = createServerFn({ method: "GET" })
     if (slug === "") return { hero: null };
     const { db } = await resolveRequestCmsDb();
 
-    // ---- 1. slug -> content id, published-only, with deterministic fallback ----
+    // ---- 1. slug -> content id, published-only, with full fallback ----
     //
-    // The previous path INNER JOINed the requested locale, so a hero with no
-    // translation row in that locale 404'd even though it was published. We now
-    // resolve the id from the slug first, then pick the best available
-    // translation: requested locale, else the content's default locale.
+    // Slug rows match in ANY locale namespace (preferring the requested
+    // one); translation availability is gated on requested -> default_locale
+    // -> English, so fr-authored content stays reachable for es visitors.
     const { results: slugRows } = await db
       .prepare(
         `SELECT c.id AS content_id, c.default_locale AS default_locale
            FROM cms_slugs s
            JOIN cms_contents c ON c.id = s.content_id
-          WHERE s.entity_type = 'hero' AND s.locale = ? AND s.slug = ?
+          WHERE s.entity_type = 'hero' AND s.slug = ?
             AND c.status = 'published'
+          ORDER BY CASE WHEN s.locale = ? THEN 0 ELSE 1 END
           LIMIT 1`,
       )
-      .bind(locale, slug)
+      .bind(slug, locale)
       .all<HeroSlugRow>();
     // Also try the bare (en) slug namespace, which is where English heroes live.
     const primary = slugRows[0];
@@ -163,18 +163,26 @@ export const getPublicHero = createServerFn({ method: "GET" })
     const ref = reference.get(contentId) ?? { perks: [], abilities: [], progression: null };
 
     // ---- 5. related loadouts in ONE join (was 3 queries per loadout) ----
+    // Fallback: requested -> default_locale -> English; untranslated loadouts
+    // stay visible instead of dropping out of the rail.
     const { results: loadoutRows } = await db
       .prepare(
-        `SELECT lr.content_id AS content_id, t.slug AS slug, t.title AS title,
-                t.body AS body, t.translation_status AS translation_status,
+        `SELECT lr.content_id AS content_id,
+                COALESCE(NULLIF(t.slug,''), NULLIF(td.slug,''), te.slug) AS slug,
+                COALESCE(NULLIF(t.title,''), NULLIF(td.title,''), te.title) AS title,
+                COALESCE(NULLIF(t.body,''), NULLIF(td.body,''), te.body) AS body,
+                COALESCE(t.translation_status, td.translation_status, te.translation_status) AS translation_status,
                 lr.loadout_type AS loadout_type, lr.popularity AS popularity,
                 lr.sort_order AS sort_order, lm.delivery_url AS image_url
            FROM loadout_heroes lh
            JOIN loadout_records lr ON lr.content_id = lh.loadout_content_id
            JOIN cms_contents c ON c.id = lr.content_id AND c.status = 'published'
-           JOIN cms_content_translations t ON t.content_id = lr.content_id AND t.locale = ?
+           LEFT JOIN cms_content_translations t ON t.content_id = lr.content_id AND t.locale = ?
+           LEFT JOIN cms_content_translations td ON td.content_id = lr.content_id AND td.locale = c.default_locale
+           LEFT JOIN cms_content_translations te ON te.content_id = lr.content_id AND te.locale = 'en'
            LEFT JOIN media_assets lm ON lm.id = lr.cover_asset_id AND lm.status = 'ready'
           WHERE lh.hero_content_id = ?
+            AND (t.id IS NOT NULL OR td.id IS NOT NULL OR te.id IS NOT NULL)
           ORDER BY lr.sort_order ASC, lr.popularity DESC
           LIMIT 6`,
       )

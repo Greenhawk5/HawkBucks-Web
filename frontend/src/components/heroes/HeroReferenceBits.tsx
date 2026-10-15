@@ -16,6 +16,7 @@
 import * as React from "react";
 import { cn } from "@/lib/utils";
 import { heroLabels, rarityLabel, categoryLabel, formatNumber } from "@/lib/cms/hero-labels";
+import { rarityToken } from "@/lib/cms/rarity-tokens";
 import { heroClassLabel } from "@/lib/cms/public-strings";
 import type {
   PublicHeroPerk,
@@ -23,7 +24,18 @@ import type {
   PublicResourceCost,
 } from "@/lib/cms/hero-reference";
 
-/** Rarity accent tokens. Mirrors rarity-tokens.ts; text always accompanies colour. */
+/**
+ * Rarity pill.
+ *
+ * Reads the CANONICAL rarity palette (`rarity-tokens.ts`) — the same tokens the
+ * EntityCard accent and RarityBadge use — so the listing card, the reference
+ * row, the Quick View and the Hero Codex can never drift apart. The label text
+ * is always present: rarity is never colour-only.
+ *
+ * The visual weight is deliberate: a rarity-tinted surface, the accent border,
+ * and the token's contrast-checked badge text. Unknown/out-of-vocabulary
+ * values still render with the neutral token rather than disappearing.
+ */
 export function RarityPill({
   locale,
   rarity,
@@ -34,32 +46,23 @@ export function RarityPill({
   className?: string;
 }) {
   if (!rarity) return null;
-  const key = rarity.toLowerCase();
-  const color =
-    key === "mythic"
-      ? "oklch(0.65 0.2 20)"
-      : key === "legendary"
-        ? "oklch(0.72 0.16 90)"
-        : key === "epic"
-          ? "oklch(0.62 0.18 300)"
-          : key === "rare"
-            ? "oklch(0.62 0.15 260)"
-            : key === "uncommon"
-              ? "oklch(0.65 0.12 150)"
-              : "oklch(0.55 0.02 250)";
+  const token = rarityToken(rarity.toLowerCase());
+  const accent = token?.accent ?? "oklch(0.55 0.02 250)";
+  const surface = token?.badgeBg ?? "oklch(0.25 0.02 250)";
+  const text = token?.badgeText ?? "oklch(0.85 0.02 250)";
   return (
     <span
       data-testid="hero-rarity-pill"
       className={cn(
-        "inline-flex shrink-0 items-center gap-1.5 rounded-md border px-1.5 py-0.5 text-[11px] font-semibold uppercase tracking-wide",
+        "inline-flex shrink-0 items-center gap-1.5 rounded-md border px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide",
         className,
       )}
-      style={{ borderColor: color, color }}
+      style={{ borderColor: accent, backgroundColor: surface, color: text }}
     >
       <span
         aria-hidden="true"
         className="h-1.5 w-1.5 rounded-full"
-        style={{ backgroundColor: color }}
+        style={{ backgroundColor: accent }}
       />
       {rarityLabel(locale, rarity)}
     </span>

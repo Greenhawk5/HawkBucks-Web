@@ -127,19 +127,29 @@ async function fallbackRelated(
   input: { articleId: string; locale: string; categoryId: string | null },
 ): Promise<RelatedRow[]> {
   if (!input.categoryId) return [];
+  // Drive from contents: one row per entity, body text prefers requested ->
+  // default_locale -> English. (Driving from article_bodies with a locale IN
+  // list duplicated entities that have bodies in several locales.)
   const { results } = await db
     .prepare(
-      `SELECT c.id AS content_id, t.slug AS slug, t.title AS title,
-              b.excerpt AS excerpt
-       FROM article_bodies b
-       JOIN cms_contents c ON c.id = b.article_content_id
-       JOIN cms_content_translations t ON t.content_id = c.id AND t.locale = ?
-       LEFT JOIN article_bodies self_b ON self_b.article_content_id = t.content_id
-       WHERE b.category_id = ? AND b.locale = ? AND c.status = 'published'
-         AND c.id != ? AND c.entity_type = 'article'
-       ORDER BY c.updated_at DESC LIMIT 6`,
+      `SELECT c.id AS content_id,
+              COALESCE(NULLIF(t.slug,''), NULLIF(td.slug,''), te.slug) AS slug,
+              COALESCE(NULLIF(t.title,''), NULLIF(td.title,''), te.title) AS title,
+              COALESCE(b.excerpt, bdef.excerpt, bex.excerpt) AS excerpt
+        FROM cms_contents c
+        LEFT JOIN cms_content_translations t ON t.content_id = c.id AND t.locale = ?
+        LEFT JOIN cms_content_translations td ON td.content_id = c.id AND td.locale = c.default_locale
+        LEFT JOIN cms_content_translations te ON te.content_id = c.id AND te.locale = 'en'
+        LEFT JOIN article_bodies b ON b.article_content_id = c.id AND b.locale = ?
+        LEFT JOIN article_bodies bdef ON bdef.article_content_id = c.id AND bdef.locale = c.default_locale
+        LEFT JOIN article_bodies bex ON bex.article_content_id = c.id AND bex.locale = 'en'
+        WHERE COALESCE(b.category_id, bdef.category_id, bex.category_id) = ?
+          AND c.status = 'published'
+          AND c.id != ? AND c.entity_type = 'article'
+          AND (t.id IS NOT NULL OR td.id IS NOT NULL OR te.id IS NOT NULL)
+        ORDER BY c.updated_at DESC LIMIT 6`,
     )
-    .bind(input.locale, input.categoryId, input.locale, input.articleId)
+    .bind(input.locale, input.locale, input.categoryId, input.articleId)
     .all<{ content_id: string; slug: string; title: string; excerpt: string | null }>();
   return results.map((row) => ({
     contentId: row.content_id,
@@ -176,12 +186,19 @@ export const listPublicArticles = createServerFn({ method: "GET" })
     // join so no per-row query remains. Listing pages never load body_json.
     const { results } = await db
       .prepare(
-        `SELECT c.id AS content_id, t.slug AS slug, t.title AS title,
-                b.excerpt AS excerpt, c.updated_at AS updated_at
+        `SELECT c.id AS content_id,
+                COALESCE(NULLIF(t.slug,''), NULLIF(td.slug,''), te.slug) AS slug,
+                COALESCE(NULLIF(t.title,''), NULLIF(td.title,''), te.title) AS title,
+                COALESCE(b.excerpt, bdef.excerpt, bex.excerpt) AS excerpt, c.updated_at AS updated_at
          FROM cms_contents c
-         JOIN cms_content_translations t ON t.content_id = c.id AND t.locale = ?
+         LEFT JOIN cms_content_translations t ON t.content_id = c.id AND t.locale = ?
+         LEFT JOIN cms_content_translations td ON td.content_id = c.id AND td.locale = c.default_locale
+         LEFT JOIN cms_content_translations te ON te.content_id = c.id AND te.locale = 'en'
          LEFT JOIN article_bodies b ON b.article_content_id = c.id AND b.locale = ?
+         LEFT JOIN article_bodies bdef ON bdef.article_content_id = c.id AND bdef.locale = c.default_locale
+         LEFT JOIN article_bodies bex ON bex.article_content_id = c.id AND bex.locale = 'en'
          WHERE c.entity_type = 'article' AND c.status = 'published'
+           AND (t.id IS NOT NULL OR td.id IS NOT NULL OR te.id IS NOT NULL)
          ORDER BY c.updated_at DESC LIMIT ? OFFSET ?`,
       )
       .bind(locale, locale, limit, offset)
@@ -196,8 +213,11 @@ export const listPublicArticles = createServerFn({ method: "GET" })
       await db
         .prepare(
           `SELECT COUNT(*) AS n FROM cms_contents c
-           JOIN cms_content_translations t ON t.content_id = c.id AND t.locale = ?
-           WHERE c.entity_type = 'article' AND c.status = 'published'`,
+           LEFT JOIN cms_content_translations t ON t.content_id = c.id AND t.locale = ?
+         LEFT JOIN cms_content_translations td ON td.content_id = c.id AND td.locale = c.default_locale
+           LEFT JOIN cms_content_translations te ON te.content_id = c.id AND te.locale = 'en'
+           WHERE c.entity_type = 'article' AND c.status = 'published'
+             AND (t.id IS NOT NULL OR td.id IS NOT NULL OR te.id IS NOT NULL)`,
         )
         .bind(locale)
         .all<{ n: number }>(),
@@ -228,17 +248,27 @@ export const getPublicArticle = createServerFn({ method: "GET" })
       slug,
     });
     if (!found) return { article: null };
-    const body = await db
+    const defBodyLoc =
+      typeof found.content.default_locale === "string" && found.content.default_locale !== ""
+        ? found.content.default_locale
+        : "en";
+    const { results: bodyRows } = await db
       .prepare(
-        "SELECT body_json, excerpt, cover_asset_id, category_id FROM article_bodies WHERE article_content_id = ? AND locale = ?",
+        "SELECT body_json, excerpt, cover_asset_id, category_id, locale FROM article_bodies WHERE article_content_id = ? AND locale IN (?, ?, 'en')",
       )
-      .bind(found.content.id, locale)
-      .first<{
+      .bind(found.content.id, locale, defBodyLoc)
+      .all<{
         body_json: string;
         excerpt: string;
         cover_asset_id: string | null;
         category_id: string | null;
+        locale: string;
       }>();
+    const body =
+      bodyRows.find((r) => r.locale === locale) ??
+      bodyRows.find((r) => r.locale === defBodyLoc) ??
+      bodyRows.find((r) => r.locale === "en") ??
+      null;
     const bodyJson = body?.body_json ?? '{"version":1,"blocks":[]}';
     try {
       validateArticleDocument(bodyJson);
@@ -285,11 +315,15 @@ export const getPublicArticle = createServerFn({ method: "GET" })
         db
           .prepare(
             `SELECT r.target_entity_type AS entity_type, r.target_content_id AS content_id,
-                    t.slug AS slug, t.title AS title, c.status AS status
+                    COALESCE(NULLIF(t.slug,''), NULLIF(td.slug,''), te.slug) AS slug,
+                    COALESCE(NULLIF(t.title,''), NULLIF(td.title,''), te.title) AS title, c.status AS status
              FROM article_entity_refs r
              JOIN cms_contents c ON c.id = r.target_content_id
-             JOIN cms_content_translations t ON t.content_id = c.id AND t.locale = ?
+             LEFT JOIN cms_content_translations t ON t.content_id = c.id AND t.locale = ?
+         LEFT JOIN cms_content_translations td ON td.content_id = c.id AND td.locale = c.default_locale
+             LEFT JOIN cms_content_translations te ON te.content_id = c.id AND te.locale = 'en'
              WHERE r.article_content_id = ? AND c.status = 'published'
+               AND (t.id IS NOT NULL OR td.id IS NOT NULL OR te.id IS NOT NULL)
              ORDER BY r.slot_order ASC LIMIT 24`,
           )
           .bind(locale, found.content.id)
@@ -303,13 +337,20 @@ export const getPublicArticle = createServerFn({ method: "GET" })
           .then((r) => r.results),
         db
           .prepare(
-            `SELECT c.id AS content_id, t.slug AS slug, t.title AS title,
-                    b.excerpt AS excerpt, c.status AS status
+            `SELECT c.id AS content_id,
+                    COALESCE(NULLIF(t.slug,''), NULLIF(td.slug,''), te.slug) AS slug,
+                    COALESCE(NULLIF(t.title,''), NULLIF(td.title,''), te.title) AS title,
+                    COALESCE(b.excerpt, bdef.excerpt, bex.excerpt) AS excerpt, c.status AS status
              FROM article_related r
              JOIN cms_contents c ON c.id = r.related_content_id
-             JOIN cms_content_translations t ON t.content_id = c.id AND t.locale = ?
+             LEFT JOIN cms_content_translations t ON t.content_id = c.id AND t.locale = ?
+             LEFT JOIN cms_content_translations td ON td.content_id = c.id AND td.locale = c.default_locale
+             LEFT JOIN cms_content_translations te ON te.content_id = c.id AND te.locale = 'en'
              LEFT JOIN article_bodies b ON b.article_content_id = c.id AND b.locale = ?
+             LEFT JOIN article_bodies bdef ON bdef.article_content_id = c.id AND bdef.locale = c.default_locale
+             LEFT JOIN article_bodies bex ON bex.article_content_id = c.id AND bex.locale = 'en'
              WHERE r.article_content_id = ? AND c.status = 'published'
+               AND (t.id IS NOT NULL OR td.id IS NOT NULL OR te.id IS NOT NULL)
              ORDER BY r.slot_order ASC LIMIT 12`,
           )
           .bind(locale, locale, found.content.id)
@@ -498,13 +539,20 @@ export const listArticlesForEntity = createServerFn({ method: "GET" })
     const { db } = await resolveRequestCmsDb();
     const { results } = await db
       .prepare(
-        `SELECT c.id AS content_id, t.slug AS slug, t.title AS title,
-                b.excerpt AS excerpt, c.updated_at AS updated_at
+        `SELECT c.id AS content_id,
+                COALESCE(NULLIF(t.slug,''), NULLIF(td.slug,''), te.slug) AS slug,
+                COALESCE(NULLIF(t.title,''), NULLIF(td.title,''), te.title) AS title,
+                COALESCE(b.excerpt, bdef.excerpt, bex.excerpt) AS excerpt, c.updated_at AS updated_at
          FROM article_entity_refs r
          JOIN cms_contents c ON c.id = r.article_content_id AND c.status = 'published' AND c.entity_type = 'article'
-         JOIN cms_content_translations t ON t.content_id = c.id AND t.locale = ?
+         LEFT JOIN cms_content_translations t ON t.content_id = c.id AND t.locale = ?
+         LEFT JOIN cms_content_translations td ON td.content_id = c.id AND td.locale = c.default_locale
+         LEFT JOIN cms_content_translations te ON te.content_id = c.id AND te.locale = 'en'
          LEFT JOIN article_bodies b ON b.article_content_id = c.id AND b.locale = ?
+         LEFT JOIN article_bodies bdef ON bdef.article_content_id = c.id AND bdef.locale = c.default_locale
+         LEFT JOIN article_bodies bex ON bex.article_content_id = c.id AND bex.locale = 'en'
          WHERE r.target_content_id = ?
+           AND (t.id IS NOT NULL OR td.id IS NOT NULL OR te.id IS NOT NULL)
          ORDER BY c.updated_at DESC LIMIT ?`,
       )
       .bind(locale, locale, target, limit)
@@ -545,18 +593,29 @@ export const listArticlesByTopic = createServerFn({ method: "GET" })
     const { resolveRequestCmsDb } = await import("./db.server");
     const { db } = await resolveRequestCmsDb();
     if (typeof data.categorySlug === "string" && data.categorySlug !== "") {
+      // Drive from contents (one row per entity): body text prefers the
+      // requested locale, then the content default_locale, then English.
+      // Driving from article_bodies with IN (?, 'en') yielded one row PER
+      // BODY (duplicate collection entries when es+en bodies both exist).
       const { results } = await db
         .prepare(
-          `SELECT c.id AS content_id, t.slug AS slug, t.title AS title,
-                  b.excerpt AS excerpt, c.updated_at AS updated_at
-           FROM article_bodies b
-           JOIN cms_contents c ON c.id = b.article_content_id AND c.status = 'published' AND c.entity_type = 'article'
-           JOIN cms_content_translations t ON t.content_id = c.id AND t.locale = ?
-           JOIN article_categories cat ON cat.id = b.category_id AND cat.slug = ?
-           WHERE b.locale = ?
+          `SELECT c.id AS content_id,
+                  COALESCE(NULLIF(t.slug,''), NULLIF(td.slug,''), te.slug) AS slug,
+                  COALESCE(NULLIF(t.title,''), NULLIF(td.title,''), te.title) AS title,
+                  COALESCE(b.excerpt, bdef.excerpt, bex.excerpt) AS excerpt, c.updated_at AS updated_at
+           FROM cms_contents c
+           LEFT JOIN cms_content_translations t ON t.content_id = c.id AND t.locale = ?
+           LEFT JOIN cms_content_translations td ON td.content_id = c.id AND td.locale = c.default_locale
+           LEFT JOIN cms_content_translations te ON te.content_id = c.id AND te.locale = 'en'
+           LEFT JOIN article_bodies b ON b.article_content_id = c.id AND b.locale = ?
+           LEFT JOIN article_bodies bdef ON bdef.article_content_id = c.id AND bdef.locale = c.default_locale
+           LEFT JOIN article_bodies bex ON bex.article_content_id = c.id AND bex.locale = 'en'
+           JOIN article_categories cat ON cat.id = COALESCE(b.category_id, bdef.category_id, bex.category_id) AND cat.slug = ?
+           WHERE c.status = 'published' AND c.entity_type = 'article'
+             AND (t.id IS NOT NULL OR td.id IS NOT NULL OR te.id IS NOT NULL)
            ORDER BY c.updated_at DESC LIMIT ?`,
         )
-        .bind(locale, data.categorySlug, locale, limit)
+        .bind(locale, locale, data.categorySlug, limit)
         .all<{
           content_id: string;
           slug: string;
@@ -578,13 +637,20 @@ export const listArticlesByTopic = createServerFn({ method: "GET" })
     if (typeof data.tagSlug === "string" && data.tagSlug !== "") {
       const { results } = await db
         .prepare(
-          `SELECT c.id AS content_id, t.slug AS slug, t.title AS title,
-                  b.excerpt AS excerpt, c.updated_at AS updated_at
+          `SELECT c.id AS content_id,
+                  COALESCE(NULLIF(t.slug,''), NULLIF(td.slug,''), te.slug) AS slug,
+                  COALESCE(NULLIF(t.title,''), NULLIF(td.title,''), te.title) AS title,
+                  COALESCE(b.excerpt, bdef.excerpt, bex.excerpt) AS excerpt, c.updated_at AS updated_at
            FROM article_tag_links l
            JOIN article_tags tag ON tag.id = l.tag_id AND tag.slug = ?
            JOIN cms_contents c ON c.id = l.article_content_id AND c.status = 'published' AND c.entity_type = 'article'
-           JOIN cms_content_translations t ON t.content_id = c.id AND t.locale = ?
+           LEFT JOIN cms_content_translations t ON t.content_id = c.id AND t.locale = ?
+           LEFT JOIN cms_content_translations td ON td.content_id = c.id AND td.locale = c.default_locale
+           LEFT JOIN cms_content_translations te ON te.content_id = c.id AND te.locale = 'en'
            LEFT JOIN article_bodies b ON b.article_content_id = c.id AND b.locale = ?
+           LEFT JOIN article_bodies bdef ON bdef.article_content_id = c.id AND bdef.locale = c.default_locale
+           LEFT JOIN article_bodies bex ON bex.article_content_id = c.id AND bex.locale = 'en'
+           WHERE (t.id IS NOT NULL OR td.id IS NOT NULL OR te.id IS NOT NULL)
            ORDER BY c.updated_at DESC LIMIT ?`,
         )
         .bind(data.tagSlug, locale, locale, limit)
