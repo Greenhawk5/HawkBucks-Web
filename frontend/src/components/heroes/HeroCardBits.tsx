@@ -62,18 +62,22 @@ import { cn } from "@/lib/utils";
  * native `title`, and one tap away in Quick View / the detail page — so
  * pointer, touch, keyboard, and assistive-tech users all reach it.
  * `items-start` keeps the icon pinned to the first text line when the name
- * wraps; `break-words` guards long localized compounds.
+ * wraps; `overflow-wrap:anywhere` is deliberately NOT used here — it created
+ * the reported orphan by snapping a barely-overflowing word (`Assassination`
+ * -> `Assassinatio` + `n`). Instead the name keeps natural word-boundary
+ * wrapping with hyphenation as the release valve for a single long word, and
+ * the row reclaims width with a tighter gap so the word fits more often.
  */
 export function HeroPerkRow({ perk, className }: { perk: PublicHeroPerk; className?: string }) {
   return (
     <div
       data-testid="hero-perk-module"
       data-slot={perk.slot}
-      className={cn("flex items-start gap-2 border-s-2 border-primary/45 ps-2.5", className)}
+      className={cn("flex items-start gap-1.5 border-s-2 border-primary/45 ps-2", className)}
     >
-      {perk.iconUrl ? <MediaIcon url={perk.iconUrl} sizeClass="mt-0.5 h-5 w-5" /> : null}
+      {perk.iconUrl ? <MediaIcon url={perk.iconUrl} sizeClass="mt-0.5 h-5 w-5 shrink-0" /> : null}
       <p
-        className="min-h-9 min-w-0 flex-1 break-words text-[13px] font-semibold leading-snug text-foreground line-clamp-2"
+        className="min-h-9 min-w-0 flex-1 text-[13px] font-semibold leading-snug text-foreground [hyphens:auto] [overflow-wrap:break-word] [text-wrap:pretty] line-clamp-2"
         title={perk.name}
       >
         {perk.name}

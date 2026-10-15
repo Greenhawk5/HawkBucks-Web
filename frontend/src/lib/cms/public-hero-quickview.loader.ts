@@ -47,34 +47,31 @@ export const getHeroQuickView = createServerFn({ method: "GET" })
     const slug = typeof data.slug === "string" ? data.slug.trim() : "";
     if (slug === "") return { hero: null };
     const { db } = await resolveRequestCmsDb();
+    const { resolveHeroIdentity } = await import("./hero-identity.server");
 
-    // 1. resolve identity, published-only. Slug fallback mirrors the detail
-    //    page: requested-locale slug first, English slug second.
+    // 1. resolve identity through the shared resolver — the same
+    //    requested -> default_locale -> English policy as full detail.
+    //    The incoming slug may live in ANY locale namespace (the es
+    //    collection passes the effective slug, which is English for
+    //    English-only heroes), so an en-namespace restriction here would
+    //    404 heroes that detail resolves fine. Genuinely missing or
+    //    unpublished heroes still resolve to null.
+    const identity = await resolveHeroIdentity(db, locale, slug);
+    if (!identity) return { hero: null };
+    const id = identity.contentId;
+    // Identity display text (title) follows the same fallback the detail
+    // page uses; the summary below is non-localized editorial data.
     const { results: identRows } = await db
       .prepare(
-        `SELECT c.id AS content_id, c.default_locale AS default_locale,
-                t.title AS title, h.summary AS summary, h.hero_class AS hero_class,
+        `SELECT h.summary AS summary, h.hero_class AS hero_class,
                 h.category AS category, h.rarity AS rarity,
                 m.delivery_url AS image_url
-           FROM cms_slugs s
-           JOIN cms_contents c ON c.id = s.content_id AND c.status = 'published'
-           JOIN hero_records h ON h.content_id = c.id
-           LEFT JOIN cms_content_translations t
-                  ON t.content_id = c.id AND t.locale = COALESCE(
-                     (SELECT t2.locale FROM cms_content_translations t2
-                       WHERE t2.content_id = c.id AND t2.locale = ? LIMIT 1),
-                     (SELECT t3.locale FROM cms_content_translations t3
-                       WHERE t3.content_id = c.id AND t3.locale = c.default_locale LIMIT 1),
-                     'en')
+           FROM hero_records h
            LEFT JOIN media_assets m ON m.id = h.portrait_asset_id AND m.status = 'ready'
-          WHERE s.entity_type='hero' AND s.slug = ? AND (s.locale = ? OR s.locale = 'en')
-          ORDER BY CASE WHEN s.locale = ? THEN 0 ELSE 1 END
-          LIMIT 1`,
+          WHERE h.content_id = ?`,
       )
-      .bind(locale, locale, locale, slug, locale, locale)
+      .bind(id)
       .all<{
-        content_id: string;
-        title: string;
         summary: string | null;
         hero_class: string;
         category: string | null;
@@ -84,7 +81,6 @@ export const getHeroQuickView = createServerFn({ method: "GET" })
 
     const ident = identRows[0];
     if (!ident) return { hero: null };
-    const id = ident.content_id;
 
     // 2-5. one batched read each; four queries total, no per-item loops.
     const { heroClassIconKey } = await import("@/lib/icon-registry");
@@ -114,8 +110,8 @@ export const getHeroQuickView = createServerFn({ method: "GET" })
     return {
       hero: {
         contentId: id,
-        slug,
-        title: ident.title,
+        slug: identity.slug,
+        title: identity.title,
         summary: ident.summary ?? "",
         heroClass: ident.hero_class,
         category: ident.category,

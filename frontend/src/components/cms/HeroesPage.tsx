@@ -731,24 +731,38 @@ function ReferenceRowList({ locale, items }: { locale: string; items: HeroCardDa
                 >
                   {h.title}
                 </Link>
-                <p className="mt-0.5 flex min-w-0 flex-wrap items-center gap-x-1.5 gap-y-1 text-[11px] text-muted-foreground">
-                  {h.classIconUrl ? (
-                    <img
-                      src={h.classIconUrl}
-                      alt=""
-                      aria-hidden="true"
-                      loading="lazy"
-                      decoding="async"
-                      className="h-3.5 w-3.5 shrink-0 rounded-sm object-contain"
-                      onError={(e) => {
-                        e.currentTarget.style.display = "none";
-                      }}
-                    />
-                  ) : null}
-                  <span className="min-w-0 truncate text-foreground/80">
-                    {heroClassLabel(locale, h.heroClass)}
+                <p className="mt-0.5 grid min-w-0 grid-cols-[minmax(0,8rem)_auto] items-center gap-x-2 text-[11px] text-muted-foreground">
+                  {/* Bounded class column: icon + name truncate inside a fixed
+                      track, so the rarity pill always starts at the same
+                      horizontal position regardless of class-name length.
+                      `ms-1` nudges the pill off the class text; logical props
+                      keep RTL mirrored. */}
+                  <span className="flex min-w-0 items-center gap-1.5">
+                    {h.classIconUrl ? (
+                      <img
+                        src={h.classIconUrl}
+                        alt=""
+                        aria-hidden="true"
+                        loading="lazy"
+                        decoding="async"
+                        className="h-3.5 w-3.5 shrink-0 rounded-sm object-contain"
+                        onError={(e) => {
+                          e.currentTarget.style.display = "none";
+                        }}
+                      />
+                    ) : null}
+                    <span
+                      className="min-w-0 truncate text-foreground/80"
+                      title={heroClassLabel(locale, h.heroClass)}
+                    >
+                      {heroClassLabel(locale, h.heroClass)}
+                    </span>
                   </span>
-                  <RarityPill locale={locale} rarity={h.rarity} />
+                  <RarityPill
+                    locale={locale}
+                    rarity={h.rarity}
+                    className="ms-1 w-fit justify-self-start"
+                  />
                 </p>
                 {std ? (
                   <p className="mt-1 flex min-w-0 items-center gap-1.5 truncate text-xs text-muted-foreground sm:hidden">

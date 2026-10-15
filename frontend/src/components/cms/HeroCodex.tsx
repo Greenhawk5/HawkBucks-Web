@@ -721,14 +721,19 @@ export function CodexProgression({ locale, hero }: { locale: string; hero: Publi
   );
 }
 
-/** One facts row: muted label, right-aligned value. */
+/** One facts row: muted label, end-aligned value. The grid keeps every row
+ * inside the rail at long locales: the label wraps instead of forcing the
+ * panel wider, and the value wraps (never truncates dates) or stacks below
+ * the label on very narrow rails. */
 function FactRow({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <div className="flex items-baseline justify-between gap-3 border-b border-panel-border/40 py-2 last:border-b-0">
-      <dt className="shrink-0 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+    <div className="grid grid-cols-[minmax(0,7rem)_minmax(0,1fr)] items-baseline gap-x-3 gap-y-0.5 border-b border-panel-border/40 py-2 last:border-b-0 max-[420px]:grid-cols-1 max-[420px]:gap-y-1">
+      <dt className="min-w-0 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground break-words">
         {label}
       </dt>
-      <dd className="min-w-0 text-end text-[13px] font-medium leading-snug">{children}</dd>
+      <dd className="min-w-0 text-start text-[13px] font-medium leading-snug break-words [overflow-wrap:anywhere] sm:text-end [&>*]:max-w-full [&>*]:break-words">
+        {children}
+      </dd>
     </div>
   );
 }
@@ -778,7 +783,7 @@ export function CodexFacts({ hero, locale }: { hero: PublicHeroDetail; locale: s
           <FactRow label={l.rarity}>{rarityLabel(locale, hero.rarity)}</FactRow>
           {powerRange ? (
             <FactRow label={l.maxPower}>
-              <span className="whitespace-nowrap tabular-nums">{powerRange}</span>
+              <span className="tabular-nums">{powerRange}</span>
             </FactRow>
           ) : null}
           {tierText ? <FactRow label={l.tierCount}>{tierText}</FactRow> : null}
@@ -793,7 +798,7 @@ export function CodexFacts({ hero, locale }: { hero: PublicHeroDetail; locale: s
                 value={hero.lastUpdated}
                 kind="date"
                 locale={locale}
-                className="whitespace-nowrap tabular-nums"
+                className="tabular-nums"
               />
             </FactRow>
           ) : null}

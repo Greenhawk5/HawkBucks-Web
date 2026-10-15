@@ -368,15 +368,19 @@ export function AbilityRow({
   );
 }
 
-/** Two-column key/value pair used by the detail metadata rail. */
+/** Two-column key/value pair used by the detail metadata rail. Same wrapping
+ * contract as the facts panel: long labels wrap instead of forcing overflow,
+ * values wrap instead of truncating. */
 export function MetaPair({ label, value }: { label: string; value: React.ReactNode }) {
   if (value === null || value === undefined || value === "") return null;
   return (
-    <div className="flex items-baseline justify-between gap-3 border-b border-panel-border/40 py-1.5 last:border-b-0">
-      <dt className="shrink-0 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+    <div className="grid grid-cols-[minmax(0,7rem)_minmax(0,1fr)] items-baseline gap-x-3 gap-y-0.5 border-b border-panel-border/40 py-1.5 last:border-b-0 max-[420px]:grid-cols-1">
+      <dt className="min-w-0 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground break-words">
         {label}
       </dt>
-      <dd className="min-w-0 truncate text-end text-sm font-medium">{value}</dd>
+      <dd className="min-w-0 text-start text-sm font-medium leading-snug break-words [overflow-wrap:anywhere] sm:text-end">
+        {value}
+      </dd>
     </div>
   );
 }

@@ -54,11 +54,6 @@ export interface PublicHeroDetail extends PublicHeroItem {
   lastUpdated: string | null;
 }
 
-interface HeroSlugRow {
-  content_id: string;
-  default_locale: string;
-}
-
 interface HeroRecordRow {
   hero_class: string;
   category: string | null;
@@ -95,28 +90,18 @@ export const getPublicHero = createServerFn({ method: "GET" })
     if (slug === "") return { hero: null };
     const { db } = await resolveRequestCmsDb();
 
-    // ---- 1. slug -> content id, published-only, with full fallback ----
+    // ---- 1. slug -> identity through the shared resolver ----
     //
     // Slug rows match in ANY locale namespace (preferring the requested
     // one); translation availability is gated on requested -> default_locale
     // -> English, so fr-authored content stays reachable for es visitors.
-    const { results: slugRows } = await db
-      .prepare(
-        `SELECT c.id AS content_id, c.default_locale AS default_locale
-           FROM cms_slugs s
-           JOIN cms_contents c ON c.id = s.content_id
-          WHERE s.entity_type = 'hero' AND s.slug = ?
-            AND c.status = 'published'
-          ORDER BY CASE WHEN s.locale = ? THEN 0 ELSE 1 END
-          LIMIT 1`,
-      )
-      .bind(slug, locale)
-      .all<HeroSlugRow>();
-    // Also try the bare (en) slug namespace, which is where English heroes live.
-    const primary = slugRows[0];
-    const contentId = primary?.content_id ?? null;
-    const defaultLocale = primary?.default_locale ?? "en";
-    if (!contentId) return { hero: null };
+    // Quick View resolves through the same helper, so the two surfaces can
+    // never disagree about which logical hero a slug names.
+    const { resolveHeroIdentity } = await import("./hero-identity.server");
+    const identity = await resolveHeroIdentity(db, locale, slug);
+    if (!identity) return { hero: null };
+    const contentId = identity.contentId;
+    const defaultLocale = identity.defaultLocale;
 
     // ---- 2. record + media in one query ----
     const { results: recRows } = await db
