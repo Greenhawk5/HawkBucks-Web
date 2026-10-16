@@ -108,10 +108,10 @@ export function HeroPerkRow({ perk, className }: { perk: PublicHeroPerk; classNa
  * never missing for assistive tech. Touch users get the same names from Quick
  * View and the hero page.
  *
- * The icons render FRAMELESS: the link is a bare hit-area the same size as the
- * artwork, with no border, background disc, ring container or shadow around it.
- * Only the keyboard focus indicator (`focus-visible:ring-2`) is drawn, so the
- * artwork itself carries the visual weight.
+ * The icons render FRAMELESS: the link is a transparent 32px hit-area around
+ * the artwork, with no border, background disc, ring container or shadow
+ * around it. Only the keyboard focus indicator (`focus-visible:ring-2`) is
+ * drawn, so the artwork itself carries the visual weight.
  */
 export function HeroAbilityStrip({
   locale,
@@ -153,7 +153,7 @@ export function HeroAbilityStrip({
           >
             <MediaIcon
               url={a.iconUrl}
-              sizeClass="h-6 w-6"
+              sizeClass="h-7 w-7"
               fallbackText={a.name.slice(0, 2)}
               labelled={false}
             />

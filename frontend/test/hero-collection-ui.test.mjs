@@ -38,7 +38,7 @@ test("ability icons are frameless in card and reference views", async () => {
   ]) {
     assert.match(src, /h-8 w-8/, `${name} keeps the 32px ability hit-area`);
     assert.match(src, /focus-visible:ring-2/, `${name} keeps the keyboard focus indicator`);
-    assert.match(src, /sizeClass="h-6 w-6"/, `${name} keeps the 24px artwork`);
+    assert.match(src, /sizeClass="h-7 w-7"/, `${name} keeps the enlarged 28px artwork`);
   }
   // The actual link class strings must not reintroduce the old decorative
   // container: bordered box, background disc, or circular/ring styling.
@@ -107,44 +107,68 @@ test("class filter is a compact dropdown, rarity stays segmented", async () => {
   );
 });
 
-test("reference rows stack on mobile and keep the desktop grid", async () => {
+test("reference rows: compact composition and stable class→rarity alignment", async () => {
   const page = await file("src/components/cms/HeroesPage.tsx");
-  assert.match(page, /grid-cols-1 items-start/, "mobile rows stack full-width");
+  // Below `lg` (phones and sidebar-constrained tablets): identity | rarity on
+  // the first row, class + perk on the second, abilities aligned to the
+  // trailing edge on the last row. The duplicated desktop column grid starts
+  // at `lg`, where it actually fits.
   assert.match(
     page,
-    /sm:grid-cols-\[minmax\(0,1\.5fr\)_minmax\(0,1fr\)_auto\]/,
-    "sm grid preserved",
+    /grid-cols-\[minmax\(0,1fr\)_auto\] items-start/,
+    "compact grid: content + anchored rarity column",
   );
   assert.match(
     page,
-    /md:grid-cols-\[minmax\(0,1\.5fr\)_minmax\(0,1fr\)_auto_auto\]/,
-    "desktop grid preserved",
+    /col-start-2 row-start-1 self-start justify-self-end/,
+    "rarity is anchored top-end below lg",
   );
-  assert.equal(
-    /grid-cols-\[minmax\(0,8rem\)_auto\]/.test(page),
-    false,
-    "cramped fixed class track is gone",
+  assert.match(page, /col-span-2 row-start-2/, "class + perk form the secondary row");
+  assert.match(page, /col-span-2 row-start-3/, "abilities form the bottom row");
+  // Desktop (lg+) keeps its four-column grid: identity | perk | tiers | abilities.
+  assert.match(
+    page,
+    /lg:grid-cols-\[minmax\(0,1\.5fr\)_minmax\(0,1fr\)_auto_auto\]/,
+    "desktop grid preserved from lg",
   );
-  // The mobile class-label span must wrap its full text: extract its real
-  // class string and forbid a bare (non-responsive) `truncate`.
+  // ...and the class field is a bounded track again, so the rarity pill's
+  // horizontal position is a property of the track instead of the rendered
+  // class-name width (the alignment defect this pins closed).
+  assert.match(
+    page,
+    /hidden[^"]*grid-cols-\[minmax\(0,8rem\)_auto\][^"]*lg:grid/,
+    "desktop class line is a bounded 8rem track, enabled from lg",
+  );
+  // Heroes without artwork keep a fixed portrait slot (the card's Shield
+  // placeholder), so the class line — and the pill — starts at the same x in
+  // every row instead of shifting 56px.
+  assert.match(
+    page,
+    /grid h-11 w-11 shrink-0 place-items-center/,
+    "missing artwork keeps the fixed portrait slot",
+  );
+  // The compact class label wraps its full text; the desktop label truncates
+  // inside the bounded track (full name on `title`).
   const labelSpans = [
     ...page.matchAll(/<span\s+className="([^"]*)"\s+title=\{heroClassLabel/g),
   ].map((m) => m[1]);
-  assert.ok(labelSpans.length > 0, "class label span exists");
-  for (const cls of labelSpans) {
-    const tokens = cls.split(/\s+/);
-    assert.equal(
-      tokens.includes("truncate"),
-      false,
-      `mobile class label wraps instead of truncating: ${cls}`,
-    );
-    assert.equal(
-      tokens.includes("break-words"),
-      true,
-      `mobile class label can wrap long words: ${cls}`,
-    );
-  }
+  assert.equal(labelSpans.length, 2, "mobile (wrap) + desktop (truncate) class labels");
+  const mobileLabel = labelSpans.find((cls) => cls.includes("break-words"));
+  assert.ok(mobileLabel, "mobile class label wraps");
+  assert.equal(
+    mobileLabel.split(/\s+/).includes("truncate"),
+    false,
+    `mobile class label never truncates: ${mobileLabel}`,
+  );
+  const desktopLabel = labelSpans.find((cls) => cls.split(/\s+/).includes("truncate"));
+  assert.ok(desktopLabel, "desktop class label truncates inside the track");
+  assert.equal(
+    desktopLabel.split(/\s+/).includes("min-w-0"),
+    true,
+    "desktop class label can shrink inside its track",
+  );
   assert.match(page, /min-w-0/, "flexible tracks can shrink (minmax(0,1fr) contract)");
   assert.match(page, /slice\(0, 4\)/, "ability ordering and count unchanged");
   assert.match(page, /after:absolute after:inset-0/, "whole-row navigation preserved");
+  assert.match(page, /relative z-10/, "ability links stay above the row overlay");
 });

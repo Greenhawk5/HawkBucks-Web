@@ -1,6 +1,6 @@
 import * as React from "react";
 import { Link, useNavigate } from "@tanstack/react-router";
-import { SlidersHorizontal, Swords, Users, X } from "lucide-react";
+import { Shield, SlidersHorizontal, Swords, Users, X } from "lucide-react";
 
 import { getPublicStrings, heroClassLabel } from "@/lib/cms/public-strings";
 import {
@@ -654,9 +654,10 @@ function ViewModeSwitch({ locale, view }: { locale: string; view: HeroViewMode }
  *
  * Compact mode answers "who looks right?"; reference mode answers "which of
  * these do I actually want?". Each row is a deliberate grid — identity, perk,
- * abilities, tier count — that reflows to a stacked layout on phones instead
- * of squeezing desktop columns into 360px. No Max Power metadata: the listing
- * filter is gone and the row stays a comparison aid, not a progression table.
+ * abilities, tier count — that reflows to a stacked layout below `lg` instead
+ * of squeezing the desktop columns into a narrow row. No Max Power metadata:
+ * the listing filter is gone and the row stays a comparison aid, not a
+ * progression table.
  *
  * WHOLE-ROW TARGET
  *   A row IS one hero entry, so the entire row opens that hero. The title link
@@ -672,6 +673,31 @@ function ViewModeSwitch({ locale, view }: { locale: string; view: HeroViewMode }
  *   uses. Every control keeps its own focus stop, accessible name and
  *   activation; the overlay only serves the regions that previously did
  *   nothing, and nothing under it is interactive on its own.
+ *
+ * MOBILE COMPOSITION (below `lg`)
+ *   Phones — and tablet widths, where the global sidebar leaves the row as
+ *   little as ~29rem — get their own explicit grid instead of the desktop
+ *   columns squeezed into a narrow row: identity (portrait + name) on the
+ *   leading edge with the rarity pill anchored to the trailing edge of the
+ *   same first row, class + standard perk as a full-width secondary metadata
+ *   row beneath it, and the ability group on the last row aligned to the
+ *   trailing edge. Every region is a real grid cell — no absolute positioning —
+ *   so a long name, a wrapped class label or a translated perk name only
+ *   changes its own row, and the rarity badge cannot be pushed around by any
+ *   of them.
+ *
+ * CLASS → RARITY ALIGNMENT (lg+)
+ *   From `lg` the row switches to the desktop columns and the class line is a
+ *   two-track grid: a BOUNDED class track (8rem) and then the pill. The pill's
+ *   horizontal position is therefore a property of the track — the same for
+ *   every row — instead of a property of the rendered class-name width. The
+ *   label truncates inside the track (full name on `title`); below `lg` the
+ *   same label instead wraps in full in the metadata row, so the complete
+ *   class name stays readable where there is only one column to spend.
+ *
+ *   The identity cell also reserves a fixed portrait slot even when a hero has
+ *   no artwork (the card's Shield placeholder), so the class line — and with
+ *   it the pill — starts at the same x for every row of the list.
  *
  * RARITY
  *   The label is the shared `RarityPill` (canonical `rarity-tokens` palette),
@@ -699,7 +725,7 @@ function ReferenceRowList({ locale, items }: { locale: string; items: HeroCardDa
             key={h.contentId}
             data-testid="hero-reference-row"
             data-rarity={rarity ?? undefined}
-            className="group relative grid grid-cols-1 items-start gap-x-3 gap-y-2 py-3 ps-3 transition-colors hover:bg-primary/5 focus-within:bg-primary/5 sm:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)_auto] sm:items-center sm:gap-x-4 md:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)_auto_auto]"
+            className="group relative grid grid-cols-[minmax(0,1fr)_auto] items-start gap-x-3 gap-y-2 py-3 ps-3 pe-3 transition-colors hover:bg-primary/5 focus-within:bg-primary/5 lg:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)_auto_auto] lg:items-center lg:gap-x-4 lg:pe-0"
           >
             {/* Narrow rarity rail: the pill's accent repeated once at row
                 level. Decorative and pointer-inert — the pill below carries
@@ -711,7 +737,10 @@ function ReferenceRowList({ locale, items }: { locale: string; items: HeroCardDa
                 style={{ backgroundColor: token.accent, opacity: token.glow ? 0.9 : 0.6 }}
               />
             ) : null}
-            <div className="flex min-w-0 items-start gap-3 sm:col-auto sm:items-center">
+            {/* Identity: portrait + name. From `lg` this cell also carries the
+                class line, whose bounded class track gives the rarity pill a
+                stable x-position in every row. */}
+            <div className="col-start-1 row-start-1 flex min-w-0 items-start gap-3 lg:col-auto lg:row-auto lg:items-center">
               {h.imageUrl ? (
                 <img
                   src={h.imageUrl}
@@ -721,28 +750,35 @@ function ReferenceRowList({ locale, items }: { locale: string; items: HeroCardDa
                   loading="lazy"
                   decoding="async"
                 />
-              ) : null}
+              ) : (
+                // Same footprint as the portrait (and the card's Shield
+                // placeholder), so the class line starts at the same x in
+                // every row even when a hero has no artwork.
+                <div
+                  aria-hidden="true"
+                  className="grid h-11 w-11 shrink-0 place-items-center rounded-lg border border-panel-border/50 bg-background/40 text-muted-foreground/40"
+                >
+                  <Shield className="h-5 w-5" />
+                </div>
+              )}
               <div className="min-w-0 flex-1">
                 {/* The stretched ::after is the single row-wide hit area.
                     Ability links re-assert their own stacking (z-10) to stay
                     clickable above it. */}
                 <Link
                   to={href}
-                  className="block min-w-0 rounded font-display text-sm font-bold break-words outline-none transition-colors after:absolute after:inset-0 after:z-0 after:content-[''] hover:text-primary focus-visible:ring-2 focus-visible:ring-ring sm:truncate sm:break-normal"
+                  className="block min-w-0 rounded font-display text-sm font-bold break-words outline-none transition-colors after:absolute after:inset-0 after:z-0 after:content-[''] hover:text-primary focus-visible:ring-2 focus-visible:ring-ring lg:truncate lg:break-normal"
                 >
                   {h.title}
                 </Link>
-                {/* Mobile: class glyph + FULL label + rarity pill wrap onto
-                    their own lines, so neither truncates ("Con...") nor
-                    collides. From `sm` the class returns to one truncating
-                    line with the full name on `title`. */}
-                <p className="mt-1 flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 text-[11px] text-muted-foreground sm:mt-0.5 sm:flex-nowrap sm:gap-x-2">
-                  {/* Compact class glyph + FULL label: it wraps instead of
-                      truncating to "Con..." on narrow screens. From `sm` it
-                      returns to one truncating line with the full name on
-                      `title`. `ms-1` nudges the pill off the class text;
-                      logical props keep RTL mirrored. */}
-                  <span className="inline-flex min-w-0 items-center gap-1.5">
+                {/* Desktop class line (lg+): a BOUNDED class track (8rem)
+                    followed by the pill, so the rarity badge starts at the
+                    same horizontal position in every row regardless of the
+                    class-name length. The label truncates inside the track
+                    (full name on `title`). Below `lg` the row does not use
+                    this line — the metadata row below wraps the full label. */}
+                <p className="mt-0.5 hidden min-w-0 grid-cols-[minmax(0,8rem)_auto] items-center gap-x-2 text-[11px] text-muted-foreground lg:grid">
+                  <span className="flex min-w-0 items-center gap-1.5">
                     {h.classIconUrl ? (
                       <img
                         src={h.classIconUrl}
@@ -757,7 +793,7 @@ function ReferenceRowList({ locale, items }: { locale: string; items: HeroCardDa
                       />
                     ) : null}
                     <span
-                      className="break-words font-medium text-foreground/90 sm:min-w-0 sm:truncate sm:break-normal sm:text-foreground/80"
+                      className="min-w-0 truncate text-foreground/80"
                       title={heroClassLabel(locale, h.heroClass)}
                     >
                       {heroClassLabel(locale, h.heroClass)}
@@ -766,41 +802,80 @@ function ReferenceRowList({ locale, items }: { locale: string; items: HeroCardDa
                   <RarityPill
                     locale={locale}
                     rarity={h.rarity}
-                    className="ms-1 w-fit shrink-0 justify-self-start"
+                    className="w-fit justify-self-start"
                   />
                 </p>
-                {std ? (
-                  <p className="mt-1 flex min-w-0 items-center gap-1.5 truncate text-xs text-muted-foreground sm:hidden">
-                    {std.iconUrl ? <MediaIcon url={std.iconUrl} sizeClass="h-4 w-4" /> : null}
-                    <span className="truncate">{std.name}</span>
-                  </p>
-                ) : null}
               </div>
             </div>
+            {/* Compact/tablet rarity (below lg): its own cell in the first
+                row, anchored to the inline end (top-right in LTR, mirrored in
+                RTL). Independent of every text length, so the badge never
+                jumps between rows. */}
+            <RarityPill
+              locale={locale}
+              rarity={h.rarity}
+              className="col-start-2 row-start-1 self-start justify-self-end lg:hidden"
+            />
+            {/* Secondary metadata (below lg): class + standard perk on one
+                full-width wrapping row beneath the identity. The class label
+                wraps in full (never "Con...") and a long translated perk name
+                wraps too — neither can reach the rarity badge or the row
+                boundaries. */}
+            <p className="col-span-2 row-start-2 flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-muted-foreground lg:hidden">
+              <span className="inline-flex min-w-0 items-center gap-1.5">
+                {h.classIconUrl ? (
+                  <img
+                    src={h.classIconUrl}
+                    alt=""
+                    aria-hidden="true"
+                    loading="lazy"
+                    decoding="async"
+                    className="h-3.5 w-3.5 shrink-0 rounded-sm object-contain"
+                    onError={(e) => {
+                      e.currentTarget.style.display = "none";
+                    }}
+                  />
+                ) : null}
+                <span
+                  className="break-words font-medium text-foreground/90"
+                  title={heroClassLabel(locale, h.heroClass)}
+                >
+                  {heroClassLabel(locale, h.heroClass)}
+                </span>
+              </span>
+              {std ? (
+                <span className="inline-flex min-w-0 items-start gap-1.5 text-xs">
+                  {std.iconUrl ? (
+                    <MediaIcon url={std.iconUrl} sizeClass="mt-0.5 h-4 w-4 shrink-0" />
+                  ) : null}
+                  <span className="min-w-0 break-words">{std.name}</span>
+                </span>
+              ) : null}
+            </p>
             {std ? (
               <p
-                className="hidden min-w-0 items-center gap-1.5 truncate text-xs text-muted-foreground sm:flex"
+                className="hidden min-w-0 items-center gap-1.5 truncate text-xs text-muted-foreground lg:flex"
                 title={std.name}
               >
                 {std.iconUrl ? <MediaIcon url={std.iconUrl} sizeClass="h-5 w-5 shrink-0" /> : null}
                 <span className="truncate">{std.name}</span>
               </p>
             ) : (
-              <span className="hidden sm:block" aria-hidden="true" />
+              <span className="hidden lg:block" aria-hidden="true" />
             )}
-            <p className="hidden shrink-0 whitespace-nowrap text-[11px] tabular-nums text-muted-foreground md:block">
+            <p className="hidden shrink-0 whitespace-nowrap text-[11px] tabular-nums text-muted-foreground lg:block">
               {tiers}
             </p>
             {abilities.length > 0 ? (
               <ul
                 aria-label={heroLabels(locale).abilities}
-                className="relative z-10 flex min-w-0 flex-wrap items-center gap-1.5 sm:col-start-3 sm:row-start-1 sm:justify-end md:col-auto md:row-auto"
+                className="relative z-10 col-span-2 row-start-3 flex min-w-0 flex-wrap items-center justify-end gap-1.5 lg:col-auto lg:row-auto"
               >
                 {abilities.slice(0, 4).map((a) => (
                   <li key={a.key}>
-                    {/* Frameless like the card strip: bare 32px hit-area, no
-                        border/background/ring container — artwork only, plus
-                        the keyboard focus ring. */}
+                    {/* Frameless like the card strip: a transparent 32px
+                        hit-area around 28px artwork — no border, background
+                        or ring container, plus the keyboard focus ring. */}
                     <Link
                       to={href}
                       aria-label={a.name}
@@ -809,7 +884,7 @@ function ReferenceRowList({ locale, items }: { locale: string; items: HeroCardDa
                     >
                       <MediaIcon
                         url={a.iconUrl}
-                        sizeClass="h-6 w-6"
+                        sizeClass="h-7 w-7"
                         fallbackText={a.name.slice(0, 2)}
                         labelled={false}
                       />
