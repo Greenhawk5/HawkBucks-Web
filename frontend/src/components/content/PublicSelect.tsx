@@ -1,4 +1,4 @@
-import { useId } from "react";
+import { useId, type ReactNode } from "react";
 
 import {
   Select,
@@ -12,6 +12,8 @@ import { cn } from "@/lib/utils";
 export interface PublicSelectOption {
   value: string;
   label: string;
+  /** Optional glyph shown before the label in the closed trigger and in the item. */
+  icon?: ReactNode | undefined;
 }
 
 /**
@@ -52,6 +54,9 @@ export function PublicSelect({
   // a private sentinel so the external contract stays ""-based.
   const toInternal = (v: string) => (v === "" ? "__public_empty__" : v);
   const fromInternal = (v: string) => (v === "__public_empty__" ? "" : v);
+  // Radix's SelectValue renders the selected ITEM's content, so the option's
+  // glyph flows through automatically — no manual icon here (rendering one
+  // next to SelectValue is what doubled the glyph).
   return (
     <Select value={toInternal(value)} onValueChange={(v) => onChange(fromInternal(v))}>
       <SelectTrigger
@@ -80,7 +85,10 @@ export function PublicSelect({
             value={toInternal(opt.value)}
             className="cursor-pointer rounded-lg py-2 ps-3 pe-8 text-sm focus:bg-primary/15 focus:text-foreground data-[state=checked]:font-semibold data-[state=checked]:text-primary"
           >
-            {opt.label}
+            <span className="flex min-w-0 items-center gap-2">
+              {opt.icon}
+              <span className="truncate">{opt.label}</span>
+            </span>
           </SelectItem>
         ))}
       </SelectContent>

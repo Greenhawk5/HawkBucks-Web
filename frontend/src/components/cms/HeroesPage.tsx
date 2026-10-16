@@ -402,23 +402,24 @@ export function HeroesPage({
         filtersLabel={s.advancedFilters}
         filterGroups={[
           {
-            label: s.classLabel,
-            value: heroClass,
-            hrefFor: (v) => qs({ class: v === null || v === "" ? undefined : v, page: undefined }),
-            options: classOptions,
-            variant: "segmented" as const,
-            // Same registered glyph the cards use — one asset, one source.
-            // `All` has no registry entry, so it falls back to the Swords
-            // Lucide mark — the same convention as the CMS Heroes nav icon.
-            iconUrlFor: (v: string) => classIcons[v] ?? null,
-            fallbackIconFor: (v: string) => (v === "" ? Swords : null),
-          },
-          {
             label: l.rarity,
             value: rarity,
             hrefFor: (v) => qs({ rarity: v === null || v === "" ? undefined : v, page: undefined }),
             options: rarityOptions,
             variant: "segmented" as const,
+          },
+        ]}
+        selects={[
+          {
+            label: s.classLabel,
+            value: heroClass,
+            hrefFor: (v) => qs({ class: v === null || v === "" ? undefined : v, page: undefined }),
+            options: classOptions,
+            // Same registered glyph the cards use — one asset, one source.
+            // `All` has no registry entry, so it falls back to the Swords
+            // Lucide mark — the same convention as the CMS Heroes nav icon.
+            iconUrlFor: (v: string) => classIcons[v] ?? null,
+            fallbackIconFor: (v: string) => (v === "" ? Swords : null),
           },
         ]}
         sort={{
@@ -698,7 +699,7 @@ function ReferenceRowList({ locale, items }: { locale: string; items: HeroCardDa
             key={h.contentId}
             data-testid="hero-reference-row"
             data-rarity={rarity ?? undefined}
-            className="group relative grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-2 py-3 ps-3 transition-colors hover:bg-primary/5 focus-within:bg-primary/5 sm:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)_auto] sm:gap-x-4 md:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)_auto_auto]"
+            className="group relative grid grid-cols-1 items-start gap-x-3 gap-y-2 py-3 ps-3 transition-colors hover:bg-primary/5 focus-within:bg-primary/5 sm:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)_auto] sm:items-center sm:gap-x-4 md:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)_auto_auto]"
           >
             {/* Narrow rarity rail: the pill's accent repeated once at row
                 level. Decorative and pointer-inert — the pill below carries
@@ -710,7 +711,7 @@ function ReferenceRowList({ locale, items }: { locale: string; items: HeroCardDa
                 style={{ backgroundColor: token.accent, opacity: token.glow ? 0.9 : 0.6 }}
               />
             ) : null}
-            <div className="flex min-w-0 items-center gap-3">
+            <div className="flex min-w-0 items-start gap-3 sm:col-auto sm:items-center">
               {h.imageUrl ? (
                 <img
                   src={h.imageUrl}
@@ -721,23 +722,27 @@ function ReferenceRowList({ locale, items }: { locale: string; items: HeroCardDa
                   decoding="async"
                 />
               ) : null}
-              <div className="min-w-0">
+              <div className="min-w-0 flex-1">
                 {/* The stretched ::after is the single row-wide hit area.
                     Ability links re-assert their own stacking (z-10) to stay
                     clickable above it. */}
                 <Link
                   to={href}
-                  className="block truncate rounded font-display text-sm font-bold outline-none transition-colors after:absolute after:inset-0 after:z-0 after:content-[''] hover:text-primary focus-visible:ring-2 focus-visible:ring-ring"
+                  className="block min-w-0 rounded font-display text-sm font-bold break-words outline-none transition-colors after:absolute after:inset-0 after:z-0 after:content-[''] hover:text-primary focus-visible:ring-2 focus-visible:ring-ring sm:truncate sm:break-normal"
                 >
                   {h.title}
                 </Link>
-                <p className="mt-0.5 grid min-w-0 grid-cols-[minmax(0,8rem)_auto] items-center gap-x-2 text-[11px] text-muted-foreground">
-                  {/* Bounded class column: icon + name truncate inside a fixed
-                      track, so the rarity pill always starts at the same
-                      horizontal position regardless of class-name length.
-                      `ms-1` nudges the pill off the class text; logical props
-                      keep RTL mirrored. */}
-                  <span className="flex min-w-0 items-center gap-1.5">
+                {/* Mobile: class glyph + FULL label + rarity pill wrap onto
+                    their own lines, so neither truncates ("Con...") nor
+                    collides. From `sm` the class returns to one truncating
+                    line with the full name on `title`. */}
+                <p className="mt-1 flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 text-[11px] text-muted-foreground sm:mt-0.5 sm:flex-nowrap sm:gap-x-2">
+                  {/* Compact class glyph + FULL label: it wraps instead of
+                      truncating to "Con..." on narrow screens. From `sm` it
+                      returns to one truncating line with the full name on
+                      `title`. `ms-1` nudges the pill off the class text;
+                      logical props keep RTL mirrored. */}
+                  <span className="inline-flex min-w-0 items-center gap-1.5">
                     {h.classIconUrl ? (
                       <img
                         src={h.classIconUrl}
@@ -752,7 +757,7 @@ function ReferenceRowList({ locale, items }: { locale: string; items: HeroCardDa
                       />
                     ) : null}
                     <span
-                      className="min-w-0 truncate text-foreground/80"
+                      className="break-words font-medium text-foreground/90 sm:min-w-0 sm:truncate sm:break-normal sm:text-foreground/80"
                       title={heroClassLabel(locale, h.heroClass)}
                     >
                       {heroClassLabel(locale, h.heroClass)}
@@ -761,7 +766,7 @@ function ReferenceRowList({ locale, items }: { locale: string; items: HeroCardDa
                   <RarityPill
                     locale={locale}
                     rarity={h.rarity}
-                    className="ms-1 w-fit justify-self-start"
+                    className="ms-1 w-fit shrink-0 justify-self-start"
                   />
                 </p>
                 {std ? (
@@ -789,15 +794,18 @@ function ReferenceRowList({ locale, items }: { locale: string; items: HeroCardDa
             {abilities.length > 0 ? (
               <ul
                 aria-label={heroLabels(locale).abilities}
-                className="relative z-10 flex min-w-0 flex-wrap items-center gap-1 sm:justify-end"
+                className="relative z-10 flex min-w-0 flex-wrap items-center gap-1.5 sm:col-start-3 sm:row-start-1 sm:justify-end md:col-auto md:row-auto"
               >
                 {abilities.slice(0, 4).map((a) => (
                   <li key={a.key}>
+                    {/* Frameless like the card strip: bare 32px hit-area, no
+                        border/background/ring container — artwork only, plus
+                        the keyboard focus ring. */}
                     <Link
                       to={href}
                       aria-label={a.name}
                       title={a.name}
-                      className="grid h-8 w-8 place-items-center rounded-lg border border-panel-border/50 bg-background/40 outline-none transition-colors hover:border-primary/60 hover:bg-primary/10 focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-ring"
+                      className="grid h-8 w-8 place-items-center rounded-sm outline-none transition hover:opacity-80 focus-visible:ring-2 focus-visible:ring-ring"
                     >
                       <MediaIcon
                         url={a.iconUrl}

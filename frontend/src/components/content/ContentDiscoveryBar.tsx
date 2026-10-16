@@ -239,6 +239,84 @@ export function FilterChipRow({
 }
 
 /**
+ * Compact dropdown presentation of one primary filter group.
+ *
+ * Same options, value, and navigation as the segmented/chip variants — only
+ * the presentation collapses to a single `PublicSelect` so narrow toolbars
+ * stop overflowing. Selecting an option navigates immediately (no apply
+ * button); the closed trigger shows the current label + glyph. Crawlers and
+ * no-JS visitors still reach every value because each option is ALSO emitted
+ * as a link in the sr-only list below.
+ */
+function SelectFilter({
+  id,
+  label,
+  options,
+  value,
+  hrefFor,
+  iconUrlFor,
+  fallbackIconFor,
+  className,
+}: {
+  id: string;
+  label: string;
+  options: ReadonlyArray<FilterChipOption>;
+  value: string | null;
+  hrefFor: (value: string | null) => string;
+  iconUrlFor?: (value: string) => string | null | undefined;
+  fallbackIconFor?: (value: string) => LucideIcon | null | undefined;
+  className?: string;
+}) {
+  const glyphFor = (v: string) => {
+    const url = iconUrlFor?.(v);
+    if (url) {
+      return (
+        <img
+          src={url}
+          alt=""
+          aria-hidden="true"
+          className="h-4 w-4 shrink-0 rounded-sm object-contain"
+          loading="lazy"
+          decoding="async"
+          onError={(event) => {
+            event.currentTarget.style.display = "none";
+          }}
+        />
+      );
+    }
+    const Fallback = fallbackIconFor?.(v);
+    if (Fallback)
+      return <Fallback aria-hidden="true" className="h-4 w-4 shrink-0 text-muted-foreground" />;
+    return null;
+  };
+  return (
+    <div className={cn("min-w-0", className)}>
+      <label htmlFor={id} className="sr-only">
+        {label}
+      </label>
+      <PublicSelect
+        id={id}
+        label={label}
+        value={value ?? ""}
+        onChange={(v) => {
+          // Same destination the segmented button would navigate to.
+          window.location.assign(hrefFor(v === "" ? null : v));
+        }}
+        options={options.map((o) => ({ value: o.value, label: o.label, icon: glyphFor(o.value) }))}
+      />
+      {/* Crawlable, no-JS reachable destinations for every option. */}
+      <ul className="sr-only">
+        {options.map((o) => (
+          <li key={o.value === "" ? "__all__" : o.value}>
+            <Link to={hrefFor(o.value === "" ? null : o.value)}>{o.label}</Link>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+/**
  * Cohesive discovery toolbar: search + facet chips + sort, with the active
  * filter summary on the boundary. On mobile the secondary facets collapse
  * behind a toggle so the toolbar never overflows or buries the results.
@@ -260,6 +338,7 @@ export function ContentDiscoveryBar({
   onSearchChange,
   searchPlaceholder,
   filterGroups,
+  selects,
   sort,
   activeFilterCount,
   filtersLabel,
@@ -283,6 +362,20 @@ export function ContentDiscoveryBar({
     /** Optional per-value glyph; see `FilterChipRow.iconUrlFor`. */
     iconUrlFor?: (value: string) => string | null | undefined;
     /** Optional per-value Lucide fallback; see `FilterChipRow.fallbackIconFor`. */
+    fallbackIconFor?: (value: string) => LucideIcon | null | undefined;
+  }>;
+  /**
+   * Compact dropdown filters rendered beside the sort control. A select-group
+   * carries the SAME `options`/`value` contract as a segmented filter group —
+   * only the presentation differs — so switching a facet between the two
+   * never changes filtering behaviour, state ownership, or crawlability.
+   */
+  selects?: ReadonlyArray<{
+    label: string;
+    options: ReadonlyArray<FilterChipOption>;
+    value: string | null;
+    hrefFor: (value: string | null) => string;
+    iconUrlFor?: (value: string) => string | null | undefined;
     fallbackIconFor?: (value: string) => LucideIcon | null | undefined;
   }>;
   sort?: {
@@ -378,6 +471,20 @@ export function ContentDiscoveryBar({
               />
             </div>
           ) : null}
+
+          {selects?.map((group) => (
+            <SelectFilter
+              key={group.label}
+              id={`${searchId}-select-${group.label.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`}
+              label={group.label}
+              options={group.options}
+              value={group.value}
+              hrefFor={group.hrefFor}
+              className={cn("flex-1 lg:flex-none", stackControls && "sm:basis-56")}
+              {...(group.iconUrlFor ? { iconUrlFor: group.iconUrlFor } : {})}
+              {...(group.fallbackIconFor ? { fallbackIconFor: group.fallbackIconFor } : {})}
+            />
+          ))}
 
           {actions ? (
             // `min-w-0` so this group can shrink with the row; without it the
