@@ -295,7 +295,10 @@ export function CodexSectionNav({
         data-testid="hero-section-nav"
         className="max-w-full rounded-full border border-panel-border/60 bg-background/85 py-1.5 ps-1.5 pe-1.5 shadow-[0_8px_28px_-12px_rgba(0,0,0,0.55)] backdrop-blur-md"
       >
-        <div ref={listRef} className="flex max-w-full items-center gap-0.5 overflow-x-auto">
+        <div
+          ref={listRef}
+          className="flex max-w-full items-center gap-0.5 overflow-x-auto overflow-y-hidden pb-0.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+        >
           {sections.map((sec) => {
             const active = sec.id === activeId;
             return (
