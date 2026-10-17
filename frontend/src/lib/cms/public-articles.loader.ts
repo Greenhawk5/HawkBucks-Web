@@ -178,60 +178,69 @@ export const listPublicArticles = createServerFn({ method: "GET" })
     const locale = typeof data.locale === "string" && data.locale !== "" ? data.locale : "en";
     const limit = clamp(typeof data.limit === "number" ? data.limit : 24, 1, 100);
     const offset = clamp(typeof data.offset === "number" ? data.offset : 0, 0, 100000);
-    const { db } = await resolveRequestCmsDb();
-    // Phase 19 — single bounded query. The previous implementation loaded
-    // EVERY published article (listPublishedByEntity without pagination) plus
-    // one excerpt query per row, then sliced in JS — full-table cost on every
-    // listing SSR. Pagination now happens in SQL; the excerpt rides the same
-    // join so no per-row query remains. Listing pages never load body_json.
-    const { results } = await db
-      .prepare(
-        `SELECT c.id AS content_id,
-                COALESCE(NULLIF(t.slug,''), NULLIF(td.slug,''), te.slug) AS slug,
-                COALESCE(NULLIF(t.title,''), NULLIF(td.title,''), te.title) AS title,
-                COALESCE(b.excerpt, bdef.excerpt, bex.excerpt) AS excerpt, c.updated_at AS updated_at
-         FROM cms_contents c
-         LEFT JOIN cms_content_translations t ON t.content_id = c.id AND t.locale = ?
-         LEFT JOIN cms_content_translations td ON td.content_id = c.id AND td.locale = c.default_locale
-         LEFT JOIN cms_content_translations te ON te.content_id = c.id AND te.locale = 'en'
-         LEFT JOIN article_bodies b ON b.article_content_id = c.id AND b.locale = ?
-         LEFT JOIN article_bodies bdef ON bdef.article_content_id = c.id AND bdef.locale = c.default_locale
-         LEFT JOIN article_bodies bex ON bex.article_content_id = c.id AND bex.locale = 'en'
-         WHERE c.entity_type = 'article' AND c.status = 'published'
-           AND (t.id IS NOT NULL OR td.id IS NOT NULL OR te.id IS NOT NULL)
-         ORDER BY c.updated_at DESC LIMIT ? OFFSET ?`,
-      )
-      .bind(locale, locale, limit, offset)
-      .all<{
-        content_id: string;
-        slug: string;
-        title: string;
-        excerpt: string | null;
-        updated_at: string;
-      }>();
-    const [{ results: countRows }] = [
-      await db
-        .prepare(
-          `SELECT COUNT(*) AS n FROM cms_contents c
-           LEFT JOIN cms_content_translations t ON t.content_id = c.id AND t.locale = ?
-         LEFT JOIN cms_content_translations td ON td.content_id = c.id AND td.locale = c.default_locale
-           LEFT JOIN cms_content_translations te ON te.content_id = c.id AND te.locale = 'en'
-           WHERE c.entity_type = 'article' AND c.status = 'published'
-             AND (t.id IS NOT NULL OR td.id IS NOT NULL OR te.id IS NOT NULL)`,
-        )
-        .bind(locale)
-        .all<{ n: number }>(),
-    ];
-    const total = Number(countRows[0]?.n ?? results.length);
-    const items: PublicArticleItem[] = results.map((row) => ({
-      contentId: row.content_id,
-      slug: row.slug,
-      title: row.title,
-      excerpt: row.excerpt ?? "",
-      locale,
-      updatedAt: row.updated_at,
-    }));
-    return { items, total };
+    const { db, env } = await resolveRequestCmsDb();
+    const { withPublicCache } = await import("./public-cache.server");
+    // Public data cache (Layer 1) — see public-cache.server.ts.
+    return withPublicCache({
+      env,
+      namespace: "article-list",
+      args: data,
+      loader: async () => {
+        // Phase 19 — single bounded query. The previous implementation loaded
+        // EVERY published article (listPublishedByEntity without pagination) plus
+        // one excerpt query per row, then sliced in JS — full-table cost on every
+        // listing SSR. Pagination now happens in SQL; the excerpt rides the same
+        // join so no per-row query remains. Listing pages never load body_json.
+        const { results } = await db
+          .prepare(
+            `SELECT c.id AS content_id,
+                    COALESCE(NULLIF(t.slug,''), NULLIF(td.slug,''), te.slug) AS slug,
+                    COALESCE(NULLIF(t.title,''), NULLIF(td.title,''), te.title) AS title,
+                    COALESCE(b.excerpt, bdef.excerpt, bex.excerpt) AS excerpt, c.updated_at AS updated_at
+             FROM cms_contents c
+             LEFT JOIN cms_content_translations t ON t.content_id = c.id AND t.locale = ?
+             LEFT JOIN cms_content_translations td ON td.content_id = c.id AND td.locale = c.default_locale
+             LEFT JOIN cms_content_translations te ON te.content_id = c.id AND te.locale = 'en'
+             LEFT JOIN article_bodies b ON b.article_content_id = c.id AND b.locale = ?
+             LEFT JOIN article_bodies bdef ON bdef.article_content_id = c.id AND bdef.locale = c.default_locale
+             LEFT JOIN article_bodies bex ON bex.article_content_id = c.id AND bex.locale = 'en'
+             WHERE c.entity_type = 'article' AND c.status = 'published'
+               AND (t.id IS NOT NULL OR td.id IS NOT NULL OR te.id IS NOT NULL)
+             ORDER BY c.updated_at DESC LIMIT ? OFFSET ?`,
+          )
+          .bind(locale, locale, limit, offset)
+          .all<{
+            content_id: string;
+            slug: string;
+            title: string;
+            excerpt: string | null;
+            updated_at: string;
+          }>();
+        const [{ results: countRows }] = [
+          await db
+            .prepare(
+              `SELECT COUNT(*) AS n FROM cms_contents c
+               LEFT JOIN cms_content_translations t ON t.content_id = c.id AND t.locale = ?
+             LEFT JOIN cms_content_translations td ON td.content_id = c.id AND td.locale = c.default_locale
+               LEFT JOIN cms_content_translations te ON te.content_id = c.id AND te.locale = 'en'
+               WHERE c.entity_type = 'article' AND c.status = 'published'
+                 AND (t.id IS NOT NULL OR td.id IS NOT NULL OR te.id IS NOT NULL)`,
+            )
+            .bind(locale)
+            .all<{ n: number }>(),
+        ];
+        const total = Number(countRows[0]?.n ?? results.length);
+        const items: PublicArticleItem[] = results.map((row) => ({
+          contentId: row.content_id,
+          slug: row.slug,
+          title: row.title,
+          excerpt: row.excerpt ?? "",
+          locale,
+          updatedAt: row.updated_at,
+        }));
+        return { items, total };
+      },
+    });
   });
 
 export const getPublicArticle = createServerFn({ method: "GET" })
@@ -240,174 +249,183 @@ export const getPublicArticle = createServerFn({ method: "GET" })
     const { resolveRequestCmsDb } = await import("./db.server");
     const locale = typeof data.locale === "string" && data.locale !== "" ? data.locale : "en";
     const slug = typeof data.slug === "string" ? data.slug : "";
-    const { db } = await resolveRequestCmsDb();
-    const { getPublishedBySlug } = await import("./db.server");
-    const found = await getPublishedBySlug(db, {
-      entityType: ARTICLE_ENTITY_TYPE,
-      locale,
-      slug,
-    });
-    if (!found) return { article: null };
-    const defBodyLoc =
-      typeof found.content.default_locale === "string" && found.content.default_locale !== ""
-        ? found.content.default_locale
-        : "en";
-    const { results: bodyRows } = await db
-      .prepare(
-        "SELECT body_json, excerpt, cover_asset_id, category_id, locale FROM article_bodies WHERE article_content_id = ? AND locale IN (?, ?, 'en')",
-      )
-      .bind(found.content.id, locale, defBodyLoc)
-      .all<{
-        body_json: string;
-        excerpt: string;
-        cover_asset_id: string | null;
-        category_id: string | null;
-        locale: string;
-      }>();
-    const body =
-      bodyRows.find((r) => r.locale === locale) ??
-      bodyRows.find((r) => r.locale === defBodyLoc) ??
-      bodyRows.find((r) => r.locale === "en") ??
-      null;
-    const bodyJson = body?.body_json ?? '{"version":1,"blocks":[]}';
-    try {
-      validateArticleDocument(bodyJson);
-    } catch {
-      return { article: null };
-    }
-    // Image: resolve ONLY through the compat delivery layer. Bare R2 keys
-    // never reach the client verbatim; legacy ImageKit https rows stay
-    // readable per the Phase 15.5 compatibility contract. Deleted/failed
-    // assets resolve to null so routes render no broken image.
-    const { R2_PUBLIC_BASE_URL } = await import("./r2.server");
-    const compatConfig = { r2BaseUrl: R2_PUBLIC_BASE_URL };
-    const validatedDoc = validateArticleDocument(bodyJson);
-    // Phase 19 — independent reads run concurrently. The previous
-    // implementation awaited cover, body images, category, tags, refs,
-    // related and locales strictly sequentially (up to 8 D1 round trips on
-    // the SSR critical path); D1 round trips now collapse to two batches.
-    const [imageUrl, bodyImageUrls, category, tagRows, refRows, explicitRelated, locales] =
-      await Promise.all([
-        body?.cover_asset_id
-          ? resolveSingleMediaUrl(db, body.cover_asset_id, compatConfig)
-          : Promise.resolve(null),
-        resolveArticleBodyImageUrls(db, validatedDoc, compatConfig).catch(
-          (): Record<string, string> => ({}),
-        ),
-        body?.category_id
-          ? db
-              .prepare("SELECT slug FROM article_categories WHERE id = ?")
-              .bind(body.category_id)
-              .first<{ slug: string }>()
-          : Promise.resolve(null),
-        db
+    const { db, env } = await resolveRequestCmsDb();
+    const { withPublicCache } = await import("./public-cache.server");
+    // Public data cache (Layer 1) — see public-cache.server.ts.
+    return withPublicCache({
+      env,
+      namespace: "article-detail",
+      args: data,
+      loader: async () => {
+        const { getPublishedBySlug } = await import("./db.server");
+        const found = await getPublishedBySlug(db, {
+          entityType: ARTICLE_ENTITY_TYPE,
+          locale,
+          slug,
+        });
+        if (!found) return { article: null };
+        const defBodyLoc =
+          typeof found.content.default_locale === "string" && found.content.default_locale !== ""
+            ? found.content.default_locale
+            : "en";
+        const { results: bodyRows } = await db
           .prepare(
-            `SELECT t.slug AS slug FROM article_tag_links l
-             JOIN article_tags t ON t.id = l.tag_id
-             WHERE l.article_content_id = ? ORDER BY t.slug ASC`,
+            "SELECT body_json, excerpt, cover_asset_id, category_id, locale FROM article_bodies WHERE article_content_id = ? AND locale IN (?, ?, 'en')",
           )
-          .bind(found.content.id)
-          .all<{ slug: string }>()
-          .then((r) => r.results),
-        // Entity refs: published targets only. Draft/archived targets are
-        // filtered here (SQL status check) AND re-checked per-row below, so an
-        // unpublished entity can never leak through an editorial card.
-        db
-          .prepare(
-            `SELECT r.target_entity_type AS entity_type, r.target_content_id AS content_id,
-                    COALESCE(NULLIF(t.slug,''), NULLIF(td.slug,''), te.slug) AS slug,
-                    COALESCE(NULLIF(t.title,''), NULLIF(td.title,''), te.title) AS title, c.status AS status
-             FROM article_entity_refs r
-             JOIN cms_contents c ON c.id = r.target_content_id
-             LEFT JOIN cms_content_translations t ON t.content_id = c.id AND t.locale = ?
-         LEFT JOIN cms_content_translations td ON td.content_id = c.id AND td.locale = c.default_locale
-             LEFT JOIN cms_content_translations te ON te.content_id = c.id AND te.locale = 'en'
-             WHERE r.article_content_id = ? AND c.status = 'published'
-               AND (t.id IS NOT NULL OR td.id IS NOT NULL OR te.id IS NOT NULL)
-             ORDER BY r.slot_order ASC LIMIT 24`,
-          )
-          .bind(locale, found.content.id)
+          .bind(found.content.id, locale, defBodyLoc)
           .all<{
-            entity_type: string;
-            content_id: string;
-            slug: string;
-            title: string;
-            status: string;
-          }>()
-          .then((r) => r.results),
-        db
-          .prepare(
-            `SELECT c.id AS content_id,
-                    COALESCE(NULLIF(t.slug,''), NULLIF(td.slug,''), te.slug) AS slug,
-                    COALESCE(NULLIF(t.title,''), NULLIF(td.title,''), te.title) AS title,
-                    COALESCE(b.excerpt, bdef.excerpt, bex.excerpt) AS excerpt, c.status AS status
-             FROM article_related r
-             JOIN cms_contents c ON c.id = r.related_content_id
-             LEFT JOIN cms_content_translations t ON t.content_id = c.id AND t.locale = ?
+            body_json: string;
+            excerpt: string;
+            cover_asset_id: string | null;
+            category_id: string | null;
+            locale: string;
+          }>();
+        const body =
+          bodyRows.find((r) => r.locale === locale) ??
+          bodyRows.find((r) => r.locale === defBodyLoc) ??
+          bodyRows.find((r) => r.locale === "en") ??
+          null;
+        const bodyJson = body?.body_json ?? '{"version":1,"blocks":[]}';
+        try {
+          validateArticleDocument(bodyJson);
+        } catch {
+          return { article: null };
+        }
+        // Image: resolve ONLY through the compat delivery layer. Bare R2 keys
+        // never reach the client verbatim; legacy ImageKit https rows stay
+        // readable per the Phase 15.5 compatibility contract. Deleted/failed
+        // assets resolve to null so routes render no broken image.
+        const { R2_PUBLIC_BASE_URL } = await import("./r2.server");
+        const compatConfig = { r2BaseUrl: R2_PUBLIC_BASE_URL };
+        const validatedDoc = validateArticleDocument(bodyJson);
+        // Phase 19 — independent reads run concurrently. The previous
+        // implementation awaited cover, body images, category, tags, refs,
+        // related and locales strictly sequentially (up to 8 D1 round trips on
+        // the SSR critical path); D1 round trips now collapse to two batches.
+        const [imageUrl, bodyImageUrls, category, tagRows, refRows, explicitRelated, locales] =
+          await Promise.all([
+            body?.cover_asset_id
+              ? resolveSingleMediaUrl(db, body.cover_asset_id, compatConfig)
+              : Promise.resolve(null),
+            resolveArticleBodyImageUrls(db, validatedDoc, compatConfig).catch(
+              (): Record<string, string> => ({}),
+            ),
+            body?.category_id
+              ? db
+                  .prepare("SELECT slug FROM article_categories WHERE id = ?")
+                  .bind(body.category_id)
+                  .first<{ slug: string }>()
+              : Promise.resolve(null),
+            db
+              .prepare(
+                `SELECT t.slug AS slug FROM article_tag_links l
+                 JOIN article_tags t ON t.id = l.tag_id
+                 WHERE l.article_content_id = ? ORDER BY t.slug ASC`,
+              )
+              .bind(found.content.id)
+              .all<{ slug: string }>()
+              .then((r) => r.results),
+            // Entity refs: published targets only. Draft/archived targets are
+            // filtered here (SQL status check) AND re-checked per-row below, so an
+            // unpublished entity can never leak through an editorial card.
+            db
+              .prepare(
+                `SELECT r.target_entity_type AS entity_type, r.target_content_id AS content_id,
+                        COALESCE(NULLIF(t.slug,''), NULLIF(td.slug,''), te.slug) AS slug,
+                        COALESCE(NULLIF(t.title,''), NULLIF(td.title,''), te.title) AS title, c.status AS status
+                 FROM article_entity_refs r
+                 JOIN cms_contents c ON c.id = r.target_content_id
+                 LEFT JOIN cms_content_translations t ON t.content_id = c.id AND t.locale = ?
              LEFT JOIN cms_content_translations td ON td.content_id = c.id AND td.locale = c.default_locale
-             LEFT JOIN cms_content_translations te ON te.content_id = c.id AND te.locale = 'en'
-             LEFT JOIN article_bodies b ON b.article_content_id = c.id AND b.locale = ?
-             LEFT JOIN article_bodies bdef ON bdef.article_content_id = c.id AND bdef.locale = c.default_locale
-             LEFT JOIN article_bodies bex ON bex.article_content_id = c.id AND bex.locale = 'en'
-             WHERE r.article_content_id = ? AND c.status = 'published'
-               AND (t.id IS NOT NULL OR td.id IS NOT NULL OR te.id IS NOT NULL)
-             ORDER BY r.slot_order ASC LIMIT 12`,
-          )
-          .bind(locale, locale, found.content.id)
-          .all<{
-            content_id: string;
-            slug: string;
-            title: string;
-            excerpt: string | null;
-            status: string;
-          }>()
-          .then((r) => r.results),
-        completeArticleLocales(db, String(found.content.id)),
-      ]);
-    const related =
-      explicitRelated.length > 0
-        ? explicitRelated
-            .filter((row) => row.status === "published")
-            .map((row) => ({
-              contentId: row.content_id,
-              slug: row.slug,
-              title: row.title,
-              excerpt: row.excerpt ?? "",
-            }))
-        : // Deterministic fallback: same category, newest first — computed at
-          // read time, never stored, and published-only by construction.
-          await fallbackRelated(db, {
-            articleId: String(found.content.id),
+                 LEFT JOIN cms_content_translations te ON te.content_id = c.id AND te.locale = 'en'
+                 WHERE r.article_content_id = ? AND c.status = 'published'
+                   AND (t.id IS NOT NULL OR td.id IS NOT NULL OR te.id IS NOT NULL)
+                 ORDER BY r.slot_order ASC LIMIT 24`,
+              )
+              .bind(locale, found.content.id)
+              .all<{
+                entity_type: string;
+                content_id: string;
+                slug: string;
+                title: string;
+                status: string;
+              }>()
+              .then((r) => r.results),
+            db
+              .prepare(
+                `SELECT c.id AS content_id,
+                        COALESCE(NULLIF(t.slug,''), NULLIF(td.slug,''), te.slug) AS slug,
+                        COALESCE(NULLIF(t.title,''), NULLIF(td.title,''), te.title) AS title,
+                        COALESCE(b.excerpt, bdef.excerpt, bex.excerpt) AS excerpt, c.status AS status
+                 FROM article_related r
+                 JOIN cms_contents c ON c.id = r.related_content_id
+                 LEFT JOIN cms_content_translations t ON t.content_id = c.id AND t.locale = ?
+                 LEFT JOIN cms_content_translations td ON td.content_id = c.id AND td.locale = c.default_locale
+                 LEFT JOIN cms_content_translations te ON te.content_id = c.id AND te.locale = 'en'
+                 LEFT JOIN article_bodies b ON b.article_content_id = c.id AND b.locale = ?
+                 LEFT JOIN article_bodies bdef ON bdef.article_content_id = c.id AND bdef.locale = c.default_locale
+                 LEFT JOIN article_bodies bex ON bex.article_content_id = c.id AND bex.locale = 'en'
+                 WHERE r.article_content_id = ? AND c.status = 'published'
+                   AND (t.id IS NOT NULL OR td.id IS NOT NULL OR te.id IS NOT NULL)
+                 ORDER BY r.slot_order ASC LIMIT 12`,
+              )
+              .bind(locale, locale, found.content.id)
+              .all<{
+                content_id: string;
+                slug: string;
+                title: string;
+                excerpt: string | null;
+                status: string;
+              }>()
+              .then((r) => r.results),
+            completeArticleLocales(db, String(found.content.id)),
+          ]);
+        const related =
+          explicitRelated.length > 0
+            ? explicitRelated
+                .filter((row) => row.status === "published")
+                .map((row) => ({
+                  contentId: row.content_id,
+                  slug: row.slug,
+                  title: row.title,
+                  excerpt: row.excerpt ?? "",
+                }))
+            : // Deterministic fallback: same category, newest first — computed at
+              // read time, never stored, and published-only by construction.
+              await fallbackRelated(db, {
+                articleId: String(found.content.id),
+                locale,
+                categoryId: body?.category_id ?? null,
+              });
+        return {
+          article: {
+            contentId: found.content.id as string,
+            slug: found.translation.slug as string,
+            title: found.translation.title as string,
+            excerpt: body?.excerpt ?? "",
             locale,
-            categoryId: body?.category_id ?? null,
-          });
-    return {
-      article: {
-        contentId: found.content.id as string,
-        slug: found.translation.slug as string,
-        title: found.translation.title as string,
-        excerpt: body?.excerpt ?? "",
-        locale,
-        updatedAt: found.content.updated_at as string,
-        bodyJson,
-        seoTitle: (found.translation.seo_title as string | null) ?? null,
-        seoDescription: (found.translation.seo_description as string | null) ?? null,
-        imageUrl,
-        bodyImageUrls,
-        completeLocales: locales,
-        categorySlug: category?.slug ?? null,
-        tagSlugs: tagRows.map((row) => row.slug),
-        entityRefs: refRows
-          .filter((row) => row.status === "published")
-          .map((row) => ({
-            entityType: row.entity_type,
-            contentId: row.content_id,
-            slug: row.slug,
-            title: row.title,
-          })),
-        related,
+            updatedAt: found.content.updated_at as string,
+            bodyJson,
+            seoTitle: (found.translation.seo_title as string | null) ?? null,
+            seoDescription: (found.translation.seo_description as string | null) ?? null,
+            imageUrl,
+            bodyImageUrls,
+            completeLocales: locales,
+            categorySlug: category?.slug ?? null,
+            tagSlugs: tagRows.map((row) => row.slug),
+            entityRefs: refRows
+              .filter((row) => row.status === "published")
+              .map((row) => ({
+                entityType: row.entity_type,
+                contentId: row.content_id,
+                slug: row.slug,
+                title: row.title,
+              })),
+            related,
+          },
+        };
       },
-    };
+    });
   });
 
 /**
@@ -536,43 +554,52 @@ export const listArticlesForEntity = createServerFn({ method: "GET" })
     const limit = clamp(typeof data.limit === "number" ? data.limit : 6, 1, 12);
     if (target === "") return { items: [] };
     const { resolveRequestCmsDb } = await import("./db.server");
-    const { db } = await resolveRequestCmsDb();
-    const { results } = await db
-      .prepare(
-        `SELECT c.id AS content_id,
-                COALESCE(NULLIF(t.slug,''), NULLIF(td.slug,''), te.slug) AS slug,
-                COALESCE(NULLIF(t.title,''), NULLIF(td.title,''), te.title) AS title,
-                COALESCE(b.excerpt, bdef.excerpt, bex.excerpt) AS excerpt, c.updated_at AS updated_at
-         FROM article_entity_refs r
-         JOIN cms_contents c ON c.id = r.article_content_id AND c.status = 'published' AND c.entity_type = 'article'
-         LEFT JOIN cms_content_translations t ON t.content_id = c.id AND t.locale = ?
-         LEFT JOIN cms_content_translations td ON td.content_id = c.id AND td.locale = c.default_locale
-         LEFT JOIN cms_content_translations te ON te.content_id = c.id AND te.locale = 'en'
-         LEFT JOIN article_bodies b ON b.article_content_id = c.id AND b.locale = ?
-         LEFT JOIN article_bodies bdef ON bdef.article_content_id = c.id AND bdef.locale = c.default_locale
-         LEFT JOIN article_bodies bex ON bex.article_content_id = c.id AND bex.locale = 'en'
-         WHERE r.target_content_id = ?
-           AND (t.id IS NOT NULL OR td.id IS NOT NULL OR te.id IS NOT NULL)
-         ORDER BY c.updated_at DESC LIMIT ?`,
-      )
-      .bind(locale, locale, target, limit)
-      .all<{
-        content_id: string;
-        slug: string;
-        title: string;
-        excerpt: string | null;
-        updated_at: string;
-      }>();
-    return {
-      items: results.map((row) => ({
-        contentId: row.content_id,
-        slug: row.slug,
-        title: row.title,
-        excerpt: row.excerpt ?? "",
-        locale,
-        updatedAt: row.updated_at,
-      })),
-    };
+    const { db, env } = await resolveRequestCmsDb();
+    const { withPublicCache } = await import("./public-cache.server");
+    // Public data cache (Layer 1) — see public-cache.server.ts.
+    return withPublicCache({
+      env,
+      namespace: "article-related",
+      args: data,
+      loader: async () => {
+        const { results } = await db
+          .prepare(
+            `SELECT c.id AS content_id,
+                    COALESCE(NULLIF(t.slug,''), NULLIF(td.slug,''), te.slug) AS slug,
+                    COALESCE(NULLIF(t.title,''), NULLIF(td.title,''), te.title) AS title,
+                    COALESCE(b.excerpt, bdef.excerpt, bex.excerpt) AS excerpt, c.updated_at AS updated_at
+             FROM article_entity_refs r
+             JOIN cms_contents c ON c.id = r.article_content_id AND c.status = 'published' AND c.entity_type = 'article'
+             LEFT JOIN cms_content_translations t ON t.content_id = c.id AND t.locale = ?
+             LEFT JOIN cms_content_translations td ON td.content_id = c.id AND td.locale = c.default_locale
+             LEFT JOIN cms_content_translations te ON te.content_id = c.id AND te.locale = 'en'
+             LEFT JOIN article_bodies b ON b.article_content_id = c.id AND b.locale = ?
+             LEFT JOIN article_bodies bdef ON bdef.article_content_id = c.id AND bdef.locale = c.default_locale
+             LEFT JOIN article_bodies bex ON bex.article_content_id = c.id AND bex.locale = 'en'
+             WHERE r.target_content_id = ?
+               AND (t.id IS NOT NULL OR td.id IS NOT NULL OR te.id IS NOT NULL)
+             ORDER BY c.updated_at DESC LIMIT ?`,
+          )
+          .bind(locale, locale, target, limit)
+          .all<{
+            content_id: string;
+            slug: string;
+            title: string;
+            excerpt: string | null;
+            updated_at: string;
+          }>();
+        return {
+          items: results.map((row) => ({
+            contentId: row.content_id,
+            slug: row.slug,
+            title: row.title,
+            excerpt: row.excerpt ?? "",
+            locale,
+            updatedAt: row.updated_at,
+          })),
+        };
+      },
+    });
   });
 
 /**
@@ -591,86 +618,95 @@ export const listArticlesByTopic = createServerFn({ method: "GET" })
     const locale = typeof data.locale === "string" && data.locale !== "" ? data.locale : "en";
     const limit = clamp(typeof data.limit === "number" ? data.limit : 12, 1, 24);
     const { resolveRequestCmsDb } = await import("./db.server");
-    const { db } = await resolveRequestCmsDb();
-    if (typeof data.categorySlug === "string" && data.categorySlug !== "") {
-      // Drive from contents (one row per entity): body text prefers the
-      // requested locale, then the content default_locale, then English.
-      // Driving from article_bodies with IN (?, 'en') yielded one row PER
-      // BODY (duplicate collection entries when es+en bodies both exist).
-      const { results } = await db
-        .prepare(
-          `SELECT c.id AS content_id,
-                  COALESCE(NULLIF(t.slug,''), NULLIF(td.slug,''), te.slug) AS slug,
-                  COALESCE(NULLIF(t.title,''), NULLIF(td.title,''), te.title) AS title,
-                  COALESCE(b.excerpt, bdef.excerpt, bex.excerpt) AS excerpt, c.updated_at AS updated_at
-           FROM cms_contents c
-           LEFT JOIN cms_content_translations t ON t.content_id = c.id AND t.locale = ?
-           LEFT JOIN cms_content_translations td ON td.content_id = c.id AND td.locale = c.default_locale
-           LEFT JOIN cms_content_translations te ON te.content_id = c.id AND te.locale = 'en'
-           LEFT JOIN article_bodies b ON b.article_content_id = c.id AND b.locale = ?
-           LEFT JOIN article_bodies bdef ON bdef.article_content_id = c.id AND bdef.locale = c.default_locale
-           LEFT JOIN article_bodies bex ON bex.article_content_id = c.id AND bex.locale = 'en'
-           JOIN article_categories cat ON cat.id = COALESCE(b.category_id, bdef.category_id, bex.category_id) AND cat.slug = ?
-           WHERE c.status = 'published' AND c.entity_type = 'article'
-             AND (t.id IS NOT NULL OR td.id IS NOT NULL OR te.id IS NOT NULL)
-           ORDER BY c.updated_at DESC LIMIT ?`,
-        )
-        .bind(locale, locale, data.categorySlug, limit)
-        .all<{
-          content_id: string;
-          slug: string;
-          title: string;
-          excerpt: string | null;
-          updated_at: string;
-        }>();
-      return {
-        items: results.map((row) => ({
-          contentId: row.content_id,
-          slug: row.slug,
-          title: row.title,
-          excerpt: row.excerpt ?? "",
-          locale,
-          updatedAt: row.updated_at,
-        })),
-      };
-    }
-    if (typeof data.tagSlug === "string" && data.tagSlug !== "") {
-      const { results } = await db
-        .prepare(
-          `SELECT c.id AS content_id,
-                  COALESCE(NULLIF(t.slug,''), NULLIF(td.slug,''), te.slug) AS slug,
-                  COALESCE(NULLIF(t.title,''), NULLIF(td.title,''), te.title) AS title,
-                  COALESCE(b.excerpt, bdef.excerpt, bex.excerpt) AS excerpt, c.updated_at AS updated_at
-           FROM article_tag_links l
-           JOIN article_tags tag ON tag.id = l.tag_id AND tag.slug = ?
-           JOIN cms_contents c ON c.id = l.article_content_id AND c.status = 'published' AND c.entity_type = 'article'
-           LEFT JOIN cms_content_translations t ON t.content_id = c.id AND t.locale = ?
-           LEFT JOIN cms_content_translations td ON td.content_id = c.id AND td.locale = c.default_locale
-           LEFT JOIN cms_content_translations te ON te.content_id = c.id AND te.locale = 'en'
-           LEFT JOIN article_bodies b ON b.article_content_id = c.id AND b.locale = ?
-           LEFT JOIN article_bodies bdef ON bdef.article_content_id = c.id AND bdef.locale = c.default_locale
-           LEFT JOIN article_bodies bex ON bex.article_content_id = c.id AND bex.locale = 'en'
-           WHERE (t.id IS NOT NULL OR td.id IS NOT NULL OR te.id IS NOT NULL)
-           ORDER BY c.updated_at DESC LIMIT ?`,
-        )
-        .bind(data.tagSlug, locale, locale, limit)
-        .all<{
-          content_id: string;
-          slug: string;
-          title: string;
-          excerpt: string | null;
-          updated_at: string;
-        }>();
-      return {
-        items: results.map((row) => ({
-          contentId: row.content_id,
-          slug: row.slug,
-          title: row.title,
-          excerpt: row.excerpt ?? "",
-          locale,
-          updatedAt: row.updated_at,
-        })),
-      };
-    }
-    return { items: [] };
+    const { db, env } = await resolveRequestCmsDb();
+    const { withPublicCache } = await import("./public-cache.server");
+    // Public data cache (Layer 1) — see public-cache.server.ts.
+    return withPublicCache({
+      env,
+      namespace: "article-topic",
+      args: data,
+      loader: async () => {
+        if (typeof data.categorySlug === "string" && data.categorySlug !== "") {
+          // Drive from contents (one row per entity): body text prefers the
+          // requested locale, then the content default_locale, then English.
+          // Driving from article_bodies with IN (?, 'en') yielded one row PER
+          // BODY (duplicate collection entries when es+en bodies both exist).
+          const { results } = await db
+            .prepare(
+              `SELECT c.id AS content_id,
+                      COALESCE(NULLIF(t.slug,''), NULLIF(td.slug,''), te.slug) AS slug,
+                      COALESCE(NULLIF(t.title,''), NULLIF(td.title,''), te.title) AS title,
+                      COALESCE(b.excerpt, bdef.excerpt, bex.excerpt) AS excerpt, c.updated_at AS updated_at
+               FROM cms_contents c
+               LEFT JOIN cms_content_translations t ON t.content_id = c.id AND t.locale = ?
+               LEFT JOIN cms_content_translations td ON td.content_id = c.id AND td.locale = c.default_locale
+               LEFT JOIN cms_content_translations te ON te.content_id = c.id AND te.locale = 'en'
+               LEFT JOIN article_bodies b ON b.article_content_id = c.id AND b.locale = ?
+               LEFT JOIN article_bodies bdef ON bdef.article_content_id = c.id AND bdef.locale = c.default_locale
+               LEFT JOIN article_bodies bex ON bex.article_content_id = c.id AND bex.locale = 'en'
+               JOIN article_categories cat ON cat.id = COALESCE(b.category_id, bdef.category_id, bex.category_id) AND cat.slug = ?
+               WHERE c.status = 'published' AND c.entity_type = 'article'
+                 AND (t.id IS NOT NULL OR td.id IS NOT NULL OR te.id IS NOT NULL)
+               ORDER BY c.updated_at DESC LIMIT ?`,
+            )
+            .bind(locale, locale, data.categorySlug, limit)
+            .all<{
+              content_id: string;
+              slug: string;
+              title: string;
+              excerpt: string | null;
+              updated_at: string;
+            }>();
+          return {
+            items: results.map((row) => ({
+              contentId: row.content_id,
+              slug: row.slug,
+              title: row.title,
+              excerpt: row.excerpt ?? "",
+              locale,
+              updatedAt: row.updated_at,
+            })),
+          };
+        }
+        if (typeof data.tagSlug === "string" && data.tagSlug !== "") {
+          const { results } = await db
+            .prepare(
+              `SELECT c.id AS content_id,
+                      COALESCE(NULLIF(t.slug,''), NULLIF(td.slug,''), te.slug) AS slug,
+                      COALESCE(NULLIF(t.title,''), NULLIF(td.title,''), te.title) AS title,
+                      COALESCE(b.excerpt, bdef.excerpt, bex.excerpt) AS excerpt, c.updated_at AS updated_at
+               FROM article_tag_links l
+               JOIN article_tags tag ON tag.id = l.tag_id AND tag.slug = ?
+               JOIN cms_contents c ON c.id = l.article_content_id AND c.status = 'published' AND c.entity_type = 'article'
+               LEFT JOIN cms_content_translations t ON t.content_id = c.id AND t.locale = ?
+               LEFT JOIN cms_content_translations td ON td.content_id = c.id AND td.locale = c.default_locale
+               LEFT JOIN cms_content_translations te ON te.content_id = c.id AND te.locale = 'en'
+               LEFT JOIN article_bodies b ON b.article_content_id = c.id AND b.locale = ?
+               LEFT JOIN article_bodies bdef ON bdef.article_content_id = c.id AND bdef.locale = c.default_locale
+               LEFT JOIN article_bodies bex ON bex.article_content_id = c.id AND bex.locale = 'en'
+               WHERE (t.id IS NOT NULL OR td.id IS NOT NULL OR te.id IS NOT NULL)
+               ORDER BY c.updated_at DESC LIMIT ?`,
+            )
+            .bind(data.tagSlug, locale, locale, limit)
+            .all<{
+              content_id: string;
+              slug: string;
+              title: string;
+              excerpt: string | null;
+              updated_at: string;
+            }>();
+          return {
+            items: results.map((row) => ({
+              contentId: row.content_id,
+              slug: row.slug,
+              title: row.title,
+              excerpt: row.excerpt ?? "",
+              locale,
+              updatedAt: row.updated_at,
+            })),
+          };
+        }
+        return { items: [] };
+      },
+    });
   });

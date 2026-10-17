@@ -38,6 +38,7 @@ import type { D1Database } from "./db.server";
 import { isUsableMediaStatus } from "./media-provider";
 import { countMediaAssetAssociations } from "./media-references.server";
 import type { MediaReferenceSource } from "./media-references.server";
+import { bumpContentEpochForRequest } from "./public-cache.server";
 import {
   ICON_CATEGORIES,
   isIconCategory,
@@ -323,6 +324,7 @@ export async function createIconRegistryEntry(
     )
     .bind(id, input.semanticKey.trim(), displayName, parsed.category, mediaAssetId, now, now)
     .run();
+  await bumpContentEpochForRequest();
   const created = await getIconRegistryEntry(db, id);
   if (!created) throw new Error("Icon registration failed.");
   return created;
@@ -387,6 +389,7 @@ export async function updateIconRegistryEntry(
     .prepare(`UPDATE icon_registry SET ${sets.join(", ")}, updated_at = ? WHERE id = ?`)
     .bind(...values)
     .run();
+  await bumpContentEpochForRequest();
   const updated = await getIconRegistryEntry(db, input.id);
   if (!updated) throw new Error("Icon entry not found.");
   return updated;
@@ -407,6 +410,7 @@ export async function deleteIconRegistryEntry(db: D1Database, id: string): Promi
     .first<{ id: string }>();
   if (!existing) throw new Error("Icon entry not found.");
   await db.prepare("DELETE FROM icon_registry WHERE id = ?").bind(id).run();
+  await bumpContentEpochForRequest();
 }
 
 /** Categories that actually have a consumer, for the CMS filter control. */

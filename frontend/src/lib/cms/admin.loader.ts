@@ -27,6 +27,12 @@ export interface AdminSessionShape {
 
 export const getAdminSession = createServerFn({ method: "GET" }).handler(
   async (): Promise<AdminSessionShape> => {
+    const { setResponseHeader } = await import("@tanstack/react-start/server");
+    try {
+      setResponseHeader("Cache-Control", "private, no-store");
+    } catch {
+      // Header marking is best-effort (no TanStack request context in tests).
+    }
     const { resolveRequestCmsDb } = await import("./db.server");
     const { resolveRequestSession } = await import("./auth.server");
     const { db } = await resolveRequestCmsDb();

@@ -46,83 +46,92 @@ export const getHeroQuickView = createServerFn({ method: "GET" })
     const locale = typeof data.locale === "string" && data.locale !== "" ? data.locale : "en";
     const slug = typeof data.slug === "string" ? data.slug.trim() : "";
     if (slug === "") return { hero: null };
-    const { db } = await resolveRequestCmsDb();
-    const { resolveHeroIdentity } = await import("./hero-identity.server");
+    const { db, env } = await resolveRequestCmsDb();
+    const { withPublicCache } = await import("./public-cache.server");
+    // Public data cache (Layer 1) — see public-cache.server.ts.
+    return withPublicCache({
+      env,
+      namespace: "hero-quickview",
+      args: data,
+      loader: async () => {
+        const { resolveHeroIdentity } = await import("./hero-identity.server");
 
-    // 1. resolve identity through the shared resolver — the same
-    //    requested -> default_locale -> English policy as full detail.
-    //    The incoming slug may live in ANY locale namespace (the es
-    //    collection passes the effective slug, which is English for
-    //    English-only heroes), so an en-namespace restriction here would
-    //    404 heroes that detail resolves fine. Genuinely missing or
-    //    unpublished heroes still resolve to null.
-    const identity = await resolveHeroIdentity(db, locale, slug);
-    if (!identity) return { hero: null };
-    const id = identity.contentId;
-    // Identity display text (title) follows the same fallback the detail
-    // page uses; the summary below is non-localized editorial data.
-    const { results: identRows } = await db
-      .prepare(
-        `SELECT h.summary AS summary, h.hero_class AS hero_class,
-                h.category AS category, h.rarity AS rarity,
-                m.delivery_url AS image_url
-           FROM hero_records h
-           LEFT JOIN media_assets m ON m.id = h.portrait_asset_id AND m.status = 'ready'
-          WHERE h.content_id = ?`,
-      )
-      .bind(id)
-      .all<{
-        summary: string | null;
-        hero_class: string;
-        category: string | null;
-        rarity: string | null;
-        image_url: string | null;
-      }>();
+        // 1. resolve identity through the shared resolver — the same
+        //    requested -> default_locale -> English policy as full detail.
+        //    The incoming slug may live in ANY locale namespace (the es
+        //    collection passes the effective slug, which is English for
+        //    English-only heroes), so an en-namespace restriction here would
+        //    404 heroes that detail resolves fine. Genuinely missing or
+        //    unpublished heroes still resolve to null.
+        const identity = await resolveHeroIdentity(db, locale, slug);
+        if (!identity) return { hero: null };
+        const id = identity.contentId;
+        // Identity display text (title) follows the same fallback the detail
+        // page uses; the summary below is non-localized editorial data.
+        const { results: identRows } = await db
+          .prepare(
+            `SELECT h.summary AS summary, h.hero_class AS hero_class,
+                    h.category AS category, h.rarity AS rarity,
+                    m.delivery_url AS image_url
+               FROM hero_records h
+               LEFT JOIN media_assets m ON m.id = h.portrait_asset_id AND m.status = 'ready'
+              WHERE h.content_id = ?`,
+          )
+          .bind(id)
+          .all<{
+            summary: string | null;
+            hero_class: string;
+            category: string | null;
+            rarity: string | null;
+            image_url: string | null;
+          }>();
 
-    const ident = identRows[0];
-    if (!ident) return { hero: null };
+        const ident = identRows[0];
+        if (!ident) return { hero: null };
 
-    // 2-5. one batched read each; four queries total, no per-item loops.
-    const { heroClassIconKey } = await import("@/lib/icon-registry");
-    const { resolveIconUrls } = await import("./icon-registry.server");
-    const classKey = heroClassIconKey(ident.hero_class);
-    const [perks, abilities, progRows, costRows, classIconUrls] = await Promise.all([
-      readHeroPerks(db, [id], locale),
-      readHeroAbilities(db, [id], locale),
-      readHeroProgressionRows(db, [id]),
-      readHeroProgressionCosts(db, [id], locale),
-      classKey ? resolveIconUrls(db, [classKey]) : Promise.resolve(new Map<string, string>()),
-    ]);
+        // 2-5. one batched read each; four queries total, no per-item loops.
+        const { heroClassIconKey } = await import("@/lib/icon-registry");
+        const { resolveIconUrls } = await import("./icon-registry.server");
+        const classKey = heroClassIconKey(ident.hero_class);
+        const [perks, abilities, progRows, costRows, classIconUrls] = await Promise.all([
+          readHeroPerks(db, [id], locale),
+          readHeroAbilities(db, [id], locale),
+          readHeroProgressionRows(db, [id]),
+          readHeroProgressionCosts(db, [id], locale),
+          classKey ? resolveIconUrls(db, [classKey]) : Promise.resolve(new Map<string, string>()),
+        ]);
 
-    const progression: PublicHeroProgression | null = buildProgression(
-      progRows.get(id) ?? [],
-      costRows.get(id) ?? [],
-      ident.rarity ?? null,
-    );
-    const best = progression
-      ? primaryRarity(
-          progression.rarities.map((r) => r.rarity),
-          ident.rarity,
-        )
-      : null;
-    const bestBlock = progression?.rarities.find((r) => r.rarity === best) ?? null;
+        const progression: PublicHeroProgression | null = buildProgression(
+          progRows.get(id) ?? [],
+          costRows.get(id) ?? [],
+          ident.rarity ?? null,
+        );
+        const best = progression
+          ? primaryRarity(
+              progression.rarities.map((r) => r.rarity),
+              ident.rarity,
+            )
+          : null;
+        const bestBlock = progression?.rarities.find((r) => r.rarity === best) ?? null;
 
-    return {
-      hero: {
-        contentId: id,
-        slug: identity.slug,
-        title: identity.title,
-        summary: ident.summary ?? "",
-        heroClass: ident.hero_class,
-        category: ident.category,
-        rarity: ident.rarity,
-        imageUrl: ident.image_url,
-        classIconUrl: classKey ? (classIconUrls.get(classKey) ?? null) : null,
-        perks: perks.get(id) ?? [],
-        abilities: abilities.get(id) ?? [],
-        maxPower: progression?.maxPower ?? null,
-        tierCount: progression?.tierCount ?? null,
-        totalCosts: bestBlock?.total ?? [],
+        return {
+          hero: {
+            contentId: id,
+            slug: identity.slug,
+            title: identity.title,
+            summary: ident.summary ?? "",
+            heroClass: ident.hero_class,
+            category: ident.category,
+            rarity: ident.rarity,
+            imageUrl: ident.image_url,
+            classIconUrl: classKey ? (classIconUrls.get(classKey) ?? null) : null,
+            perks: perks.get(id) ?? [],
+            abilities: abilities.get(id) ?? [],
+            maxPower: progression?.maxPower ?? null,
+            tierCount: progression?.tierCount ?? null,
+            totalCosts: bestBlock?.total ?? [],
+          },
+        };
       },
-    };
+    });
   });

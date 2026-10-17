@@ -34,6 +34,8 @@ import {
   type MediaAssetStatus,
   type MediaProviderId,
 } from "./media-provider";
+import { bumpContentEpochForRequest } from "./public-cache.server";
+import { withD1Metrics } from "./d1-metrics.server";
 
 /** Minimal structural D1 surface (real binding or test double). */
 export interface D1Result<T> {
@@ -64,6 +66,21 @@ export interface CmsEnv {
 export interface CmsWorkerEnv {
   DB?: D1Database;
   CMS_DB?: D1Database;
+  /**
+   * Public content cache epoch namespace (Layer 1 invalidation marker).
+   * Reuses the backend Worker's existing KV namespace
+   * (worker/wrangler.toml, id 19e23aa284f648de8acec40e5f963e35); the frontend
+   * binding is declared in frontend/wrangler.json. Only a single epoch key is
+   * written here — payloads never leave the isolate (public-cache.server.ts).
+   */
+  PUBLIC_CONTENT_CACHE?: {
+    get(key: string, options?: { cacheTtl?: number }): Promise<string | null>;
+    put(key: string, value: string): Promise<void>;
+  };
+  /** Public data cache TTL in seconds (0/unset disables the cache). */
+  PUBLIC_DATA_CACHE_MAX_AGE_SECONDS?: unknown;
+  /** Browser-side TTL for public data RPC responses (0/unset = no header). */
+  PUBLIC_RPC_BROWSER_MAX_AGE_SECONDS?: unknown;
   CMS_ADMIN_USERNAME?: unknown;
   CMS_ADMIN_PASSWORD_HASH?: unknown;
   /**
@@ -139,7 +156,9 @@ export async function resolveRequestCmsDb(): Promise<{
         "Wire the shared D1 database to the frontend Worker (frontend/wrangler.json).",
     );
   }
-  return { db, env };
+  // Read-load observability: measure rows_read/duration per invocation without
+  // changing resolution semantics (see d1-metrics.server.ts).
+  return { db: withD1Metrics(db), env };
 }
 
 function utcNow(): string {
@@ -256,6 +275,9 @@ export async function createMediaAsset(
       timestamp,
     )
     .run();
+  // Media rows change public icon/avatar URLs — invalidate the public cache
+  // even though media writes do not go through the audit funnel.
+  await bumpContentEpochForRequest();
   // Read back so the caller receives the PERSISTED row: on the upsert path the
   // stored id is the pre-existing one, not the `id` generated above.
   const stored = await getMediaAssetByProviderAsset(db, input.provider, input.providerAssetId);
@@ -326,6 +348,7 @@ export async function createMediaAssetIfAbsent(
       timestamp,
     )
     .run();
+  await bumpContentEpochForRequest();
   const stored = await getMediaAssetByProviderAsset(db, input.provider, input.providerAssetId);
   if (!stored) {
     throw new Error("Media asset row could not be persisted.");
@@ -436,6 +459,7 @@ export async function tombstoneMediaAsset(db: D1Database, id: string): Promise<v
     .prepare("UPDATE media_assets SET status = 'deleted', updated_at = ? WHERE id = ?")
     .bind(utcNow(), id)
     .run();
+  await bumpContentEpochForRequest();
 }
 
 /**
@@ -541,6 +565,7 @@ export async function updateMediaAssetMetadata(
     .prepare(`UPDATE media_assets SET ${sets.join(", ")} WHERE id = ?`)
     .bind(...values)
     .run();
+  await bumpContentEpochForRequest();
 }
 
 /**
@@ -555,6 +580,7 @@ export async function restoreMediaAsset(db: D1Database, id: string): Promise<voi
     .prepare("UPDATE media_assets SET status = 'ready', updated_at = ? WHERE id = ?")
     .bind(utcNow(), id)
     .run();
+  await bumpContentEpochForRequest();
 }
 
 // ---------------------------------------------------------------------------
@@ -1006,6 +1032,9 @@ export async function recordAuditEvent(db: D1Database, event: AuditEvent): Promi
       event.createdAt,
     )
     .run();
+  // Every CMS mutation funnels through this audit insert — this is the single
+  // invalidation point for the public data cache (see public-cache.server.ts).
+  await bumpContentEpochForRequest();
 }
 
 export interface AuditEventRow extends D1Row {

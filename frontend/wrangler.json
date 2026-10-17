@@ -25,8 +25,16 @@
       "bucket_name": "hawkbucks-media"
     }
   ],
+  "kv_namespaces": [
+    {
+      "binding": "PUBLIC_CONTENT_CACHE",
+      "id": "19e23aa284f648de8acec40e5f963e35"
+    }
+  ],
   "vars": {
-    "R2_PUBLIC_BASE_URL": "https://media.hawkbucks.com"
+    "R2_PUBLIC_BASE_URL": "https://media.hawkbucks.com",
+    "PUBLIC_DATA_CACHE_MAX_AGE_SECONDS": "600",
+    "PUBLIC_RPC_BROWSER_MAX_AGE_SECONDS": "60"
   }
 }
 
