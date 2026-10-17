@@ -26,99 +26,108 @@ export const getPublicLoadout = createServerFn({ method: "GET" })
     const locale = typeof data.locale === "string" && data.locale !== "" ? data.locale : "en";
     const slug = typeof data.slug === "string" ? data.slug : "";
     if (slug === "") return { loadout: null };
-    const { db } = await resolveRequestCmsDb();
-    const l = await getPublishedLoadoutBySlug(db, { locale, slug });
-    if (!l) return { loadout: null };
-    const { results: mrows } = await db
-      .prepare(
-        "SELECT hero_content_id, slot_order FROM loadout_heroes WHERE loadout_content_id = ? ORDER BY slot_order ASC",
-      )
-      .bind(l.content.id)
-      .all<{ hero_content_id: string; slot_order: number }>();
-    const slots = mapLoadoutSlots(
-      mrows.map((m) => ({ heroContentId: m.hero_content_id, slotOrder: m.slot_order })),
-    );
-    async function heroFor(id: string | null): Promise<PublicHeroItem | null> {
-      if (!id) return null;
-      const hc = await getContentById(db, id);
-      if (!hc || !isContentStatus(hc.status) || hc.status !== "published") return null;
-      const { results: hrows } = await db
-        .prepare(
-          "SELECT * FROM cms_content_translations WHERE content_id = ? AND locale IN (?, ?, 'en')",
-        )
-        .bind(id, locale, hc.default_locale || "en")
-        .all<Record<string, string | number | null>>();
-      const hReq = hrows.find((r) => r["locale"] === locale) ?? null;
-      const hDef = hrows.find((r) => r["locale"] === (hc.default_locale || "en")) ?? null;
-      const hEn = hrows.find((r) => r["locale"] === "en") ?? null;
-      const htr = hReq ?? hDef ?? hEn;
-      if (!htr) return null;
-      // Field priority: requested -> default_locale -> English; blank counts
-      // as missing (final audit: the old `??` chain kept blank strings).
-      const pick = (key: string): string | null => {
-        const vals = [hReq?.[key], hDef?.[key], hEn?.[key], htr[key]];
-        for (const v of vals) {
-          if (typeof v === "string" && v.trim() !== "") return v;
+    const { db, env } = await resolveRequestCmsDb();
+    const { withPublicCache } = await import("./public-cache.server");
+    // Public data cache (Layer 1) — see public-cache.server.ts.
+    return withPublicCache({
+      env,
+      namespace: "loadout-detail",
+      args: data,
+      loader: async () => {
+        const l = await getPublishedLoadoutBySlug(db, { locale, slug });
+        if (!l) return { loadout: null };
+        const { results: mrows } = await db
+          .prepare(
+            "SELECT hero_content_id, slot_order FROM loadout_heroes WHERE loadout_content_id = ? ORDER BY slot_order ASC",
+          )
+          .bind(l.content.id)
+          .all<{ hero_content_id: string; slot_order: number }>();
+        const slots = mapLoadoutSlots(
+          mrows.map((m) => ({ heroContentId: m.hero_content_id, slotOrder: m.slot_order })),
+        );
+        async function heroFor(id: string | null): Promise<PublicHeroItem | null> {
+          if (!id) return null;
+          const hc = await getContentById(db, id);
+          if (!hc || !isContentStatus(hc.status) || hc.status !== "published") return null;
+          const { results: hrows } = await db
+            .prepare(
+              "SELECT * FROM cms_content_translations WHERE content_id = ? AND locale IN (?, ?, 'en')",
+            )
+            .bind(id, locale, hc.default_locale || "en")
+            .all<Record<string, string | number | null>>();
+          const hReq = hrows.find((r) => r["locale"] === locale) ?? null;
+          const hDef = hrows.find((r) => r["locale"] === (hc.default_locale || "en")) ?? null;
+          const hEn = hrows.find((r) => r["locale"] === "en") ?? null;
+          const htr = hReq ?? hDef ?? hEn;
+          if (!htr) return null;
+          // Field priority: requested -> default_locale -> English; blank counts
+          // as missing (final audit: the old `??` chain kept blank strings).
+          const pick = (key: string): string | null => {
+            const vals = [hReq?.[key], hDef?.[key], hEn?.[key], htr[key]];
+            for (const v of vals) {
+              if (typeof v === "string" && v.trim() !== "") return v;
+            }
+            const v = htr[key];
+            return typeof v === "string" ? v : null;
+          };
+          const hrec = await db
+            .prepare("SELECT * FROM hero_records WHERE content_id = ?")
+            .bind(id)
+            .first<Record<string, string | number | null>>();
+          if (!hrec) return null;
+          return {
+            contentId: id,
+            slug: pick("slug") ?? "",
+            title: pick("title") ?? "",
+            description: pick("body") ?? "",
+            heroClass: String(hrec["hero_class"] ?? "soldier"),
+            category: (hrec["category"] as string | null) ?? null,
+            popularity: Number(hrec["popularity"] ?? 0),
+            sortOrder: Number(hrec["sort_order"] ?? 0),
+            imageUrl: null,
+            seoTitle: pick("seo_title"),
+            seoDescription: pick("seo_description"),
+            translationStatus: String(htr["translation_status"] ?? "draft"),
+          };
         }
-        const v = htr[key];
-        return typeof v === "string" ? v : null;
-      };
-      const hrec = await db
-        .prepare("SELECT * FROM hero_records WHERE content_id = ?")
-        .bind(id)
-        .first<Record<string, string | number | null>>();
-      if (!hrec) return null;
-      return {
-        contentId: id,
-        slug: pick("slug") ?? "",
-        title: pick("title") ?? "",
-        description: pick("body") ?? "",
-        heroClass: String(hrec["hero_class"] ?? "soldier"),
-        category: (hrec["category"] as string | null) ?? null,
-        popularity: Number(hrec["popularity"] ?? 0),
-        sortOrder: Number(hrec["sort_order"] ?? 0),
-        imageUrl: null,
-        seoTitle: pick("seo_title"),
-        seoDescription: pick("seo_description"),
-        translationStatus: String(htr["translation_status"] ?? "draft"),
-      };
-    }
-    const commander = await heroFor(slots.commander);
-    const support: Array<PublicHeroItem | null> = [];
-    for (const s of slots.support) support.push(await heroFor(s));
-    const heroSlugs: Record<string, string> = {};
-    if (commander) heroSlugs[commander.contentId] = commander.slug;
-    for (const s of support) if (s) heroSlugs[s.contentId] = s.slug;
-    const { results: ltrows } = await db
-      .prepare(
-        "SELECT locale, slug, translation_status FROM cms_content_translations WHERE content_id = ?",
-      )
-      .bind(l.content.id)
-      .all<{ locale: string; slug: string; translation_status: string }>();
-    const completeLocales = ltrows
-      .filter((t) => t.translation_status === "complete")
-      .map((t) => t.locale);
-    const slugsByLocale: Record<string, string> = {};
-    for (const t of ltrows) {
-      if (t.translation_status === "complete" && t.slug) slugsByLocale[t.locale] = t.slug;
-    }
-    return {
-      loadout: {
-        contentId: l.content.id,
-        slug: l.translation.slug,
-        title: l.translation.title,
-        description: l.translation.body,
-        loadoutType: l.loadout.loadout_type,
-        popularity: l.loadout.popularity,
-        sortOrder: l.loadout.sort_order,
-        imageUrl: l.coverUrl,
-        translationStatus: l.translation.translation_status,
-        completeLocales,
-        slugsByLocale,
-        commander,
-        support,
-        teamPerk: l.teamPerk,
-        heroSlugs,
+        const commander = await heroFor(slots.commander);
+        const support: Array<PublicHeroItem | null> = [];
+        for (const s of slots.support) support.push(await heroFor(s));
+        const heroSlugs: Record<string, string> = {};
+        if (commander) heroSlugs[commander.contentId] = commander.slug;
+        for (const s of support) if (s) heroSlugs[s.contentId] = s.slug;
+        const { results: ltrows } = await db
+          .prepare(
+            "SELECT locale, slug, translation_status FROM cms_content_translations WHERE content_id = ?",
+          )
+          .bind(l.content.id)
+          .all<{ locale: string; slug: string; translation_status: string }>();
+        const completeLocales = ltrows
+          .filter((t) => t.translation_status === "complete")
+          .map((t) => t.locale);
+        const slugsByLocale: Record<string, string> = {};
+        for (const t of ltrows) {
+          if (t.translation_status === "complete" && t.slug) slugsByLocale[t.locale] = t.slug;
+        }
+        return {
+          loadout: {
+            contentId: l.content.id,
+            slug: l.translation.slug,
+            title: l.translation.title,
+            description: l.translation.body,
+            loadoutType: l.loadout.loadout_type,
+            popularity: l.loadout.popularity,
+            sortOrder: l.loadout.sort_order,
+            imageUrl: l.coverUrl,
+            translationStatus: l.translation.translation_status,
+            completeLocales,
+            slugsByLocale,
+            commander,
+            support,
+            teamPerk: l.teamPerk,
+            heroSlugs,
+          },
+        };
       },
-    };
+    });
   });

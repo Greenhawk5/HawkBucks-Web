@@ -2,7 +2,11 @@ import "./lib/error-capture";
 
 import { consumeLastCapturedError } from "./lib/error-capture";
 import { renderErrorPage } from "./lib/error-page";
-import { applySecurityHeaders, applyContentSecurityPolicy } from "./lib/security-headers";
+import {
+  applySecurityHeaders,
+  applyContentSecurityPolicy,
+  applyDocumentCachePolicy,
+} from "./lib/security-headers";
 import { generateCspNonce, runWithCspNonce } from "./lib/csp-nonce";
 // Installs the request-scoped AsyncLocalStorage that `src/router.tsx` reads the
 // nonce from. Called explicitly (not a bare side-effect import) so the bundler
@@ -194,9 +198,16 @@ export default {
     // `harden` is the single funnel every response passes through. CSP is
     // applied AFTER the security headers so it is always present, and it is
     // applied to the FINAL response object so streamed SSR (whose headers are
-    // committed before the body finishes) still carries it.
+    // committed before the body finishes) still carries it. The document
+    // cache policy fills `private, no-store` for HTML responses that did not
+    // set their own Cache-Control (per-request CSP nonce + cookie-dependent
+    // root loader make every SSR document uncacheable, for browsers and any
+    // shared cache alike; see applyDocumentCachePolicy for the full rationale).
     const harden = (response: Response) =>
-      applyContentSecurityPolicy(applySecurityHeaders(response), cspNonce);
+      applyContentSecurityPolicy(
+        applyDocumentCachePolicy(applySecurityHeaders(response)),
+        cspNonce,
+      );
 
     // Phase 9: redirect the www host to the canonical apex domain before any
     // SSR or server-function work runs. Most static-asset requests are served

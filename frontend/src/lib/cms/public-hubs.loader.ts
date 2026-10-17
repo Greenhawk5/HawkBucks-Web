@@ -177,226 +177,240 @@ export const listHubHeroes = createServerFn({ method: "GET" })
       const q = normalizeSearchQuery(data.search);
       const sort = parseHeroSort(data.sort);
       const { limit, offset } = parseListPaging(data);
-      const { db } = await resolveRequestCmsDb();
-
-      const clauses = [
-        "c.entity_type = 'hero'",
-        "c.status = 'published'",
-        "(t.id IS NOT NULL OR td.id IS NOT NULL OR te.id IS NOT NULL)",
-      ];
-      const values: unknown[] = [locale];
-      if (heroClass !== undefined) {
-        clauses.push("h.hero_class = ?");
-        values.push(heroClass);
-      }
-      if (rarity !== undefined) {
-        clauses.push("h.rarity = ?");
-        values.push(rarity);
-      }
-      if (category !== undefined) {
-        clauses.push("h.category = ?");
-        values.push(category);
-      }
-      if (perkKeys.length > 0) {
-        // Any-of within a facet: selecting two perks widens the result, which is
-        // how a multi-select facet is expected to behave.
-        clauses.push(
-          `EXISTS (SELECT 1 FROM hero_perks p JOIN hero_perk_defs d ON d.id = p.hero_perk_def_id
-                    WHERE p.hero_content_id = c.id AND d.perk_key IN (${perkKeys.map(() => "?").join(",")}))`,
-        );
-        values.push(...perkKeys);
-      }
-      if (abilityKeys.length > 0) {
-        clauses.push(
-          `EXISTS (SELECT 1 FROM hero_abilities a
-                    WHERE a.hero_content_id = c.id AND a.ability_key IN (${abilityKeys.map(() => "?").join(",")}))`,
-        );
-        values.push(...abilityKeys);
-      }
-      if (minPower !== null) {
-        clauses.push(
-          "(SELECT MAX(COALESCE(pp.editorial_power_max, pp.power_max)) FROM hero_progression pp WHERE pp.hero_content_id = c.id AND pp.editorial_excluded = 0) >= ?",
-        );
-        values.push(minPower);
-      }
-      if (q !== "") {
-        // Search the editor-written summary and the VISIBLE (fallback) title:
-        // an English-only hero must still match when the locale is Spanish.
-        // Perk/ability names are reachable through their own facets instead of
-        // a text match, so the result set never silently changes meaning.
-        clauses.push(
-          "(LOWER(COALESCE(NULLIF(t.title,''), NULLIF(td.title,''), te.title)) LIKE ? ESCAPE '\\' OR LOWER(COALESCE(h.summary, '')) LIKE ? ESCAPE '\\')",
-        );
-        const like = `%${escapeLike(q)}%`;
-        values.push(like, like);
-      }
-
-      // `power` and `class` sorts need the reference/classification columns in
-      // ORDER BY; everything else sorts on already-selected columns.
-      const fallbackTitle = "COALESCE(NULLIF(t.title,''), NULLIF(td.title,''), te.title)";
-      const orderBy =
-        sort === "power"
-          ? `ORDER BY (SELECT MAX(COALESCE(pp.editorial_power_max, pp.power_max)) FROM hero_progression pp WHERE pp.hero_content_id = c.id AND pp.editorial_excluded = 0) DESC, ${fallbackTitle} ASC, c.id ASC`
-          : heroOrder(sort);
-
-      const page = await pagedQuery<HubHeroRow>(db, {
-        columns:
-          "c.id AS content_id, COALESCE(NULLIF(t.slug,''), NULLIF(td.slug,''), te.slug) AS slug, " +
-          `${fallbackTitle} AS title, COALESCE(NULLIF(t.body,''), NULLIF(td.body,''), te.body) AS body, ` +
-          "h.hero_class AS hero_class, h.category AS category, h.rarity AS rarity, " +
-          "h.popularity AS popularity, h.sort_order AS sort_order, " +
-          "h.summary AS summary, h.stw_ref_slug AS stw_ref_slug, " +
-          "m.delivery_url AS delivery_url, " +
-          "COALESCE(NULLIF(t.seo_title,''), NULLIF(td.seo_title,''), te.seo_title) AS seo_title, " +
-          "COALESCE(NULLIF(t.seo_description,''), NULLIF(td.seo_description,''), te.seo_description) AS seo_description, " +
-          "CASE WHEN t.id IS NOT NULL THEN t.translation_status ELSE te.translation_status END AS translation_status, " +
-          "CASE WHEN t.id IS NOT NULL THEN t.locale ELSE te.locale END AS translation_locale",
-        from:
-          "FROM cms_contents c " +
-          "LEFT JOIN cms_content_translations t ON t.content_id = c.id AND t.locale = ? " +
-          "LEFT JOIN cms_content_translations td ON td.content_id = c.id AND td.locale = c.default_locale " +
-          "LEFT JOIN cms_content_translations te ON te.content_id = c.id AND te.locale = 'en' " +
-          "JOIN hero_records h ON h.content_id = c.id " +
-          "LEFT JOIN media_assets m ON m.id = h.portrait_asset_id AND m.status = 'ready'",
-        where: clauses.join(" AND "),
-        orderBy,
-        values,
-        limit,
-        offset,
-      });
-
-      // Reference enrichment for the current page only: a fixed number of
-      // bounded queries for the whole page, never one per hero.
-      const { readHeroReference } = await import("./hero-reference.server");
-      const ids = page.items.map((r) => r.content_id);
-      const bestById = new Map(page.items.map((r) => [r.content_id, r.rarity]));
-      const reference = await readHeroReference(db, ids, locale, bestById);
-
-      const items: HubHeroRow[] = page.items.map((row) => {
-        const ref = reference.get(row.content_id);
-        return {
-          ...row,
-          class_icon_url: null,
-          reference: {
-            perks: ref?.perks ?? [],
-            abilities: ref?.abilities ?? [],
-            progression: ref?.progression ?? null,
-            maxPower: ref?.progression?.maxPower ?? null,
-          },
-        };
-      });
-
-      // Hero-class glyphs, resolved ONCE for the closed set of classes rather
-      // than per hero: four keys in a single query, then every row and the
-      // class filter read the same map. A class with no registered entry is
-      // simply absent, which is what makes the text fallback the normal case
-      // rather than an error path. The filter's `All` option has no registry
-      // entry and falls back to the Swords Lucide mark.
-      const classKeys: Array<{ value: string; key: string }> = [];
-      for (const value of HERO_CLASSES) {
-        const key = heroClassIconKey(value);
-        if (key !== null) classKeys.push({ value, key });
-      }
-      const classIconUrls =
-        classKeys.length === 0
-          ? new Map<string, string>()
-          : await (
-              await import("./icon-registry.server")
-            ).resolveIconUrls(
-              db,
-              classKeys.map((entry) => entry.key),
+      const { db, env } = await resolveRequestCmsDb();
+      const { withPublicCache } = await import("./public-cache.server");
+      // Public data cache (Layer 1): hub payloads are cookie-free and
+      // shareable across visitors; args enter the key verbatim (post-
+      // validation), so every distinct page/filter combination is cached
+      // distinctly and no meaning can drift between key and query.
+      return withPublicCache({
+        env,
+        namespace: "hero-hub",
+        args: data,
+        loader: async () => {
+          const clauses = [
+            "c.entity_type = 'hero'",
+            "c.status = 'published'",
+            "(t.id IS NOT NULL OR td.id IS NOT NULL OR te.id IS NOT NULL)",
+          ];
+          const values: unknown[] = [locale];
+          if (heroClass !== undefined) {
+            clauses.push("h.hero_class = ?");
+            values.push(heroClass);
+          }
+          if (rarity !== undefined) {
+            clauses.push("h.rarity = ?");
+            values.push(rarity);
+          }
+          if (category !== undefined) {
+            clauses.push("h.category = ?");
+            values.push(category);
+          }
+          if (perkKeys.length > 0) {
+            // Any-of within a facet: selecting two perks widens the result, which is
+            // how a multi-select facet is expected to behave.
+            clauses.push(
+              `EXISTS (SELECT 1 FROM hero_perks p JOIN hero_perk_defs d ON d.id = p.hero_perk_def_id
+                        WHERE p.hero_content_id = c.id AND d.perk_key IN (${perkKeys.map(() => "?").join(",")}))`,
             );
-      // Hero classes include "constructor". A normal object inherits that
-      // key, so a class without a registered icon would resolve to the
-      // inherited function and leak it into the server-function response.
-      const classIcons = Object.create(null) as Record<string, string>;
-      for (const entry of classKeys) {
-        const url = classIconUrls.get(entry.key);
-        if (url !== undefined) classIcons[entry.value] = url;
-      }
-      for (const item of items) {
-        item.class_icon_url = classIcons[item.hero_class] ?? null;
-      }
+            values.push(...perkKeys);
+          }
+          if (abilityKeys.length > 0) {
+            clauses.push(
+              `EXISTS (SELECT 1 FROM hero_abilities a
+                        WHERE a.hero_content_id = c.id AND a.ability_key IN (${abilityKeys.map(() => "?").join(",")}))`,
+            );
+            values.push(...abilityKeys);
+          }
+          if (minPower !== null) {
+            clauses.push(
+              "(SELECT MAX(COALESCE(pp.editorial_power_max, pp.power_max)) FROM hero_progression pp WHERE pp.hero_content_id = c.id AND pp.editorial_excluded = 0) >= ?",
+            );
+            values.push(minPower);
+          }
+          if (q !== "") {
+            // Search the editor-written summary and the VISIBLE (fallback) title:
+            // an English-only hero must still match when the locale is Spanish.
+            // Perk/ability names are reachable through their own facets instead of
+            // a text match, so the result set never silently changes meaning.
+            clauses.push(
+              "(LOWER(COALESCE(NULLIF(t.title,''), NULLIF(td.title,''), te.title)) LIKE ? ESCAPE '\\' OR LOWER(COALESCE(h.summary, '')) LIKE ? ESCAPE '\\')",
+            );
+            const like = `%${escapeLike(q)}%`;
+            values.push(like, like);
+          }
 
-      const empty = { class: [], rarity: [], category: [], perk: [], ability: [] };
-      if (data.withFacets === false) {
-        return { items, total: page.total, facets: empty, classIcons };
-      }
+          // `power` and `class` sorts need the reference/classification columns in
+          // ORDER BY; everything else sorts on already-selected columns.
+          const fallbackTitle = "COALESCE(NULLIF(t.title,''), NULLIF(td.title,''), te.title)";
+          const orderBy =
+            sort === "power"
+              ? `ORDER BY (SELECT MAX(COALESCE(pp.editorial_power_max, pp.power_max)) FROM hero_progression pp WHERE pp.hero_content_id = c.id AND pp.editorial_excluded = 0) DESC, ${fallbackTitle} ASC, c.id ASC`
+              : heroOrder(sort);
 
-      // Facet counts ignore the facet's own selection (standard faceted-search
-      // behaviour) so a user can always widen a choice without clearing others.
-      const { readPerkFacetBuckets, readAbilityFacetBuckets } =
-        await import("./hero-reference.server");
-      // Fallback-aware counts: an entity counts when it has a requested OR an
-      // English translation (entities with neither are excluded, like the page
-      // query). Locale-independent columns, so no text merging needed.
-      const countBase =
-        "FROM cms_contents c JOIN hero_records h ON h.content_id = c.id " +
-        "LEFT JOIN cms_content_translations t ON t.content_id = c.id AND t.locale = ? " +
-        "LEFT JOIN cms_content_translations td ON td.content_id = c.id AND td.locale = c.default_locale " +
-        "LEFT JOIN cms_content_translations te ON te.content_id = c.id AND te.locale = 'en' " +
-        "WHERE c.entity_type='hero' AND c.status='published' AND (t.id IS NOT NULL OR td.id IS NOT NULL OR te.id IS NOT NULL)";
+          const page = await pagedQuery<HubHeroRow>(db, {
+            columns:
+              "c.id AS content_id, COALESCE(NULLIF(t.slug,''), NULLIF(td.slug,''), te.slug) AS slug, " +
+              `${fallbackTitle} AS title, COALESCE(NULLIF(t.body,''), NULLIF(td.body,''), te.body) AS body, ` +
+              "h.hero_class AS hero_class, h.category AS category, h.rarity AS rarity, " +
+              "h.popularity AS popularity, h.sort_order AS sort_order, " +
+              "h.summary AS summary, h.stw_ref_slug AS stw_ref_slug, " +
+              "m.delivery_url AS delivery_url, " +
+              "COALESCE(NULLIF(t.seo_title,''), NULLIF(td.seo_title,''), te.seo_title) AS seo_title, " +
+              "COALESCE(NULLIF(t.seo_description,''), NULLIF(td.seo_description,''), te.seo_description) AS seo_description, " +
+              "CASE WHEN t.id IS NOT NULL THEN t.translation_status ELSE te.translation_status END AS translation_status, " +
+              "CASE WHEN t.id IS NOT NULL THEN t.locale ELSE te.locale END AS translation_locale",
+            from:
+              "FROM cms_contents c " +
+              "LEFT JOIN cms_content_translations t ON t.content_id = c.id AND t.locale = ? " +
+              "LEFT JOIN cms_content_translations td ON td.content_id = c.id AND td.locale = c.default_locale " +
+              "LEFT JOIN cms_content_translations te ON te.content_id = c.id AND te.locale = 'en' " +
+              "JOIN hero_records h ON h.content_id = c.id " +
+              "LEFT JOIN media_assets m ON m.id = h.portrait_asset_id AND m.status = 'ready'",
+            where: clauses.join(" AND "),
+            orderBy,
+            values,
+            limit,
+            offset,
+          });
 
-      const [classCounts, rarityCounts, categoryCounts] = await Promise.all([
-        db
-          .prepare(
-            `SELECT h.hero_class AS value, COUNT(*) AS count ${countBase} GROUP BY h.hero_class`,
-          )
-          .bind(locale)
-          .all<{ value: string; count: number }>(),
-        db
-          .prepare(
-            `SELECT h.rarity AS value, COUNT(*) AS count ${countBase} AND h.rarity IS NOT NULL GROUP BY h.rarity`,
-          )
-          .bind(locale)
-          .all<{ value: string; count: number }>(),
-        db
-          .prepare(
-            `SELECT h.category AS value, COUNT(*) AS count ${countBase} AND h.category IS NOT NULL GROUP BY h.category`,
-          )
-          .bind(locale)
-          .all<{ value: string; count: number }>(),
-      ]);
+          // Reference enrichment for the current page only: a fixed number of
+          // bounded queries for the whole page, never one per hero.
+          const { readHeroReference } = await import("./hero-reference.server");
+          const ids = page.items.map((r) => r.content_id);
+          const bestById = new Map(page.items.map((r) => [r.content_id, r.rarity]));
+          const reference = await readHeroReference(db, ids, locale, bestById);
 
-      // Reference-derived facets read their own definitions, so they are bounded
-      // and independently queryable rather than recomputed per hero.
-      const [perkBuckets, abilityBuckets] = await Promise.all([
-        readPerkFacetBuckets(db),
-        readAbilityFacetBuckets(db),
-      ]);
+          const items: HubHeroRow[] = page.items.map((row) => {
+            const ref = reference.get(row.content_id);
+            return {
+              ...row,
+              class_icon_url: null,
+              reference: {
+                perks: ref?.perks ?? [],
+                abilities: ref?.abilities ?? [],
+                progression: ref?.progression ?? null,
+                maxPower: ref?.progression?.maxPower ?? null,
+              },
+            };
+          });
 
-      return {
-        items,
-        total: page.total,
-        facets: {
-          class: classCounts.results.map((r) => ({ value: r.value, count: Number(r.count) || 0 })),
-          rarity: rarityCounts.results.map((r) => ({
-            value: r.value,
-            count: Number(r.count) || 0,
-          })),
-          category: categoryCounts.results.map((r) => ({
-            value: r.value,
-            count: Number(r.count) || 0,
-          })),
-          // `name` is the REAL display name from the definition table, not a
-          // label reconstructed from the key, so the filter panel can search and
-          // sort on what an editor actually typed. `icon_url` is resolved with
-          // the same precedence the cards use.
-          perk: perkBuckets.map((r) => ({
-            value: r.value,
-            count: r.count,
-            name: r.name,
-            iconUrl: r.iconUrl,
-          })),
-          ability: abilityBuckets.map((r) => ({
-            value: r.value,
-            count: r.count,
-            name: r.name,
-            iconUrl: r.iconUrl,
-          })),
+          // Hero-class glyphs, resolved ONCE for the closed set of classes rather
+          // than per hero: four keys in a single query, then every row and the
+          // class filter read the same map. A class with no registered entry is
+          // simply absent, which is what makes the text fallback the normal case
+          // rather than an error path. The filter's `All` option has no registry
+          // entry and falls back to the Swords Lucide mark.
+          const classKeys: Array<{ value: string; key: string }> = [];
+          for (const value of HERO_CLASSES) {
+            const key = heroClassIconKey(value);
+            if (key !== null) classKeys.push({ value, key });
+          }
+          const classIconUrls =
+            classKeys.length === 0
+              ? new Map<string, string>()
+              : await (
+                  await import("./icon-registry.server")
+                ).resolveIconUrls(
+                  db,
+                  classKeys.map((entry) => entry.key),
+                );
+          // Hero classes include "constructor". A normal object inherits that
+          // key, so a class without a registered icon would resolve to the
+          // inherited function and leak it into the server-function response.
+          const classIcons = Object.create(null) as Record<string, string>;
+          for (const entry of classKeys) {
+            const url = classIconUrls.get(entry.key);
+            if (url !== undefined) classIcons[entry.value] = url;
+          }
+          for (const item of items) {
+            item.class_icon_url = classIcons[item.hero_class] ?? null;
+          }
+
+          const empty = { class: [], rarity: [], category: [], perk: [], ability: [] };
+          if (data.withFacets === false) {
+            return { items, total: page.total, facets: empty, classIcons };
+          }
+
+          // Facet counts ignore the facet's own selection (standard faceted-search
+          // behaviour) so a user can always widen a choice without clearing others.
+          const { readPerkFacetBuckets, readAbilityFacetBuckets } =
+            await import("./hero-reference.server");
+          // Fallback-aware counts: an entity counts when it has a requested OR an
+          // English translation (entities with neither are excluded, like the page
+          // query). Locale-independent columns, so no text merging needed.
+          const countBase =
+            "FROM cms_contents c JOIN hero_records h ON h.content_id = c.id " +
+            "LEFT JOIN cms_content_translations t ON t.content_id = c.id AND t.locale = ? " +
+            "LEFT JOIN cms_content_translations td ON td.content_id = c.id AND td.locale = c.default_locale " +
+            "LEFT JOIN cms_content_translations te ON te.content_id = c.id AND te.locale = 'en' " +
+            "WHERE c.entity_type='hero' AND c.status='published' AND (t.id IS NOT NULL OR td.id IS NOT NULL OR te.id IS NOT NULL)";
+
+          const [classCounts, rarityCounts, categoryCounts] = await Promise.all([
+            db
+              .prepare(
+                `SELECT h.hero_class AS value, COUNT(*) AS count ${countBase} GROUP BY h.hero_class`,
+              )
+              .bind(locale)
+              .all<{ value: string; count: number }>(),
+            db
+              .prepare(
+                `SELECT h.rarity AS value, COUNT(*) AS count ${countBase} AND h.rarity IS NOT NULL GROUP BY h.rarity`,
+              )
+              .bind(locale)
+              .all<{ value: string; count: number }>(),
+            db
+              .prepare(
+                `SELECT h.category AS value, COUNT(*) AS count ${countBase} AND h.category IS NOT NULL GROUP BY h.category`,
+              )
+              .bind(locale)
+              .all<{ value: string; count: number }>(),
+          ]);
+
+          // Reference-derived facets read their own definitions, so they are bounded
+          // and independently queryable rather than recomputed per hero.
+          const [perkBuckets, abilityBuckets] = await Promise.all([
+            readPerkFacetBuckets(db),
+            readAbilityFacetBuckets(db),
+          ]);
+
+          return {
+            items,
+            total: page.total,
+            facets: {
+              class: classCounts.results.map((r) => ({
+                value: r.value,
+                count: Number(r.count) || 0,
+              })),
+              rarity: rarityCounts.results.map((r) => ({
+                value: r.value,
+                count: Number(r.count) || 0,
+              })),
+              category: categoryCounts.results.map((r) => ({
+                value: r.value,
+                count: Number(r.count) || 0,
+              })),
+              // `name` is the REAL display name from the definition table, not a
+              // label reconstructed from the key, so the filter panel can search and
+              // sort on what an editor actually typed. `icon_url` is resolved with
+              // the same precedence the cards use.
+              perk: perkBuckets.map((r) => ({
+                value: r.value,
+                count: r.count,
+                name: r.name,
+                iconUrl: r.iconUrl,
+              })),
+              ability: abilityBuckets.map((r) => ({
+                value: r.value,
+                count: r.count,
+                name: r.name,
+                iconUrl: r.iconUrl,
+              })),
+            },
+            classIcons,
+          };
         },
-        classIcons,
-      };
+      });
     },
   );
 
@@ -454,58 +468,67 @@ export const listHubSchematics = createServerFn({ method: "GET" })
     const q = normalizeSearchQuery(data.search);
     const sort = data.sort === "name" || data.sort === "recent" ? data.sort : "editorial";
     const { limit, offset } = parseListPaging(data);
-    const { db } = await resolveRequestCmsDb();
-    const clauses = [
-      "c.entity_type = 'schematic'",
-      "c.status = 'published'",
-      "(t.id IS NOT NULL OR td.id IS NOT NULL OR te.id IS NOT NULL)",
-    ];
-    const values: unknown[] = [locale];
-    if (kind === "weapon") clauses.push("s.weapon_content_id IS NOT NULL");
-    if (kind === "trap") clauses.push("s.trap_content_id IS NOT NULL");
-    if (weaponSubtype !== undefined) {
-      clauses.push("w.weapon_subtype = ?");
-      values.push(weaponSubtype);
-    }
-    if (trapPlacement !== undefined) {
-      clauses.push("tr.trap_placement = ?");
-      values.push(trapPlacement);
-    }
-    if (rarity !== undefined) {
-      clauses.push(
-        "COALESCE(CASE WHEN s.weapon_content_id IS NOT NULL THEN w.rarity ELSE tr.rarity END) = ?",
-      );
-      values.push(rarity);
-    }
-    if (q !== "") {
-      clauses.push(
-        "LOWER(COALESCE(NULLIF(t.title,''), NULLIF(td.title,''), te.title)) LIKE ? ESCAPE '\\'",
-      );
-      values.push(`%${escapeLike(q)}%`);
-    }
-    return pagedQuery<HubSchematicRow>(db, {
-      columns:
-        "c.id AS content_id, COALESCE(NULLIF(t.slug,''), NULLIF(td.slug,''), te.slug) AS slug, " +
-        "COALESCE(NULLIF(t.title,''), NULLIF(td.title,''), te.title) AS title, COALESCE(NULLIF(t.body,''), NULLIF(td.body,''), te.body) AS body, " +
-        "CASE WHEN s.weapon_content_id IS NOT NULL THEN 'weapon' ELSE 'trap' END AS kind, " +
-        "w.weapon_subtype AS weapon_subtype, tr.trap_placement AS trap_placement, " +
-        "CASE WHEN s.weapon_content_id IS NOT NULL THEN w.rarity ELSE tr.rarity END AS rarity, " +
-        "s.popularity AS popularity, s.sort_order AS sort_order, " +
-        "m.delivery_url AS delivery_url",
-      from:
-        "FROM cms_contents c " +
-        "LEFT JOIN cms_content_translations t ON t.content_id = c.id AND t.locale = ? " +
-        "LEFT JOIN cms_content_translations td ON td.content_id = c.id AND td.locale = c.default_locale " +
-        "LEFT JOIN cms_content_translations te ON te.content_id = c.id AND te.locale = 'en' " +
-        "JOIN schematic_records s ON s.content_id = c.id " +
-        "LEFT JOIN weapon_records w ON w.content_id = s.weapon_content_id " +
-        "LEFT JOIN trap_records tr ON tr.content_id = s.trap_content_id " +
-        "LEFT JOIN media_assets m ON m.id = s.icon_asset_id AND m.status = 'ready'",
-      where: clauses.join(" AND "),
-      orderBy: schematicOrder(sort),
-      values,
-      limit,
-      offset,
+    const { db, env } = await resolveRequestCmsDb();
+    const { withPublicCache } = await import("./public-cache.server");
+    // Public data cache (Layer 1) — see public-cache.server.ts.
+    return withPublicCache({
+      env,
+      namespace: "schematic-hub",
+      args: data,
+      loader: async () => {
+        const clauses = [
+          "c.entity_type = 'schematic'",
+          "c.status = 'published'",
+          "(t.id IS NOT NULL OR td.id IS NOT NULL OR te.id IS NOT NULL)",
+        ];
+        const values: unknown[] = [locale];
+        if (kind === "weapon") clauses.push("s.weapon_content_id IS NOT NULL");
+        if (kind === "trap") clauses.push("s.trap_content_id IS NOT NULL");
+        if (weaponSubtype !== undefined) {
+          clauses.push("w.weapon_subtype = ?");
+          values.push(weaponSubtype);
+        }
+        if (trapPlacement !== undefined) {
+          clauses.push("tr.trap_placement = ?");
+          values.push(trapPlacement);
+        }
+        if (rarity !== undefined) {
+          clauses.push(
+            "COALESCE(CASE WHEN s.weapon_content_id IS NOT NULL THEN w.rarity ELSE tr.rarity END) = ?",
+          );
+          values.push(rarity);
+        }
+        if (q !== "") {
+          clauses.push(
+            "LOWER(COALESCE(NULLIF(t.title,''), NULLIF(td.title,''), te.title)) LIKE ? ESCAPE '\\'",
+          );
+          values.push(`%${escapeLike(q)}%`);
+        }
+        return pagedQuery<HubSchematicRow>(db, {
+          columns:
+            "c.id AS content_id, COALESCE(NULLIF(t.slug,''), NULLIF(td.slug,''), te.slug) AS slug, " +
+            "COALESCE(NULLIF(t.title,''), NULLIF(td.title,''), te.title) AS title, COALESCE(NULLIF(t.body,''), NULLIF(td.body,''), te.body) AS body, " +
+            "CASE WHEN s.weapon_content_id IS NOT NULL THEN 'weapon' ELSE 'trap' END AS kind, " +
+            "w.weapon_subtype AS weapon_subtype, tr.trap_placement AS trap_placement, " +
+            "CASE WHEN s.weapon_content_id IS NOT NULL THEN w.rarity ELSE tr.rarity END AS rarity, " +
+            "s.popularity AS popularity, s.sort_order AS sort_order, " +
+            "m.delivery_url AS delivery_url",
+          from:
+            "FROM cms_contents c " +
+            "LEFT JOIN cms_content_translations t ON t.content_id = c.id AND t.locale = ? " +
+            "LEFT JOIN cms_content_translations td ON td.content_id = c.id AND td.locale = c.default_locale " +
+            "LEFT JOIN cms_content_translations te ON te.content_id = c.id AND te.locale = 'en' " +
+            "JOIN schematic_records s ON s.content_id = c.id " +
+            "LEFT JOIN weapon_records w ON w.content_id = s.weapon_content_id " +
+            "LEFT JOIN trap_records tr ON tr.content_id = s.trap_content_id " +
+            "LEFT JOIN media_assets m ON m.id = s.icon_asset_id AND m.status = 'ready'",
+          where: clauses.join(" AND "),
+          orderBy: schematicOrder(sort),
+          values,
+          limit,
+          offset,
+        });
+      },
     });
   });
 
@@ -558,65 +581,74 @@ export const listHubLoadouts = createServerFn({ method: "GET" })
     const q = normalizeSearchQuery(data.search);
     const sort = data.sort === "name" || data.sort === "recent" ? data.sort : "editorial";
     const { limit, offset } = parseListPaging(data);
-    const { db } = await resolveRequestCmsDb();
-    const clauses = [
-      "c.entity_type = 'loadout'",
-      "c.status = 'published'",
-      "(t.id IS NOT NULL OR td.id IS NOT NULL OR te.id IS NOT NULL)",
-    ];
-    const values: unknown[] = [locale, locale, locale];
-    if (loadoutType !== undefined) {
-      clauses.push("l.loadout_type = ?");
-      values.push(loadoutType);
-    }
-    if (q !== "") {
-      clauses.push(
-        "LOWER(COALESCE(NULLIF(t.title,''), NULLIF(td.title,''), te.title)) LIKE ? ESCAPE '\\'",
-      );
-      values.push(`%${escapeLike(q)}%`);
-    }
-    return pagedQuery<HubLoadoutRow>(db, {
-      columns:
-        "c.id AS content_id, COALESCE(NULLIF(t.slug,''), NULLIF(td.slug,''), te.slug) AS slug, " +
-        "COALESCE(NULLIF(t.title,''), NULLIF(td.title,''), te.title) AS title, COALESCE(NULLIF(t.body,''), NULLIF(td.body,''), te.body) AS body, " +
-        "l.loadout_type AS loadout_type, l.popularity AS popularity, " +
-        "l.sort_order AS sort_order, m.delivery_url AS delivery_url, " +
-        "COALESCE(NULLIF(pt.title,''), NULLIF(ptd.title,''), pte.title) AS team_perk_name, " +
-        "COALESCE(NULLIF(cmdr.title,''), NULLIF(cmdrd.title,''), cmdre.title) AS commander_title, " +
-        "COALESCE(sup.n, 0) AS support_count",
-      from:
-        "FROM cms_contents c " +
-        "LEFT JOIN cms_content_translations t ON t.content_id = c.id AND t.locale = ? " +
-        "LEFT JOIN cms_content_translations td ON td.content_id = c.id AND td.locale = c.default_locale " +
-        "LEFT JOIN cms_content_translations te ON te.content_id = c.id AND te.locale = 'en' " +
-        "JOIN loadout_records l ON l.content_id = c.id " +
-        "LEFT JOIN media_assets m ON m.id = l.cover_asset_id AND m.status = 'ready' " +
-        // Team perk: the perk entity must be public; its NAME falls back to
-        // requested -> default_locale -> English (never blank).
-        "LEFT JOIN cms_contents tp ON tp.id = l.team_perk_content_id AND tp.status = 'published' " +
-        "LEFT JOIN cms_content_translations pt ON pt.content_id = tp.id AND pt.locale = ? " +
-        "LEFT JOIN cms_content_translations ptd ON ptd.content_id = tp.id AND ptd.locale = tp.default_locale " +
-        "LEFT JOIN cms_content_translations pte ON pte.content_id = tp.id AND pte.locale = 'en' " +
-        // Commander = slot 0, published on both ends, name with en fallback.
-        // Support = slots 1–5, aggregated in one correlated subquery so the
-        // listing stays a single query and sparse rosters report true counts.
-        "LEFT JOIN loadout_heroes lh0 ON lh0.loadout_content_id = c.id AND lh0.slot_order = 0 " +
-        "LEFT JOIN cms_contents hc ON hc.id = lh0.hero_content_id AND hc.status = 'published' " +
-        "LEFT JOIN cms_content_translations cmdr ON cmdr.content_id = hc.id AND cmdr.locale = ? " +
-        "LEFT JOIN cms_content_translations cmdrd ON cmdrd.content_id = hc.id AND cmdrd.locale = hc.default_locale " +
-        "LEFT JOIN cms_content_translations cmdre ON cmdre.content_id = hc.id AND cmdre.locale = 'en' " +
-        "LEFT JOIN (" +
-        "SELECT lh.loadout_content_id AS lcid, COUNT(*) AS n " +
-        "FROM loadout_heroes lh " +
-        "JOIN cms_contents hc2 ON hc2.id = lh.hero_content_id AND hc2.status = 'published' " +
-        "WHERE lh.slot_order BETWEEN 1 AND 5 " +
-        "GROUP BY lh.loadout_content_id" +
-        ") sup ON sup.lcid = c.id ",
-      where: clauses.join(" AND "),
-      orderBy: loadoutOrder(sort),
-      values,
-      limit,
-      offset,
+    const { db, env } = await resolveRequestCmsDb();
+    const { withPublicCache } = await import("./public-cache.server");
+    // Public data cache (Layer 1) — see public-cache.server.ts.
+    return withPublicCache({
+      env,
+      namespace: "loadout-hub",
+      args: data,
+      loader: async () => {
+        const clauses = [
+          "c.entity_type = 'loadout'",
+          "c.status = 'published'",
+          "(t.id IS NOT NULL OR td.id IS NOT NULL OR te.id IS NOT NULL)",
+        ];
+        const values: unknown[] = [locale, locale, locale];
+        if (loadoutType !== undefined) {
+          clauses.push("l.loadout_type = ?");
+          values.push(loadoutType);
+        }
+        if (q !== "") {
+          clauses.push(
+            "LOWER(COALESCE(NULLIF(t.title,''), NULLIF(td.title,''), te.title)) LIKE ? ESCAPE '\\'",
+          );
+          values.push(`%${escapeLike(q)}%`);
+        }
+        return pagedQuery<HubLoadoutRow>(db, {
+          columns:
+            "c.id AS content_id, COALESCE(NULLIF(t.slug,''), NULLIF(td.slug,''), te.slug) AS slug, " +
+            "COALESCE(NULLIF(t.title,''), NULLIF(td.title,''), te.title) AS title, COALESCE(NULLIF(t.body,''), NULLIF(td.body,''), te.body) AS body, " +
+            "l.loadout_type AS loadout_type, l.popularity AS popularity, " +
+            "l.sort_order AS sort_order, m.delivery_url AS delivery_url, " +
+            "COALESCE(NULLIF(pt.title,''), NULLIF(ptd.title,''), pte.title) AS team_perk_name, " +
+            "COALESCE(NULLIF(cmdr.title,''), NULLIF(cmdrd.title,''), cmdre.title) AS commander_title, " +
+            "COALESCE(sup.n, 0) AS support_count",
+          from:
+            "FROM cms_contents c " +
+            "LEFT JOIN cms_content_translations t ON t.content_id = c.id AND t.locale = ? " +
+            "LEFT JOIN cms_content_translations td ON td.content_id = c.id AND td.locale = c.default_locale " +
+            "LEFT JOIN cms_content_translations te ON te.content_id = c.id AND te.locale = 'en' " +
+            "JOIN loadout_records l ON l.content_id = c.id " +
+            "LEFT JOIN media_assets m ON m.id = l.cover_asset_id AND m.status = 'ready' " +
+            // Team perk: the perk entity must be public; its NAME falls back to
+            // requested -> default_locale -> English (never blank).
+            "LEFT JOIN cms_contents tp ON tp.id = l.team_perk_content_id AND tp.status = 'published' " +
+            "LEFT JOIN cms_content_translations pt ON pt.content_id = tp.id AND pt.locale = ? " +
+            "LEFT JOIN cms_content_translations ptd ON ptd.content_id = tp.id AND ptd.locale = tp.default_locale " +
+            "LEFT JOIN cms_content_translations pte ON pte.content_id = tp.id AND pte.locale = 'en' " +
+            // Commander = slot 0, published on both ends, name with en fallback.
+            // Support = slots 1–5, aggregated in one correlated subquery so the
+            // listing stays a single query and sparse rosters report true counts.
+            "LEFT JOIN loadout_heroes lh0 ON lh0.loadout_content_id = c.id AND lh0.slot_order = 0 " +
+            "LEFT JOIN cms_contents hc ON hc.id = lh0.hero_content_id AND hc.status = 'published' " +
+            "LEFT JOIN cms_content_translations cmdr ON cmdr.content_id = hc.id AND cmdr.locale = ? " +
+            "LEFT JOIN cms_content_translations cmdrd ON cmdrd.content_id = hc.id AND cmdrd.locale = hc.default_locale " +
+            "LEFT JOIN cms_content_translations cmdre ON cmdre.content_id = hc.id AND cmdre.locale = 'en' " +
+            "LEFT JOIN (" +
+            "SELECT lh.loadout_content_id AS lcid, COUNT(*) AS n " +
+            "FROM loadout_heroes lh " +
+            "JOIN cms_contents hc2 ON hc2.id = lh.hero_content_id AND hc2.status = 'published' " +
+            "WHERE lh.slot_order BETWEEN 1 AND 5 " +
+            "GROUP BY lh.loadout_content_id" +
+            ") sup ON sup.lcid = c.id ",
+          where: clauses.join(" AND "),
+          orderBy: loadoutOrder(sort),
+          values,
+          limit,
+          offset,
+        });
+      },
     });
   });
 
@@ -654,50 +686,59 @@ export const listHubGuides = createServerFn({ method: "GET" })
         : undefined;
     const q = normalizeSearchQuery(data.search);
     const { limit, offset } = parseListPaging(data);
-    const { db } = await resolveRequestCmsDb();
-    const clauses = [
-      "c.entity_type = 'article'",
-      "c.status = 'published'",
-      "(t.id IS NOT NULL OR td.id IS NOT NULL OR te.id IS NOT NULL)",
-    ];
-    const values: unknown[] = [locale];
-    let tagJoin = "";
-    if (tag !== undefined) {
-      tagJoin =
-        "JOIN article_tag_links tl ON tl.article_content_id = c.id " +
-        "JOIN article_tags tg ON tg.id = tl.tag_id AND tg.slug = ?";
-      values.push(tag);
-    }
-    if (category !== undefined) {
-      clauses.push("cat.slug = ?");
-      values.push(category);
-    }
-    if (q !== "") {
-      clauses.push(
-        "LOWER(COALESCE(NULLIF(t.title,''), NULLIF(td.title,''), te.title)) LIKE ? ESCAPE '\\'",
-      );
-      values.push(`%${escapeLike(q)}%`);
-    }
-    return pagedQuery<HubGuideRow>(db, {
-      columns:
-        "c.id AS content_id, COALESCE(NULLIF(t.slug,''), NULLIF(td.slug,''), te.slug) AS slug, " +
-        "COALESCE(NULLIF(t.title,''), NULLIF(td.title,''), te.title) AS title, " +
-        "COALESCE(b.excerpt, bdef.excerpt, bex.excerpt, '') AS excerpt, c.updated_at AS updated_at, " +
-        "cat.slug AS category_slug, m.delivery_url AS delivery_url",
-      from:
-        "FROM cms_contents c " +
-        "LEFT JOIN cms_content_translations t ON t.content_id = c.id AND t.locale = ? " +
-        "LEFT JOIN cms_content_translations td ON td.content_id = c.id AND td.locale = c.default_locale " +
-        "LEFT JOIN cms_content_translations te ON te.content_id = c.id AND te.locale = 'en' " +
-        `LEFT JOIN article_bodies b ON b.article_content_id = c.id AND b.locale = ? ${tagJoin} ` +
-        "LEFT JOIN article_bodies bdef ON bdef.article_content_id = c.id AND bdef.locale = c.default_locale " +
-        "LEFT JOIN article_bodies bex ON bex.article_content_id = c.id AND bex.locale = 'en' " +
-        "LEFT JOIN article_categories cat ON cat.id = COALESCE(b.category_id, bdef.category_id, bex.category_id) " +
-        "LEFT JOIN media_assets m ON m.id = COALESCE(b.cover_asset_id, bdef.cover_asset_id, bex.cover_asset_id) AND m.status = 'ready'",
-      where: clauses.join(" AND "),
-      orderBy: "ORDER BY c.updated_at DESC, c.id ASC",
-      values,
-      limit,
-      offset,
+    const { db, env } = await resolveRequestCmsDb();
+    const { withPublicCache } = await import("./public-cache.server");
+    // Public data cache (Layer 1) — see public-cache.server.ts.
+    return withPublicCache({
+      env,
+      namespace: "guide-hub",
+      args: data,
+      loader: async () => {
+        const clauses = [
+          "c.entity_type = 'article'",
+          "c.status = 'published'",
+          "(t.id IS NOT NULL OR td.id IS NOT NULL OR te.id IS NOT NULL)",
+        ];
+        const values: unknown[] = [locale];
+        let tagJoin = "";
+        if (tag !== undefined) {
+          tagJoin =
+            "JOIN article_tag_links tl ON tl.article_content_id = c.id " +
+            "JOIN article_tags tg ON tg.id = tl.tag_id AND tg.slug = ?";
+          values.push(tag);
+        }
+        if (category !== undefined) {
+          clauses.push("cat.slug = ?");
+          values.push(category);
+        }
+        if (q !== "") {
+          clauses.push(
+            "LOWER(COALESCE(NULLIF(t.title,''), NULLIF(td.title,''), te.title)) LIKE ? ESCAPE '\\'",
+          );
+          values.push(`%${escapeLike(q)}%`);
+        }
+        return pagedQuery<HubGuideRow>(db, {
+          columns:
+            "c.id AS content_id, COALESCE(NULLIF(t.slug,''), NULLIF(td.slug,''), te.slug) AS slug, " +
+            "COALESCE(NULLIF(t.title,''), NULLIF(td.title,''), te.title) AS title, " +
+            "COALESCE(b.excerpt, bdef.excerpt, bex.excerpt, '') AS excerpt, c.updated_at AS updated_at, " +
+            "cat.slug AS category_slug, m.delivery_url AS delivery_url",
+          from:
+            "FROM cms_contents c " +
+            "LEFT JOIN cms_content_translations t ON t.content_id = c.id AND t.locale = ? " +
+            "LEFT JOIN cms_content_translations td ON td.content_id = c.id AND td.locale = c.default_locale " +
+            "LEFT JOIN cms_content_translations te ON te.content_id = c.id AND te.locale = 'en' " +
+            `LEFT JOIN article_bodies b ON b.article_content_id = c.id AND b.locale = ? ${tagJoin} ` +
+            "LEFT JOIN article_bodies bdef ON bdef.article_content_id = c.id AND bdef.locale = c.default_locale " +
+            "LEFT JOIN article_bodies bex ON bex.article_content_id = c.id AND bex.locale = 'en' " +
+            "LEFT JOIN article_categories cat ON cat.id = COALESCE(b.category_id, bdef.category_id, bex.category_id) " +
+            "LEFT JOIN media_assets m ON m.id = COALESCE(b.cover_asset_id, bdef.cover_asset_id, bex.cover_asset_id) AND m.status = 'ready'",
+          where: clauses.join(" AND "),
+          orderBy: "ORDER BY c.updated_at DESC, c.id ASC",
+          values,
+          limit,
+          offset,
+        });
+      },
     });
   });

@@ -944,13 +944,49 @@ async function getDailyQuote(env, dateString = utcDateString()) {
   ).bind(dateString).first();
 }
 
+// Bounded in-isolate caches for history and quote endpoints.
+// Reduces D1 reads from repeated visits within the worker lifecycle.
+const historyCache = new Map();
+const quoteCache = new Map();
+const WORKER_CACHE_TTL_MS = 5 * 60 * 1000;
+const WORKER_CACHE_MAX_ENTRIES = 10;
+
+function getCachedWorkerValue(cache, key, ttlMs = WORKER_CACHE_TTL_MS) {
+  const entry = cache.get(key);
+  if (!entry) return null;
+  if (Date.now() - entry.cachedAt >= ttlMs) {
+    cache.delete(key);
+    return null;
+  }
+  return entry.value;
+}
+
+function setCachedWorkerValue(cache, key, value, maxEntries = WORKER_CACHE_MAX_ENTRIES) {
+  if (cache.size >= maxEntries) {
+    const oldestKey = cache.keys().next().value;
+    if (oldestKey !== undefined) cache.delete(oldestKey);
+  }
+  cache.set(key, { value, cachedAt: Date.now() });
+}
+
 async function handleHistory(env) {
   try {
     if (!env.DB) {
       return json({ success: false, status: 'unavailable', message: 'History is unavailable.' }, 503);
     }
 
-    return json(await getCalendarHistory(env), 200);
+    const dateString = utcDateString();
+    const cacheKey = `history:${dateString}`;
+    const cached = getCachedWorkerValue(historyCache, cacheKey);
+    if (cached) {
+      return json(cached, 200);
+    }
+
+    const data = await getCalendarHistory(env, dateString);
+    if (data && data.success) {
+      setCachedWorkerValue(historyCache, cacheKey, data);
+    }
+    return json(data, 200);
   } catch (error) {
     console.error('History request failed:', error instanceof Error ? error.message : 'unknown error');
     return json({ success: false, status: 'unavailable', message: 'History is unavailable.' }, 503);
@@ -959,13 +995,22 @@ async function handleHistory(env) {
 
 async function handleQuote(env) {
   try {
-    const quote = await ensureDailyQuote(env);
+    const dateString = utcDateString();
+    const cacheKey = `quote:${dateString}`;
+    const cached = getCachedWorkerValue(quoteCache, cacheKey);
+    if (cached) {
+      return json(cached, 200);
+    }
+
+    const quote = await ensureDailyQuote(env, dateString);
 
     if (!quote) {
       return json({ success: false, status: 'unavailable', quote: null }, 503);
     }
 
-    return json({ success: true, date: quote.utcDate, quote: quote.quote }, 200);
+    const payload = { success: true, date: quote.utcDate, quote: quote.quote };
+    setCachedWorkerValue(quoteCache, cacheKey, payload);
+    return json(payload, 200);
   } catch (error) {
     console.error('Quote request failed:', error instanceof Error ? error.message : 'unknown error');
     return json({ success: false, status: 'unavailable', quote: null }, 503);
@@ -1146,6 +1191,13 @@ export default {
     ctx.waitUntil((async () => {
       try {
         const quote = await ensureDailyQuote(env, dateString);
+        if (quote?.quote) {
+          setCachedWorkerValue(quoteCache, `quote:${dateString}`, {
+            success: true,
+            date: quote.utcDate,
+            quote: quote.quote
+          });
+        }
         console.log(`D1 daily quote check completed for ${dateString}: ${quote ? 'available' : 'unavailable'}`);
       } catch (error) {
         console.error('Daily quote job failed:', error instanceof Error ? error.message : 'unknown error');
@@ -1165,7 +1217,10 @@ export default {
         const data = await fetchMissionData(env);
         await saveMissionData(env, data);
         const saved = await saveDailyMissionSnapshot(env, data, dateString);
-        if (saved) console.log(`Daily mission snapshot saved for ${dateString}`);
+        if (saved) {
+          historyCache.delete(`history:${dateString}`);
+          console.log(`Daily mission snapshot saved for ${dateString}`);
+        }
         console.log(`Scheduled mission check completed: ${data.missions.length} V-Bucks mission(s), ${data.totalVbucks} V-Bucks`);
         refreshed = data;
       } catch (error) {

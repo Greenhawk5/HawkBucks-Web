@@ -376,7 +376,15 @@ test("csp: the Worker entry generates a nonce and applies the policy", async () 
   const source = await read("src/server.ts");
   assert.match(source, /generateCspNonce\(\)/);
   assert.match(source, /runWithCspNonce\(cspNonce/);
-  assert.match(source, /applyContentSecurityPolicy\(applySecurityHeaders\(response\), cspNonce\)/);
+  // The funnel is now: security headers -> document cache policy -> CSP.
+  // The document-cache layer (caching plan Layer 3) fills `private, no-store`
+  // for HTML responses; it must sit INSIDE the hardened funnel so every exit
+  // path (redirects, sitemap, SSR, 500 page) receives it before the CSP.
+  assert.match(
+    source,
+    /applyContentSecurityPolicy\(\s*applyDocumentCachePolicy\(applySecurityHeaders\(response\)\),\s*cspNonce,?\s*\)/,
+  );
+  assert.match(source, /applyDocumentCachePolicy/);
   // Every response path must go through the hardened funnel. Five call sites
   // (the arrow-function definition is not a call): the www redirect, the
   // pages.dev redirect, the sitemap, SSR, and the 500 page.

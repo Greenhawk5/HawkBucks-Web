@@ -248,3 +248,38 @@ export function applySecurityHeaders(response: Response): Response {
     headers,
   });
 }
+
+/**
+ * SSR documents must never be cached by browsers or the edge.
+ *
+ * WHY HTML IS UNCACHEABLE HERE:
+ *   1. Every document carries a per-request CSP nonce (server.ts `harden`);
+ *      replaying a stored copy would replay a spent nonce and trip the CSP.
+ *   2. The root loader reads the `hawkbucks_language` /
+ *      `hawkbucks_sidebar_state` cookies, so a shared or stored copy would
+ *      serve one visitor's preferences to another (or stale ones to the same
+ *      visitor after a language switch).
+ *
+ * Public data (server-function RPC responses) is a different surface: those
+ * cookie-free payloads opt into their own short browser TTL inside
+ * public-cache.server.ts — this function never touches non-HTML responses.
+ *
+ * Fill-if-missing, like the security headers above: explicitly set policies
+ * (the sitemap's `max-age=3600`, the preview route's `private, no-store`) are
+ * respected. Directives cover BOTH browser and forward caches.
+ */
+export function applyDocumentCachePolicy(response: Response): Response {
+  const contentType = response.headers.get("Content-Type") ?? "";
+  const mediaType = contentType.split(";")[0]?.trim().toLowerCase() ?? "";
+  if (!mediaType.includes("text/html")) {
+    return response;
+  }
+  if (response.headers.has("Cache-Control")) return response;
+  const headers = new Headers(response.headers);
+  headers.set("Cache-Control", "private, no-store");
+  return new Response(response.body, {
+    status: response.status,
+    statusText: response.statusText,
+    headers,
+  });
+}
