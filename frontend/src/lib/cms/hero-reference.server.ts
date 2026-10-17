@@ -296,11 +296,12 @@ export async function readHeroProgressionCosts(
       .prepare(
         `SELECT c.hero_content_id AS hero_content_id, c.rarity AS rarity,
                 c.scope AS scope, c.tier AS tier, c.kind AS kind,
+                r.status AS resource_status,
                 r.resource_key AS resource_key,
                 COALESCE(NULLIF(rt.name, ''), NULLIF(rte.name, ''), NULLIF(r.editorial_name, ''), r.display_name) AS display_name,
                 COALESCE(c.editorial_amount, c.amount) AS amount, m.delivery_url AS icon_url
            FROM hero_progression_costs c
-           JOIN resources r ON r.id = c.resource_id AND r.status = 'active'
+           JOIN resources r ON r.id = c.resource_id
            LEFT JOIN resource_translations rt ON rt.resource_id = r.id AND rt.locale = ?
            LEFT JOIN resource_translations rte ON rte.resource_id = r.id AND rte.locale = 'en'
            LEFT JOIN media_assets m ON m.id = r.icon_asset_id AND m.status = 'ready'
@@ -309,8 +310,13 @@ export async function readHeroProgressionCosts(
           ORDER BY c.hero_content_id ASC, c.rarity ASC, c.scope ASC, c.tier ASC, r.sort_order ASC`,
       )
       .bind(locale ?? "en", ...ids)
-      .all<CostRow>();
+      .all<CostRow & { resource_status: string | null }>();
     for (const r of results) {
+      // Keeping `r.status = 'active'` inline in this JOIN flip SQLite's plan to a
+      // whole-table scan from the status index at production row counts.
+      // Using the hero key index instead (i.e. no join-side status filter) and
+      // post-filtering keeps the semantics identical with bounded reads.
+      if (r.resource_status !== "active") continue;
       const list = out.get(r.hero_content_id) ?? [];
       list.push(r);
       out.set(r.hero_content_id, list);
