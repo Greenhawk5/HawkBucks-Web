@@ -179,6 +179,8 @@ export const listPublicArticles = createServerFn({ method: "GET" })
     const limit = clamp(typeof data.limit === "number" ? data.limit : 24, 1, 100);
     const offset = clamp(typeof data.offset === "number" ? data.offset : 0, 0, 100000);
     const { db, env } = await resolveRequestCmsDb();
+    const { assertFeatureEnabled } = await import("./feature-availability.server");
+    await assertFeatureEnabled("guides", db, env);
     const { withPublicCache } = await import("./public-cache.server");
     // Public data cache (Layer 1) — see public-cache.server.ts.
     return withPublicCache({
@@ -250,6 +252,8 @@ export const getPublicArticle = createServerFn({ method: "GET" })
     const locale = typeof data.locale === "string" && data.locale !== "" ? data.locale : "en";
     const slug = typeof data.slug === "string" ? data.slug : "";
     const { db, env } = await resolveRequestCmsDb();
+    const { assertFeatureEnabled } = await import("./feature-availability.server");
+    await assertFeatureEnabled("guides", db, env);
     const { withPublicCache } = await import("./public-cache.server");
     // Public data cache (Layer 1) — see public-cache.server.ts.
     return withPublicCache({
@@ -555,6 +559,9 @@ export const listArticlesForEntity = createServerFn({ method: "GET" })
     if (target === "") return { items: [] };
     const { resolveRequestCmsDb } = await import("./db.server");
     const { db, env } = await resolveRequestCmsDb();
+    const { isFeatureEnabled } = await import("./feature-availability.server");
+    const avail = await isFeatureEnabled("guides", db, env);
+    if (!avail.enabled) return { items: [] };
     const { withPublicCache } = await import("./public-cache.server");
     // Public data cache (Layer 1) — see public-cache.server.ts.
     return withPublicCache({
@@ -619,6 +626,8 @@ export const listArticlesByTopic = createServerFn({ method: "GET" })
     const limit = clamp(typeof data.limit === "number" ? data.limit : 12, 1, 24);
     const { resolveRequestCmsDb } = await import("./db.server");
     const { db, env } = await resolveRequestCmsDb();
+    const { assertFeatureEnabled } = await import("./feature-availability.server");
+    await assertFeatureEnabled("guides", db, env);
     const { withPublicCache } = await import("./public-cache.server");
     // Public data cache (Layer 1) — see public-cache.server.ts.
     return withPublicCache({

@@ -3,6 +3,8 @@ import { HeroDetail } from "@/components/cms/HeroDetail";
 import { I18nProvider } from "@/i18n/context";
 import { jsonLdScript } from "@/lib/seo";
 import { getPublicHero, type PublicHeroDetail } from "@/lib/cms/public-hero-detail.loader";
+import { getPublicFeatureStatus } from "@/lib/cms/feature-availability.loader";
+import { SectionUnavailableState } from "@/components/cms/SectionUnavailableState";
 import {
   buildHeroJsonLd,
   entityHreflangAlternates,
@@ -38,23 +40,50 @@ export const Route = createFileRoute("/$locale/heroes/$slug")({
   },
   loader: async ({ params }) => {
     const lang = parseLocaleParam((params as { locale?: unknown }).locale) ?? DEFAULT_LANGUAGE;
+    const { config } = await getPublicFeatureStatus();
+    if (!config.heroes.enabled) {
+      return {
+        available: false as const,
+        unavailableMessage: config.heroes.message,
+        hero: null,
+        lang,
+      };
+    }
     try {
       const { hero } = await getPublicHero({
         data: { locale: lang, slug: (params as { slug?: string }).slug ?? "" },
       });
       if (!hero) throw notFound();
-      return { hero, lang };
+      return { available: true as const, unavailableMessage: "", hero, lang };
     } catch {
       throw notFound();
     }
   },
   head: ({ loaderData, params }) => {
+    const data = loaderData as
+      | {
+          available?: boolean;
+          unavailableMessage?: string;
+          hero?: PublicHeroDetail | null;
+          lang?: string;
+        }
+      | undefined;
+
+    if (data?.available === false) {
+      return {
+        meta: [
+          { title: "Heroes Temporarily Unavailable — HawkBucks" },
+          { name: "description", content: "The Heroes section is temporarily unavailable." },
+          { name: "robots", content: "noindex, nofollow" },
+        ],
+        links: [],
+        scripts: [],
+      };
+    }
+
     const lang =
       parseLocaleParam((params as { locale?: unknown } | undefined)?.locale) ?? DEFAULT_LANGUAGE;
-    // Use the real DTO type rather than a hand-written structural copy. The
-    // copy had silently drifted from the loader and blocked every new field
-    // (perks, progression, banner) from being reachable here.
-    const hero = (loaderData as { hero?: PublicHeroDetail } | undefined)?.hero;
+    const hero = data?.hero;
     const seo = resolveCmsSeo({
       status: hero ? "published" : "draft",
       publicPath: hero
@@ -136,17 +165,18 @@ export const Route = createFileRoute("/$locale/heroes/$slug")({
   },
   component: LocalizedHeroDetailRoute,
 });
+
 function LocalizedHeroDetailRoute() {
-  const { hero, lang } = Route.useLoaderData() as {
-    hero: import("@/lib/cms/public-hero-detail.loader").PublicHeroDetail;
-    lang: string;
-  };
+  const data = Route.useLoaderData();
+  if (!data.available || !data.hero) {
+    return <SectionUnavailableState section="heroes" message={data.unavailableMessage} />;
+  }
   return (
-    <I18nProvider initialLanguage={lang as never} fixedLanguage={lang as never}>
+    <I18nProvider initialLanguage={data.lang as never} fixedLanguage={data.lang as never}>
       <HeroDetail
-        hero={hero}
-        locale={lang}
-        backHref={lang === "en" ? "/heroes" : `/${lang}/heroes`}
+        hero={data.hero}
+        locale={data.lang}
+        backHref={data.lang === "en" ? "/heroes" : `/${data.lang}/heroes`}
       />
     </I18nProvider>
   );

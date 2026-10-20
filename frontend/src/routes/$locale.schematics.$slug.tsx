@@ -2,6 +2,8 @@ import { createFileRoute, notFound, redirect } from "@tanstack/react-router";
 import { SchematicDetail } from "@/components/cms/SchematicDetail";
 import { I18nProvider } from "@/i18n/context";
 import { getPublicSchematic } from "@/lib/cms/public-schematic-detail.loader";
+import { getPublicFeatureStatus } from "@/lib/cms/feature-availability.loader";
+import { SectionUnavailableState } from "@/components/cms/SectionUnavailableState";
 import {
   buildSchematicJsonLd,
   entityHreflangAlternates,
@@ -37,12 +39,21 @@ export const Route = createFileRoute("/$locale/schematics/$slug")({
   },
   loader: async ({ params }) => {
     const lang = parseLocaleParam((params as { locale?: unknown }).locale) ?? DEFAULT_LANGUAGE;
+    const { config } = await getPublicFeatureStatus();
+    if (!config.schematics.enabled) {
+      return {
+        available: false as const,
+        unavailableMessage: config.schematics.message,
+        schematic: null,
+        lang,
+      };
+    }
     try {
       const { schematic } = await getPublicSchematic({
         data: { locale: lang, slug: (params as { slug?: string }).slug ?? "" },
       });
       if (!schematic) throw notFound();
-      return { schematic, lang };
+      return { available: true as const, unavailableMessage: "", schematic, lang };
     } catch {
       throw notFound();
     }
@@ -50,21 +61,35 @@ export const Route = createFileRoute("/$locale/schematics/$slug")({
   head: ({ loaderData, params }) => {
     const lang =
       parseLocaleParam((params as { locale?: unknown } | undefined)?.locale) ?? DEFAULT_LANGUAGE;
-    const schematic = (
-      loaderData as
-        | {
-            schematic?: {
-              title: string;
-              description: string;
-              slug: string;
-              iconUrl: string | null;
-              kind: string;
-              completeLocales?: string[];
-              slugsByLocale?: Record<string, string>;
-            };
-          }
-        | undefined
-    )?.schematic;
+    const data = loaderData as
+      | {
+          available?: boolean;
+          unavailableMessage?: string;
+          schematic?: {
+            title: string;
+            description: string;
+            slug: string;
+            iconUrl: string | null;
+            kind: string;
+            completeLocales?: string[];
+            slugsByLocale?: Record<string, string>;
+          } | null;
+        }
+      | undefined;
+
+    if (data?.available === false) {
+      return {
+        meta: [
+          { title: "Schematic Temporarily Unavailable — HawkBucks" },
+          { name: "description", content: "The Schematics section is temporarily unavailable." },
+          { name: "robots", content: "noindex, nofollow" },
+        ],
+        links: [],
+        scripts: [],
+      };
+    }
+
+    const schematic = data?.schematic;
     const seo = resolveCmsSeo({
       status: schematic ? "published" : "draft",
       publicPath: schematic
@@ -142,16 +167,20 @@ export const Route = createFileRoute("/$locale/schematics/$slug")({
 });
 
 function LocalizedSchematicDetailRoute() {
-  const { schematic, lang } = Route.useLoaderData() as {
-    schematic: import("@/lib/cms/public-schematic-detail.loader").PublicSchematicDetail;
-    lang: string;
-  };
+  const data = Route.useLoaderData();
+  if (!data.available || !data.schematic) {
+    return (
+      <I18nProvider initialLanguage={data.lang as never} fixedLanguage={data.lang as never}>
+        <SectionUnavailableState section="schematics" message={data.unavailableMessage} />
+      </I18nProvider>
+    );
+  }
   return (
-    <I18nProvider initialLanguage={lang as never} fixedLanguage={lang as never}>
+    <I18nProvider initialLanguage={data.lang as never} fixedLanguage={data.lang as never}>
       <SchematicDetail
-        schematic={schematic}
-        locale={lang}
-        backHref={lang === "en" ? "/schematics" : `/${lang}/schematics`}
+        schematic={data.schematic as never}
+        locale={data.lang}
+        backHref={data.lang === "en" ? "/schematics" : `/${data.lang}/schematics`}
       />
     </I18nProvider>
   );

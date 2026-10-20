@@ -3,6 +3,8 @@ import { HeroDetail } from "@/components/cms/HeroDetail";
 import { I18nProvider } from "@/i18n/context";
 import { jsonLdScript } from "@/lib/seo";
 import { getPublicHero, type PublicHeroDetail } from "@/lib/cms/public-hero-detail.loader";
+import { getPublicFeatureStatus } from "@/lib/cms/feature-availability.loader";
+import { SectionUnavailableState } from "@/components/cms/SectionUnavailableState";
 import {
   buildHeroJsonLd,
   entityHreflangAlternates,
@@ -15,19 +17,44 @@ import { SITE_URL } from "@/lib/site";
 
 export const Route = createFileRoute("/heroes/$slug")({
   loader: async ({ params }) => {
+    const { config } = await getPublicFeatureStatus();
+    if (!config.heroes.enabled) {
+      return {
+        available: false as const,
+        unavailableMessage: config.heroes.message,
+        hero: null,
+      };
+    }
     try {
       const { hero } = await getPublicHero({ data: { locale: "en", slug: params.slug } });
       if (!hero) throw notFound();
-      return { hero };
+      return { available: true as const, unavailableMessage: "", hero };
     } catch {
       throw notFound();
     }
   },
   head: ({ loaderData }) => {
-    // Use the real DTO type rather than a hand-written structural copy. The copy
-    // had silently drifted from the loader and blocked every new field (perks,
-    // progression, banner) from being reachable here.
-    const hero = (loaderData as { hero?: PublicHeroDetail } | undefined)?.hero;
+    const data = loaderData as
+      | {
+          available?: boolean;
+          unavailableMessage?: string;
+          hero?: PublicHeroDetail | null;
+        }
+      | undefined;
+
+    if (data?.available === false) {
+      return {
+        meta: [
+          { title: "Heroes Temporarily Unavailable — HawkBucks" },
+          { name: "description", content: "The Heroes section is temporarily unavailable." },
+          { name: "robots", content: "noindex, nofollow" },
+        ],
+        links: [],
+        scripts: [],
+      };
+    }
+
+    const hero = data?.hero;
     const path = hero ? heroDetailPath(hero.slug) : "/heroes";
     const basePath = hero ? path : "/heroes";
     const seo = resolveCmsSeo({
@@ -114,13 +141,15 @@ export const Route = createFileRoute("/heroes/$slug")({
   },
   component: HeroDetailRoute,
 });
+
 function HeroDetailRoute() {
-  const { hero } = Route.useLoaderData() as {
-    hero: import("@/lib/cms/public-hero-detail.loader").PublicHeroDetail;
-  };
+  const data = Route.useLoaderData();
+  if (!data.available || !data.hero) {
+    return <SectionUnavailableState section="heroes" message={data.unavailableMessage} />;
+  }
   return (
     <I18nProvider initialLanguage="en" fixedLanguage="en">
-      <HeroDetail hero={hero} locale="en" backHref="/heroes" />
+      <HeroDetail hero={data.hero} locale="en" backHref="/heroes" />
     </I18nProvider>
   );
 }

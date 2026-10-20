@@ -75,7 +75,7 @@ export interface CmsWorkerEnv {
    */
   PUBLIC_CONTENT_CACHE?: {
     get(key: string, options?: { cacheTtl?: number }): Promise<string | null>;
-    put(key: string, value: string): Promise<void>;
+    put(key: string, value: string, options?: { expirationTtl?: number }): Promise<void>;
   };
   /** Public data cache TTL in seconds (0/unset disables the cache). */
   PUBLIC_DATA_CACHE_MAX_AGE_SECONDS?: unknown;

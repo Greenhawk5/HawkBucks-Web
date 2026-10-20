@@ -74,6 +74,8 @@ export const listPublicWeapons = createServerFn({ method: "GET" })
     const limit = clamp(typeof data.limit === "number" ? data.limit : 100, 1, 100);
     const offset = clamp(typeof data.offset === "number" ? data.offset : 0, 0, 100000);
     const { db, env } = await resolveRequestCmsDb();
+    const { assertFeatureEnabled } = await import("./feature-availability.server");
+    await assertFeatureEnabled("schematics", db, env);
     const { withPublicCache } = await import("./public-cache.server");
     // Public data cache (Layer 1) — see public-cache.server.ts.
     return withPublicCache({
@@ -152,6 +154,8 @@ export const listPublicTraps = createServerFn({ method: "GET" })
     const limit = clamp(typeof data.limit === "number" ? data.limit : 100, 1, 100);
     const offset = clamp(typeof data.offset === "number" ? data.offset : 0, 0, 100000);
     const { db, env } = await resolveRequestCmsDb();
+    const { assertFeatureEnabled } = await import("./feature-availability.server");
+    await assertFeatureEnabled("schematics", db, env);
     const { withPublicCache } = await import("./public-cache.server");
     // Public data cache (Layer 1) — see public-cache.server.ts.
     return withPublicCache({
@@ -305,6 +309,8 @@ export const listPublicSchematics = createServerFn({ method: "GET" })
     const limit = clamp(typeof data.limit === "number" ? data.limit : 100, 1, 100);
     const offset = clamp(typeof data.offset === "number" ? data.offset : 0, 0, 100000);
     const { db, env } = await resolveRequestCmsDb();
+    const { assertFeatureEnabled } = await import("./feature-availability.server");
+    await assertFeatureEnabled("schematics", db, env);
     const { withPublicCache } = await import("./public-cache.server");
     // Public data cache (Layer 1) — see public-cache.server.ts.
     return withPublicCache({
@@ -391,6 +397,8 @@ export const listPublicPerks = createServerFn({ method: "GET" })
     const limit = clamp(typeof data.limit === "number" ? data.limit : 100, 1, 100);
     const offset = clamp(typeof data.offset === "number" ? data.offset : 0, 0, 100000);
     const { db, env } = await resolveRequestCmsDb();
+    const { assertFeatureEnabled } = await import("./feature-availability.server");
+    await assertFeatureEnabled("schematics", db, env);
     const { withPublicCache } = await import("./public-cache.server");
     // Public data cache (Layer 1) — see public-cache.server.ts.
     return withPublicCache({

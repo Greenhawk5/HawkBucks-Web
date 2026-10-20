@@ -3,6 +3,8 @@ import { I18nProvider } from "@/i18n/context";
 import { ArticleBody } from "@/components/cms/ArticleBody";
 import { validateArticleDocument } from "@/lib/cms/articles";
 import { getPublicArticle } from "@/lib/cms/public-articles.loader";
+import { getPublicFeatureStatus } from "@/lib/cms/feature-availability.loader";
+import { SectionUnavailableState } from "@/components/cms/SectionUnavailableState";
 import {
   articleDetailPath,
   buildArticleJsonLd,
@@ -22,33 +24,55 @@ import { guideDetailPath } from "@/lib/cms/guide-paths";
  */
 export const Route = createFileRoute("/guides/$slug")({
   loader: async ({ params }) => {
+    const { config } = await getPublicFeatureStatus();
+    if (!config.guides.enabled) {
+      return {
+        available: false as const,
+        unavailableMessage: config.guides.message,
+        article: null,
+      };
+    }
     try {
       const { article } = await getPublicArticle({
         data: { locale: "en", slug: params.slug },
       });
       if (!article) throw notFound();
-      return { article };
+      return { available: true as const, unavailableMessage: "", article };
     } catch {
       throw notFound();
     }
   },
   head: ({ loaderData }) => {
-    const article = (
-      loaderData as
-        | {
-            article?: {
-              slug: string;
-              title: string;
-              excerpt: string;
-              seoTitle: string | null;
-              seoDescription: string | null;
-              imageUrl: string | null;
-              updatedAt: string;
-              completeLocales?: string[];
-            };
-          }
-        | undefined
-    )?.article;
+    const data = loaderData as
+      | {
+          available?: boolean;
+          unavailableMessage?: string;
+          article?: {
+            slug: string;
+            title: string;
+            excerpt: string;
+            seoTitle: string | null;
+            seoDescription: string | null;
+            imageUrl: string | null;
+            updatedAt: string;
+            completeLocales?: string[];
+          } | null;
+        }
+      | undefined;
+
+    if (data?.available === false) {
+      return {
+        meta: [
+          { title: "Guide Temporarily Unavailable — HawkBucks" },
+          { name: "description", content: "The Guides section is temporarily unavailable." },
+          { name: "robots", content: "noindex, nofollow" },
+        ],
+        links: [],
+        scripts: [],
+      };
+    }
+
+    const article = data?.article;
     const path = article ? guideDetailPath(article.slug) : "/guides";
     const seo = resolveCmsSeo({
       status: article ? "published" : "draft",
@@ -118,9 +142,11 @@ export const Route = createFileRoute("/guides/$slug")({
 });
 
 function GuideDetailRoute() {
-  const { article } = Route.useLoaderData() as {
-    article: import("@/lib/cms/public-articles.loader").PublicArticleDetail;
-  };
+  const data = Route.useLoaderData();
+  if (!data.available || !data.article) {
+    return <SectionUnavailableState section="guides" message={data.unavailableMessage} />;
+  }
+  const article = data.article;
   void articleDetailPath;
   let doc = null as null | ReturnType<typeof validateArticleDocument>;
   try {

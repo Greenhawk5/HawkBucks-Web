@@ -55,11 +55,23 @@ function baseForEntity(entityType: string): string | null {
 }
 
 export async function buildSitemapXml(db: D1Database): Promise<string> {
+  const { getFeatureAvailability } = await import("./feature-availability.server");
+  const { config } = await getFeatureAvailability(db);
+  // A disabled section is noindexed at runtime, so its hub URL must leave the
+  // sitemap in the same window — never advertise what search engines cannot
+  // index. Non-CMS hubs (about, missions, etc.) are unaffected.
+  const disabledSectionHubs = new Set<string>();
+  if (!config.heroes.enabled) disabledSectionHubs.add("/heroes");
+  if (!config.loadouts.enabled) disabledSectionHubs.add("/loadouts");
+  if (!config.schematics.enabled) disabledSectionHubs.add("/schematics");
+  if (!config.guides.enabled) disabledSectionHubs.add("/guides");
+
   const parts: string[] = [
     '<?xml version="1.0" encoding="UTF-8"?>',
     '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">',
   ];
   for (const hub of HUBS) {
+    if (disabledSectionHubs.has(hub)) continue;
     const alternates = SUPPORTED_LANGUAGES.map(
       (code) =>
         `    <xhtml:link rel="alternate" hreflang="${code}" href="${esc(SITE_URL + escPath(localize(hub, code)))}"/>`,
@@ -68,6 +80,18 @@ export async function buildSitemapXml(db: D1Database): Promise<string> {
       `  <url>\n    <loc>${esc(SITE_URL + escPath(hub))}</loc>\n${alternates}\n    <xhtml:link rel="alternate" hreflang="x-default" href="${esc(SITE_URL + escPath(hub))}"/>\n  </url>`,
     );
   }
+  const activeEntities: string[] = [];
+  if (config.heroes.enabled) activeEntities.push("hero");
+  if (config.loadouts.enabled) activeEntities.push("loadout");
+  if (config.schematics.enabled) activeEntities.push("schematic");
+  if (config.guides.enabled) activeEntities.push("article");
+
+  if (activeEntities.length === 0) {
+    parts.push("</urlset>");
+    return parts.join("\n");
+  }
+
+  const inPlaceholders = activeEntities.map(() => "?").join(",");
   const { results } = await db
     .prepare(
       `SELECT c.entity_type AS entity_type, t.slug AS slug, t.locale AS locale,
@@ -75,11 +99,12 @@ export async function buildSitemapXml(db: D1Database): Promise<string> {
        FROM cms_contents c
        JOIN cms_content_translations t ON t.content_id = c.id
        WHERE c.status = 'published'
-         AND c.entity_type IN ('hero','loadout','schematic','article')
+         AND c.entity_type IN (${inPlaceholders})
          AND t.translation_status = 'complete'
        ORDER BY c.entity_type ASC, c.updated_at DESC
        LIMIT 20000`,
     )
+    .bind(...activeEntities)
     .all<EntityUrlRow>();
   const byContent = new Map<string, EntityUrlRow[]>();
   for (const r of results) {

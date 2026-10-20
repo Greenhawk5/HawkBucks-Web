@@ -1,6 +1,8 @@
 import { createFileRoute, Outlet, useChildMatches } from "@tanstack/react-router";
 import { LoadoutsPage } from "@/components/cms/LoadoutsPage";
 import { listHubLoadouts } from "@/lib/cms/public-hubs.loader";
+import { getPublicFeatureStatus } from "@/lib/cms/feature-availability.loader";
+import { SectionUnavailableState } from "@/components/cms/SectionUnavailableState";
 import { LOADOUT_TYPES } from "@/lib/cms/heroes";
 import { parsePageParam, parseSearchParam, PUBLIC_PAGE_SIZE } from "@/lib/cms/public-content";
 import { translate } from "@/i18n/core";
@@ -25,6 +27,16 @@ export const Route = createFileRoute("/loadouts")({
   validateSearch: loadoutsSearch,
   loaderDeps: ({ search }) => search,
   loader: async ({ deps }) => {
+    const { config } = await getPublicFeatureStatus();
+    if (!config.loadouts.enabled) {
+      return {
+        available: false as const,
+        unavailableMessage: config.loadouts.message,
+        items: [],
+        total: 0,
+      };
+    }
+
     const loadoutType =
       typeof deps.type === "string" && (LOADOUT_TYPES as readonly string[]).includes(deps.type)
         ? deps.type
@@ -32,7 +44,7 @@ export const Route = createFileRoute("/loadouts")({
     const q = parseSearchParam(deps.q) ?? "";
     const sort = deps.sort === "name" || deps.sort === "recent" ? deps.sort : "editorial";
     const page = parsePageParam(deps.page);
-    return listHubLoadouts({
+    const hub = await listHubLoadouts({
       data: {
         locale: "en",
         ...(loadoutType === undefined ? {} : { loadoutType }),
@@ -42,9 +54,27 @@ export const Route = createFileRoute("/loadouts")({
         offset: (page - 1) * PUBLIC_PAGE_SIZE,
       },
     });
+
+    return {
+      available: true as const,
+      unavailableMessage: "",
+      ...hub,
+    };
   },
   head: (headArgs) => {
     if (hasChildMatch(headArgs)) return { meta: [], links: [] };
+    const loaderData = (headArgs as { loaderData?: { available?: boolean } }).loaderData;
+    if (loaderData?.available === false) {
+      return {
+        meta: [
+          { title: "Loadouts Temporarily Unavailable — HawkBucks" },
+          { name: "description", content: "The Loadouts section is temporarily unavailable." },
+          { name: "robots", content: "noindex, nofollow" },
+        ],
+        links: [],
+      };
+    }
+
     const lang = "en" as const;
     const self = canonicalUrlFor(localizePath("/loadouts", lang));
     const ogImage = `${canonicalUrlFor("/").replace(/\/$/, "")}/og-image.png`;
@@ -81,9 +111,15 @@ export const Route = createFileRoute("/loadouts")({
 
 function LoadoutsListing() {
   const search = Route.useSearch() as Record<string, unknown>;
-  const data = Route.useLoaderData() as { items: unknown[]; total: number } | undefined;
+  const data = Route.useLoaderData();
   // Parent of `/loadouts/$slug`: a child match must paint through the Outlet,
   // otherwise every loadout detail URL would render the hub instead.
   if (useChildMatches({ select: (m) => m.length > 0 })) return <Outlet />;
+  if (!data) return null;
+
+  if (data.available === false) {
+    return <SectionUnavailableState section="loadouts" message={data.unavailableMessage} />;
+  }
+
   return <LoadoutsPage locale="en" search={search} basePath="/loadouts" initial={data as never} />;
 }

@@ -7,6 +7,8 @@ import {
   localizeClusterHref,
 } from "@/lib/cms/editorial-clusters";
 import { listArticlesByTopic } from "@/lib/cms/public-articles.loader";
+import { getPublicFeatureStatus } from "@/lib/cms/feature-availability.loader";
+import { SectionUnavailableState } from "@/components/cms/SectionUnavailableState";
 import { toSafeHeadText } from "@/lib/cms/public-content";
 import { guideDetailPath, guideLocalizePath, guideTopicPath } from "@/lib/cms/guide-paths";
 import { resolveCmsSeo } from "@/lib/cms/seo";
@@ -23,18 +25,55 @@ type TopicArticleCard = { slug: string; title: string; excerpt: string };
  */
 export const Route = createFileRoute("/guides/topics/$topic")({
   loader: async ({ params }) => {
+    const { config } = await getPublicFeatureStatus();
+    if (!config.guides.enabled) {
+      return {
+        available: false as const,
+        unavailableMessage: config.guides.message,
+        cluster: null,
+        articles: [] as TopicArticleCard[],
+      };
+    }
     const cluster = getEditorialCluster(params.topic);
     if (!cluster) throw notFound();
     try {
       const topicFilter = clusterTopicFor(cluster.slug);
-      if (!topicFilter) return { cluster, articles: [] as TopicArticleCard[] };
+      if (!topicFilter)
+        return {
+          available: true as const,
+          unavailableMessage: "",
+          cluster,
+          articles: [] as TopicArticleCard[],
+        };
       const topic = await listArticlesByTopic({ data: { locale: "en", ...topicFilter } });
-      return { cluster, articles: topic.items ?? [] };
+      return {
+        available: true as const,
+        unavailableMessage: "",
+        cluster,
+        articles: topic.items ?? [],
+      };
     } catch {
-      return { cluster, articles: [] as TopicArticleCard[] };
+      return {
+        available: true as const,
+        unavailableMessage: "",
+        cluster,
+        articles: [] as TopicArticleCard[],
+      };
     }
   },
   head: ({ loaderData, params }) => {
+    const data = loaderData as { available?: boolean } | undefined;
+    if (data?.available === false) {
+      return {
+        meta: [
+          { title: "Guides Temporarily Unavailable — HawkBucks" },
+          { name: "description", content: "The Guides section is temporarily unavailable." },
+          { name: "robots", content: "noindex, nofollow" },
+        ],
+        links: [],
+      };
+    }
+
     const slug = (params as { topic?: string }).topic ?? "";
     const cluster =
       (loaderData as { cluster?: { title: string; description: string } } | undefined)?.cluster ??
@@ -92,10 +131,11 @@ export const Route = createFileRoute("/guides/topics/$topic")({
 });
 
 function TopicPage() {
-  const { cluster, articles } = Route.useLoaderData() as {
-    cluster: import("@/lib/cms/editorial-clusters").EditorialCluster;
-    articles: Array<{ slug: string; title: string; excerpt: string }>;
-  };
+  const data = Route.useLoaderData();
+  if (!data.available || !data.cluster) {
+    return <SectionUnavailableState section="guides" message={data.unavailableMessage} />;
+  }
+  const { cluster, articles } = data;
   return (
     <I18nProvider initialLanguage="en" fixedLanguage="en">
       <main className="mx-auto max-w-3xl px-4 py-10">

@@ -18,6 +18,8 @@ import {
 import { DEFAULT_LANGUAGE } from "@/lib/preferences";
 import { resolveLocale } from "@/i18n/config";
 import { listHubHeroes } from "@/lib/cms/public-hubs.loader";
+import { getPublicFeatureStatus } from "@/lib/cms/feature-availability.loader";
+import { SectionUnavailableState } from "@/components/cms/SectionUnavailableState";
 import {
   PUBLIC_PAGE_SIZE,
   parseHeroClassParam,
@@ -69,6 +71,18 @@ export const Route = createFileRoute("/$locale/heroes")({
   }),
   loaderDeps: ({ search }) => search,
   loader: async ({ params, deps }) => {
+    const { config } = await getPublicFeatureStatus();
+    if (!config.heroes.enabled) {
+      return {
+        available: false as const,
+        unavailableMessage: config.heroes.message,
+        items: [] as HubHeroRow[],
+        total: 0,
+        facets: { class: [], category: [], rarity: [], perk: [], ability: [] } as HeroFacetsResult,
+        classIcons: {} as Record<string, string>,
+      };
+    }
+
     const lang = parseLocaleParam((params as { locale?: unknown }).locale) ?? DEFAULT_LANGUAGE;
     const heroClass = parseHeroClassParam(deps.class);
     const rarity = parsePublicRarityParam(deps.rarity);
@@ -81,7 +95,7 @@ export const Route = createFileRoute("/$locale/heroes")({
         : null;
     const perks = parseFacetKeys(deps.perk);
     const abilities = parseFacetKeys(deps.ability);
-    return listHubHeroes({
+    const hub = await listHubHeroes({
       data: {
         locale: lang,
         ...(heroClass === null ? {} : { heroClass }),
@@ -96,9 +110,27 @@ export const Route = createFileRoute("/$locale/heroes")({
         withFacets: true,
       },
     });
+
+    return {
+      available: true as const,
+      unavailableMessage: "",
+      ...hub,
+    };
   },
   head: (ctx) => {
     if (hasChildMatch(ctx)) return { meta: [], links: [] };
+    const loaderData = (ctx as { loaderData?: { available?: boolean } }).loaderData;
+    if (loaderData?.available === false) {
+      return {
+        meta: [
+          { title: "Heroes Temporarily Unavailable — HawkBucks" },
+          { name: "description", content: "The Heroes section is temporarily unavailable." },
+          { name: "robots", content: "noindex, nofollow" },
+        ],
+        links: [],
+      };
+    }
+
     const param = (ctx.params as { locale?: unknown } | undefined)?.locale;
     const lang = parseLocaleParam(param) ?? DEFAULT_LANGUAGE;
     const self = canonicalUrlFor(localizePath("/heroes", lang));
@@ -139,20 +171,18 @@ function LocalizedHeroesListing() {
   const { locale } = Route.useParams() as { locale?: unknown };
   const lang = parseLocaleParam(locale) ?? DEFAULT_LANGUAGE;
   const search = Route.useSearch() as Record<string, unknown>;
-  const data = Route.useLoaderData() as
-    | {
-        items: HubHeroRow[];
-        total: number;
-        facets: HeroFacetsResult;
-        classIcons?: Record<string, string>;
-      }
-    | undefined;
+  const data = Route.useLoaderData();
   const [mode, setMode] = React.useState<"compact" | "reference">("compact");
   // This hub route is the PARENT of its detail route, so a child match must
   // paint through the Outlet; rendering the listing unconditionally made every
   // detail URL show the hub instead of the entity.
   if (useChildMatches({ select: (m) => m.length > 0 })) return <Outlet />;
   if (!data) return null;
+
+  if (!data.available) {
+    return <SectionUnavailableState section="heroes" message={data.unavailableMessage} />;
+  }
+
   const basePath = lang === "en" ? "/heroes" : `/${lang}/heroes`;
   return (
     <I18nProvider initialLanguage={lang} fixedLanguage={lang}>

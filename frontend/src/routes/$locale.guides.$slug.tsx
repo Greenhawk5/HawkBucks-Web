@@ -3,6 +3,8 @@ import { I18nProvider } from "@/i18n/context";
 import { ArticleBody } from "@/components/cms/ArticleBody";
 import { validateArticleDocument } from "@/lib/cms/articles";
 import { getPublicArticle } from "@/lib/cms/public-articles.loader";
+import { getPublicFeatureStatus } from "@/lib/cms/feature-availability.loader";
+import { SectionUnavailableState } from "@/components/cms/SectionUnavailableState";
 import {
   buildArticleJsonLd,
   entityHreflangAlternates,
@@ -41,12 +43,21 @@ export const Route = createFileRoute("/$locale/guides/$slug")({
   },
   loader: async ({ params }) => {
     const lang = parseLocaleParam((params as { locale?: unknown }).locale) ?? DEFAULT_LANGUAGE;
+    const { config } = await getPublicFeatureStatus();
+    if (!config.guides.enabled) {
+      return {
+        available: false as const,
+        unavailableMessage: config.guides.message,
+        article: null,
+        lang,
+      };
+    }
     try {
       const { article } = await getPublicArticle({
         data: { locale: lang, slug: (params as { slug?: string }).slug ?? "" },
       });
       if (!article) throw notFound();
-      return { article, lang };
+      return { available: true as const, unavailableMessage: "", article, lang };
     } catch {
       throw notFound();
     }
@@ -54,23 +65,37 @@ export const Route = createFileRoute("/$locale/guides/$slug")({
   head: ({ loaderData, params }) => {
     const lang =
       parseLocaleParam((params as { locale?: unknown } | undefined)?.locale) ?? DEFAULT_LANGUAGE;
-    const article = (
-      loaderData as
-        | {
-            article?: {
-              slug: string;
-              title: string;
-              excerpt: string;
-              seoTitle: string | null;
-              seoDescription: string | null;
-              imageUrl: string | null;
-              updatedAt: string;
-              completeLocales?: string[];
-              slugsByLocale?: Record<string, string>;
-            };
-          }
-        | undefined
-    )?.article;
+    const data = loaderData as
+      | {
+          available?: boolean;
+          unavailableMessage?: string;
+          article?: {
+            slug: string;
+            title: string;
+            excerpt: string;
+            seoTitle: string | null;
+            seoDescription: string | null;
+            imageUrl: string | null;
+            updatedAt: string;
+            completeLocales?: string[];
+            slugsByLocale?: Record<string, string>;
+          } | null;
+        }
+      | undefined;
+
+    if (data?.available === false) {
+      return {
+        meta: [
+          { title: "Guide Temporarily Unavailable — HawkBucks" },
+          { name: "description", content: "The Guides section is temporarily unavailable." },
+          { name: "robots", content: "noindex, nofollow" },
+        ],
+        links: [],
+        scripts: [],
+      };
+    }
+
+    const article = data?.article;
     const enPath = article ? guideDetailPath(article.slug) : "/guides";
     const path = article ? (lang === "en" ? enPath : `/${lang}${enPath}`) : "/guides";
     const seo = resolveCmsSeo({
@@ -142,10 +167,15 @@ export const Route = createFileRoute("/$locale/guides/$slug")({
 });
 
 function LocalizedGuideDetailRoute() {
-  const { article, lang } = Route.useLoaderData() as {
-    article: import("@/lib/cms/public-articles.loader").PublicArticleDetail;
-    lang: string;
-  };
+  const data = Route.useLoaderData();
+  if (!data.available || !data.article) {
+    return (
+      <I18nProvider initialLanguage={data.lang as never} fixedLanguage={data.lang as never}>
+        <SectionUnavailableState section="guides" message={data.unavailableMessage} />
+      </I18nProvider>
+    );
+  }
+  const { article, lang } = data;
   let doc = null as null | ReturnType<typeof validateArticleDocument>;
   try {
     doc = validateArticleDocument(article.bodyJson);

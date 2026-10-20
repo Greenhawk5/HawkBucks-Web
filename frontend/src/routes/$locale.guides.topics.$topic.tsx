@@ -7,6 +7,8 @@ import {
   localizeClusterHref,
 } from "@/lib/cms/editorial-clusters";
 import { listArticlesByTopic } from "@/lib/cms/public-articles.loader";
+import { getPublicFeatureStatus } from "@/lib/cms/feature-availability.loader";
+import { SectionUnavailableState } from "@/components/cms/SectionUnavailableState";
 import { toSafeHeadText } from "@/lib/cms/public-content";
 import { guideDetailPath, guideLocalizePath, guideTopicPath } from "@/lib/cms/guide-paths";
 import { resolveCmsSeo } from "@/lib/cms/seo";
@@ -40,6 +42,16 @@ export const Route = createFileRoute("/$locale/guides/topics/$topic")({
   },
   loader: async ({ params }) => {
     const lang = parseLocaleParam((params as { locale?: unknown }).locale) ?? DEFAULT_LANGUAGE;
+    const { config } = await getPublicFeatureStatus();
+    if (!config.guides.enabled) {
+      return {
+        available: false as const,
+        unavailableMessage: config.guides.message,
+        cluster: null,
+        articles: [] as Array<{ slug: string; title: string; excerpt: string }>,
+        lang,
+      };
+    }
     const topic = (params as { topic?: string }).topic ?? "";
     const cluster = getEditorialCluster(topic);
     if (!cluster) throw notFound();
@@ -47,14 +59,24 @@ export const Route = createFileRoute("/$locale/guides/topics/$topic")({
       const topicFilter = clusterTopicFor(cluster.slug);
       if (!topicFilter)
         return {
+          available: true as const,
+          unavailableMessage: "",
           cluster,
           articles: [] as Array<{ slug: string; title: string; excerpt: string }>,
           lang,
         };
       const result = await listArticlesByTopic({ data: { locale: lang, ...topicFilter } });
-      return { cluster, articles: result.items ?? [], lang };
+      return {
+        available: true as const,
+        unavailableMessage: "",
+        cluster,
+        articles: result.items ?? [],
+        lang,
+      };
     } catch {
       return {
+        available: true as const,
+        unavailableMessage: "",
         cluster,
         articles: [] as Array<{ slug: string; title: string; excerpt: string }>,
         lang,
@@ -62,6 +84,18 @@ export const Route = createFileRoute("/$locale/guides/topics/$topic")({
     }
   },
   head: ({ loaderData, params }) => {
+    const data = loaderData as { available?: boolean } | undefined;
+    if (data?.available === false) {
+      return {
+        meta: [
+          { title: "Guides Temporarily Unavailable — HawkBucks" },
+          { name: "description", content: "The Guides section is temporarily unavailable." },
+          { name: "robots", content: "noindex, nofollow" },
+        ],
+        links: [],
+      };
+    }
+
     const lang =
       parseLocaleParam((params as { locale?: unknown } | undefined)?.locale) ?? DEFAULT_LANGUAGE;
     const slug = (params as { topic?: string }).topic ?? "";
@@ -120,11 +154,15 @@ export const Route = createFileRoute("/$locale/guides/topics/$topic")({
 });
 
 function LocalizedTopicPage() {
-  const { cluster, articles, lang } = Route.useLoaderData() as {
-    cluster: import("@/lib/cms/editorial-clusters").EditorialCluster;
-    articles: Array<{ slug: string; title: string; excerpt: string }>;
-    lang: string;
-  };
+  const data = Route.useLoaderData();
+  if (!data.available || !data.cluster) {
+    return (
+      <I18nProvider initialLanguage={data.lang as never} fixedLanguage={data.lang as never}>
+        <SectionUnavailableState section="guides" message={data.unavailableMessage} />
+      </I18nProvider>
+    );
+  }
+  const { cluster, articles, lang } = data;
   return (
     <I18nProvider initialLanguage={lang as never} fixedLanguage={lang as never}>
       <main className="mx-auto max-w-3xl px-4 py-10">

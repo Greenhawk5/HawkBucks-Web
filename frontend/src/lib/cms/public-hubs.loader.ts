@@ -178,6 +178,8 @@ export const listHubHeroes = createServerFn({ method: "GET" })
       const sort = parseHeroSort(data.sort);
       const { limit, offset } = parseListPaging(data);
       const { db, env } = await resolveRequestCmsDb();
+      const { assertFeatureEnabled } = await import("./feature-availability.server");
+      await assertFeatureEnabled("heroes", db, env);
       const { withPublicCache } = await import("./public-cache.server");
       // Public data cache (Layer 1): hub payloads are cookie-free and
       // shareable across visitors; args enter the key verbatim (post-
@@ -469,6 +471,8 @@ export const listHubSchematics = createServerFn({ method: "GET" })
     const sort = data.sort === "name" || data.sort === "recent" ? data.sort : "editorial";
     const { limit, offset } = parseListPaging(data);
     const { db, env } = await resolveRequestCmsDb();
+    const { assertFeatureEnabled } = await import("./feature-availability.server");
+    await assertFeatureEnabled("schematics", db, env);
     const { withPublicCache } = await import("./public-cache.server");
     // Public data cache (Layer 1) — see public-cache.server.ts.
     return withPublicCache({
@@ -582,6 +586,8 @@ export const listHubLoadouts = createServerFn({ method: "GET" })
     const sort = data.sort === "name" || data.sort === "recent" ? data.sort : "editorial";
     const { limit, offset } = parseListPaging(data);
     const { db, env } = await resolveRequestCmsDb();
+    const { assertFeatureEnabled } = await import("./feature-availability.server");
+    await assertFeatureEnabled("loadouts", db, env);
     const { withPublicCache } = await import("./public-cache.server");
     // Public data cache (Layer 1) — see public-cache.server.ts.
     return withPublicCache({
@@ -687,6 +693,8 @@ export const listHubGuides = createServerFn({ method: "GET" })
     const q = normalizeSearchQuery(data.search);
     const { limit, offset } = parseListPaging(data);
     const { db, env } = await resolveRequestCmsDb();
+    const { assertFeatureEnabled } = await import("./feature-availability.server");
+    await assertFeatureEnabled("guides", db, env);
     const { withPublicCache } = await import("./public-cache.server");
     // Public data cache (Layer 1) — see public-cache.server.ts.
     return withPublicCache({

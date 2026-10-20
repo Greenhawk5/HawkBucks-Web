@@ -47,6 +47,8 @@ export const getHeroQuickView = createServerFn({ method: "GET" })
     const slug = typeof data.slug === "string" ? data.slug.trim() : "";
     if (slug === "") return { hero: null };
     const { db, env } = await resolveRequestCmsDb();
+    const { assertFeatureEnabled } = await import("./feature-availability.server");
+    await assertFeatureEnabled("heroes", db, env);
     const { withPublicCache } = await import("./public-cache.server");
     // Public data cache (Layer 1) — see public-cache.server.ts.
     return withPublicCache({

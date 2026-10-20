@@ -1,6 +1,8 @@
 import { createFileRoute, Outlet, useChildMatches } from "@tanstack/react-router";
 import { SchematicsPage } from "@/components/cms/SchematicsPage";
 import { listHubSchematics } from "@/lib/cms/public-hubs.loader";
+import { getPublicFeatureStatus } from "@/lib/cms/feature-availability.loader";
+import { SectionUnavailableState } from "@/components/cms/SectionUnavailableState";
 import { parsePageParam, parseSearchParam, PUBLIC_PAGE_SIZE } from "@/lib/cms/public-content";
 import { isWeaponSubtype } from "@/lib/cms/schematics";
 import { parsePublicRarityParam, parseTrapPlacementParam } from "@/lib/cms/taxonomy";
@@ -27,6 +29,16 @@ export const Route = createFileRoute("/schematics")({
   validateSearch: schematicsSearch,
   loaderDeps: ({ search }) => search,
   loader: async ({ deps }) => {
+    const { config } = await getPublicFeatureStatus();
+    if (!config.schematics.enabled) {
+      return {
+        available: false as const,
+        unavailableMessage: config.schematics.message,
+        items: [],
+        total: 0,
+      };
+    }
+
     const kind = deps.type === "weapon" || deps.type === "trap" ? deps.type : undefined;
     const weaponSubtype =
       typeof deps.subtype === "string" && isWeaponSubtype(deps.subtype) ? deps.subtype : undefined;
@@ -35,7 +47,7 @@ export const Route = createFileRoute("/schematics")({
     const q = parseSearchParam(deps.q) ?? "";
     const sort = deps.sort === "name" || deps.sort === "recent" ? deps.sort : "editorial";
     const page = parsePageParam(deps.page);
-    return listHubSchematics({
+    const hub = await listHubSchematics({
       data: {
         locale: "en",
         ...(kind === undefined ? {} : { kind }),
@@ -48,9 +60,26 @@ export const Route = createFileRoute("/schematics")({
         offset: (page - 1) * PUBLIC_PAGE_SIZE,
       },
     });
+
+    return {
+      available: true as const,
+      unavailableMessage: "",
+      ...hub,
+    };
   },
   head: (headArgs) => {
     if (hasChildMatch(headArgs)) return { meta: [], links: [] };
+    const loaderData = (headArgs as { loaderData?: { available?: boolean } }).loaderData;
+    if (loaderData?.available === false) {
+      return {
+        meta: [
+          { title: "Schematics Temporarily Unavailable — HawkBucks" },
+          { name: "description", content: "The Schematics section is temporarily unavailable." },
+          { name: "robots", content: "noindex, nofollow" },
+        ],
+        links: [],
+      };
+    }
     return buildHubHead({
       basePath: "/schematics",
       locale: "en",
@@ -65,10 +94,16 @@ export const Route = createFileRoute("/schematics")({
 
 function SchematicsListing() {
   const search = Route.useSearch() as Record<string, unknown>;
-  const data = Route.useLoaderData() as { items: unknown[]; total: number } | undefined;
+  const data = Route.useLoaderData();
   // Parent of `/schematics/$slug`: a child match must paint through the Outlet,
   // otherwise every schematic detail URL would render the hub instead.
   if (useChildMatches({ select: (m) => m.length > 0 })) return <Outlet />;
+  if (!data) return null;
+
+  if (!data.available) {
+    return <SectionUnavailableState section="schematics" message={data.unavailableMessage} />;
+  }
+
   return (
     <SchematicsPage locale="en" search={search} basePath="/schematics" initial={data as never} />
   );

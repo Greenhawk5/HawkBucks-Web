@@ -68,7 +68,9 @@ export const listPublicHeroes = createServerFn({ method: "GET" })
     const sort = data.sort === "popularity" || data.sort === "name" ? data.sort : "editorial";
     const limit = clamp(typeof data.limit === "number" ? data.limit : 100, 1, 100);
     const offset = clamp(typeof data.offset === "number" ? data.offset : 0, 0, 100000);
-    const { db } = await resolveRequestCmsDb();
+    const { db, env } = await resolveRequestCmsDb();
+    const { assertFeatureEnabled } = await import("./feature-availability.server");
+    await assertFeatureEnabled("heroes", db, env);
     const rows = await listPublishedHeroes(
       db,
       heroClass === undefined
@@ -131,7 +133,9 @@ export const listPublicLoadouts = createServerFn({ method: "GET" })
     const q = typeof data.search === "string" ? data.search.trim().toLowerCase().slice(0, 120) : "";
     const limit = clamp(typeof data.limit === "number" ? data.limit : 100, 1, 100);
     const offset = clamp(typeof data.offset === "number" ? data.offset : 0, 0, 100000);
-    const { db } = await resolveRequestCmsDb();
+    const { db, env } = await resolveRequestCmsDb();
+    const { assertFeatureEnabled } = await import("./feature-availability.server");
+    await assertFeatureEnabled("loadouts", db, env);
     const rows = await listPublishedLoadouts(db, { locale, limit: 100, offset: 0 });
     let items: PublicLoadoutItem[] = [];
     for (const r of rows) {
