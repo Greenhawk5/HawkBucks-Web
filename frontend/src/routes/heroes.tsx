@@ -5,6 +5,8 @@ import type { HubHeroRow } from "@/lib/cms/public-hubs.loader";
 import { HeroListItemListJsonLd } from "@/components/heroes/HeroListJsonLd";
 import { parseFacetKeys, parseHeroSort } from "@/lib/cms/hero-reference";
 import { listHubHeroes } from "@/lib/cms/public-hubs.loader";
+import { getPublicFeatureStatus } from "@/lib/cms/feature-availability.loader";
+import { SectionUnavailableState } from "@/components/cms/SectionUnavailableState";
 import {
   PUBLIC_PAGE_SIZE,
   parseHeroClassParam,
@@ -70,6 +72,18 @@ export const Route = createFileRoute("/heroes")({
   validateSearch: heroesSearch,
   loaderDeps: ({ search }) => search,
   loader: async ({ deps }) => {
+    const { config } = await getPublicFeatureStatus();
+    if (!config.heroes.enabled) {
+      return {
+        available: false as const,
+        unavailableMessage: config.heroes.message,
+        items: [] as HubHeroRow[],
+        total: 0,
+        facets: { class: [], category: [], rarity: [], perk: [], ability: [] } as HeroFacetsResult,
+        classIcons: {} as Record<string, string>,
+      };
+    }
+
     const heroClass = parseHeroClassParam(deps.class);
     const rarity = parsePublicRarityParam(deps.rarity);
     const q = parseSearchParam(deps.q) ?? "";
@@ -81,7 +95,7 @@ export const Route = createFileRoute("/heroes")({
         : null;
     const perks = parseFacetKeys(deps.perk);
     const abilities = parseFacetKeys(deps.ability);
-    return listHubHeroes({
+    const hub = await listHubHeroes({
       data: {
         locale: "en",
         ...(heroClass === null ? {} : { heroClass }),
@@ -96,9 +110,26 @@ export const Route = createFileRoute("/heroes")({
         withFacets: true,
       },
     });
+
+    return {
+      available: true as const,
+      unavailableMessage: "",
+      ...hub,
+    };
   },
   head: (headArgs) => {
     if (hasChildMatch(headArgs)) return { meta: [], links: [] };
+    const loaderData = (headArgs as { loaderData?: { available?: boolean } }).loaderData;
+    if (loaderData?.available === false) {
+      return {
+        meta: [
+          { title: "Heroes Temporarily Unavailable — HawkBucks" },
+          { name: "description", content: "The Heroes section is temporarily unavailable." },
+          { name: "robots", content: "noindex, nofollow" },
+        ],
+        links: [],
+      };
+    }
     const lang = "en" as const;
     const self = canonicalUrlFor(localizePath("/heroes", lang));
     const ogImage = `${canonicalUrlFor("/").replace(/\/$/, "")}/og-image.png`;
@@ -139,14 +170,7 @@ export const Route = createFileRoute("/heroes")({
 
 function HeroesListing() {
   const search = Route.useSearch() as Record<string, unknown>;
-  const data = Route.useLoaderData() as
-    | {
-        items: HubHeroRow[];
-        total: number;
-        facets: HeroFacetsResult;
-        classIcons?: Record<string, string>;
-      }
-    | undefined;
+  const data = Route.useLoaderData();
   const [mode, setMode] = React.useState<"compact" | "reference">("compact");
   // `/heroes` is the PARENT of `/heroes/$slug`, so a child match (the detail
   // page) must paint through this route's Outlet. Rendering the listing
@@ -155,6 +179,11 @@ function HeroesListing() {
   // hides only while a detail route owns the content area.
   if (useChildMatches({ select: (m) => m.length > 0 })) return <Outlet />;
   if (!data) return null;
+
+  if (!data.available) {
+    return <SectionUnavailableState section="heroes" message={data.unavailableMessage} />;
+  }
+
   return (
     <>
       <HeroesPage

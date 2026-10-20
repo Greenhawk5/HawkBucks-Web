@@ -2,6 +2,8 @@ import { createFileRoute, notFound } from "@tanstack/react-router";
 import { SchematicDetail } from "@/components/cms/SchematicDetail";
 import { I18nProvider } from "@/i18n/context";
 import { getPublicSchematic } from "@/lib/cms/public-schematic-detail.loader";
+import { getPublicFeatureStatus } from "@/lib/cms/feature-availability.loader";
+import { SectionUnavailableState } from "@/components/cms/SectionUnavailableState";
 import {
   buildSchematicJsonLd,
   schematicDetailPath,
@@ -13,33 +15,55 @@ import { SITE_URL } from "@/lib/site";
 
 export const Route = createFileRoute("/schematics/$slug")({
   loader: async ({ params }) => {
+    const { config } = await getPublicFeatureStatus();
+    if (!config.schematics.enabled) {
+      return {
+        available: false as const,
+        unavailableMessage: config.schematics.message,
+        schematic: null,
+      };
+    }
     try {
       const { schematic } = await getPublicSchematic({
         data: { locale: "en", slug: params.slug },
       });
       if (!schematic) throw notFound();
-      return { schematic };
+      return { available: true as const, unavailableMessage: "", schematic };
     } catch {
       throw notFound();
     }
   },
   head: ({ loaderData }) => {
-    const schematic = (
-      loaderData as
-        | {
-            schematic?: {
-              title: string;
-              description: string;
-              slug: string;
-              iconUrl: string | null;
-              kind: string;
-              completeLocales?: string[];
-              slugsByLocale?: Record<string, string>;
-              perks?: Array<{ name?: unknown }>;
-            };
-          }
-        | undefined
-    )?.schematic;
+    const data = loaderData as
+      | {
+          available?: boolean;
+          unavailableMessage?: string;
+          schematic?: {
+            title: string;
+            description: string;
+            slug: string;
+            iconUrl: string | null;
+            kind: string;
+            completeLocales?: string[];
+            slugsByLocale?: Record<string, string>;
+            perks?: Array<{ name?: unknown }>;
+          } | null;
+        }
+      | undefined;
+
+    if (data?.available === false) {
+      return {
+        meta: [
+          { title: "Schematic Temporarily Unavailable — HawkBucks" },
+          { name: "description", content: "The Schematics section is temporarily unavailable." },
+          { name: "robots", content: "noindex, nofollow" },
+        ],
+        links: [],
+        scripts: [],
+      };
+    }
+
+    const schematic = data?.schematic;
     if (!schematic) {
       return {
         meta: [
@@ -85,12 +109,13 @@ export const Route = createFileRoute("/schematics/$slug")({
 });
 
 function SchematicDetailRoute() {
-  const { schematic } = Route.useLoaderData() as {
-    schematic: import("@/lib/cms/public-schematic-detail.loader").PublicSchematicDetail;
-  };
+  const data = Route.useLoaderData();
+  if (!data.available || !data.schematic) {
+    return <SectionUnavailableState section="schematics" message={data.unavailableMessage} />;
+  }
   return (
     <I18nProvider initialLanguage="en" fixedLanguage="en">
-      <SchematicDetail schematic={schematic} locale="en" backHref="/schematics" />
+      <SchematicDetail schematic={data.schematic as never} locale="en" backHref="/schematics" />
     </I18nProvider>
   );
 }

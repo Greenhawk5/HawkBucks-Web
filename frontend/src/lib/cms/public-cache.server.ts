@@ -87,7 +87,7 @@ const MAX_VALUE_BYTES = 1_500_000;
 
 interface CacheableKv {
   get(key: string, options?: { cacheTtl?: number }): Promise<string | null>;
-  put(key: string, value: string): Promise<void>;
+  put(key: string, value: string, options?: { expirationTtl?: number }): Promise<void>;
 }
 
 /** Structural view of the environment fields used by this module. */

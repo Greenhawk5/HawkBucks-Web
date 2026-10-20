@@ -89,6 +89,8 @@ export const getPublicHero = createServerFn({ method: "GET" })
     const slug = typeof data.slug === "string" ? data.slug.trim() : "";
     if (slug === "") return { hero: null };
     const { db, env } = await resolveRequestCmsDb();
+    const { assertFeatureEnabled } = await import("./feature-availability.server");
+    await assertFeatureEnabled("heroes", db, env);
     const { withPublicCache } = await import("./public-cache.server");
     // Public data cache (Layer 1) — see public-cache.server.ts.
     return withPublicCache({
@@ -154,53 +156,57 @@ export const getPublicHero = createServerFn({ method: "GET" })
         const ref = reference.get(contentId) ?? { perks: [], abilities: [], progression: null };
 
         // ---- 5. related loadouts in ONE join (was 3 queries per loadout) ----
-        // Fallback: requested -> default_locale -> English; untranslated loadouts
-        // stay visible instead of dropping out of the rail.
-        const { results: loadoutRows } = await db
-          .prepare(
-            `SELECT lr.content_id AS content_id,
-                    COALESCE(NULLIF(t.slug,''), NULLIF(td.slug,''), te.slug) AS slug,
-                    COALESCE(NULLIF(t.title,''), NULLIF(td.title,''), te.title) AS title,
-                    COALESCE(NULLIF(t.body,''), NULLIF(td.body,''), te.body) AS body,
-                    COALESCE(t.translation_status, td.translation_status, te.translation_status) AS translation_status,
-                    lr.loadout_type AS loadout_type, lr.popularity AS popularity,
-                    lr.sort_order AS sort_order, lm.delivery_url AS image_url
-               FROM loadout_heroes lh
-               JOIN loadout_records lr ON lr.content_id = lh.loadout_content_id
-               JOIN cms_contents c ON c.id = lr.content_id AND c.status = 'published'
-               LEFT JOIN cms_content_translations t ON t.content_id = lr.content_id AND t.locale = ?
-               LEFT JOIN cms_content_translations td ON td.content_id = lr.content_id AND td.locale = c.default_locale
-               LEFT JOIN cms_content_translations te ON te.content_id = lr.content_id AND te.locale = 'en'
-               LEFT JOIN media_assets lm ON lm.id = lr.cover_asset_id AND lm.status = 'ready'
-              WHERE lh.hero_content_id = ?
-                AND (t.id IS NOT NULL OR td.id IS NOT NULL OR te.id IS NOT NULL)
-              ORDER BY lr.sort_order ASC, lr.popularity DESC
-              LIMIT 6`,
-          )
-          .bind(locale, contentId)
-          .all<{
-            content_id: string;
-            slug: string;
-            title: string;
-            body: string;
-            translation_status: string;
-            loadout_type: string;
-            popularity: number;
-            sort_order: number;
-            image_url: string | null;
-          }>();
-        const relatedLoadouts: PublicLoadoutItem[] = loadoutRows.map((r) => ({
-          contentId: r.content_id,
-          slug: String(r.slug ?? ""),
-          title: String(r.title ?? ""),
-          description: String(r.body ?? ""),
-          loadoutType: String(r.loadout_type ?? "custom"),
-          popularity: Number(r.popularity ?? 0),
-          sortOrder: Number(r.sort_order ?? 0),
-          // The old path hardcoded imageUrl: null, discarding cover_asset_id.
-          imageUrl: r.image_url ?? null,
-          translationStatus: String(r.translation_status ?? "draft"),
-        }));
+        // If loadouts section is disabled, avoid executing loadout queries
+        const { isFeatureEnabled } = await import("./feature-availability.server");
+        const loadoutsStatus = await isFeatureEnabled("loadouts", db, env);
+        let relatedLoadouts: PublicLoadoutItem[] = [];
+        if (loadoutsStatus.enabled) {
+          const { results: loadoutRows } = await db
+            .prepare(
+              `SELECT lr.content_id AS content_id,
+                      COALESCE(NULLIF(t.slug,''), NULLIF(td.slug,''), te.slug) AS slug,
+                      COALESCE(NULLIF(t.title,''), NULLIF(td.title,''), te.title) AS title,
+                      COALESCE(NULLIF(t.body,''), NULLIF(td.body,''), te.body) AS body,
+                      COALESCE(t.translation_status, td.translation_status, te.translation_status) AS translation_status,
+                      lr.loadout_type AS loadout_type, lr.popularity AS popularity,
+                      lr.sort_order AS sort_order, lm.delivery_url AS image_url
+                 FROM loadout_heroes lh
+                 JOIN loadout_records lr ON lr.content_id = lh.loadout_content_id
+                 JOIN cms_contents c ON c.id = lr.content_id AND c.status = 'published'
+                 LEFT JOIN cms_content_translations t ON t.content_id = lr.content_id AND t.locale = ?
+                 LEFT JOIN cms_content_translations td ON td.content_id = lr.content_id AND td.locale = c.default_locale
+                 LEFT JOIN cms_content_translations te ON te.content_id = lr.content_id AND te.locale = 'en'
+                 LEFT JOIN media_assets lm ON lm.id = lr.cover_asset_id AND lm.status = 'ready'
+                WHERE lh.hero_content_id = ?
+                  AND (t.id IS NOT NULL OR td.id IS NOT NULL OR te.id IS NOT NULL)
+                ORDER BY lr.sort_order ASC, lr.popularity DESC
+                LIMIT 6`,
+            )
+            .bind(locale, contentId)
+            .all<{
+              content_id: string;
+              slug: string;
+              title: string;
+              body: string;
+              translation_status: string;
+              loadout_type: string;
+              popularity: number;
+              sort_order: number;
+              image_url: string | null;
+            }>();
+          relatedLoadouts = loadoutRows.map((r) => ({
+            contentId: r.content_id,
+            slug: String(r.slug ?? ""),
+            title: String(r.title ?? ""),
+            description: String(r.body ?? ""),
+            loadoutType: String(r.loadout_type ?? "custom"),
+            popularity: Number(r.popularity ?? 0),
+            sortOrder: Number(r.sort_order ?? 0),
+            // The old path hardcoded imageUrl: null, discarding cover_asset_id.
+            imageUrl: r.image_url ?? null,
+            translationStatus: String(r.translation_status ?? "draft"),
+          }));
+        }
 
         // ---- 6. related heroes: curated first, then deterministic similarity ----
         // The class glyph resolves through the icon registry with the same

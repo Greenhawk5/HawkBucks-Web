@@ -3,6 +3,8 @@ import { LoadoutDetail } from "@/components/cms/LoadoutDetail";
 import { I18nProvider } from "@/i18n/context";
 import { jsonLdScript } from "@/lib/seo";
 import { getPublicLoadout } from "@/lib/cms/public-loadout-detail.loader";
+import { getPublicFeatureStatus } from "@/lib/cms/feature-availability.loader";
+import { SectionUnavailableState } from "@/components/cms/SectionUnavailableState";
 import {
   buildLoadoutJsonLd,
   entityHreflangAlternates,
@@ -38,12 +40,21 @@ export const Route = createFileRoute("/$locale/loadouts/$slug")({
   },
   loader: async ({ params }) => {
     const lang = parseLocaleParam((params as { locale?: unknown }).locale) ?? DEFAULT_LANGUAGE;
+    const { config } = await getPublicFeatureStatus();
+    if (!config.loadouts.enabled) {
+      return {
+        available: false as const,
+        unavailableMessage: config.loadouts.message,
+        loadout: null,
+        lang,
+      };
+    }
     try {
       const { loadout } = await getPublicLoadout({
         data: { locale: lang, slug: (params as { slug?: string }).slug ?? "" },
       });
       if (!loadout) throw notFound();
-      return { loadout, lang };
+      return { available: true as const, unavailableMessage: "", loadout, lang };
     } catch {
       throw notFound();
     }
@@ -51,20 +62,34 @@ export const Route = createFileRoute("/$locale/loadouts/$slug")({
   head: ({ loaderData, params }) => {
     const lang =
       parseLocaleParam((params as { locale?: unknown } | undefined)?.locale) ?? DEFAULT_LANGUAGE;
-    const loadout = (
-      loaderData as
-        | {
-            loadout?: {
-              title: string;
-              description: string;
-              slug: string;
-              imageUrl: string | null;
-              completeLocales?: string[];
-              slugsByLocale?: Record<string, string>;
-            };
-          }
-        | undefined
-    )?.loadout;
+    const data = loaderData as
+      | {
+          available?: boolean;
+          unavailableMessage?: string;
+          loadout?: {
+            title: string;
+            description: string;
+            slug: string;
+            imageUrl: string | null;
+            completeLocales?: string[];
+            slugsByLocale?: Record<string, string>;
+          } | null;
+        }
+      | undefined;
+
+    if (data?.available === false) {
+      return {
+        meta: [
+          { title: "Loadout Temporarily Unavailable — HawkBucks" },
+          { name: "description", content: "The Loadouts section is temporarily unavailable." },
+          { name: "robots", content: "noindex, nofollow" },
+        ],
+        links: [],
+        scripts: [],
+      };
+    }
+
+    const loadout = data?.loadout;
     const seo = resolveCmsSeo({
       status: loadout ? "published" : "draft",
       publicPath: loadout
@@ -144,16 +169,20 @@ export const Route = createFileRoute("/$locale/loadouts/$slug")({
   component: LocalizedLoadoutDetailRoute,
 });
 function LocalizedLoadoutDetailRoute() {
-  const { loadout, lang } = Route.useLoaderData() as {
-    loadout: import("@/lib/cms/public-loadout-detail.loader").PublicLoadoutDetail;
-    lang: string;
-  };
+  const data = Route.useLoaderData();
+  if (!data.available || !data.loadout) {
+    return (
+      <I18nProvider initialLanguage={data.lang as never} fixedLanguage={data.lang as never}>
+        <SectionUnavailableState section="loadouts" message={data.unavailableMessage} />
+      </I18nProvider>
+    );
+  }
   return (
-    <I18nProvider initialLanguage={lang as never} fixedLanguage={lang as never}>
+    <I18nProvider initialLanguage={data.lang as never} fixedLanguage={data.lang as never}>
       <LoadoutDetail
-        loadout={loadout}
-        locale={lang}
-        backHref={lang === "en" ? "/loadouts" : `/${lang}/loadouts`}
+        loadout={data.loadout as never}
+        locale={data.lang}
+        backHref={data.lang === "en" ? "/loadouts" : `/${data.lang}/loadouts`}
       />
     </I18nProvider>
   );

@@ -3,6 +3,8 @@ import { LoadoutDetail } from "@/components/cms/LoadoutDetail";
 import { I18nProvider } from "@/i18n/context";
 import { jsonLdScript } from "@/lib/seo";
 import { getPublicLoadout } from "@/lib/cms/public-loadout-detail.loader";
+import { getPublicFeatureStatus } from "@/lib/cms/feature-availability.loader";
+import { SectionUnavailableState } from "@/components/cms/SectionUnavailableState";
 import {
   buildLoadoutJsonLd,
   entityHreflangAlternates,
@@ -15,29 +17,51 @@ import { SITE_URL } from "@/lib/site";
 
 export const Route = createFileRoute("/loadouts/$slug")({
   loader: async ({ params }) => {
+    const { config } = await getPublicFeatureStatus();
+    if (!config.loadouts.enabled) {
+      return {
+        available: false as const,
+        unavailableMessage: config.loadouts.message,
+        loadout: null,
+      };
+    }
     try {
       const { loadout } = await getPublicLoadout({ data: { locale: "en", slug: params.slug } });
       if (!loadout) throw notFound();
-      return { loadout };
+      return { available: true as const, unavailableMessage: "", loadout };
     } catch {
       throw notFound();
     }
   },
   head: ({ loaderData }) => {
-    const loadout = (
-      loaderData as
-        | {
-            loadout?: {
-              title: string;
-              description: string;
-              slug: string;
-              imageUrl: string | null;
-              completeLocales?: string[];
-              slugsByLocale?: Record<string, string>;
-            };
-          }
-        | undefined
-    )?.loadout;
+    const data = loaderData as
+      | {
+          available?: boolean;
+          unavailableMessage?: string;
+          loadout?: {
+            title: string;
+            description: string;
+            slug: string;
+            imageUrl: string | null;
+            completeLocales?: string[];
+            slugsByLocale?: Record<string, string>;
+          } | null;
+        }
+      | undefined;
+
+    if (data?.available === false) {
+      return {
+        meta: [
+          { title: "Loadout Temporarily Unavailable — HawkBucks" },
+          { name: "description", content: "The Loadouts section is temporarily unavailable." },
+          { name: "robots", content: "noindex, nofollow" },
+        ],
+        links: [],
+        scripts: [],
+      };
+    }
+
+    const loadout = data?.loadout;
     const path = loadout ? loadoutDetailPath(loadout.slug) : "/loadouts";
     const seo = resolveCmsSeo({
       status: loadout ? "published" : "draft",
@@ -119,12 +143,13 @@ export const Route = createFileRoute("/loadouts/$slug")({
   component: LoadoutDetailRoute,
 });
 function LoadoutDetailRoute() {
-  const { loadout } = Route.useLoaderData() as {
-    loadout: import("@/lib/cms/public-loadout-detail.loader").PublicLoadoutDetail;
-  };
+  const data = Route.useLoaderData();
+  if (!data.available || !data.loadout) {
+    return <SectionUnavailableState section="loadouts" message={data.unavailableMessage} />;
+  }
   return (
     <I18nProvider initialLanguage="en" fixedLanguage="en">
-      <LoadoutDetail loadout={loadout} locale="en" backHref="/loadouts" />
+      <LoadoutDetail loadout={data.loadout as never} locale="en" backHref="/loadouts" />
     </I18nProvider>
   );
 }

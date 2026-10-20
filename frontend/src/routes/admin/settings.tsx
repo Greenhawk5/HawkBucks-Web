@@ -2,6 +2,9 @@ import { createFileRoute } from "@tanstack/react-router";
 
 import { getAdminSession } from "@/lib/cms/admin.loader";
 import { getSettingsStatus, type SettingsStatus } from "@/lib/cms/settings-status.loader";
+import { getFeatureAvailabilityAdmin } from "@/lib/cms/feature-availability.loader";
+import { DEFAULT_FEATURE_AVAILABILITY } from "@/lib/cms/feature-availability";
+import { FeatureAvailabilityManager } from "@/components/cms/FeatureAvailabilityManager";
 import { CmsShell } from "@/components/cms/cc/CmsShell";
 import {
   CmsRouteErrorStandalone,
@@ -22,14 +25,18 @@ const CMS_ROLES = ["viewer", "editor", "admin"] as const;
 type LoaderData = {
   session: Awaited<ReturnType<typeof getAdminSession>>;
   status: SettingsStatus | null;
+  availability: Awaited<ReturnType<typeof getFeatureAvailabilityAdmin>> | null;
 };
 
 export const Route = createFileRoute("/admin/settings")({
   loader: async (): Promise<LoaderData> => {
     const session = await getAdminSession();
-    if (!session.authenticated) return { session, status: null };
-    const status = await getSettingsStatus({ data: {} }).catch(() => null);
-    return { session, status };
+    if (!session.authenticated) return { session, status: null, availability: null };
+    const [status, availability] = await Promise.all([
+      getSettingsStatus({ data: {} }).catch(() => null),
+      getFeatureAvailabilityAdmin({ data: {} }).catch(() => null),
+    ]);
+    return { session, status, availability };
   },
   head: () => ({
     meta: [
@@ -45,7 +52,7 @@ export const Route = createFileRoute("/admin/settings")({
 });
 
 function SettingsAdmin() {
-  const { session, status } = Route.useLoaderData() as LoaderData;
+  const { session, status, availability } = Route.useLoaderData() as LoaderData;
   if (!session.authenticated || !session.user) return <CmsSignInRequired title="Settings" />;
   return (
     <CmsShell active="settings" sessionUser={session.user} expiresAt={session.expiresAt}>
@@ -53,7 +60,14 @@ function SettingsAdmin() {
         <CmsPageHeader
           eyebrow="Operations · Settings"
           title="Settings"
-          description="Read-only posture facts about this Control Center — identity, capabilities, environment, and security status. Nothing editable lives here by design, so no production secret can ever enter a client bundle."
+          description="Control Center posture and feature availability controls. Manage section availability to conserve database reads and protect system quota during maintenance or peak traffic."
+        />
+
+        {/* Feature availability & database read protection */}
+        <FeatureAvailabilityManager
+          initialConfig={availability?.config ?? DEFAULT_FEATURE_AVAILABILITY}
+          initialUpdatedAt={availability?.updatedAt ?? ""}
+          canManage={session.user.role === "admin"}
         />
 
         {/* General — who is signed in */}
@@ -223,9 +237,10 @@ function SettingsAdmin() {
         </section>
 
         <CmsNotice kind="info">
-          There are no editable settings: sessions, roles, and environment bindings are managed
-          through server configuration and deployment, not through this browser UI — by design, so
-          no production secret can ever enter a client bundle.
+          Environment bindings, secrets, and role assignments are managed through server
+          configuration and deployment. Public section availability and database read protection
+          above can be managed in real time by Control Center administrators without requiring a
+          code deployment.
         </CmsNotice>
       </div>
     </CmsShell>
